@@ -11,9 +11,9 @@ use byteorder::{LittleEndian, ReadBytesExt};
 
 pub fn is_thumb32(word: u16) -> bool 
 {
-	match word >> 11
-	{
-		0b11101 | 0b11110 | 0b11111 => true,
+    match word >> 11
+    {
+        0b11101 | 0b11110 | 0b11111 => true,
 		_ => false
 	}
 }
@@ -152,7 +152,8 @@ pub enum Op{
 	MVN,
 	ADD,
 	BX,
-	BLX
+	BLX,
+    BL
 }
 
 
@@ -197,10 +198,10 @@ pub fn decode_16(command : u16) -> Option<Op>
 			0b010001_0110_000000 |
 			0b010001_0111_000000 => Some(Op::CMP),
 			0b010001_1000_000000 | 
-			0b010001_1001_000000 | 
-			0b010001_1010_000000 |
-		        0b010001_1011_000000 =>	Some(Op::MOV{
-					rd : from_u8(((command & 8) + ((command & 0x80)) >> 4) as u8).unwrap(), 
+            0b010001_1001_000000 | 
+            0b010001_1010_000000 |
+		    0b010001_1011_000000 =>	Some(Op::MOV{
+                        rd : from_u8(((command & 8) + ((command & 0x80)) >> 4) as u8).unwrap(), 
 				        rm : from_u8(((command >> 3) & 0xf) as u8).unwrap()}),
 			0b010001_1100_000000 => Some(Op::BX),
 			0b010001_1110_000000 |
@@ -223,20 +224,31 @@ pub fn decode_16(command : u16) -> Option<Op>
 
 pub fn decode_32(t1 : u16, t2 : u16) -> Option<Op>
 {
-	println!("t1 = {}, t2 = {}", t1, t2);
-	Some(Op::MOV{rd:Reg::R0,rm:Reg::R1})
+	println!("decoding {:x} {:x}", t1, t2);
+    match t1 & 0b1111000000000000 
+    {
+        0b111100000000000 => 
+        {
+            match t2 & 0b1111000000000000 
+            {
+                0b1111000000000000 | 0b1101000000000000 => { println!("BL"); Some(Op::BL)},
+                _=> None
+            }
+        },
+        _=> None
+    }
 }
 
 pub fn execute(core : &mut Core, op : Option<Op>)
 {
 	match op {
-		None => {},
+		None => {panic!("unknown operation");},
 		Some(oper) => {
 			match oper{
 				Op::MOV{rd,rm} =>{ core.r[to_u8(rd) as usize] = core.r[to_u8(rm) as usize];
 				 		   core.pc = core.pc + 2; },
 				Op::MOVS{rd,rm} => {},
-				_ => {}
+				_ => {panic!("unimplemented op");}
 			}
 		}
 	}
@@ -283,6 +295,7 @@ fn test_is_thumb32() {
    assert!(is_thumb32(0b1110000000000000) == false);
    assert!(is_thumb32(0b1111111111111111));
    assert!(is_thumb32(0b0000000000000001) == false);
+   assert!(is_thumb32(0xf7ff));
 }
 
 #[test]
@@ -354,6 +367,14 @@ fn test_decode_thumb16(){
    }
 }
 
+#[test]
+fn test_decode_thumb32(){
+   match decode_32(0xf7ff, 0xffba).unwrap(){
+   	Op::BL => {},
+	_ => {assert!(false);}
+   }
+
+} 
 struct ConstMemory<'a> {
 	reader :  Cursor<&'a[u8]>
 }
