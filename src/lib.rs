@@ -132,7 +132,8 @@ fn to_u8(reg : Reg) -> u8 {
 pub enum Op{
 	MOV{rd : Reg, rm : Reg},
 	MOVS{rd : Reg, rm : Reg},
-	LSL,
+    MOVS_imm{rd : Reg, imm :u32},
+    LSL,
 	LSR,
 	ASR,
 	AND,
@@ -151,6 +152,7 @@ pub enum Op{
 	ADD,
 	BX,
 	BLX,
+    SUB,
     BL{offset : i32}
 }
 
@@ -163,10 +165,15 @@ pub fn decode_16(command : u16) -> Option<Op>
 		0b0000_0000_0000_0000_u16 => {
 		// Shift, add, substract, move and compare
 		match command & 0x3800 {
-			0b000_00_0_00000000 => Some(Op::LSL),
-			0b001_00_0_00000000 => Some(Op::LSR),
-			0b010_00_0_00000000 => Some(Op::ASR),
-			0b100_00_0_00000000 => None,
+			0b00000_00_0_00000000 => Some(Op::LSL),
+			0b00001_00_0_00000000 => Some(Op::LSR),
+			0b00010_00_0_00000000 => Some(Op::ASR),
+            0b00011_00_0_00000000 => None, //ADD, SUB, ADD 3-bit, SUB 3-bit immediate
+			0b001_00_000_00000000 => Some(Op::MOVS_imm{rd : from_u8((bits16(command,8,3)&7 as u16) as u8).unwrap(),
+            imm : (command & 0xff) as u32}),
+            0b00101_00_0_00000000 => Some(Op::CMP),
+            0b00110_00_0_00000000 => Some(Op::ADD),
+            0b00111_00_0_00000000 => Some(Op::SUB),
 			_ => None
 		} 
 		},
@@ -282,10 +289,11 @@ pub fn execute(core : &mut Core, op : Option<Op>)
 		None => {panic!("unknown operation");},
 		Some(oper) => {
 			match oper{
-				Op::MOV{rd,rm} =>{ core.r[to_u8(rd) as usize] = core.r[to_u8(rm) as usize];
-				 		   core.pc = core.pc + 2; },
-				Op::MOVS{rd,rm} => {},
-                Op::BL{offset} => {core.pc = 4 + ((core.pc as i32)+ offset) as u32;},
+				Op::MOV{rd,rm} => { core.r[to_u8(rd) as usize] = core.r[to_u8(rm) as usize];
+				 		            core.pc = core.pc + 2; },
+				Op::MOVS_imm{rd,imm} => {core.pc = core.pc + 2;
+                                         core.r[to_u8(rd) as usize] = imm; },
+                Op::BL{offset} => {core.pc = 4 + ((core.pc as i32) + offset) as u32; },
 				_ => {panic!("unimplemented op");}
 			}
 		}
@@ -433,13 +441,25 @@ fn test_decode_thumb16(){
    	Op::MOV {rd,rm} => {assert!(rd == Reg::R0); assert!(rm == Reg::R15);},
 	_ => {assert!(false);}
    }
+    
+   match decode_16(0x2001).unwrap(){
+   	Op::MOVS_imm {rd,imm} => {assert!(rd == Reg::R0); assert!(imm == 1);},
+	_ => {assert!(false);}
+   }
+   
 }
 
 #[test]
 fn test_decode_thumb32(){
    match decode_32(0xf7ff, 0xffba).unwrap(){
-   	Op::BL{offset} => {println!("offset = {}", offset);assert!(offset == 15);},
+   	Op::BL{offset} => {assert!(offset == -140);},
 	_ => {assert!(false);}
+   }
+
+   match decode_32(0xf000, 0xf80b).unwrap(){
+    Op::BL{offset} => {println!("offset = {}\n", offset);assert!(offset == 22);},
+    _ => {assert!(false);}
+
    }
 
 } 
