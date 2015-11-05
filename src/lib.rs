@@ -28,13 +28,64 @@ enum ProcessorMode {
 	HandlerMode
 }
 
+pub struct APSR {
+    value : u32
+}
+
+impl ApsrBits for APSR {
+
+    fn set_n(&mut self, n : bool) {
+        self.value = match n {
+            true => self.value | (1<<31),
+            false => self.value & !(1<<31)
+        }
+    }
+
+    fn set_z(&mut self, z : bool) {
+        self.value = match z {
+            true => self.value | (1<<30),
+            false => self.value & !(1<<30)
+        }
+    }
+
+    fn set_c(&mut self, c : bool) {
+        self.value = match c {
+            true => self.value | (1<<29),
+            false => self.value & !(1<<29)
+        }
+    }
+
+    fn set_v(&mut self, v : bool) {
+        self.value = match v {
+            true => self.value | (1<<28),
+            false => self.value & !(1<<28)
+        }
+    }
+
+    fn get_n(&self) -> bool {
+        (self.value & 31) != 0
+    }
+    fn get_z(&self) -> bool {
+        (self.value & 30) != 0
+    }
+    fn get_c(&self) -> bool {
+        (self.value & 29) != 0
+    }
+    fn get_v(&self) -> bool {
+        (self.value & 28) != 0
+    }
+
+}
+
+
+
 pub struct Core {
 	pc: u32,
 	lr: u32,
 	sp: StackPointer,	
 	r : [u32; 15],
 	psr: u32,
-	apsr: u32,
+	apsr: APSR,
 	ipsr: u32,
 	epsr: u32,
 	primask: u32,
@@ -51,7 +102,7 @@ impl Core {
 			lr : 0,
 			sp : StackPointer::MSP(0),
 			psr : 0,
-			apsr : 0,
+			apsr : APSR {value : 0},
 			ipsr : 0,
 			epsr : 0,
 			primask : 0,
@@ -64,6 +115,20 @@ impl Core {
 pub trait Fetch {
 	fn fetch32(&mut self, addr : u32) -> u32;
 	fn fetch16(&mut self, addr : u32) -> u16;
+}
+
+pub trait ApsrBits {
+
+    fn set_n(&mut self, n : bool);
+    fn set_z(&mut self, z : bool);
+    fn set_c(&mut self, c : bool); 
+    fn set_v(&mut self, v : bool); 
+
+    fn get_n(&self) -> bool;
+    fn get_z(&self) -> bool;
+    fn get_c(&self) -> bool;
+    fn get_v(&self) -> bool;
+
 }
 
 #[derive(PartialEq)]
@@ -292,7 +357,10 @@ pub fn execute(core : &mut Core, op : Option<Op>)
 				Op::MOV{rd,rm} => { core.r[to_u8(rd) as usize] = core.r[to_u8(rm) as usize];
 				 		            core.pc = core.pc + 2; },
 				Op::MOVS_imm{rd,imm} => {core.pc = core.pc + 2;
-                                         core.r[to_u8(rd) as usize] = imm; },
+                                         core.r[to_u8(rd) as usize] = imm; 
+                                         core.apsr.set_n((imm & (1<<31)) != 0);
+                                         core.apsr.set_z(imm == 0);
+                                        },
                 Op::BL{offset} => {core.pc = 4 + ((core.pc as i32) + offset) as u32; },
 				_ => {panic!("unimplemented op");}
 			}
@@ -326,7 +394,7 @@ pub fn run_bin<T: Fetch>(memory : &mut T)
 	core.sp = StackPointer::MSP(sp);
 
 	loop {
-		println!("pc = {}", core.pc);
+		println!("pc = {}, apsr = {}", core.pc, core.apsr.value);
         	let pc = core.pc;
 		let op = fetch_and_decode(memory, pc);
 		execute(&mut core, op);
