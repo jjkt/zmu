@@ -6,8 +6,9 @@ use std::io::SeekFrom;
 use std::io::Seek;
 
 extern crate byteorder;
+extern crate bit_field;
 use byteorder::{LittleEndian, ReadBytesExt};
-
+use bit_field::BitField;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word >> 11 {
@@ -26,18 +27,83 @@ enum ProcessorMode {
     HandlerMode,
 }
 
-pub struct Register {}
+trait Apsr {
+    fn get_n(&self) -> bool;
+    fn set_n(&mut self, n: bool);
+
+    fn get_z(&self) -> bool;
+    fn set_z(&mut self, z: bool);
+
+    fn get_c(&self) -> bool;
+    fn set_c(&mut self, c: bool);
+
+    fn get_v(&self) -> bool;
+    fn set_v(&mut self, v: bool);
+
+    fn get_q(&self) -> bool;
+    fn set_q(&mut self, q: bool);
+}
+
+trait Ipsr {
+    fn get_exception_number(&self) -> u8;
+}
+
+trait Primask {
+    fn get_primask(&self) -> bool;
+}
+
+trait ControlRegister {
+    fn get_active_stack_pointer(&self) -> StackPointer;
+}
+
+
+impl Apsr for u32 {
+    fn get_n(&self) -> bool {
+        (*self).get_bit(31)
+    }
+    fn set_n(&mut self, n: bool) {
+        (*self).set_bit(31, n);
+    }
+
+    fn get_z(&self) -> bool {
+        (*self).get_bit(30)
+    }
+    fn set_z(&mut self, z: bool) {
+        (*self).set_bit(30, z);
+    }
+
+    fn get_c(&self) -> bool {
+        (*self).get_bit(29)
+    }
+    fn set_c(&mut self, c: bool) {
+        (*self).set_bit(29, c);
+    }
+    fn get_v(&self) -> bool {
+        (*self).get_bit(28)
+    }
+    fn set_v(&mut self, v: bool) {
+        (*self).set_bit(28, v);
+    }
+
+    fn get_q(&self) -> bool {
+        (*self).get_bit(27)
+    }
+    fn set_q(&mut self, q: bool) {
+        (*self).set_bit(27, q);
+    }
+}
 
 
 pub struct Core {
     pc: u32,
-    sp: StackPointer,
+    msp: u32,
+    psp: u32,
     r: [u32; 15],
 
-    psr: u32,
     apsr: u32,
     ipsr: u32,
     epsr: u32,
+
     primask: u32,
     control: u32,
 
@@ -49,8 +115,8 @@ impl Core {
         Core {
             mode: ProcessorMode::ThreadMode,
             pc: 0,
-            sp: StackPointer::MSP(0),
-            psr: 0,
+            msp: 0,
+            psp: 0,
             apsr: 0,
             ipsr: 0,
             epsr: 0,
@@ -64,6 +130,68 @@ impl Core {
 pub trait Fetch {
     fn fetch32(&mut self, addr: u32) -> u32;
     fn fetch16(&mut self, addr: u32) -> u16;
+}
+
+#[derive(PartialEq)]
+pub enum Condition {
+    EQ, // Equal
+    NE, // Not Equal
+    CS, // Carry Set
+    CC, // Carry clear
+    MI, // Minus, negative
+    PL, // Plus, positive or zero
+    VS, // Overflow
+    VC, // No overflow
+    HI, // Unsigned higher
+    LS, // Unsigned lower or same
+    GE, // Signer greater than or equal
+    LT, // Signed less than
+    GT, // Signed greater than
+    LE, // Signed less than or equal
+    AL, // None or (AL = optional mnemonic extension for always)
+}
+
+impl Condition {
+    fn value(&self) -> usize {
+        match *self {
+            Condition::EQ => 0b0000, 
+            Condition::NE => 0b0001, 
+            Condition::CS => 0b0010, 
+            Condition::CC => 0b0011, 
+            Condition::MI => 0b0100, 
+            Condition::PL => 0b0101, 
+            Condition::VS => 0b0110, 
+            Condition::VC => 0b0111, 
+            Condition::HI => 0b1000, 
+            Condition::LS => 0b1001, 
+            Condition::GE => 0b1010, 
+            Condition::LT => 0b1011, 
+            Condition::GT => 0b1100, 
+            Condition::LE => 0b1101, 
+            Condition::AL => 0b1110, 
+        }
+    }
+
+    fn from_u16(n: u16) -> Option<Condition> {
+        match n {
+            0 => Some(Condition::EQ),
+            1 => Some(Condition::NE),
+            2 => Some(Condition::CS),
+            3 => Some(Condition::CC),
+            4 => Some(Condition::MI),
+            5 => Some(Condition::PL),
+            6 => Some(Condition::VS),
+            7 => Some(Condition::VC),
+            8 => Some(Condition::HI),
+            9 => Some(Condition::LS),
+            10 => Some(Condition::GE),
+            11 => Some(Condition::LT),
+            12 => Some(Condition::GT),
+            13 => Some(Condition::LE),
+            14 => Some(Condition::AL),
+            _ => None,
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -107,51 +235,34 @@ impl Reg {
             Reg::PC => 15,
         }
     }
-}
 
-fn from_u8(n: u8) -> Option<Reg> {
-    match n {
-        0 => Some(Reg::R0),
-        1 => Some(Reg::R1),
-        2 => Some(Reg::R2),
-        3 => Some(Reg::R3),
-        4 => Some(Reg::R4),
-        5 => Some(Reg::R5),
-        6 => Some(Reg::R6),
-        7 => Some(Reg::R7),
-        8 => Some(Reg::R8),
-        9 => Some(Reg::R9),
-        10 => Some(Reg::R10),
-        11 => Some(Reg::R11),
-        12 => Some(Reg::R12),
-        13 => Some(Reg::SP),
-        14 => Some(Reg::LR),
-        15 => Some(Reg::PC),
-        _ => None,
+    fn from_u16(n: u16) -> Option<Reg> {
+        match n {
+            0 => Some(Reg::R0),
+            1 => Some(Reg::R1),
+            2 => Some(Reg::R2),
+            3 => Some(Reg::R3),
+            4 => Some(Reg::R4),
+            5 => Some(Reg::R5),
+            6 => Some(Reg::R6),
+            7 => Some(Reg::R7),
+            8 => Some(Reg::R8),
+            9 => Some(Reg::R9),
+            10 => Some(Reg::R10),
+            11 => Some(Reg::R11),
+            12 => Some(Reg::R12),
+            13 => Some(Reg::SP),
+            14 => Some(Reg::LR),
+            15 => Some(Reg::PC),
+            _ => None,
+        }
     }
 }
 
-fn to_u8(reg: Reg) -> u8 {
-    match reg {
-        Reg::R0 => 0,	
-        Reg::R1 => 1,
-        Reg::R2 => 2,
-        Reg::R3 => 3,
-        Reg::R4 => 4,
-        Reg::R5 => 5,
-        Reg::R6 => 6,
-        Reg::R7 => 7,
-        Reg::R8 => 8,
-        Reg::R9 => 9,
-        Reg::R10 => 10,
-        Reg::R11 => 11,
-        Reg::R12 => 12,
-        Reg::SP => 13,
-        Reg::LR => 14,
-        Reg::PC => 15,
-    }
-}
 
+
+
+#[allow(non_camel_case_types)]
 pub enum Op {
     MOV { rd: Reg, rm: Reg },
     MOV_imm8 { rd: Reg, imm8: u8 },
@@ -166,7 +277,7 @@ pub enum Op {
     TST,
     RSB,
     CMP,
-    CMP_imm8,
+    CMP_imm8 { rn: Reg, imm8: u8 },
     CMN,
     ORR,
     MUL,
@@ -181,6 +292,10 @@ pub enum Op {
     BX { rm: Reg },
     BLX,
     BL { imm32: i32 },
+    B_imm8 { cond: Condition, imm8: u8 },
+    B_imm11 { imm11: u16 },
+    SVC,
+    UDF,
 }
 
 
@@ -199,11 +314,17 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 0b011_11 => Some(Op::SUB_imm3),
                 0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => {
                     Some(Op::MOV_imm8 {
-                        rd: from_u8((((command & 0b111_0000_0000)) >> 8) as u8).unwrap(),
-                        imm8: (command & 0xff) as u8,
+                        //rd: reg_from_u8((((command & 0b111_0000_0000)) >> 8) as u8).unwrap(),
+                        rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+                        imm8: command.get_bits(0..8) as u8,
                     })
                 }
-                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(Op::CMP_imm8),
+                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => {
+                    Some(Op::CMP_imm8 {
+                        rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+                        imm8: command.get_bits(0..8) as u8,
+                    })
+                }
                 0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => Some(Op::ADD_imm8),
                 0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => Some(Op::ADD_imm8),
                 0b100_00_0_00000000 => None,
@@ -212,9 +333,6 @@ pub fn decode_16(command: u16) -> Option<Op> {
         }
         0b0100_0000_0000_0000_u16 => {
             // data process, special data, load from lp...
-            println!("special data: 0x{:x} & 0xffc0 = 0x{:x}",
-                     command,
-                     command & 0xffc0);
             match command & 0xffc0 {
                 0b010000_0000_000000_u16 => Some(Op::AND),
                 0b010000_0001_000000_u16 => Some(Op::EOR),
@@ -243,12 +361,12 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 0b010001_1010_000000_u16 |
                 0b0100_0110_1100_0000_u16 => {
                     Some(Op::MOV {
-                        rd: from_u8(((command & 8) + ((command & 0x80)) >> 4) as u8).unwrap(),
-                        rm: from_u8(((command >> 3) & 0xf) as u8).unwrap(),
+                        rd: Reg::from_u16((command & 8) + ((command & 0x80)) >> 4).unwrap(),
+                        rm: Reg::from_u16((command >> 3) & 0xf).unwrap(),
                     })
                 }
                 0b0100_0111_0100_0000_u16 => {
-                    Some(Op::BX { rm: from_u8(((command >> 3) & 0xf) as u8).unwrap() })
+                    Some(Op::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() })
                 }
                 0b010001_1110_000000_u16 |
                 0b010001_1111_000000_u16 => Some(Op::BLX),
@@ -262,13 +380,39 @@ pub fn decode_16(command: u16) -> Option<Op> {
         }
         0b1100_0000_0000_0000_u16 => {
             // store, load multiple, branch, svc, uncond branch
-            None
+            println!("maybe branch 0x{:x} {:b}",
+                     command,
+                     command.get_bits(12..16));
+            match command.get_bits(12..16) {
+                0b1101 => {
+                    println!("maybe branch {:b}", command.get_bits(12..16));
+                    let cond = command.get_bits(8..12);
+                    if cond == 0b1111 {
+                        return Some(Op::SVC);
+                    }
+                    if cond == 0b1110 {
+                        return Some(Op::UDF);
+                    }
+
+                    Some(Op::B_imm8 {
+                        cond: Condition::from_u16(cond).unwrap(),
+                        imm8: command.get_bits(0..8) as u8,
+                    })
+
+                }
+                0b1110 => {
+                    // TODOcould be B_imm11
+                    None
+                }
+                _ => None,
+
+            }
         }
         _ => None,
     }
 }
 
-pub fn SignExtend(word: u32, topbit: u8, size: u8) -> i32 {
+pub fn sign_extend(word: u32, topbit: u8, size: u8) -> i32 {
     if word & (1 << topbit) == (1 << topbit) {
         return (word | (((1 << (size - topbit)) - 1) << topbit)) as i32;
     }
@@ -293,10 +437,10 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Op> {
             let i1 = ((j1 ^ s) ^ 1) as u32;
             let i2 = ((j2 ^ s) ^ 1) as u32;
 
-            let imm = SignExtend((imm11 << 1) + (imm10 << 12) + (i2 << 22) + (i1 << 23) +
-                                 (s << 24),
-                                 24,
-                                 32);
+            let imm = sign_extend((imm11 << 1) + (imm10 << 12) + (i2 << 22) + (i1 << 23) +
+                                  (s << 24),
+                                  24,
+                                  32);
 
             Some(Op::BL { imm32: imm as i32 })
         }
@@ -315,6 +459,10 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Op> {
 pub fn decode_32(t1: u16, t2: u16) -> Option<Op> {
     println!("decoding thumb32: 0x{:X} 0x{:X}", t1, t2);
 
+    //let op1 = (t1 >> 11) & 0x03;
+    // 1010 1010 1010 1010
+    // 1010 1
+
     let op1 = (t1 >> 11) & 0x03;
     let op = (t2 >> 15) & 0x01;
 
@@ -329,6 +477,58 @@ pub fn decode_32(t1: u16, t2: u16) -> Option<Op> {
     decode_branch_and_misc(t1, t2)
 }
 
+//
+// Add two numbers and carry
+//
+// x + y + carry
+//
+// return tuple of (result, carry, overflow)
+//
+fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
+    let unsigned_sum = x as u64 + y as u64 + (carry_in as u64);
+    let signed_sum = (x as i32) + (y as i32) + (carry_in as i32);
+    let result = (unsigned_sum & 0xffffffff) as u32; // same value as signed_sum<N-1:0>
+    let carry_out = (result as u64) != unsigned_sum;
+    let overflow = (result as i32) != signed_sum;
+
+    (result, carry_out, overflow)
+}
+
+//
+// This function performs the condition test for an instruction, based on:
+// • the two Thumb conditional branch encodings, encodings T1 andT3 of the B instruction
+// • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
+//
+fn condition_passed(condition: Condition, aspr: &u32) -> bool {
+
+    match condition {
+        Condition::EQ => aspr.get_z(),
+        Condition::NE => !aspr.get_z(),
+        Condition::CS => aspr.get_c(),
+        Condition::CC => !aspr.get_c(),
+        Condition::MI => aspr.get_n(),
+        Condition::PL => !aspr.get_n(),
+
+        Condition::VS => aspr.get_v(),
+        Condition::VC => !aspr.get_v(),
+
+        Condition::HI => aspr.get_c() && aspr.get_z(),
+        Condition::LS => !(aspr.get_c() && aspr.get_z()),
+
+        Condition::GE => aspr.get_n() == aspr.get_v(),
+        Condition::LT => !(aspr.get_n() == aspr.get_v()),
+
+        Condition::GT => (aspr.get_n() == aspr.get_v()) && !aspr.get_z(),
+        Condition::LE => !((aspr.get_n() == aspr.get_v()) && !aspr.get_z()),
+
+        Condition::AL => true,
+
+    }
+
+
+
+}
+
 pub fn execute(core: &mut Core, op: Option<Op>) {
     match op {
         None => panic!("undefined code"),
@@ -336,7 +536,7 @@ pub fn execute(core: &mut Core, op: Option<Op>) {
             match oper {
                 Op::MOV { rd, rm } => {
                     core.pc = core.pc + 2;
-                    core.r[to_u8(rd) as usize] = core.r[to_u8(rm) as usize];
+                    core.r[rd.value() as usize] = core.r[rm.value()];
                 }
                 Op::BL { imm32 } => {
                     core.pc = core.pc + 4; // thumb32 instruction
@@ -345,11 +545,32 @@ pub fn execute(core: &mut Core, op: Option<Op>) {
                 }
                 Op::BX { rm } => {
                     core.pc = core.pc + 2;
-                    core.pc = core.r[to_u8(rm) as usize];
+                    core.pc = core.r[rm.value() as usize] & 0xfffffffe;
                 }
                 Op::MOV_imm8 { rd, imm8 } => {
                     core.pc = core.pc + 2;
-                    core.r[to_u8(rd) as usize] = imm8 as u32;
+                    core.r[rd.value()] = imm8 as u32;
+                }
+                Op::B_imm8 { cond, imm8 } => {
+                    core.pc = core.pc + 2;
+                    let imm32 = sign_extend(imm8 as u32, 8, 32);
+                    if condition_passed(cond, &core.apsr) {
+                        core.pc = ((core.pc as i32) + imm32) as u32;
+                    }
+
+                }
+                Op::CMP_imm8 { rn, imm8 } => {
+                    core.pc = core.pc + 2;
+                    let imm32 = imm8 as u32;
+                    let (result, carry, overflow) =
+                        add_with_carry(core.r[rn.value()], imm32 ^ 0xFFFFFFFF, true);
+                    core.apsr.set_n(result.get_bit(31));
+                    core.apsr.set_z(result == 0);
+                    core.apsr.set_c(carry);
+                    core.apsr.set_v(overflow);
+
+                    println!(" apsr is 0x{:x}", core.apsr);
+                    core.r[rn.value()] = imm8 as u32;
                 }
                 _ => {}
             }
@@ -375,8 +596,7 @@ pub fn run_bin<T: Fetch>(memory: &mut T) {
 
     core.pc = reset_vector & 0xfffffffe;
     core.epsr = (reset_vector & 1) << 24;
-    let sp = memory.fetch32(0);
-    core.sp = StackPointer::MSP(sp);
+    core.msp = memory.fetch32(0);
 
     loop {
         println!("pc = 0x{:X}", core.pc);
@@ -564,6 +784,37 @@ fn test_decode_thumb16() {
             assert!(false);
         }
     }
+    //CMP R0, R0
+    match decode_16(0x2800).unwrap() {
+        Op::CMP_imm8 { rn, imm8 } => {
+            assert!(rn == Reg::R0);
+            assert!(imm8 == 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // BEQ.N
+    match decode_16(0xd001).unwrap() {
+        Op::B_imm8 { cond, imm8 } => {
+            assert!(cond == Condition::EQ);
+            assert!(imm8 == 2);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+    // PUSH  {R4, LR}
+    match decode_16(0xb510).unwrap() {
+        Op::PUSH { cond, imm8 } => {
+            assert!(cond == Condition::EQ);
+            assert!(imm8 == 2);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
 
 }
 
@@ -579,12 +830,12 @@ impl<'a> ConstMemory<'a> {
 
 impl<'a> Fetch for ConstMemory<'a> {
     fn fetch16(&mut self, addr: u32) -> u16 {
-        self.reader.seek(SeekFrom::Start(addr as u64));
+        self.reader.seek(SeekFrom::Start(addr as u64)).unwrap();
         self.reader.read_u16::<LittleEndian>().unwrap()
     }
 
     fn fetch32(&mut self, addr: u32) -> u32 {
-        self.reader.seek(SeekFrom::Start(addr as u64));
+        self.reader.seek(SeekFrom::Start(addr as u64)).unwrap();
         self.reader.read_u32::<LittleEndian>().unwrap()
     }
 }
