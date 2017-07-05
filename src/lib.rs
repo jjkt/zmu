@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-/* http://ecee.colorado.edu/ecen3000/labs/lab3/files/DDI0419C_arm_architecture_v6m_reference_manual.pdf */
+// http://ecee.colorado.
+// edu/ecen3000/labs/lab3/files/DDI0419C_arm_architecture_v6m_reference_manual.
+// pdf
 use std::io::Cursor;
 use std::io::SeekFrom;
 use std::io::Seek;
@@ -840,6 +842,10 @@ impl<'a> Fetch for ConstMemory<'a> {
     }
 }
 
+
+// ---------------------------------------------------------
+// TESTS BELOW
+// ---------------------------------------------------------
 
 #[test]
 fn test_hello_world() {
