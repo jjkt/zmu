@@ -1,16 +1,18 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-// http://ecee.colorado.
-// edu/ecen3000/labs/lab3/files/DDI0419C_arm_architecture_v6m_reference_manual.
-// pdf
+// http://ecee.colorado.edu/ecen3000/labs/lab3/files/DDI0419C_arm_architecture_v6m_reference_manual.pdf
 use std::io::Cursor;
 use std::io::SeekFrom;
 use std::io::Seek;
+use std::mem;
 
 extern crate byteorder;
 extern crate bit_field;
-use byteorder::{LittleEndian, ReadBytesExt};
+extern crate enum_set;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use bit_field::BitField;
+use enum_set::EnumSet;
+use enum_set::CLike;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word >> 11 {
@@ -132,6 +134,7 @@ impl Core {
 pub trait Fetch {
     fn fetch32(&mut self, addr: u32) -> u32;
     fn fetch16(&mut self, addr: u32) -> u16;
+    fn write32(&mut self, addr: u32, value: u32);
 }
 
 #[derive(PartialEq)]
@@ -196,7 +199,8 @@ impl Condition {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
 pub enum Reg {
     R0,
     R1,
@@ -214,6 +218,16 @@ pub enum Reg {
     SP,
     LR,
     PC,
+}
+
+impl CLike for Reg {
+    fn to_u32(&self) -> u32 {
+        *self as u32
+    }
+
+    unsafe fn from_u32(v: u32) -> Reg {
+        mem::transmute(v)
+    }
 }
 
 impl Reg {
@@ -298,6 +312,8 @@ pub enum Op {
     B_imm11 { imm11: u16 },
     SVC,
     UDF,
+    PUSH { registers: EnumSet<Reg> },
+    POP { registers: EnumSet<Reg> },
 }
 
 
@@ -378,16 +394,83 @@ pub fn decode_16(command: u16) -> Option<Op> {
         }
         0b1000_0000_0000_0000_u16 => {
             // generate pc relative addr, sp rela, misc
-            None
+            match command.get_bits(9..14) {
+                0b11110 => {
+                    let mut regs: EnumSet<Reg> = EnumSet::new();
+                    let reg_bits = command.get_bits(0..8);
+
+                    if reg_bits & 1 == 1 {
+                        regs.insert(Reg::R0);
+                    }
+                    if reg_bits & 2 == 2 {
+                        regs.insert(Reg::R1);
+                    }
+                    if reg_bits & 4 == 4 {
+                        regs.insert(Reg::R2);
+                    }
+                    if reg_bits & 8 == 8 {
+                        regs.insert(Reg::R3);
+                    }
+                    if reg_bits & 16 == 16 {
+                        regs.insert(Reg::R4);
+                    }
+                    if reg_bits & 32 == 32 {
+                        regs.insert(Reg::R5);
+                    }
+                    if reg_bits & 64 == 64 {
+                        regs.insert(Reg::R6);
+                    }
+                    if reg_bits & 128 == 128 {
+                        regs.insert(Reg::R7);
+                    }
+
+                    if command.get_bit(8) {
+                        regs.insert(Reg::LR);
+                    }
+
+                    Some(Op::POP { registers: regs })
+                }
+                0b11010 => {
+                    let mut regs: EnumSet<Reg> = EnumSet::new();
+                    let reg_bits = command.get_bits(0..8);
+
+                    if reg_bits & 1 == 1 {
+                        regs.insert(Reg::R0);
+                    }
+                    if reg_bits & 2 == 2 {
+                        regs.insert(Reg::R1);
+                    }
+                    if reg_bits & 4 == 4 {
+                        regs.insert(Reg::R2);
+                    }
+                    if reg_bits & 8 == 8 {
+                        regs.insert(Reg::R3);
+                    }
+                    if reg_bits & 16 == 16 {
+                        regs.insert(Reg::R4);
+                    }
+                    if reg_bits & 32 == 32 {
+                        regs.insert(Reg::R5);
+                    }
+                    if reg_bits & 64 == 64 {
+                        regs.insert(Reg::R6);
+                    }
+                    if reg_bits & 128 == 128 {
+                        regs.insert(Reg::R7);
+                    }
+                    if command.get_bit(8) {
+                        regs.insert(Reg::LR);
+                    }
+
+                    Some(Op::PUSH { registers: regs })
+                }
+                _ => None,
+            }
         }
         0b1100_0000_0000_0000_u16 => {
             // store, load multiple, branch, svc, uncond branch
-            println!("maybe branch 0x{:x} {:b}",
-                     command,
-                     command.get_bits(12..16));
             match command.get_bits(12..16) {
                 0b1101 => {
-                    println!("maybe branch {:b}", command.get_bits(12..16));
                     let cond = command.get_bits(8..12);
                     if cond == 0b1111 {
                         return Some(Op::SVC);
@@ -531,7 +614,7 @@ fn condition_passed(condition: Condition, aspr: &u32) -> bool {
 
 }
 
-pub fn execute(core: &mut Core, op: Option<Op>) {
+pub fn execute<T: Fetch>(core: &mut Core, op: Option<Op>, memory: &mut T) {
     match op {
         None => panic!("undefined code"),
         Some(oper) => {
@@ -555,7 +638,7 @@ pub fn execute(core: &mut Core, op: Option<Op>) {
                 }
                 Op::B_imm8 { cond, imm8 } => {
                     core.pc = core.pc + 2;
-                    let imm32 = sign_extend(imm8 as u32, 8, 32);
+                    let imm32 = sign_extend((imm8 << 1) as u32, 8, 32);
                     if condition_passed(cond, &core.apsr) {
                         core.pc = ((core.pc as i32) + imm32) as u32;
                     }
@@ -573,6 +656,14 @@ pub fn execute(core: &mut Core, op: Option<Op>) {
 
                     println!(" apsr is 0x{:x}", core.apsr);
                     core.r[rn.value()] = imm8 as u32;
+                }
+                Op::PUSH { registers } => {
+                    core.pc = core.pc + 2;
+
+                    let address = core.msp - 4 * (registers.len() as u32);
+
+
+
                 }
                 _ => {}
             }
@@ -604,7 +695,7 @@ pub fn run_bin<T: Fetch>(memory: &mut T) {
         println!("pc = 0x{:X}", core.pc);
         let pc = core.pc;
         let op = fetch_and_decode(memory, pc);
-        execute(&mut core, op);
+        execute(&mut core, op, memory);
     }
 }
 
@@ -800,7 +891,7 @@ fn test_decode_thumb16() {
     match decode_16(0xd001).unwrap() {
         Op::B_imm8 { cond, imm8 } => {
             assert!(cond == Condition::EQ);
-            assert!(imm8 == 2);
+            assert!(imm8 == 1);
         }
         _ => {
             assert!(false);
@@ -809,9 +900,9 @@ fn test_decode_thumb16() {
 
     // PUSH  {R4, LR}
     match decode_16(0xb510).unwrap() {
-        Op::PUSH { cond, imm8 } => {
-            assert!(cond == Condition::EQ);
-            assert!(imm8 == 2);
+        Op::PUSH { registers } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R4, Reg::LR], elems);
         }
         _ => {
             assert!(false);
@@ -820,25 +911,30 @@ fn test_decode_thumb16() {
 
 }
 
-struct ConstMemory<'a> {
-    reader: Cursor<&'a [u8]>,
+struct SystemMemory<'a> {
+    access: Cursor<&'a mut [u8]>,
 }
 
-impl<'a> ConstMemory<'a> {
-    pub fn new(bin: &[u8]) -> ConstMemory {
-        ConstMemory { reader: Cursor::new(bin) }
+impl<'a> SystemMemory<'a> {
+    pub fn new(bin: &mut [u8]) -> SystemMemory {
+        SystemMemory { access: Cursor::new(bin) }
     }
 }
 
-impl<'a> Fetch for ConstMemory<'a> {
+impl<'a> Fetch for SystemMemory<'a> {
     fn fetch16(&mut self, addr: u32) -> u16 {
-        self.reader.seek(SeekFrom::Start(addr as u64)).unwrap();
-        self.reader.read_u16::<LittleEndian>().unwrap()
+        self.access.seek(SeekFrom::Start(addr as u64)).unwrap();
+        self.access.read_u16::<LittleEndian>().unwrap()
     }
 
     fn fetch32(&mut self, addr: u32) -> u32 {
-        self.reader.seek(SeekFrom::Start(addr as u64)).unwrap();
-        self.reader.read_u32::<LittleEndian>().unwrap()
+        self.access.seek(SeekFrom::Start(addr as u64)).unwrap();
+        self.access.read_u32::<LittleEndian>().unwrap()
+    }
+
+    fn write32(&mut self, addr: u32, value: u32) {
+        self.access.seek(SeekFrom::Start(addr as u64)).unwrap();
+        self.access.write_u32::<LittleEndian>(value).unwrap()
     }
 }
 
@@ -849,7 +945,7 @@ impl<'a> Fetch for ConstMemory<'a> {
 
 #[test]
 fn test_hello_world() {
-    let hellow_bin: [u8; 1204] =
+    let mut hellow_bin: [u8; 1204] =
         [0x08, 0x04, 0x00, 0x20, 0xa1, 0x04, 0x00, 0x00, 0x83, 0x02, 0x00, 0x00, 0x83, 0x02, 0x00,
          0x00, 0x83, 0x02, 0x00, 0x00, 0x83, 0x02, 0x00, 0x00, 0x83, 0x02, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x83,
@@ -932,7 +1028,7 @@ fn test_hello_world() {
          0x46, 0xc0, 0x46, 0xc0, 0x46, 0xc0, 0x46, 0xff, 0xf7, 0xba, 0xff, 0xff, 0xff, 0xff, 0xff,
          0xff, 0xff, 0xff, 0xff];
 
-    let mut hellow = ConstMemory::new(&hellow_bin);
+    let mut hellow = SystemMemory::new(&mut hellow_bin);
     run_bin(&mut hellow);
 
 }
