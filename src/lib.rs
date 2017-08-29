@@ -314,6 +314,7 @@ pub enum Op {
     UDF,
     PUSH { registers: EnumSet<Reg> },
     POP { registers: EnumSet<Reg> },
+    LDR { rt: Reg, imm8: u8 },
 }
 
 
@@ -351,45 +352,52 @@ pub fn decode_16(command: u16) -> Option<Op> {
         }
         0b0100_0000_0000_0000_u16 => {
             // data process, special data, load from lp...
-            match command & 0xffc0 {
-                0b010000_0000_000000_u16 => Some(Op::AND),
-                0b010000_0001_000000_u16 => Some(Op::EOR),
-                0b010000_0010_000000_u16 => Some(Op::LSL),
-                0b010000_0011_000000_u16 => Some(Op::LSR),
-                0b010000_0100_000000_u16 => Some(Op::ASR),
-                0b010000_0101_000000_u16 => Some(Op::ADC),
-                0b010000_0110_000000_u16 => Some(Op::SBC),
-                0b010000_0111_000000_u16 => Some(Op::ROR),
-                0b010000_1000_000000_u16 => Some(Op::TST),
-                0b010000_1001_000000_u16 => Some(Op::RSB),
-                0b010000_1010_000000_u16 => Some(Op::CMP),
-                0b010000_1011_000000_u16 => Some(Op::CMN),
-                0b010000_1100_000000_u16 => Some(Op::ORR),
-                0b010000_1101_000000_u16 => Some(Op::MUL),
-                0b010000_1110_000000_u16 => Some(Op::BIC),
-                0b010000_1111_000000_u16 => Some(Op::MVN),
+            if (command & 0x800) == 0 {
+                match command & 0xffc0 {
+                    0b010000_0000_000000_u16 => Some(Op::AND),
+                    0b010000_0001_000000_u16 => Some(Op::EOR),
+                    0b010000_0010_000000_u16 => Some(Op::LSL),
+                    0b010000_0011_000000_u16 => Some(Op::LSR),
+                    0b010000_0100_000000_u16 => Some(Op::ASR),
+                    0b010000_0101_000000_u16 => Some(Op::ADC),
+                    0b010000_0110_000000_u16 => Some(Op::SBC),
+                    0b010000_0111_000000_u16 => Some(Op::ROR),
+                    0b010000_1000_000000_u16 => Some(Op::TST),
+                    0b010000_1001_000000_u16 => Some(Op::RSB),
+                    0b010000_1010_000000_u16 => Some(Op::CMP),
+                    0b010000_1011_000000_u16 => Some(Op::CMN),
+                    0b010000_1100_000000_u16 => Some(Op::ORR),
+                    0b010000_1101_000000_u16 => Some(Op::MUL),
+                    0b010000_1110_000000_u16 => Some(Op::BIC),
+                    0b010000_1111_000000_u16 => Some(Op::MVN),
 
-                0b010001_0000_000000_u16 => Some(Op::ADD),
-                0b010001_0100_000000_u16 => None,
-                0b010001_0101_000000_u16 |
-                0b010001_0110_000000_u16 |
-                0b010001_0111_000000_u16 => Some(Op::CMP),
-                0b010001_1000_000000_u16 |
-                0b010001_1001_000000_u16 |
-                0b010001_1010_000000_u16 |
-                0b0100_0110_1100_0000_u16 => {
-                    Some(Op::MOV {
-                        rd: Reg::from_u16((command & 8) + ((command & 0x80)) >> 4).unwrap(),
-                        rm: Reg::from_u16((command >> 3) & 0xf).unwrap(),
-                    })
-                }
-                0b0100_0111_0100_0000_u16 => {
-                    Some(Op::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() })
-                }
-                0b010001_1110_000000_u16 |
-                0b010001_1111_000000_u16 => Some(Op::BLX),
-                _ => None,
+                    0b010001_0000_000000_u16 => Some(Op::ADD),
+                    0b010001_0100_000000_u16 => None,
+                    0b010001_0101_000000_u16 |
+                    0b010001_0110_000000_u16 |
+                    0b010001_0111_000000_u16 => Some(Op::CMP),
+                    0b010001_1000_000000_u16 |
+                    0b010001_1001_000000_u16 |
+                    0b010001_1010_000000_u16 |
+                    0b0100_0110_1100_0000_u16 => {
+                        Some(Op::MOV {
+                            rd: Reg::from_u16((command & 8) + ((command & 0x80)) >> 4).unwrap(),
+                            rm: Reg::from_u16((command >> 3) & 0xf).unwrap(),
+                        })
+                    }
+                    0b0100_0111_0100_0000_u16 => {
+                        Some(Op::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() })
+                    }
+                    0b010001_1110_000000_u16 |
+                    0b010001_1111_000000_u16 => Some(Op::BLX),
+                    _ => None,
 
+                }
+            } else {
+                Some(Op::LDR {
+                    rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+                    imm8: command.get_bits(0..8) as u8,
+                })
             }
         }
         0b1000_0000_0000_0000_u16 => {
@@ -493,6 +501,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
 
             }
         }
+
         _ => None,
     }
 }
@@ -661,10 +670,14 @@ pub fn execute<T: Fetch>(core: &mut Core, op: Option<Op>, memory: &mut T) {
                     core.pc = core.pc + 2;
 
                     let address = core.msp - 4 * (registers.len() as u32);
-
-
-
+                },
+                Op::LDR { rt, imm8 } => {
+                    core.pc = core.pc + 2;
+                    let imm32 = (imm8 as u32) << 2;
+                    let address = (core.pc & 0xfffffffc) + imm32;
+                    core.r[rt.value()] = memory.fetch32(address);
                 }
+                
                 _ => {}
             }
         }
@@ -903,6 +916,16 @@ fn test_decode_thumb16() {
         Op::PUSH { registers } => {
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R4, Reg::LR], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // LDR.N R1, [PC, 0x1c]
+    match decode_16(0x4907).unwrap() {
+        Op::LDR { rt, imm8 } => {
+            assert!(rt == Reg::R1);
+            assert!(imm8 == 7);
         }
         _ => {
             assert!(false);
