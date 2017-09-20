@@ -1,0 +1,43 @@
+use register::Reg;
+use condition::Condition;
+use enum_set::EnumSet;
+
+#[allow(non_camel_case_types)]
+pub enum Op {
+    MOV { rd: Reg, rm: Reg },
+    MOV_imm8 { rd: Reg, imm8: u8 },
+    LSL,
+    LSR,
+    ASR,
+    AND,
+    EOR,
+    ADC,
+    SBC,
+    ROR,
+    TST,
+    RSB,
+    CMP,
+    CMP_imm8 { rn: Reg, imm8: u8 },
+    CMN,
+    ORR,
+    MUL,
+    BIC,
+    MVN,
+    ADDS { rm: Reg, rn: Reg, rd: Reg },
+    ADD { rm: Reg, rdn: Reg },
+    ADD_imm3,
+    ADD_imm8 {rdn: Reg, imm8: u8},
+    SUB,
+    SUB_imm3,
+    SUB_imm8,
+    BX { rm: Reg },
+    BLX,
+    BL { imm32: i32 },
+    B_imm8 { cond: Condition, imm8: u8 },
+    B_imm11 { imm11: u16 },
+    SVC,
+    UDF,
+    PUSH { registers: EnumSet<Reg> },
+    POP { registers: EnumSet<Reg> },
+    LDR { rt: Reg, imm8: u8 },
+}
