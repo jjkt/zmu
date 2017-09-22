@@ -13,6 +13,180 @@ pub fn is_thumb32(word: u16) -> bool {
     }
 }
 
+#[allow(non_snake_case)]
+fn decode_ADDS(command: u16) -> Op {
+    Op::ADDS {
+        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MOV_imm8(command: u16) -> Op {
+    Op::MOV_imm8 {
+        rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        imm8: command.get_bits(0..8) as u8,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_CMP_imm8(command: u16) -> Op {
+    Op::CMP_imm8 {
+        rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        imm8: command.get_bits(0..8) as u8,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_ADD_imm8(command: u16) -> Op {
+    Op::ADD_imm8 {
+        rdn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        imm8: command.get_bits(0..8) as u8,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_ADD(command: u16) -> Op {
+    Op::ADD {
+        rm: Reg::from_u16(command.get_bits(3..7)).unwrap(),
+        rdn: Reg::from_u16(((command.get_bit(7) as u16) << 3) + command.get_bits(0..3)).unwrap(),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MOV(command: u16) -> Op {
+    Op::MOV {
+        rd: Reg::from_u16((command & 8) + ((command & 0x80)) >> 4).unwrap(),
+        rm: Reg::from_u16((command >> 3) & 0xf).unwrap(),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_BX(command: u16) -> Op {
+
+    Op::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDR(command: u16) -> Op {
+    Op::LDR {
+        rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        imm8: command.get_bits(0..8) as u8,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_POP(command: u16) -> Op {
+    let mut regs: EnumSet<Reg> = EnumSet::new();
+    let reg_bits = command.get_bits(0..8);
+
+    if reg_bits & 1 == 1 {
+        regs.insert(Reg::R0);
+    }
+    if reg_bits & 2 == 2 {
+        regs.insert(Reg::R1);
+    }
+    if reg_bits & 4 == 4 {
+        regs.insert(Reg::R2);
+    }
+    if reg_bits & 8 == 8 {
+        regs.insert(Reg::R3);
+    }
+    if reg_bits & 16 == 16 {
+        regs.insert(Reg::R4);
+    }
+    if reg_bits & 32 == 32 {
+        regs.insert(Reg::R5);
+    }
+    if reg_bits & 64 == 64 {
+        regs.insert(Reg::R6);
+    }
+    if reg_bits & 128 == 128 {
+        regs.insert(Reg::R7);
+    }
+
+    if command.get_bit(8) {
+        regs.insert(Reg::LR);
+    }
+
+    Op::POP { registers: regs }
+}
+
+#[allow(non_snake_case)]
+fn decode_PUSH(command: u16) -> Op {
+    let mut regs: EnumSet<Reg> = EnumSet::new();
+    let reg_bits = command.get_bits(0..8);
+
+    if reg_bits & 1 == 1 {
+        regs.insert(Reg::R0);
+    }
+    if reg_bits & 2 == 2 {
+        regs.insert(Reg::R1);
+    }
+    if reg_bits & 4 == 4 {
+        regs.insert(Reg::R2);
+    }
+    if reg_bits & 8 == 8 {
+        regs.insert(Reg::R3);
+    }
+    if reg_bits & 16 == 16 {
+        regs.insert(Reg::R4);
+    }
+    if reg_bits & 32 == 32 {
+        regs.insert(Reg::R5);
+    }
+    if reg_bits & 64 == 64 {
+        regs.insert(Reg::R6);
+    }
+    if reg_bits & 128 == 128 {
+        regs.insert(Reg::R7);
+    }
+    if command.get_bit(8) {
+        regs.insert(Reg::LR);
+    }
+
+    Op::PUSH { registers: regs }
+}
+
+#[allow(non_snake_case)]
+fn decode_B_imm8(command: u16) -> Op {
+    let cond = command.get_bits(8..12);
+    if cond == 0b1111 {
+        return Op::SVC;
+    }
+    if cond == 0b1110 {
+        return Op::UDF;
+    }
+
+    Op::B_imm8 {
+        cond: Condition::from_u16(cond).unwrap(),
+        imm8: command.get_bits(0..8) as u8,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_B_imm11(command: u16) -> Op {
+    Op::B_imm11 { imm11: command.get_bits(0..11) as u16 }
+}
+
+#[allow(non_snake_case)]
+fn decode_CMP_t1(command: u16) -> Op {
+    Op::CMP {
+        rn: Reg::from_u16(command.get_bits(0..3) as u16).unwrap(),
+        rm: Reg::from_u16(command.get_bits(3..6) as u16).unwrap(),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_CMP_t2(command: u16) -> Op {
+    Op::CMP {
+        rn: Reg::from_u16(command.get_bits(0..3) + ((command.get_bit(7) as u8) << 4) as u16)
+            .unwrap(),
+        rm: Reg::from_u16(command.get_bits(3..7) as u16).unwrap(),
+    }
+}
+
 pub fn decode_16(command: u16) -> Option<Op> {
     match command & 0xc000 {
         0b0000_0000_0000_0000_u16 => {
@@ -21,30 +195,14 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 0b000_00 | 0b000_01 | 0b000_10 | 0b000_11 => Some(Op::LSL),
                 0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Op::LSR),
                 0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Op::ASR),
-                0b011_00 => {
-                    Some(Op::ADDS {
-                        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
-                        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
-                        rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
-                    })
-                }
+                0b011_00 => Some(decode_ADDS(command)),
                 0b011_01 => Some(Op::SUB),
                 0b011_10 => Some(Op::ADD_imm3),
                 0b011_11 => Some(Op::SUB_imm3),
-                0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => {
-                    Some(Op::MOV_imm8 {
-                        rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
-                        imm8: command.get_bits(0..8) as u8,
-                    })
-                }
-                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => {
-                    Some(Op::CMP_imm8 {
-                        rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
-                        imm8: command.get_bits(0..8) as u8,
-                    })
-                }
-                0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => Some(Op::ADD_imm8),
-                0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => Some(Op::ADD_imm8),
+                0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => Some(decode_MOV_imm8(command)),
+                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm8(command)),
+                0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => Some(decode_ADD_imm8(command)), 
+                0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => Some(decode_ADD_imm8(command)), 
                 0b100_00_0_00000000 => None,
                 _ => None,
             }
@@ -63,7 +221,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
                     0b010000_0111_000000_u16 => Some(Op::ROR),
                     0b010000_1000_000000_u16 => Some(Op::TST),
                     0b010000_1001_000000_u16 => Some(Op::RSB),
-                    0b010000_1010_000000_u16 => Some(Op::CMP),
+                    0b010000_1010_000000_u16 => Some(decode_CMP_t1(command)),
                     0b010000_1011_000000_u16 => Some(Op::CMN),
                     0b010000_1100_000000_u16 => Some(Op::ORR),
                     0b010000_1101_000000_u16 => Some(Op::MUL),
@@ -73,137 +231,39 @@ pub fn decode_16(command: u16) -> Option<Op> {
                     0b010001_0000_000000_u16 |
                     0b010001_0001_000000_u16 |
                     0b010001_0010_000000_u16 |
-                    0b010001_0011_000000_u16 => {
-                        Some(Op::ADD {
-                            rm: Reg::from_u16(command.get_bits(3..7)).unwrap(),
-                            rdn: Reg::from_u16(((command.get_bit(7) as u16) << 3) +
-                                               command.get_bits(0..3))
-                                .unwrap(),
-                        })
-                    }
+                    0b010001_0011_000000_u16 => Some(decode_ADD(command)),
 
                     0b010001_0100_000000_u16 => None,
                     0b010001_0101_000000_u16 |
                     0b010001_0110_000000_u16 |
-                    0b010001_0111_000000_u16 => Some(Op::CMP),
+                    0b010001_0111_000000_u16 => Some(decode_CMP_t2(command)),
                     0b010001_1000_000000_u16 |
                     0b010001_1001_000000_u16 |
                     0b010001_1010_000000_u16 |
-                    0b0100_0110_1100_0000_u16 => {
-                        Some(Op::MOV {
-                            rd: Reg::from_u16((command & 8) + ((command & 0x80)) >> 4).unwrap(),
-                            rm: Reg::from_u16((command >> 3) & 0xf).unwrap(),
-                        })
-                    }
-                    0b0100_0111_0100_0000_u16 => {
-                        Some(Op::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() })
-                    }
+                    0b0100_0110_1100_0000_u16 => Some(decode_MOV(command)),
+                    0b0100_0111_0100_0000_u16 => Some(decode_BX(command)),
                     0b010001_1110_000000_u16 |
                     0b010001_1111_000000_u16 => Some(Op::BLX),
                     _ => None,
 
                 }
             } else {
-                Some(Op::LDR {
-                    rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-                    imm8: command.get_bits(0..8) as u8,
-                })
+                Some(decode_LDR(command))
             }
         }
         0b1000_0000_0000_0000_u16 => {
             // generate pc relative addr, sp rela, misc
             match command.get_bits(9..14) {
-                0b11110 => {
-                    let mut regs: EnumSet<Reg> = EnumSet::new();
-                    let reg_bits = command.get_bits(0..8);
-
-                    if reg_bits & 1 == 1 {
-                        regs.insert(Reg::R0);
-                    }
-                    if reg_bits & 2 == 2 {
-                        regs.insert(Reg::R1);
-                    }
-                    if reg_bits & 4 == 4 {
-                        regs.insert(Reg::R2);
-                    }
-                    if reg_bits & 8 == 8 {
-                        regs.insert(Reg::R3);
-                    }
-                    if reg_bits & 16 == 16 {
-                        regs.insert(Reg::R4);
-                    }
-                    if reg_bits & 32 == 32 {
-                        regs.insert(Reg::R5);
-                    }
-                    if reg_bits & 64 == 64 {
-                        regs.insert(Reg::R6);
-                    }
-                    if reg_bits & 128 == 128 {
-                        regs.insert(Reg::R7);
-                    }
-
-                    if command.get_bit(8) {
-                        regs.insert(Reg::LR);
-                    }
-
-                    Some(Op::POP { registers: regs })
-                }
-                0b11010 => {
-                    let mut regs: EnumSet<Reg> = EnumSet::new();
-                    let reg_bits = command.get_bits(0..8);
-
-                    if reg_bits & 1 == 1 {
-                        regs.insert(Reg::R0);
-                    }
-                    if reg_bits & 2 == 2 {
-                        regs.insert(Reg::R1);
-                    }
-                    if reg_bits & 4 == 4 {
-                        regs.insert(Reg::R2);
-                    }
-                    if reg_bits & 8 == 8 {
-                        regs.insert(Reg::R3);
-                    }
-                    if reg_bits & 16 == 16 {
-                        regs.insert(Reg::R4);
-                    }
-                    if reg_bits & 32 == 32 {
-                        regs.insert(Reg::R5);
-                    }
-                    if reg_bits & 64 == 64 {
-                        regs.insert(Reg::R6);
-                    }
-                    if reg_bits & 128 == 128 {
-                        regs.insert(Reg::R7);
-                    }
-                    if command.get_bit(8) {
-                        regs.insert(Reg::LR);
-                    }
-
-                    Some(Op::PUSH { registers: regs })
-                }
+                0b11110 => Some(decode_POP(command)),
+                0b11010 => Some(decode_PUSH(command)),
                 _ => None,
             }
         }
         0b1100_0000_0000_0000_u16 => {
             // store, load multiple, branch, svc, uncond branch
             match command.get_bits(12..16) {
-                0b1101 => {
-                    let cond = command.get_bits(8..12);
-                    if cond == 0b1111 {
-                        return Some(Op::SVC);
-                    }
-                    if cond == 0b1110 {
-                        return Some(Op::UDF);
-                    }
-
-                    Some(Op::B_imm8 {
-                        cond: Condition::from_u16(cond).unwrap(),
-                        imm8: command.get_bits(0..8) as u8,
-                    })
-
-                }
-                0b1110 => Some(Op::B_imm11 { imm11: command.get_bits(0..11) as u16 }),
+                0b1101 => Some(decode_B_imm8(command)),
+                0b1110 => Some(decode_B_imm11(command)),
                 _ => None,
 
             }
@@ -458,6 +518,16 @@ fn test_decode_thumb16() {
     match decode_16(0xd001).unwrap() {
         Op::B_imm8 { cond, imm8 } => {
             assert!(cond == Condition::EQ);
+            assert!(imm8 == 0xf8);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // BNE.N
+    match decode_16(0xd1f8).unwrap() {
+        Op::B_imm8 { cond, imm8 } => {
+            assert!(cond == Condition::NE);
             assert!(imm8 == 1);
         }
         _ => {
@@ -499,6 +569,16 @@ fn test_decode_thumb16() {
     match decode_16(0xE004).unwrap() {
         Op::B_imm11 { imm11 } => {
             assert!(imm11 == 4);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // CMP R1, R4
+    match decode_16(0x42a1).unwrap() {
+        Op::CMP { rn, rm } => {
+            assert!(rn == Reg::R1);
+            assert!(rn == Reg::R4);
         }
         _ => {
             assert!(false);

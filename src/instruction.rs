@@ -16,7 +16,7 @@ pub enum Op {
     ROR,
     TST,
     RSB,
-    CMP,
+    CMP { rm: Reg, rn : Reg },
     CMP_imm8 { rn: Reg, imm8: u8 },
     CMN,
     ORR,

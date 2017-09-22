@@ -32,7 +32,7 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                     core.r[Reg::PC.value()] += 2;
                 }
                 Op::B_imm8 { cond, imm8 } => {
-                    let imm32 = sign_extend((imm8 << 1) as u32, 8, 32);
+                    let imm32 = sign_extend((imm8 as u32) << 1, 8, 32);
                     if condition_passed(cond, &core.apsr) {
                         let pc = core.r[Reg::PC.value()] + 4;
                         core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
@@ -42,7 +42,7 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                 }
                 Op::B_imm11 { imm11 } => {
                     let pc = core.r[Reg::PC.value()] + 4;
-                    let imm32 = sign_extend((imm11 << 1) as u32, 11, 32);
+                    let imm32 = sign_extend((imm11  as u32) << 1, 11, 32);
                     core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
                 }
 
@@ -54,9 +54,18 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                     core.apsr.set_z(result == 0);
                     core.apsr.set_c(carry);
                     core.apsr.set_v(overflow);
-                    core.r[rn.value()] = imm8 as u32;
                     core.r[Reg::PC.value()] += 2;
                 }
+                Op::CMP { rn, rm } => {
+                    let (result, carry, overflow) =
+                        add_with_carry(core.r[rn.value()], core.r[rm.value()] ^ 0xFFFFFFFF, true);
+                    core.apsr.set_n(result.get_bit(31));
+                    core.apsr.set_z(result == 0);
+                    core.apsr.set_c(carry);
+                    core.apsr.set_v(overflow);
+                    core.r[Reg::PC.value()] += 2;
+                }
+                
                 Op::PUSH { registers } => {
                     let address = core.msp - 4 * (registers.len() as u32);
                     core.r[Reg::PC.value()] += 2;
@@ -76,13 +85,13 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                 }
                 Op::ADD_imm8 { rdn, imm8 } => {
                     let (result, carry, overflow) =
-                        add_with_carry(core.r[rn.value()], imm8 as u32, false);
+                        add_with_carry(core.r[rdn.value()], imm8 as u32, false);
                     core.apsr.set_n(result.get_bit(31));
                     core.apsr.set_z(result == 0);
                     core.apsr.set_c(carry);
                     core.apsr.set_v(overflow);
 
-                    core.r[rd.value()] = result;
+                    core.r[rdn.value()] = result;
                     core.r[Reg::PC.value()] += 2;
 
                 }
