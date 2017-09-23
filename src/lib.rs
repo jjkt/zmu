@@ -25,7 +25,6 @@ use memory::SystemMemory;
 pub fn run_bin<T: Fetch>(memory: &mut T) {
     let mut core = Core::new(memory);
     core.reset();
-
     loop {
         core.run();
     }
