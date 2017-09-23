@@ -50,8 +50,8 @@ fn decode_ADDS_imm_t1(command: u16) -> Op {
 #[allow(non_snake_case)]
 fn decode_ADDS_imm_t2(command: u16) -> Op {
     Op::ADDS_imm {
-        rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
-        rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         imm32: command.get_bits(0..8) as i32,
     }
 }
@@ -535,7 +535,7 @@ fn test_decode_thumb16() {
     match decode_16(0xd001).unwrap() {
         Op::B_imm8 { cond, imm8 } => {
             assert!(cond == Condition::EQ);
-            assert!(imm8 == 0xf8);
+            assert!(imm8 == 1);
         }
         _ => {
             assert!(false);
@@ -545,7 +545,7 @@ fn test_decode_thumb16() {
     match decode_16(0xd1f8).unwrap() {
         Op::B_imm8 { cond, imm8 } => {
             assert!(cond == Condition::NE);
-            assert!(imm8 == 1);
+            assert!(imm8 == 0xf8);
         }
         _ => {
             assert!(false);
@@ -595,11 +595,23 @@ fn test_decode_thumb16() {
     match decode_16(0x42a1).unwrap() {
         Op::CMP { rn, rm } => {
             assert!(rn == Reg::R1);
-            assert!(rn == Reg::R4);
+            assert!(rm == Reg::R4);
         }
         _ => {
             assert!(false);
         }
     }
+    // ADDS R1, R1, 24
+    match decode_16(0x3118).unwrap() {
+        Op::ADDS_imm { rn, rd, imm32 } => {
+            assert!(rn == Reg::R1);
+            assert!(rd == Reg::R1);
+            assert!(imm32 == 24);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
 
 }
