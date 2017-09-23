@@ -39,12 +39,24 @@ fn decode_CMP_imm8(command: u16) -> Op {
 }
 
 #[allow(non_snake_case)]
-fn decode_ADD_imm8(command: u16) -> Op {
-    Op::ADD_imm8 {
-        rdn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
-        imm8: command.get_bits(0..8) as u8,
+fn decode_ADDS_imm_t1(command: u16) -> Op {
+    Op::ADDS_imm {
+        rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        imm32: command.get_bits(6..9) as i32,
     }
 }
+
+#[allow(non_snake_case)]
+fn decode_ADDS_imm_t2(command: u16) -> Op {
+    Op::ADDS_imm {
+        rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        imm32: command.get_bits(0..8) as i32,
+    }
+}
+
+
 
 #[allow(non_snake_case)]
 fn decode_ADD(command: u16) -> Op {
@@ -187,6 +199,11 @@ fn decode_CMP_t2(command: u16) -> Op {
     }
 }
 
+#[allow(non_snake_case)]
+fn decode_BLX(command: u16) -> Op {
+    Op::BLX { rm: Reg::from_u16(command.get_bits(3..7) as u16).unwrap() }
+}
+
 pub fn decode_16(command: u16) -> Option<Op> {
     match command & 0xc000 {
         0b0000_0000_0000_0000_u16 => {
@@ -197,12 +214,12 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Op::ASR),
                 0b011_00 => Some(decode_ADDS(command)),
                 0b011_01 => Some(Op::SUB),
-                0b011_10 => Some(Op::ADD_imm3),
+                0b011_10 => Some(decode_ADDS_imm_t1(command)),
                 0b011_11 => Some(Op::SUB_imm3),
                 0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => Some(decode_MOV_imm8(command)),
                 0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm8(command)),
-                0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => Some(decode_ADD_imm8(command)), 
-                0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => Some(decode_ADD_imm8(command)), 
+                0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => Some(decode_ADDS_imm_t2(command)), 
+                0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => Some(decode_ADDS_imm_t2(command)), 
                 0b100_00_0_00000000 => None,
                 _ => None,
             }
@@ -243,7 +260,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
                     0b0100_0110_1100_0000_u16 => Some(decode_MOV(command)),
                     0b0100_0111_0100_0000_u16 => Some(decode_BX(command)),
                     0b010001_1110_000000_u16 |
-                    0b010001_1111_000000_u16 => Some(Op::BLX),
+                    0b010001_1111_000000_u16 => Some(decode_BLX(command)),
                     _ => None,
 
                 }

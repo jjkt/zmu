@@ -27,6 +27,11 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                 Op::BX { rm } => {
                     core.r[Reg::PC.value()] = core.r[rm.value() as usize] & 0xfffffffe;
                 }
+                Op::BLX { rm } => {
+                    let pc = core.r[Reg::PC.value()] + 4;
+                    core.r[Reg::LR.value()] = (pc - 2) | 0x01;
+                    core.r[Reg::PC.value()] = ((pc as i32) + (rm.value() as i32)) as u32;
+                }
                 Op::MOV_imm8 { rd, imm8 } => {
                     core.r[rd.value()] = imm8 as u32;
                     core.r[Reg::PC.value()] += 2;
@@ -42,7 +47,7 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                 }
                 Op::B_imm11 { imm11 } => {
                     let pc = core.r[Reg::PC.value()] + 4;
-                    let imm32 = sign_extend((imm11  as u32) << 1, 11, 32);
+                    let imm32 = sign_extend((imm11 as u32) << 1, 11, 32);
                     core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
                 }
 
@@ -65,7 +70,7 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                     core.apsr.set_v(overflow);
                     core.r[Reg::PC.value()] += 2;
                 }
-                
+
                 Op::PUSH { registers } => {
                     let address = core.msp - 4 * (registers.len() as u32);
                     core.r[Reg::PC.value()] += 2;
@@ -83,15 +88,15 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                     core.r[rdn.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Op::ADD_imm8 { rdn, imm8 } => {
+                Op::ADDS_imm { rn, rd, imm32 } => {
                     let (result, carry, overflow) =
-                        add_with_carry(core.r[rdn.value()], imm8 as u32, false);
+                        add_with_carry(core.r[rn.value()], imm32 as u32, false);
                     core.apsr.set_n(result.get_bit(31));
                     core.apsr.set_z(result == 0);
                     core.apsr.set_c(carry);
                     core.apsr.set_v(overflow);
 
-                    core.r[rdn.value()] = result;
+                    core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
 
                 }
