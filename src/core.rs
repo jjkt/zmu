@@ -44,6 +44,7 @@ impl<'a, T: Fetch> Core<'a, T> {
 
     pub fn reset(&mut self) {
         let reset_vector = self.memory.fetch32(4);
+        println!("\nRESET");
 
         self.r[Reg::PC.value()] = reset_vector & 0xfffffffe;
         self.epsr = (reset_vector & 1) << 24;
@@ -59,15 +60,34 @@ impl<'a, T: Fetch> Core<'a, T> {
         let op = match is_thumb32(hw) {
             true => {
                 let hw2 = self.memory.fetch16(self.r[Reg::PC.value()] + 2);
-                println!("pc 0x{:X} = 0x{:X}, 0x{:X}", self.r[Reg::PC.value()], hw, hw2);
+                //println!("pc 0x{:X} = 0x{:X}, 0x{:X}",
+                //         self.r[Reg::PC.value()],
+                //         hw,
+                //         hw2);
                 decode_32(hw, hw2)
             }
             false => {
-                println!("pc 0x{:X} = 0x{:X}", self.r[Reg::PC.value()], hw);
+                //println!("pc 0x{:X} = 0x{:X}", self.r[Reg::PC.value()], hw);
                 decode_16(hw)
             }
         };
 
         execute(self, op);
+        //TODO: print only changed registers
+        //TODO: print APSR
+        //TODO: print memory accesses
+        println!("PC:{:08X} LR:{:08X} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
+                  R6:{:08X} R7:{:08X} R8:{:08X}",
+                 self.r[Reg::PC.value()],
+                 self.r[Reg::LR.value()],
+                 self.r[Reg::R0.value()],
+                 self.r[Reg::R1.value()],
+                 self.r[Reg::R2.value()],
+                 self.r[Reg::R3.value()],
+                 self.r[Reg::R4.value()],
+                 self.r[Reg::R5.value()],
+                 self.r[Reg::R6.value()],
+                 self.r[Reg::R7.value()],
+                 self.r[Reg::R8.value()]);
     }
 }
