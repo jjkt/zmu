@@ -55,6 +55,30 @@ impl<'a, T: Fetch> Core<'a, T> {
     // fetch, decode and execute single instruction
     //
     pub fn run(&mut self) {
+        //TODO: print only changed registers
+        //TODO: print APSR
+        //TODO: print memory accesses
+        println!("PC:{:08X} APSR:{:08X} LR:{:08X} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
+                  R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X}",
+                 self.r[Reg::PC.value()],
+                 self.apsr,
+                 self.r[Reg::LR.value()],
+                 self.r[Reg::R0.value()],
+                 self.r[Reg::R1.value()],
+                 self.r[Reg::R2.value()],
+                 self.r[Reg::R3.value()],
+                 self.r[Reg::R4.value()],
+                 self.r[Reg::R5.value()],
+                 self.r[Reg::R6.value()],
+                 self.r[Reg::R7.value()],
+                 self.r[Reg::R8.value()],
+                 self.r[Reg::R9.value()],
+                 self.r[Reg::R10.value()],
+                 self.r[Reg::R11.value()],
+                 self.r[Reg::R12.value()],
+                 self.r[Reg::SP.value()],
+                 );
+
         let hw = self.memory.fetch16(self.r[Reg::PC.value()]);
 
         let op = match is_thumb32(hw) {
@@ -73,21 +97,5 @@ impl<'a, T: Fetch> Core<'a, T> {
         };
 
         execute(self, op);
-        //TODO: print only changed registers
-        //TODO: print APSR
-        //TODO: print memory accesses
-        println!("PC:{:08X} LR:{:08X} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
-                  R6:{:08X} R7:{:08X} R8:{:08X}",
-                 self.r[Reg::PC.value()],
-                 self.r[Reg::LR.value()],
-                 self.r[Reg::R0.value()],
-                 self.r[Reg::R1.value()],
-                 self.r[Reg::R2.value()],
-                 self.r[Reg::R3.value()],
-                 self.r[Reg::R4.value()],
-                 self.r[Reg::R5.value()],
-                 self.r[Reg::R6.value()],
-                 self.r[Reg::R7.value()],
-                 self.r[Reg::R8.value()]);
     }
 }
