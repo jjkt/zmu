@@ -23,24 +23,33 @@ fn decode_ADDS(command: u16) -> Op {
 }
 
 #[allow(non_snake_case)]
-fn decode_MOV_imm8(command: u16) -> Op {
-    Op::MOV_imm8 {
+fn decode_MOV_imm_t1(command: u16) -> Op {
+    Op::MOV_imm {
         rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
-        imm8: command.get_bits(0..8) as u8,
+        imm32: command.get_bits(0..8) as u32,
     }
 }
 
 #[allow(non_snake_case)]
-fn decode_CMP_imm8(command: u16) -> Op {
-    Op::CMP_imm8 {
+fn decode_CMP_imm_t1(command: u16) -> Op {
+    Op::CMP_imm {
         rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
-        imm8: command.get_bits(0..8) as u8,
+        imm32: command.get_bits(0..8) as u32,
     }
 }
 
 #[allow(non_snake_case)]
 fn decode_ADDS_imm_t1(command: u16) -> Op {
     Op::ADDS_imm {
+        rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        imm32: command.get_bits(6..9) as u32,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_SUBS_imm_t1(command: u16) -> Op {
+    Op::SUBS_imm {
         rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
         rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
         imm32: command.get_bits(6..9) as i32,
@@ -52,7 +61,7 @@ fn decode_ADDS_imm_t2(command: u16) -> Op {
     Op::ADDS_imm {
         rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        imm32: command.get_bits(0..8) as i32,
+        imm32: command.get_bits(0..8) as u32,
     }
 }
 
@@ -67,10 +76,20 @@ fn decode_ADD(command: u16) -> Op {
 }
 
 #[allow(non_snake_case)]
-fn decode_MOV(command: u16) -> Op {
-    Op::MOV {
-        rd: Reg::from_u16((command & 8) + ((command & 0x80)) >> 4).unwrap(),
-        rm: Reg::from_u16((command >> 3) & 0xf).unwrap(),
+fn decode_MOV_reg_t1(command: u16) -> Op {
+    Op::MOV_reg {
+        rd: Reg::from_u16(((command.get_bit(7) as u16) << 3) + command.get_bits(0..3)).unwrap(),
+        rm: Reg::from_u16(command.get_bits(3..7)).unwrap(),
+        setflags: false,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MOV_reg_t2(command: u16) -> Op {
+    Op::MOV_reg {
+        rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+        rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        setflags: true,
     }
 }
 
@@ -81,12 +100,41 @@ fn decode_BX(command: u16) -> Op {
 }
 
 #[allow(non_snake_case)]
-fn decode_LDR(command: u16) -> Op {
-    Op::LDR {
+fn decode_LDR_imm_t2(command: u16) -> Op {
+    Op::LDR_imm {
         rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        imm8: command.get_bits(0..8) as u8,
+        rn: Reg::PC,
+        imm32: (command.get_bits(0..8) as u32) << 2,
     }
 }
+#[allow(non_snake_case)]
+fn decode_LDR_imm_t1(command: u16) -> Op {
+    Op::LDR_imm {
+        rt: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        imm32: (command.get_bits(6..11) as u32) << 2,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDR_lit_t1(command: u16) -> Op {
+    Op::LDR_lit {
+        rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        imm32: (command.get_bits(0..8) as u32) << 2,
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDR_reg_t1(command: u16) -> Op {
+    Op::LDR_reg {
+        rt: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
+    }
+}
+
+
+
 
 #[allow(non_snake_case)]
 fn decode_POP(command: u16) -> Op {
@@ -162,7 +210,7 @@ fn decode_PUSH(command: u16) -> Op {
 }
 
 #[allow(non_snake_case)]
-fn decode_B_imm8(command: u16) -> Op {
+fn decode_B_t1(command: u16) -> Op {
     let cond = command.get_bits(8..12);
     if cond == 0b1111 {
         return Op::SVC;
@@ -171,15 +219,18 @@ fn decode_B_imm8(command: u16) -> Op {
         return Op::UDF;
     }
 
-    Op::B_imm8 {
+    Op::B {
         cond: Condition::from_u16(cond).unwrap(),
-        imm8: command.get_bits(0..8) as u8,
+        imm32: sign_extend((command.get_bits(0..8) as u32) << 1, 8, 32),
     }
 }
 
 #[allow(non_snake_case)]
-fn decode_B_imm11(command: u16) -> Op {
-    Op::B_imm11 { imm11: command.get_bits(0..11) as u16 }
+fn decode_B_t2(command: u16) -> Op {
+    Op::B {
+        cond: Condition::AL,
+        imm32: sign_extend((command.get_bits(0..11) as u32) << 1, 11, 32),
+    }
 }
 
 #[allow(non_snake_case)]
@@ -204,23 +255,32 @@ fn decode_BLX(command: u16) -> Op {
     Op::BLX { rm: Reg::from_u16(command.get_bits(3..7) as u16).unwrap() }
 }
 
+#[allow(non_snake_case)]
+fn decode_SUBS_reg_t1(command: u16) -> Op {
+    Op::SUBS_reg {
+        rm: Reg::from_u16(command.get_bits(6..9) as u16).unwrap(),
+        rn: Reg::from_u16(command.get_bits(3..6) as u16).unwrap(),
+        rd: Reg::from_u16(command.get_bits(0..4) as u16).unwrap(),
+    }
+}
+
 pub fn decode_16(command: u16) -> Option<Op> {
     match command & 0xc000 {
         0b0000_0000_0000_0000_u16 => {
             // Shift (immediate), add, substract, move and compare
-            match (command & 0b00_11111_0_0000_0000) >> 9 {
-                0b000_00 | 0b000_01 | 0b000_10 | 0b000_11 => Some(Op::LSL),
-                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Op::LSR),
+            match command.get_bits(9..14) {
+                0b000_01 | 0b000_10 | 0b000_11 => Some(Op::LSL_imm),
+                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Op::LSR_imm),
                 0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Op::ASR),
                 0b011_00 => Some(decode_ADDS(command)),
-                0b011_01 => Some(Op::SUB),
+                0b011_01 => Some(decode_SUBS_reg_t1(command)),
                 0b011_10 => Some(decode_ADDS_imm_t1(command)),
-                0b011_11 => Some(Op::SUB_imm3),
-                0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => Some(decode_MOV_imm8(command)),
-                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm8(command)),
+                0b011_11 => Some(decode_SUBS_imm_t1(command)),
+                0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => Some(decode_MOV_imm_t1(command)),
+                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm_t1(command)),
                 0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => Some(decode_ADDS_imm_t2(command)), 
                 0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => Some(decode_ADDS_imm_t2(command)), 
-                0b100_00_0_00000000 => None,
+                0 => Some(decode_MOV_reg_t2(command)),
                 _ => None,
             }
         }
@@ -230,8 +290,8 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 match command & 0xffc0 {
                     0b010000_0000_000000_u16 => Some(Op::AND),
                     0b010000_0001_000000_u16 => Some(Op::EOR),
-                    0b010000_0010_000000_u16 => Some(Op::LSL),
-                    0b010000_0011_000000_u16 => Some(Op::LSR),
+                    0b010000_0010_000000_u16 => Some(Op::LSL_imm),
+                    0b010000_0011_000000_u16 => Some(Op::LSR_imm),
                     0b010000_0100_000000_u16 => Some(Op::ASR),
                     0b010000_0101_000000_u16 => Some(Op::ADC),
                     0b010000_0110_000000_u16 => Some(Op::SBC),
@@ -243,7 +303,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
                     0b010000_1100_000000_u16 => Some(Op::ORR),
                     0b010000_1101_000000_u16 => Some(Op::MUL),
                     0b010000_1110_000000_u16 => Some(Op::BIC),
-                    0b010000_1111_000000_u16 => Some(Op::MVN),
+                    0b010000_1111_000000_u16 => Some(Op::MVN_reg),
 
                     0b010001_0000_000000_u16 |
                     0b010001_0001_000000_u16 |
@@ -257,7 +317,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
                     0b010001_1000_000000_u16 |
                     0b010001_1001_000000_u16 |
                     0b010001_1010_000000_u16 |
-                    0b0100_0110_1100_0000_u16 => Some(decode_MOV(command)),
+                    0b0100_0110_1100_0000_u16 => Some(decode_MOV_reg_t1(command)),
                     0b0100_0111_0100_0000_u16 => Some(decode_BX(command)),
                     0b010001_1110_000000_u16 |
                     0b010001_1111_000000_u16 => Some(decode_BLX(command)),
@@ -265,22 +325,35 @@ pub fn decode_16(command: u16) -> Option<Op> {
 
                 }
             } else {
-                Some(decode_LDR(command))
+
+                match command.get_bits(11..16) {
+                    0b01101 => Some(decode_LDR_imm_t1(command)),
+                    0b01001 => Some(decode_LDR_lit_t1(command)),
+                    0b01011 => Some(decode_LDR_reg_t1(command)),
+                    _ => None,
+                }
             }
         }
         0b1000_0000_0000_0000_u16 => {
             // generate pc relative addr, sp rela, misc
-            match command.get_bits(9..14) {
-                0b11110 => Some(decode_POP(command)),
-                0b11010 => Some(decode_PUSH(command)),
-                _ => None,
+            // LDR_imm_t2 = 10011
+            match command.get_bits(11..16) {
+                0b10011 => Some(decode_LDR_imm_t2(command)),
+                _ => {
+                    match command.get_bits(9..14) {
+                        0b11110 => Some(decode_POP(command)),
+                        0b11010 => Some(decode_PUSH(command)),
+                        _ => None,
+                    }
+                }
             }
+
         }
         0b1100_0000_0000_0000_u16 => {
             // store, load multiple, branch, svc, uncond branch
             match command.get_bits(12..16) {
-                0b1101 => Some(decode_B_imm8(command)),
-                0b1110 => Some(decode_B_imm11(command)),
+                0b1101 => Some(decode_B_t1(command)),
+                0b1110 => Some(decode_B_t2(command)),
                 _ => None,
 
             }
@@ -314,12 +387,7 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Op> {
 
             Some(Op::BL { imm32: imm as i32 })
         }
-        _ => {
-            Some(Op::MOV {
-                rd: Reg::R0,
-                rm: Reg::R1,
-            })
-        }//others
+        _ => None,
     }
 
 
@@ -357,144 +425,171 @@ fn test_is_thumb32() {
 fn test_decode_thumb16() {
     // mov
     match decode_16(0x4600).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R0);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4608).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R1);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4610).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R2);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4618).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R3);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4620).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R4);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4628).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R5);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4630).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R6);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4638).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R7);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4640).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R8);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4648).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R9);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4650).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R10);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4658).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R11);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4660).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R12);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4668).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::SP);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4670).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::LR);
+            assert!(setflags == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4678).unwrap() {
-        Op::MOV { rd, rm } => {
+        Op::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::PC);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+    match decode_16(0x0001).unwrap() {
+        Op::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R1);
+            assert!(rm == Reg::R0);
+            assert!(setflags == true);
         }
         _ => {
             assert!(false);
@@ -503,9 +598,9 @@ fn test_decode_thumb16() {
 
     //MOVS (mov immediate)
     match decode_16(0x2001).unwrap() {
-        Op::MOV_imm8 { rd, imm8 } => {
+        Op::MOV_imm { rd, imm32 } => {
             assert!(rd == Reg::R0);
-            assert!(imm8 == 1);
+            assert!(imm32 == 1);
         }
         _ => {
             assert!(false);
@@ -523,9 +618,9 @@ fn test_decode_thumb16() {
     }
     //CMP R0, R0
     match decode_16(0x2800).unwrap() {
-        Op::CMP_imm8 { rn, imm8 } => {
+        Op::CMP_imm { rn, imm32 } => {
             assert!(rn == Reg::R0);
-            assert!(imm8 == 0);
+            assert!(imm32 == 0);
         }
         _ => {
             assert!(false);
@@ -533,9 +628,9 @@ fn test_decode_thumb16() {
     }
     // BEQ.N
     match decode_16(0xd001).unwrap() {
-        Op::B_imm8 { cond, imm8 } => {
+        Op::B { cond, imm32 } => {
             assert!(cond == Condition::EQ);
-            assert!(imm8 == 1);
+            assert!(imm32 == (1 << 1));
         }
         _ => {
             assert!(false);
@@ -543,9 +638,9 @@ fn test_decode_thumb16() {
     }
     // BNE.N
     match decode_16(0xd1f8).unwrap() {
-        Op::B_imm8 { cond, imm8 } => {
+        Op::B { cond, imm32 } => {
             assert!(cond == Condition::NE);
-            assert!(imm8 == 0xf8);
+            assert!(imm32 == -16);
         }
         _ => {
             assert!(false);
@@ -564,9 +659,9 @@ fn test_decode_thumb16() {
     }
     // LDR.N R1, [PC, 0x1c]
     match decode_16(0x4907).unwrap() {
-        Op::LDR { rt, imm8 } => {
+        Op::LDR_lit { rt, imm32 } => {
             assert!(rt == Reg::R1);
-            assert!(imm8 == 7);
+            assert!(imm32 == (7 << 2));
         }
         _ => {
             assert!(false);
@@ -584,8 +679,9 @@ fn test_decode_thumb16() {
     }
     // B.N (PC + 8)
     match decode_16(0xE004).unwrap() {
-        Op::B_imm11 { imm11 } => {
-            assert!(imm11 == 4);
+        Op::B { cond, imm32 } => {
+            assert!(cond == Condition::AL);
+            assert!(imm32 == (4 << 1));
         }
         _ => {
             assert!(false);
@@ -613,5 +709,16 @@ fn test_decode_thumb16() {
         }
     }
 
+    // LDR R2, [R1]
+    match decode_16(0x680a).unwrap() {
+        Op::LDR_imm { rt, rn, imm32 } => {
+            assert!(rn == Reg::R1);
+            assert!(rt == Reg::R2);
+            assert!(imm32 == 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
 
 }
