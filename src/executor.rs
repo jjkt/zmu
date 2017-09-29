@@ -125,6 +125,14 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                     core.r[Reg::PC.value()] += 2;
 
                 }
+                Op::TST_reg { rn, rm } => {
+                    let result = read_reg(core, rn) & read_reg(core, rm);
+
+                    core.apsr.set_n(result.get_bit(31));
+                    core.apsr.set_z(result == 0);
+                    //core.apsr.set_c(carry); carry = shift_c()
+                    core.r[Reg::PC.value()] += 2;
+                }
 
                 _ => panic!("unimplemented instruction"),
             }
