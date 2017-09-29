@@ -19,6 +19,7 @@ mod blx;
 mod bl;
 mod push;
 mod pop;
+mod tst;
 
 use decoder::mov::*;
 use decoder::ldr::*;
@@ -31,6 +32,7 @@ use decoder::blx::*;
 use decoder::bl::*;
 use decoder::push::*;
 use decoder::pop::*;
+use decoder::tst::*;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11..16) {
@@ -71,7 +73,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
                     0b010000_0101 => Some(Op::ADC),
                     0b010000_0110 => Some(Op::SBC),
                     0b010000_0111 => Some(Op::ROR),
-                    0b010000_1000 => Some(Op::TST),
+                    0b010000_1000 => Some(decode_TST_reg_t1(command)),
                     0b010000_1001 => Some(Op::RSB),
                     0b010000_1010 => Some(decode_CMP_t1(command)),
                     0b010000_1011 => Some(Op::CMN),
@@ -469,6 +471,17 @@ fn test_decode_thumb16() {
             assert!(rn == Reg::R1);
             assert!(rt == Reg::R2);
             assert!(imm32 == 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+    // TST R4, R1
+    match decode_16(0x420c).unwrap() {
+        Op::TST_reg { rn, rm } => {
+            assert!(rn == Reg::R4);
+            assert!(rm == Reg::R1);
         }
         _ => {
             assert!(false);
