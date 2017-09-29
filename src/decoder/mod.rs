@@ -33,15 +33,15 @@ use decoder::push::*;
 use decoder::pop::*;
 
 pub fn is_thumb32(word: u16) -> bool {
-    match word >> 11 {
+    match word.get_bits(11..16) {
         0b11101 | 0b11110 | 0b11111 => true,
         _ => false,
     }
 }
 
 pub fn decode_16(command: u16) -> Option<Op> {
-    match command & 0xc000 {
-        0b0000_0000_0000_0000_u16 => {
+    match command.get_bits(14..16) {
+        0b00 => {
             // Shift (immediate), add, substract, move and compare
             match command.get_bits(9..14) {
                 0b000_01 | 0b000_10 | 0b000_11 => Some(Op::LSL_imm),
@@ -59,43 +59,43 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 _ => None,
             }
         }
-        0b0100_0000_0000_0000_u16 => {
+        0b01 => {
             // data process, special data, load from lp...
-            if (command & 0x800) == 0 {
-                match command & 0xffc0 {
-                    0b010000_0000_000000_u16 => Some(Op::AND),
-                    0b010000_0001_000000_u16 => Some(Op::EOR),
-                    0b010000_0010_000000_u16 => Some(Op::LSL_imm),
-                    0b010000_0011_000000_u16 => Some(Op::LSR_imm),
-                    0b010000_0100_000000_u16 => Some(Op::ASR),
-                    0b010000_0101_000000_u16 => Some(Op::ADC),
-                    0b010000_0110_000000_u16 => Some(Op::SBC),
-                    0b010000_0111_000000_u16 => Some(Op::ROR),
-                    0b010000_1000_000000_u16 => Some(Op::TST),
-                    0b010000_1001_000000_u16 => Some(Op::RSB),
-                    0b010000_1010_000000_u16 => Some(decode_CMP_t1(command)),
-                    0b010000_1011_000000_u16 => Some(Op::CMN),
-                    0b010000_1100_000000_u16 => Some(Op::ORR),
-                    0b010000_1101_000000_u16 => Some(Op::MUL),
-                    0b010000_1110_000000_u16 => Some(Op::BIC),
-                    0b010000_1111_000000_u16 => Some(Op::MVN_reg),
+            if command.get_bit(11) == false {
+                match command.get_bits(6..16) {
+                    0b010000_0000 => Some(Op::AND),
+                    0b010000_0001 => Some(Op::EOR),
+                    0b010000_0010 => Some(Op::LSL_imm),
+                    0b010000_0011 => Some(Op::LSR_imm),
+                    0b010000_0100 => Some(Op::ASR),
+                    0b010000_0101 => Some(Op::ADC),
+                    0b010000_0110 => Some(Op::SBC),
+                    0b010000_0111 => Some(Op::ROR),
+                    0b010000_1000 => Some(Op::TST),
+                    0b010000_1001 => Some(Op::RSB),
+                    0b010000_1010 => Some(decode_CMP_t1(command)),
+                    0b010000_1011 => Some(Op::CMN),
+                    0b010000_1100 => Some(Op::ORR),
+                    0b010000_1101 => Some(Op::MUL),
+                    0b010000_1110 => Some(Op::BIC),
+                    0b010000_1111 => Some(Op::MVN_reg),
 
-                    0b010001_0000_000000_u16 |
-                    0b010001_0001_000000_u16 |
-                    0b010001_0010_000000_u16 |
-                    0b010001_0011_000000_u16 => Some(decode_ADD(command)),
+                    0b010001_0000 |
+                    0b010001_0001 |
+                    0b010001_0010 |
+                    0b010001_0011 => Some(decode_ADD(command)),
 
-                    0b010001_0100_000000_u16 => None,
-                    0b010001_0101_000000_u16 |
-                    0b010001_0110_000000_u16 |
-                    0b010001_0111_000000_u16 => Some(decode_CMP_t2(command)),
-                    0b010001_1000_000000_u16 |
-                    0b010001_1001_000000_u16 |
-                    0b010001_1010_000000_u16 |
-                    0b0100_0110_1100_0000_u16 => Some(decode_MOV_reg_t1(command)),
-                    0b0100_0111_0100_0000_u16 => Some(decode_BX(command)),
-                    0b010001_1110_000000_u16 |
-                    0b010001_1111_000000_u16 => Some(decode_BLX(command)),
+                    0b010001_0100 => None,
+                    0b010001_0101 |
+                    0b010001_0110 |
+                    0b010001_0111 => Some(decode_CMP_t2(command)),
+                    0b010001_1000 |
+                    0b010001_1001 |
+                    0b010001_1010 |
+                    0b0100_0110_11 => Some(decode_MOV_reg_t1(command)),
+                    0b0100_0111_01 => Some(decode_BX(command)),
+                    0b010001_1110 |
+                    0b010001_1111 => Some(decode_BLX(command)),
                     _ => None,
 
                 }
@@ -109,7 +109,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 }
             }
         }
-        0b1000_0000_0000_0000_u16 => {
+        0b10 => {
             // generate pc relative addr, sp rela, misc
             // LDR_imm_t2 = 10011
             match command.get_bits(11..16) {
@@ -124,7 +124,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
             }
 
         }
-        0b1100_0000_0000_0000_u16 => {
+        0b11 => {
             // store, load multiple, branch, svc, uncond branch
             match command.get_bits(12..16) {
                 0b1101 => Some(decode_B_t1(command)),
