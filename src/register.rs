@@ -1,3 +1,5 @@
+use std::fmt;
+
 use enum_set::CLike;
 use bit_field::BitField;
 use std::mem;
@@ -147,6 +149,29 @@ impl Reg {
             14 => Some(Reg::LR),
             15 => Some(Reg::PC),
             _ => None,
+        }
+    }
+}
+
+impl fmt::Display for Reg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Reg::R0 => write!(f, "R0"),
+            Reg::R1 => write!(f, "R1"),
+            Reg::R2 => write!(f, "R2"),
+            Reg::R3 => write!(f, "R3"),
+            Reg::R4 => write!(f, "R4"),
+            Reg::R5 => write!(f, "R5"),
+            Reg::R6 => write!(f, "R6"),
+            Reg::R7 => write!(f, "R7"),
+            Reg::R8 => write!(f, "R8"),
+            Reg::R9 => write!(f, "R9"),
+            Reg::R10 => write!(f, "R10"),
+            Reg::R11 => write!(f, "R11"),
+            Reg::R12 => write!(f, "R12"),
+            Reg::SP => write!(f, "SP"),
+            Reg::LR => write!(f, "LR"),
+            Reg::PC => write!(f, "PC"),
         }
     }
 }

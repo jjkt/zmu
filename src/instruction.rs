@@ -64,7 +64,7 @@ pub enum Op {
     STM,
     STMIA,
     STMEA,
-    STR_imm,
+    STR_imm { rn: Reg, rt: Reg, imm32: u32 },
     STR_reg,
     STRB_imm,
     STRB_reg,
@@ -89,29 +89,21 @@ impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Op::ADD { rdn, rm } => write!(f, "ADD"),
-            Op::ADDS_imm { rn, rd, imm32 } => {
-                write!(f,
-                       "ADDS_imm R{:x}, R{:x}, #{}",
-                       rn.value(),
-                       rd.value(),
-                       imm32)
-            }
-            Op::ADDS { rm, rn, rd } => {
-                write!(f, "ADDS R{}, R{}, R{}", rn.value(), rd.value(), rm.value())
-            }
+            Op::ADDS_imm { rn, rd, imm32 } => write!(f, "ADDS {},{},#{}", rn, rd, imm32),
+            Op::ADDS { rm, rn, rd } => write!(f, "ADDS {},{},{}", rn, rd, rm),
             Op::ADC => write!(f, "ADC"),
             Op::ADR => write!(f, "ADR"),
             Op::AND => write!(f, "AND"),
             Op::ASR => write!(f, "ASR"),
-            Op::B { ref cond, imm32 } => write!(f, "B{:?} {}", cond, imm32),
+            Op::B { ref cond, imm32 } => write!(f, "B{} {}", cond, imm32),
             Op::BIC => write!(f, "BIC"),
             Op::BL { imm32 } => write!(f, "BL"),
             Op::BX { rm } => write!(f, "BX"),
-            Op::BLX { rm } => write!(f, "BLX R{}", rm.value()),
+            Op::BLX { rm } => write!(f, "BLX {}", rm),
             Op::BKPT => write!(f, "BKPT"),
             Op::CMN => write!(f, "CMN"),
-            Op::CMP_imm { rn, imm32 } => write!(f, "CMP_imm {:?}, {}", rn, imm32),
-            Op::CMP { rn, rm } => write!(f, "CMP {:?}, {:?}", rn, rm),
+            Op::CMP_imm { rn, imm32 } => write!(f, "CMP {}, #{}", rn, imm32),
+            Op::CMP { rn, rm } => write!(f, "CMP {}, {}", rn, rm),
             Op::CPS => write!(f, "CPS"),
             Op::CPY => write!(f, "CPY"),
             Op::DMB => write!(f, "DMB"),
@@ -122,10 +114,8 @@ impl fmt::Display for Op {
             Op::LDMIA => write!(f, "LDMIA"),
             Op::LDMFD => write!(f, "LDMFD"),
             Op::LDR_reg { rt, rn, rm } => write!(f, "LDR regs"),
-            Op::LDR_imm { rt, rn, imm32 } => {
-                write!(f, "LDR R{}, R{}, {}", rt.value(), rn.value(), imm32)
-            }
-            Op::LDR_lit { rt, imm32 } => write!(f, "LDR R{},[PC, #{}]", rt.value(), imm32),
+            Op::LDR_imm { rt, rn, imm32 } => write!(f, "LDR {},{},#{}", rt, rn, imm32),
+            Op::LDR_lit { rt, imm32 } => write!(f, "LDR {},[PC, #{}]", rt, imm32),
             Op::LDRB_imm => write!(f, "LDRB"),
             Op::LDRB_reg => write!(f, "LDRB reg"),
             Op::LDRH_imm => write!(f, "LDRH imm"),
@@ -139,8 +129,8 @@ impl fmt::Display for Op {
             Op::MRS_reg => write!(f, "MSR reg"),
             Op::MRS => write!(f, "MSR"),
             Op::MUL => write!(f, "MUL"),
-            Op::MOV_reg { rd, rm, setflags } => write!(f, "MOV {:?},{:?}", rd, rm),
-            Op::MOV_imm { rd, imm32 } => write!(f, "MOV_imm {:?}, {}", rd, imm32),
+            Op::MOV_reg { rd, rm, setflags } => write!(f, "MOV {},{}", rd, rm),
+            Op::MOV_imm { rd, imm32 } => write!(f, "MOV {},#{}", rd, imm32),
             Op::MVN_reg => write!(f, "MVN"),
             Op::NOP => write!(f, "NOP"),
             Op::ORR => write!(f, "ORR"),
@@ -156,7 +146,7 @@ impl fmt::Display for Op {
             Op::STM => write!(f, "STM"),
             Op::STMIA => write!(f, "STMIA"),
             Op::STMEA => write!(f, "STMEA"),
-            Op::STR_imm => write!(f, "STR"),
+            Op::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{}, #{}]", rn, rt, imm32),            
             Op::STR_reg => write!(f, "STR"),
             Op::STRB_imm => write!(f, "STRB"),
             Op::STRB_reg => write!(f, "STRB_reg"),
@@ -168,7 +158,7 @@ impl fmt::Display for Op {
             Op::SVC => write!(f, "SVC"),
             Op::SXTB => write!(f, "SXTB"),
             Op::SXTH => write!(f, "SXTH"),
-            Op::TST_reg { rn, rm } => write!(f, "TST R{},R{}", rn.value(), rm.value()),
+            Op::TST_reg { rn, rm } => write!(f, "TST {},{}", rn, rm),
             Op::UDF => write!(f, "UDF"),
             Op::UXTB => write!(f, "UXTB"),
             Op::UXTH => write!(f, "UXTH"),
