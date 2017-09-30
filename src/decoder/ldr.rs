@@ -7,7 +7,7 @@ use instruction::Op;
 pub fn decode_LDR_imm_t2(command: u16) -> Op {
     Op::LDR_imm {
         rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        rn: Reg::PC,
+        rn: Reg::SP,
         imm32: (command.get_bits(0..8) as u32) << 2,
     }
 }
