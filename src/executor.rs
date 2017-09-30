@@ -88,6 +88,13 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                     core.r[rt.value()] = core.memory.fetch32(address & 0xfffffffc);
                     core.r[Reg::PC.value()] += 2;
                 }
+                Op::STR_imm { rt, rn, imm32 } => {
+                    let address = (read_reg(core, rn) + imm32) & 0xfffffffc;
+                    let value = read_reg(core, rt);
+                    println!("writing [{:x}] = {:x}", address, value);
+                    core.memory.write32(address, value);
+                    core.r[Reg::PC.value()] += 2;
+                }
                 Op::LDR_lit { rt, imm32 } => {
                     let base = read_reg(core, Reg::PC) & 0xfffffffc;
                     core.r[rt.value()] = core.memory.fetch32(base + imm32);

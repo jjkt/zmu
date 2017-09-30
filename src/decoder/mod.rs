@@ -10,6 +10,7 @@ use condition::Condition;
 
 mod mov;
 mod ldr;
+mod str;
 mod add;
 mod bx;
 mod cmp;
@@ -33,6 +34,7 @@ use decoder::bl::*;
 use decoder::push::*;
 use decoder::pop::*;
 use decoder::tst::*;
+use decoder::str::*;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11..16) {
@@ -64,43 +66,45 @@ pub fn decode_16(command: u16) -> Option<Op> {
         0b01 => {
             // data process, special data, load from lp...
             if command.get_bit(11) == false {
-                match command.get_bits(6..16) {
-                    0b010000_0000 => Some(Op::AND),
-                    0b010000_0001 => Some(Op::EOR),
-                    0b010000_0010 => Some(Op::LSL_imm),
-                    0b010000_0011 => Some(Op::LSR_imm),
-                    0b010000_0100 => Some(Op::ASR),
-                    0b010000_0101 => Some(Op::ADC),
-                    0b010000_0110 => Some(Op::SBC),
-                    0b010000_0111 => Some(Op::ROR),
-                    0b010000_1000 => Some(decode_TST_reg_t1(command)),
-                    0b010000_1001 => Some(Op::RSB),
-                    0b010000_1010 => Some(decode_CMP_t1(command)),
-                    0b010000_1011 => Some(Op::CMN),
-                    0b010000_1100 => Some(Op::ORR),
-                    0b010000_1101 => Some(Op::MUL),
-                    0b010000_1110 => Some(Op::BIC),
-                    0b010000_1111 => Some(Op::MVN_reg),
 
-                    0b010001_0000 |
-                    0b010001_0001 |
-                    0b010001_0010 |
-                    0b010001_0011 => Some(decode_ADD(command)),
+                match command.get_bits(13..16) {
+                    0b010 => {
+                        match command.get_bits(6..13) {
+                            0b000_0000 => Some(Op::AND),
+                            0b000_0001 => Some(Op::EOR),
+                            0b000_0010 => Some(Op::LSL_imm),
+                            0b000_0011 => Some(Op::LSR_imm),
+                            0b000_0100 => Some(Op::ASR),
+                            0b000_0101 => Some(Op::ADC),
+                            0b000_0110 => Some(Op::SBC),
+                            0b000_0111 => Some(Op::ROR),
+                            0b000_1000 => Some(decode_TST_reg_t1(command)),
+                            0b000_1001 => Some(Op::RSB),
+                            0b000_1010 => Some(decode_CMP_t1(command)),
+                            0b000_1011 => Some(Op::CMN),
+                            0b000_1100 => Some(Op::ORR),
+                            0b000_1101 => Some(Op::MUL),
+                            0b000_1110 => Some(Op::BIC),
+                            0b000_1111 => Some(Op::MVN_reg),
 
-                    0b010001_0100 => None,
-                    0b010001_0101 |
-                    0b010001_0110 |
-                    0b010001_0111 => Some(decode_CMP_t2(command)),
-                    0b010001_1000 |
-                    0b010001_1001 |
-                    0b010001_1010 |
-                    0b0100_0110_11 => Some(decode_MOV_reg_t1(command)),
-                    0b0100_0111_01 => Some(decode_BX(command)),
-                    0b010001_1110 |
-                    0b010001_1111 => Some(decode_BLX(command)),
+                            0b001_0000 | 0b001_0001 | 0b001_0010 | 0b001_0011 => {
+                                Some(decode_ADD(command))
+                            }
+
+                            0b001_0100 => None,
+                            0b001_0101 | 0b001_0110 | 0b001_0111 => Some(decode_CMP_t2(command)),
+                            0b001_1000 | 0b001_1001 | 0b001_1010 | 0b001_1011 => {
+                                Some(decode_MOV_reg_t1(command))
+                            }
+                            0b001_1101 => Some(decode_BX(command)),
+                            0b001_1110 | 0b001_1111 => Some(decode_BLX(command)),
+                            _ => None,
+                        }
+                    }
+                    0b011 => Some(decode_STR_imm_t1(command)),
                     _ => None,
-
                 }
+
             } else {
 
                 match command.get_bits(11..16) {
@@ -113,9 +117,9 @@ pub fn decode_16(command: u16) -> Option<Op> {
         }
         0b10 => {
             // generate pc relative addr, sp rela, misc
-            // LDR_imm_t2 = 10011
             match command.get_bits(11..16) {
                 0b10011 => Some(decode_LDR_imm_t2(command)),
+                0b10010 => Some(decode_STR_imm_t2(command)),
                 _ => {
                     match command.get_bits(9..14) {
                         0b11110 => Some(decode_POP(command)),
@@ -146,7 +150,7 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Op> {
     let op2 = (t2 >> 12) & 0x07;
 
     match op2 {
-        0x7 | 0x5 => Some(decode_bl(t1,t2)),
+        0x7 | 0x5 => Some(decode_bl(t1, t2)),
         _ => None,
     }
 }
