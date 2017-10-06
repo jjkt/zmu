@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 pub mod bus;
+pub mod memory;
 pub mod core;
 
 pub mod condition;
@@ -20,9 +21,9 @@ use core::Core;
 use bus::Bus;
 
 #[cfg(test)]
-use bus::ram::RAM;
+use memory::ram::RAM;
 #[cfg(test)]
-use bus::flash::FlashMemory;
+use memory::flash::FlashMemory;
 
 pub fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R) {
 
