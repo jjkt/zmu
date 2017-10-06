@@ -3,19 +3,19 @@ use instruction::Op;
 use register::Reg;
 use register::Apsr;
 use core::Core;
-use memory::Fetch;
+use bus::Bus;
 
 use operation::add_with_carry;
 use operation::condition_passed;
 
-fn read_reg<T: Fetch>(core: &mut Core<T>, r: Reg) -> u32 {
+fn read_reg<T: Bus>(core: &mut Core<T>, r: Reg) -> u32 {
     match r {
         Reg::PC => core.r[r.value()] + 4,
         _ => core.r[r.value()],
     }
 }
 
-pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
+pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Op>) {
 
     match op {
         None => panic!("undefined code"),
@@ -85,19 +85,18 @@ pub fn execute<T: Fetch>(core: &mut Core<T>, op: Option<Op>) {
                 }
                 Op::LDR_imm { rt, rn, imm32 } => {
                     let address = read_reg(core, rn) + imm32;
-                    core.r[rt.value()] = core.memory.fetch32(address & 0xfffffffc);
+                    core.r[rt.value()] = core.bus.read32(address & 0xfffffffc);
                     core.r[Reg::PC.value()] += 2;
                 }
                 Op::STR_imm { rt, rn, imm32 } => {
                     let address = (read_reg(core, rn) + imm32) & 0xfffffffc;
                     let value = read_reg(core, rt);
-                    println!("writing [{:x}] = {:x}", address, value);
-                    core.memory.write32(address, value);
+                    core.bus.write32(address, value);
                     core.r[Reg::PC.value()] += 2;
                 }
                 Op::LDR_lit { rt, imm32 } => {
                     let base = read_reg(core, Reg::PC) & 0xfffffffc;
-                    core.r[rt.value()] = core.memory.fetch32(base + imm32);
+                    core.r[rt.value()] = core.bus.read32(base + imm32);
                     core.r[Reg::PC.value()] += 2;
                 }
                 Op::ADD { rdn, rm } => {

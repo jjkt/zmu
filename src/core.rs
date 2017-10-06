@@ -1,4 +1,4 @@
-use memory::Fetch;
+use bus::Bus;
 use executor::execute;
 use decoder::decode_16;
 use decoder::decode_32;
@@ -10,7 +10,7 @@ pub enum ProcessorMode {
     HandlerMode,
 }
 
-pub struct Core<'a, T: Fetch + 'a> {
+pub struct Core<'a, T: Bus + 'a> {
     pub msp: u32,
     pub psp: u32,
     pub r: [u32; 16],
@@ -23,11 +23,11 @@ pub struct Core<'a, T: Fetch + 'a> {
     pub control: u32,
 
     pub mode: ProcessorMode,
-    pub memory: &'a mut T,
+    pub bus: &'a mut T,
 }
 
-impl<'a, T: Fetch> Core<'a, T> {
-    pub fn new(memory: &'a mut T) -> Core<'a, T> {
+impl<'a, T: Bus> Core<'a, T> {
+    pub fn new(bus: &'a mut T) -> Core<'a, T> {
         Core {
             mode: ProcessorMode::ThreadMode,
             msp: 0,
@@ -38,26 +38,23 @@ impl<'a, T: Fetch> Core<'a, T> {
             primask: 0,
             control: 0,
             r: [0; 16],
-            memory: memory,
+            bus: bus,
         }
     }
 
     pub fn reset(&mut self) {
-        let reset_vector = self.memory.fetch32(4);
+        let reset_vector = self.bus.read32(4);
         println!("\nRESET");
 
         self.r[Reg::PC.value()] = reset_vector & 0xfffffffe;
         self.epsr = (reset_vector & 1) << 24;
-        self.msp = self.memory.fetch32(0);
+        self.msp = self.bus.read32(0);
     }
 
     //
     // fetch, decode and execute single instruction
     //
     pub fn run(&mut self) {
-        //TODO: print only changed registers
-        //TODO: print APSR
-        //TODO: print memory accesses
         println!("PC:{:08X} APSR:{:08X} LR:{:08X} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
                   R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X}",
                  self.r[Reg::PC.value()],
@@ -79,11 +76,11 @@ impl<'a, T: Fetch> Core<'a, T> {
                  self.r[Reg::SP.value()],
                  );
 
-        let hw = self.memory.fetch16(self.r[Reg::PC.value()]);
+        let hw = self.bus.read16(self.r[Reg::PC.value()]);
 
         let op = match is_thumb32(hw) {
             true => {
-                let hw2 = self.memory.fetch16(self.r[Reg::PC.value()] + 2);
+                let hw2 = self.bus.read16(self.r[Reg::PC.value()] + 2);
                 //println!("pc 0x{:X} = 0x{:X}, 0x{:X}",
                 //         self.r[Reg::PC.value()],
                 //         hw,

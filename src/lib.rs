@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-pub mod memory;
-
+pub mod bus;
 pub mod core;
+
 pub mod condition;
 pub mod register;
 pub mod instruction;
@@ -17,13 +17,21 @@ extern crate bit_field;
 extern crate enum_set;
 
 use core::Core;
-use memory::Fetch;
+use bus::Bus;
 
 #[cfg(test)]
-use memory::SystemMemory;
+use bus::ram::RAM;
+#[cfg(test)]
+use bus::flash::FlashMemory;
 
-pub fn run_bin<T: Fetch>(memory: &mut T) {
-    let mut core = Core::new(memory);
+pub fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R) {
+
+    let mut internal_bus = bus::internal::InternalBus::new();
+    let mut ahb = bus::ahblite::AHBLite::new(code, sram);
+
+    let mut bus = bus::busmatrix::BusMatrix::new(&mut internal_bus, &mut ahb);
+
+    let mut core = Core::new(&mut bus);
     core.reset();
     loop {
         core.run();
@@ -115,6 +123,9 @@ fn test_hello_world() {
          0x46, 0xc0, 0x46, 0xc0, 0x46, 0xc0, 0x46, 0xff, 0xf7, 0xba, 0xff, 0xff, 0xff, 0xff, 0xff,
          0xff, 0xff, 0xff, 0xff];
 
-    let mut hellow = SystemMemory::new(&mut hellow_bin);
-    run_bin(&mut hellow);
+    let mut ram_mem = vec![0; 1024];
+
+    let mut hellow = FlashMemory::new(&mut hellow_bin, 0x0);
+    let mut ram = RAM::new(&mut ram_mem, 0x20000000);
+    run_bin(&mut hellow, &mut ram);
 }
