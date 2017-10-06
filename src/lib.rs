@@ -4,14 +4,7 @@
 pub mod bus;
 pub mod memory;
 pub mod core;
-
-pub mod condition;
-pub mod register;
-pub mod instruction;
-pub mod operation;
-
 pub mod decoder;
-pub mod executor;
 
 extern crate byteorder;
 extern crate bit_field;

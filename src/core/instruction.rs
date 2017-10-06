@@ -1,5 +1,5 @@
-use register::Reg;
-use condition::Condition;
+use core::register::Reg;
+use core::condition::Condition;
 use enum_set::EnumSet;
 use std::fmt;
 

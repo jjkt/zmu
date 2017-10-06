@@ -1,9 +1,15 @@
+
+pub mod condition;
+pub mod executor;
+pub mod instruction;
+pub mod operation;
+pub mod register;
+
 use bus::Bus;
-use executor::execute;
-use decoder::decode_16;
-use decoder::decode_32;
-use decoder::is_thumb32;
-use register::Reg;
+use core::executor::execute;
+use core::register::Reg;
+use decoder::{decode_16,decode_32,is_thumb32};
+
 
 pub enum ProcessorMode {
     ThreadMode,

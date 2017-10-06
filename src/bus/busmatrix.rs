@@ -6,7 +6,8 @@ pub struct BusMatrix<'a, T: 'a + Bus, R: 'a + Bus> {
 }
 
 impl<'a, T, R> BusMatrix<'a, T, R>
-    where T: Bus, R : Bus
+    where T: Bus,
+          R: Bus
 {
     pub fn new(intr: &'a mut T, extr: &'a mut R) -> BusMatrix<'a, T, R> {
         BusMatrix {
@@ -17,7 +18,8 @@ impl<'a, T, R> BusMatrix<'a, T, R>
 }
 
 impl<'a, T, R> Bus for BusMatrix<'a, T, R>
-    where T: Bus, R: Bus
+    where T: Bus,
+          R: Bus
 {
     fn read16(&mut self, addr: u32) -> u16 {
 

@@ -1,5 +1,5 @@
-use condition::Condition;
-use register::Apsr;
+use core::condition::Condition;
+use core::register::Apsr;
 
 pub fn sign_extend(word: u32, topbit: u8, size: u8) -> i32 {
     if word & (1 << topbit) == (1 << topbit) {

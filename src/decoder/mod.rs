@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use instruction::Op;
+use core::instruction::Op;
 
 
 #[cfg(test)]

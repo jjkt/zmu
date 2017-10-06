@@ -1,8 +1,8 @@
 use bit_field::BitField;
 use enum_set::EnumSet;
 
-use register::Reg;
-use instruction::Op;
+use core::register::Reg;
+use core::instruction::Op;
 
 #[allow(non_snake_case)]
 pub fn decode_POP(command: u16) -> Op {

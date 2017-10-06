@@ -1,12 +1,12 @@
 use bit_field::BitField;
-use instruction::Op;
-use register::Reg;
-use register::Apsr;
+use core::instruction::Op;
+use core::register::Reg;
+use core::register::Apsr;
 use core::Core;
 use bus::Bus;
 
-use operation::add_with_carry;
-use operation::condition_passed;
+use core::operation::add_with_carry;
+use core::operation::condition_passed;
 
 fn read_reg<T: Bus>(core: &mut Core<T>, r: Reg) -> u32 {
     match r {

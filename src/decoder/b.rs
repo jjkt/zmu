@@ -1,8 +1,8 @@
 use bit_field::BitField;
 
-use condition::Condition;
-use instruction::Op;
-use operation::sign_extend;
+use core::condition::Condition;
+use core::instruction::Op;
+use core::operation::sign_extend;
 
 #[allow(non_snake_case)]
 pub fn decode_B_t1(command: u16) -> Op {

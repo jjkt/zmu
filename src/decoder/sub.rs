@@ -1,7 +1,7 @@
 use bit_field::BitField;
 
-use register::Reg;
-use instruction::Op;
+use core::register::Reg;
+use core::instruction::Op;
 
 #[allow(non_snake_case)]
 pub fn decode_SUBS_imm_t1(command: u16) -> Op {

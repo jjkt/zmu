@@ -1,5 +1,5 @@
-use instruction::Op;
-use operation::sign_extend;
+use core::instruction::Op;
+use core::operation::sign_extend;
 
 pub fn decode_bl(t1: u16, t2: u16) -> Op {
     let s = ((t1 >> 10) & 1) as u32;
