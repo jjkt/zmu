@@ -1,18 +1,18 @@
 use bit_field::BitField;
 
 use core::register::Reg;
-use core::instruction::Op;
+use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
-pub fn decode_MOV_imm_t1(command: u16) -> Op {
-    Op::MOV_imm {
+pub fn decode_MOV_imm_t1(command: u16) -> Instruction {
+    Instruction::MOV_imm {
         rd: Reg::from_u16(command.get_bits(7..10)).unwrap(),
         imm32: command.get_bits(0..8) as u32,
     }
 }
 #[allow(non_snake_case)]
-pub fn decode_MOV_reg_t1(command: u16) -> Op {
-    Op::MOV_reg {
+pub fn decode_MOV_reg_t1(command: u16) -> Instruction {
+    Instruction::MOV_reg {
         rd: Reg::from_u16(((command.get_bit(7) as u16) << 3) + command.get_bits(0..3)).unwrap(),
         rm: Reg::from_u16(command.get_bits(3..7)).unwrap(),
         setflags: false,
@@ -20,8 +20,8 @@ pub fn decode_MOV_reg_t1(command: u16) -> Op {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MOV_reg_t2(command: u16) -> Op {
-    Op::MOV_reg {
+pub fn decode_MOV_reg_t2(command: u16) -> Instruction {
+    Instruction::MOV_reg {
         rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
         rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
         setflags: true,

@@ -1,5 +1,6 @@
 use core::condition::Condition;
 use core::register::Apsr;
+use core::PSR;
 
 pub fn sign_extend(word: u32, topbit: u8, size: u8) -> i32 {
     if word & (1 << topbit) == (1 << topbit) {
@@ -30,27 +31,27 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
 // • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction
 // • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
 //
-pub fn condition_passed(condition: Condition, aspr: &u32) -> bool {
+pub fn condition_passed(condition: Condition, psr: &PSR) -> bool {
 
     match condition {
-        Condition::EQ => aspr.get_z(),
-        Condition::NE => !aspr.get_z(),
-        Condition::CS => aspr.get_c(),
-        Condition::CC => !aspr.get_c(),
-        Condition::MI => aspr.get_n(),
-        Condition::PL => !aspr.get_n(),
+        Condition::EQ => psr.get_z(),
+        Condition::NE => !psr.get_z(),
+        Condition::CS => psr.get_c(),
+        Condition::CC => !psr.get_c(),
+        Condition::MI => psr.get_n(),
+        Condition::PL => !psr.get_n(),
 
-        Condition::VS => aspr.get_v(),
-        Condition::VC => !aspr.get_v(),
+        Condition::VS => psr.get_v(),
+        Condition::VC => !psr.get_v(),
 
-        Condition::HI => aspr.get_c() && aspr.get_z(),
-        Condition::LS => !(aspr.get_c() && aspr.get_z()),
+        Condition::HI => psr.get_c() && psr.get_z(),
+        Condition::LS => !(psr.get_c() && psr.get_z()),
 
-        Condition::GE => aspr.get_n() == aspr.get_v(),
-        Condition::LT => !(aspr.get_n() == aspr.get_v()),
+        Condition::GE => psr.get_n() == psr.get_v(),
+        Condition::LT => !(psr.get_n() == psr.get_v()),
 
-        Condition::GT => (aspr.get_n() == aspr.get_v()) && !aspr.get_z(),
-        Condition::LE => !((aspr.get_n() == aspr.get_v()) && !aspr.get_z()),
+        Condition::GT => (psr.get_n() == psr.get_v()) && !psr.get_z(),
+        Condition::LE => !((psr.get_n() == psr.get_v()) && !psr.get_z()),
 
         Condition::AL => true,
     }

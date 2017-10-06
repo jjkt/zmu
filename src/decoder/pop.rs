@@ -2,10 +2,10 @@ use bit_field::BitField;
 use enum_set::EnumSet;
 
 use core::register::Reg;
-use core::instruction::Op;
+use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
-pub fn decode_POP(command: u16) -> Op {
+pub fn decode_POP(command: u16) -> Instruction {
     let mut regs: EnumSet<Reg> = EnumSet::new();
     let reg_bits = command.get_bits(0..8);
 
@@ -38,5 +38,5 @@ pub fn decode_POP(command: u16) -> Op {
         regs.insert(Reg::LR);
     }
 
-    Op::POP { registers: regs }
+    Instruction::POP { registers: regs }
 }

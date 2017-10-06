@@ -7,23 +7,21 @@ pub mod register;
 
 use bus::Bus;
 use core::executor::execute;
-use core::register::Reg;
-use decoder::{decode_16,decode_32,is_thumb32};
-
+use decoder::{decode_16, decode_32, is_thumb32};
+use core::register::{Reg, PSR, Epsr};
 
 pub enum ProcessorMode {
     ThreadMode,
     HandlerMode,
 }
 
+
 pub struct Core<'a, T: Bus + 'a> {
     pub msp: u32,
     pub psp: u32,
     pub r: [u32; 16],
 
-    pub apsr: u32,
-    pub ipsr: u32,
-    pub epsr: u32,
+    pub psr: PSR,
 
     pub primask: u32,
     pub control: u32,
@@ -38,9 +36,7 @@ impl<'a, T: Bus> Core<'a, T> {
             mode: ProcessorMode::ThreadMode,
             msp: 0,
             psp: 0,
-            apsr: 0,
-            ipsr: 0,
-            epsr: 0,
+            psr: PSR { value: 0 },
             primask: 0,
             control: 0,
             r: [0; 16],
@@ -53,7 +49,7 @@ impl<'a, T: Bus> Core<'a, T> {
         println!("\nRESET");
 
         self.r[Reg::PC.value()] = reset_vector & 0xfffffffe;
-        self.epsr = (reset_vector & 1) << 24;
+        self.psr.set_t((reset_vector & 1) == 1);
         self.msp = self.bus.read32(0);
     }
 
@@ -64,7 +60,7 @@ impl<'a, T: Bus> Core<'a, T> {
         println!("PC:{:08X} APSR:{:08X} LR:{:08X} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
                   R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X}",
                  self.r[Reg::PC.value()],
-                 self.apsr,
+                 self.psr.value,
                  self.r[Reg::LR.value()],
                  self.r[Reg::R0.value()],
                  self.r[Reg::R1.value()],
@@ -87,16 +83,9 @@ impl<'a, T: Bus> Core<'a, T> {
         let op = match is_thumb32(hw) {
             true => {
                 let hw2 = self.bus.read16(self.r[Reg::PC.value()] + 2);
-                //println!("pc 0x{:X} = 0x{:X}, 0x{:X}",
-                //         self.r[Reg::PC.value()],
-                //         hw,
-                //         hw2);
                 decode_32(hw, hw2)
             }
-            false => {
-                //println!("pc 0x{:X} = 0x{:X}", self.r[Reg::PC.value()], hw);
-                decode_16(hw)
-            }
+            false => decode_16(hw),
         };
 
         execute(self, op);

@@ -9,6 +9,9 @@ pub enum StackPointer {
     PSP(u32),
 }
 
+pub struct PSR {
+    pub value: u32,
+}
 
 pub trait Apsr {
     fn get_n(&self) -> bool;
@@ -31,6 +34,14 @@ pub trait Ipsr {
     fn get_exception_number(&self) -> u8;
 }
 
+// Execution Program Status register
+//
+// A view to PSR register containing the data.
+pub trait Epsr {
+    fn set_t(&mut self, t: bool);
+    fn get_t(&self) -> bool;
+}
+
 pub trait Primask {
     fn get_primask(&self) -> bool;
 }
@@ -40,42 +51,50 @@ pub trait ControlRegister {
 }
 
 
-impl Apsr for u32 {
+impl Apsr for PSR {
     fn get_n(&self) -> bool {
-        (*self).get_bit(31)
+        (*self).value.get_bit(31)
     }
     fn set_n(&mut self, n: bool) {
-        (*self).set_bit(31, n);
+        (*self).value.set_bit(31, n);
     }
 
     fn get_z(&self) -> bool {
-        (*self).get_bit(30)
+        (*self).value.get_bit(30)
     }
     fn set_z(&mut self, z: bool) {
-        (*self).set_bit(30, z);
+        (*self).value.set_bit(30, z);
     }
 
     fn get_c(&self) -> bool {
-        (*self).get_bit(29)
+        (*self).value.get_bit(29)
     }
     fn set_c(&mut self, c: bool) {
-        (*self).set_bit(29, c);
+        (*self).value.set_bit(29, c);
     }
     fn get_v(&self) -> bool {
-        (*self).get_bit(28)
+        (*self).value.get_bit(28)
     }
     fn set_v(&mut self, v: bool) {
-        (*self).set_bit(28, v);
+        (*self).value.set_bit(28, v);
     }
 
     fn get_q(&self) -> bool {
-        (*self).get_bit(27)
+        (*self).value.get_bit(27)
     }
     fn set_q(&mut self, q: bool) {
-        (*self).set_bit(27, q);
+        (*self).value.set_bit(27, q);
     }
 }
 
+impl Epsr for PSR {
+    fn get_t(&self) -> bool {
+        (*self).value.get_bit(24)
+    }
+    fn set_t(&mut self, n: bool) {
+        (*self).value.set_bit(24, n);
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
@@ -175,3 +194,4 @@ impl fmt::Display for Reg {
         }
     }
 }
+

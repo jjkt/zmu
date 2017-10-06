@@ -1,7 +1,7 @@
-use core::instruction::Op;
+use core::instruction::Instruction;
 use core::operation::sign_extend;
 
-pub fn decode_bl(t1: u16, t2: u16) -> Op {
+pub fn decode_bl(t1: u16, t2: u16) -> Instruction {
     let s = ((t1 >> 10) & 1) as u32;
     let imm10 = (t1 & 0x3ff) as u32;
 
@@ -17,5 +17,5 @@ pub fn decode_bl(t1: u16, t2: u16) -> Op {
                           24,
                           32);
 
-    Op::BL { imm32: imm as i32 }
+    Instruction::BL { imm32: imm as i32 }
 }

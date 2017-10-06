@@ -1,10 +1,10 @@
 //use bit_field::BitField;
 
 use core::register::Reg;
-use core::instruction::Op;
+use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
-pub fn decode_BX(command: u16) -> Op {
+pub fn decode_BX(command: u16) -> Instruction {
 
-    Op::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() }
+    Instruction::BX { rm: Reg::from_u16((command >> 3) & 0xf).unwrap() }
 }

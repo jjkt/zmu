@@ -1,12 +1,12 @@
 use bit_field::BitField;
-use core::instruction::Op;
+use core::instruction::Instruction;
 
 
 #[cfg(test)]
-use register::Reg;
+use core::register::Reg;
 
 #[cfg(test)]
-use condition::Condition;
+use core::condition::Condition;
 
 mod mov;
 mod ldr;
@@ -43,14 +43,14 @@ pub fn is_thumb32(word: u16) -> bool {
     }
 }
 
-pub fn decode_16(command: u16) -> Option<Op> {
+pub fn decode_16(command: u16) -> Option<Instruction> {
     match command.get_bits(14..16) {
         0b00 => {
             // Shift (immediate), add, substract, move and compare
             match command.get_bits(9..14) {
-                0b000_01 | 0b000_10 | 0b000_11 => Some(Op::LSL_imm),
-                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Op::LSR_imm),
-                0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Op::ASR),
+                0b000_01 | 0b000_10 | 0b000_11 => Some(Instruction::LSL_imm),
+                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Instruction::LSR_imm),
+                0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Instruction::ASR),
                 0b011_00 => Some(decode_ADDS(command)),
                 0b011_01 => Some(decode_SUBS_reg_t1(command)),
                 0b011_10 => Some(decode_ADDS_imm_t1(command)),
@@ -70,22 +70,22 @@ pub fn decode_16(command: u16) -> Option<Op> {
                 match command.get_bits(13..16) {
                     0b010 => {
                         match command.get_bits(6..13) {
-                            0b000_0000 => Some(Op::AND),
-                            0b000_0001 => Some(Op::EOR),
-                            0b000_0010 => Some(Op::LSL_imm),
-                            0b000_0011 => Some(Op::LSR_imm),
-                            0b000_0100 => Some(Op::ASR),
-                            0b000_0101 => Some(Op::ADC),
-                            0b000_0110 => Some(Op::SBC),
-                            0b000_0111 => Some(Op::ROR),
+                            0b000_0000 => Some(Instruction::AND),
+                            0b000_0001 => Some(Instruction::EOR),
+                            0b000_0010 => Some(Instruction::LSL_imm),
+                            0b000_0011 => Some(Instruction::LSR_imm),
+                            0b000_0100 => Some(Instruction::ASR),
+                            0b000_0101 => Some(Instruction::ADC),
+                            0b000_0110 => Some(Instruction::SBC),
+                            0b000_0111 => Some(Instruction::ROR),
                             0b000_1000 => Some(decode_TST_reg_t1(command)),
-                            0b000_1001 => Some(Op::RSB),
+                            0b000_1001 => Some(Instruction::RSB),
                             0b000_1010 => Some(decode_CMP_t1(command)),
-                            0b000_1011 => Some(Op::CMN),
-                            0b000_1100 => Some(Op::ORR),
-                            0b000_1101 => Some(Op::MUL),
-                            0b000_1110 => Some(Op::BIC),
-                            0b000_1111 => Some(Op::MVN_reg),
+                            0b000_1011 => Some(Instruction::CMN),
+                            0b000_1100 => Some(Instruction::ORR),
+                            0b000_1101 => Some(Instruction::MUL),
+                            0b000_1110 => Some(Instruction::BIC),
+                            0b000_1111 => Some(Instruction::MVN_reg),
 
                             0b001_0000 | 0b001_0001 | 0b001_0010 | 0b001_0011 => {
                                 Some(decode_ADD(command))
@@ -145,7 +145,7 @@ pub fn decode_16(command: u16) -> Option<Op> {
 }
 
 //A 5.3.1 Branch and misc (thumb32)
-pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Op> {
+pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Instruction> {
     let op1 = (t1 >> 4) & 0x7f;
     let op2 = (t2 >> 12) & 0x07;
 
@@ -156,7 +156,7 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Op> {
 }
 
 // A5.3 check thumb32 encodings
-pub fn decode_32(t1: u16, t2: u16) -> Option<Op> {
+pub fn decode_32(t1: u16, t2: u16) -> Option<Instruction> {
 
     let op1 = (t1 >> 11) & 0x03;
     let op = (t2 >> 15) & 0x01;
@@ -186,7 +186,7 @@ fn test_is_thumb32() {
 #[test]
 fn test_decode_thumb16() {
     match decode_16(0x4600).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R0);
             assert!(setflags == false);
@@ -196,7 +196,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4608).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R1);
             assert!(setflags == false);
@@ -206,7 +206,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4610).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R2);
             assert!(setflags == false);
@@ -216,7 +216,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4618).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R3);
             assert!(setflags == false);
@@ -226,7 +226,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4620).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R4);
             assert!(setflags == false);
@@ -236,7 +236,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4628).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R5);
             assert!(setflags == false);
@@ -246,7 +246,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4630).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R6);
             assert!(setflags == false);
@@ -256,7 +256,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4638).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R7);
             assert!(setflags == false);
@@ -266,7 +266,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4640).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R8);
             assert!(setflags == false);
@@ -276,7 +276,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4648).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R9);
             assert!(setflags == false);
@@ -286,7 +286,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4650).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R10);
             assert!(setflags == false);
@@ -296,7 +296,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4658).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R11);
             assert!(setflags == false);
@@ -306,7 +306,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4660).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R12);
             assert!(setflags == false);
@@ -316,7 +316,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4668).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::SP);
             assert!(setflags == false);
@@ -326,7 +326,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4670).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::LR);
             assert!(setflags == false);
@@ -336,7 +336,7 @@ fn test_decode_thumb16() {
         }
     }
     match decode_16(0x4678).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::PC);
             assert!(setflags == false);
@@ -347,7 +347,7 @@ fn test_decode_thumb16() {
     }
 
     match decode_16(0x0001).unwrap() {
-        Op::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R1);
             assert!(rm == Reg::R0);
             assert!(setflags == true);
@@ -358,7 +358,7 @@ fn test_decode_thumb16() {
     }
     //MOVS (mov immediate)
     match decode_16(0x2001).unwrap() {
-        Op::MOV_imm { rd, imm32 } => {
+        Instruction::MOV_imm { rd, imm32 } => {
             assert!(rd == Reg::R0);
             assert!(imm32 == 1);
         }
@@ -369,7 +369,7 @@ fn test_decode_thumb16() {
 
     //BX LR
     match decode_16(0x4770).unwrap() {
-        Op::BX { rm } => {
+        Instruction::BX { rm } => {
             assert!(rm == Reg::LR);
         }
         _ => {
@@ -378,7 +378,7 @@ fn test_decode_thumb16() {
     }
     //CMP R0, R0
     match decode_16(0x2800).unwrap() {
-        Op::CMP_imm { rn, imm32 } => {
+        Instruction::CMP_imm { rn, imm32 } => {
             assert!(rn == Reg::R0);
             assert!(imm32 == 0);
         }
@@ -388,7 +388,7 @@ fn test_decode_thumb16() {
     }
     // BEQ.N
     match decode_16(0xd001).unwrap() {
-        Op::B { cond, imm32 } => {
+        Instruction::B { cond, imm32 } => {
             assert!(cond == Condition::EQ);
             assert!(imm32 == (1 << 1));
         }
@@ -398,7 +398,7 @@ fn test_decode_thumb16() {
     }
     // BNE.N
     match decode_16(0xd1f8).unwrap() {
-        Op::B { cond, imm32 } => {
+        Instruction::B { cond, imm32 } => {
             assert!(cond == Condition::NE);
             assert!(imm32 == -16);
         }
@@ -409,7 +409,7 @@ fn test_decode_thumb16() {
 
     // PUSH  {R4, LR}
     match decode_16(0xb510).unwrap() {
-        Op::PUSH { registers } => {
+        Instruction::PUSH { registers } => {
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R4, Reg::LR], elems);
         }
@@ -419,7 +419,7 @@ fn test_decode_thumb16() {
     }
     // LDR.N R1, [PC, 0x1c]
     match decode_16(0x4907).unwrap() {
-        Op::LDR_lit { rt, imm32 } => {
+        Instruction::LDR_lit { rt, imm32 } => {
             assert!(rt == Reg::R1);
             assert!(imm32 == (7 << 2));
         }
@@ -429,7 +429,7 @@ fn test_decode_thumb16() {
     }
     // ADD R1,R1, PC
     match decode_16(0x4479).unwrap() {
-        Op::ADD { rdn, rm } => {
+        Instruction::ADD { rdn, rm } => {
             assert!(rdn == Reg::R1);
             assert!(rm == Reg::PC);
         }
@@ -439,7 +439,7 @@ fn test_decode_thumb16() {
     }
     // B.N (PC + 8)
     match decode_16(0xE004).unwrap() {
-        Op::B { cond, imm32 } => {
+        Instruction::B { cond, imm32 } => {
             assert!(cond == Condition::AL);
             assert!(imm32 == (4 << 1));
         }
@@ -449,7 +449,7 @@ fn test_decode_thumb16() {
     }
     // CMP R1, R4
     match decode_16(0x42a1).unwrap() {
-        Op::CMP { rn, rm } => {
+        Instruction::CMP { rn, rm } => {
             assert!(rn == Reg::R1);
             assert!(rm == Reg::R4);
         }
@@ -459,7 +459,7 @@ fn test_decode_thumb16() {
     }
     // ADDS R1, R1, 24
     match decode_16(0x3118).unwrap() {
-        Op::ADDS_imm { rn, rd, imm32 } => {
+        Instruction::ADDS_imm { rn, rd, imm32 } => {
             assert!(rn == Reg::R1);
             assert!(rd == Reg::R1);
             assert!(imm32 == 24);
@@ -471,7 +471,7 @@ fn test_decode_thumb16() {
 
     // LDR R2, [R1]
     match decode_16(0x680a).unwrap() {
-        Op::LDR_imm { rt, rn, imm32 } => {
+        Instruction::LDR_imm { rt, rn, imm32 } => {
             assert!(rn == Reg::R1);
             assert!(rt == Reg::R2);
             assert!(imm32 == 0);
@@ -483,7 +483,7 @@ fn test_decode_thumb16() {
 
     // TST R4, R1
     match decode_16(0x420c).unwrap() {
-        Op::TST_reg { rn, rm } => {
+        Instruction::TST_reg { rn, rm } => {
             assert!(rn == Reg::R4);
             assert!(rm == Reg::R1);
         }
