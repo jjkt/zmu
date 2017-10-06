@@ -16,7 +16,6 @@ fn read_reg<T: Bus>(core: &mut Core<T>, r: Reg) -> u32 {
 }
 
 pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
-
     match op {
         None => panic!("undefined code"),
         Some(oper) => {
@@ -51,14 +50,12 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = imm32 as u32;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::B { cond, imm32 } => {
-                    if condition_passed(cond, &core.psr) {
-                        let pc = read_reg(core, Reg::PC);
-                        core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
-                    } else {
-                        core.r[Reg::PC.value()] += 2;
-                    }
-                }
+                Instruction::B { cond, imm32 } => if condition_passed(cond, &core.psr) {
+                    let pc = read_reg(core, Reg::PC);
+                    core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
+                } else {
+                    core.r[Reg::PC.value()] += 2;
+                },
 
                 Instruction::CMP_imm { rn, imm32 } => {
                     let (result, carry, overflow) =
@@ -117,7 +114,19 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
 
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
+                }
+                Instruction::SUBS_imm { rn, rd, imm32 } => {
+                    let r_n = read_reg(core, rn);
+                    let (result, carry, overflow) =
+                        add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFFFFFF, true);
 
+                    core.psr.set_n(result.get_bit(31));
+                    core.psr.set_z(result == 0);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+
+                    core.r[rd.value()] = result;
+                    core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::ADDS { rm, rn, rd } => {
                     let (result, carry, overflow) =
@@ -129,7 +138,6 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
 
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
-
                 }
                 Instruction::TST_reg { rn, rm } => {
                     let result = read_reg(core, rn) & read_reg(core, rm);

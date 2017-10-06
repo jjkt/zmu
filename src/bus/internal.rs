@@ -2,6 +2,9 @@ use bus::Bus;
 
 pub struct InternalBus {}
 
+const INTERNAL_BUS_START : u32 = 0xE0000000;
+const INTERNAL_BUS_END : u32 = 0xF0000000;
+
 impl InternalBus {
     pub fn new() -> InternalBus {
         InternalBus {}
@@ -22,7 +25,7 @@ impl Bus for InternalBus {
     }
 
     fn in_range(&self, addr: u32) -> bool {
-        if (addr >= 0xE0000000) && (addr < 0xF0000000) {
+        if (addr >= INTERNAL_BUS_START) && (addr < INTERNAL_BUS_END) {
             return true;
         }
         false

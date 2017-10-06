@@ -70,7 +70,7 @@ pub enum Instruction {
     STRB_reg,
     STRH_imm,
     STRH_reg,
-    SUBS_imm { rd: Reg, rn: Reg, imm32: i32 },
+    SUBS_imm { rd: Reg, rn: Reg, imm32: u32 },
     SUBS_reg { rm: Reg, rn: Reg, rd: Reg },
     SUB_SP_imm,
     SVC,
