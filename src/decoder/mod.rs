@@ -184,8 +184,8 @@ fn test_is_thumb32() {
 }
 
 #[test]
-fn test_decode_thumb16() {
-    match decode_16(0x4600).unwrap() {
+fn test_decode_mov() {
+match decode_16(0x4600).unwrap() {
         Instruction::MOV_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R0);
@@ -367,6 +367,10 @@ fn test_decode_thumb16() {
         }
     }
 
+}
+
+#[test]
+fn test_decode_bx() {
     //BX LR
     match decode_16(0x4770).unwrap() {
         Instruction::BX { rm } => {
@@ -376,72 +380,15 @@ fn test_decode_thumb16() {
             assert!(false);
         }
     }
+}
+
+#[test]
+fn test_decode_cmp() {
     //CMP R0, R0
     match decode_16(0x2800).unwrap() {
         Instruction::CMP_imm { rn, imm32 } => {
             assert!(rn == Reg::R0);
             assert!(imm32 == 0);
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-    // BEQ.N
-    match decode_16(0xd001).unwrap() {
-        Instruction::B { cond, imm32 } => {
-            assert!(cond == Condition::EQ);
-            assert!(imm32 == (1 << 1));
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-    // BNE.N
-    match decode_16(0xd1f8).unwrap() {
-        Instruction::B { cond, imm32 } => {
-            assert!(cond == Condition::NE);
-            assert!(imm32 == -16);
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-
-    // PUSH  {R4, LR}
-    match decode_16(0xb510).unwrap() {
-        Instruction::PUSH { registers } => {
-            let elems: Vec<_> = registers.iter().collect();
-            assert_eq!(vec![Reg::R4, Reg::LR], elems);
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-    // LDR.N R1, [PC, 0x1c]
-    match decode_16(0x4907).unwrap() {
-        Instruction::LDR_lit { rt, imm32 } => {
-            assert!(rt == Reg::R1);
-            assert!(imm32 == (7 << 2));
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-    // ADD R1,R1, PC
-    match decode_16(0x4479).unwrap() {
-        Instruction::ADD { rdn, rm } => {
-            assert!(rdn == Reg::R1);
-            assert!(rm == Reg::PC);
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-    // B.N (PC + 8)
-    match decode_16(0xE004).unwrap() {
-        Instruction::B { cond, imm32 } => {
-            assert!(cond == Condition::AL);
-            assert!(imm32 == (4 << 1));
         }
         _ => {
             assert!(false);
@@ -467,6 +414,111 @@ fn test_decode_thumb16() {
             assert!(false);
         }
     }
+}
+
+
+#[test]
+fn test_decode_b() {
+    // BEQ.N
+    match decode_16(0xd001).unwrap() {
+        Instruction::B { cond, imm32 } => {
+            assert!(cond == Condition::EQ);
+            assert!(imm32 == (1 << 1));
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // BNE.N
+    match decode_16(0xd1f8).unwrap() {
+        Instruction::B { cond, imm32 } => {
+            assert!(cond == Condition::NE);
+            assert!(imm32 == -16);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // B.N (PC + 8)
+    match decode_16(0xE004).unwrap() {
+        Instruction::B { cond, imm32 } => {
+            assert!(cond == Condition::AL);
+            assert!(imm32 == (4 << 1));
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+}
+
+#[test]
+fn test_decode_push() {
+    // PUSH  {R4, LR}
+    match decode_16(0xb510).unwrap() {
+        Instruction::PUSH { registers } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R4, Reg::LR], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_pop() {
+    // POP  {R4, LR}
+    match decode_16(0xbd10).unwrap() {
+        Instruction::POP { registers } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R4, Reg::PC], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldr() {
+    // LDR.N R1, [PC, 0x1c]
+    match decode_16(0x4907).unwrap() {
+        Instruction::LDR_lit { rt, imm32 } => {
+            assert!(rt == Reg::R1);
+            assert!(imm32 == (7 << 2));
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // LDR R2, [R1]
+    match decode_16(0x680a).unwrap() {
+        Instruction::LDR_imm { rt, rn, imm32 } => {
+            assert!(rn == Reg::R1);
+            assert!(rt == Reg::R2);
+            assert!(imm32 == 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+}
+
+#[test]
+fn test_decode_add() {
+
+    // ADD R1,R1, PC
+    match decode_16(0x4479).unwrap() {
+        Instruction::ADD { rdn, rm } => {
+            assert!(rdn == Reg::R1);
+            assert!(rm == Reg::PC);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
 
     // ADDS R1, R1, 24
     match decode_16(0x3118).unwrap() {
@@ -480,18 +532,11 @@ fn test_decode_thumb16() {
         }
     }
 
-    // LDR R2, [R1]
-    match decode_16(0x680a).unwrap() {
-        Instruction::LDR_imm { rt, rn, imm32 } => {
-            assert!(rn == Reg::R1);
-            assert!(rt == Reg::R2);
-            assert!(imm32 == 0);
-        }
-        _ => {
-            assert!(false);
-        }
-    }
 
+}
+
+#[test]
+fn test_decode_tst() {
     // TST R4, R1
     match decode_16(0x420c).unwrap() {
         Instruction::TST_reg { rn, rm } => {
