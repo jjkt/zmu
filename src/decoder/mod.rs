@@ -457,6 +457,17 @@ fn test_decode_thumb16() {
             assert!(false);
         }
     }
+    // CMP R2, #0
+    match decode_16(0x2a00).unwrap() {
+        Instruction::CMP_imm { rn, imm32 } => {
+            assert!(rn == Reg::R2);
+            assert!(imm32 == 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
     // ADDS R1, R1, 24
     match decode_16(0x3118).unwrap() {
         Instruction::ADDS_imm { rn, rd, imm32 } => {

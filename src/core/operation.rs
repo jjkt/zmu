@@ -26,6 +26,16 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     (result, carry_out, overflow)
 }
 
+#[test]
+fn test_add_with_carry() {
+
+    let (result, carry, overflow) = add_with_carry(0x410, 4, false);
+    assert!(result == 0x414);
+    assert!(carry == false);
+    assert!(overflow == false);
+}
+
+
 //
 // This function performs the condition test for an instruction, based on:
 // • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction

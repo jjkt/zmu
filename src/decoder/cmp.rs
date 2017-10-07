@@ -5,7 +5,7 @@ use core::instruction::Instruction;
 #[allow(non_snake_case)]
 pub fn decode_CMP_imm_t1(command: u16) -> Instruction {
     Instruction::CMP_imm {
-        rn: Reg::from_u16(command.get_bits(7..10)).unwrap(),
+        rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         imm32: command.get_bits(0..8) as u32,
     }
 }

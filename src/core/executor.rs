@@ -50,12 +50,14 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = imm32 as u32;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::B { cond, imm32 } => if condition_passed(cond, &core.psr) {
-                    let pc = read_reg(core, Reg::PC);
-                    core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
-                } else {
-                    core.r[Reg::PC.value()] += 2;
-                },
+                Instruction::B { cond, imm32 } => {
+                    if condition_passed(cond, &core.psr) {
+                        let pc = read_reg(core, Reg::PC);
+                        core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
+                    } else {
+                        core.r[Reg::PC.value()] += 2;
+                    }
+                }
 
                 Instruction::CMP_imm { rn, imm32 } => {
                     let (result, carry, overflow) =
@@ -77,9 +79,39 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                 }
 
                 Instruction::PUSH { registers } => {
-                    let address = core.msp - 4 * (registers.len() as u32);
+
+                    let regs_size = 4 * (registers.len() as u32);
+                    let sp = core.get_sp();
+                    let mut address = sp - regs_size;
+
+                    for reg in registers.iter() {
+                        println!("pushing reg {} (address 0x{:x}) ", reg, address);
+                        core.bus.write32(address, core.r[reg.value()]);
+                        address += 4;
+                    }
+
+                    core.set_sp(sp - regs_size);
                     core.r[Reg::PC.value()] += 2;
                 }
+                
+                Instruction::POP { registers } => {
+                    let regs_size = 4 * (registers.len() as u32);
+                    let sp = core.get_sp();
+                    let mut address = sp;
+
+                    for reg in registers.iter() {
+                        println!("popping reg {} (address 0x{:x}) ", reg, address);
+                        core.r[reg.value()] = core.bus.read32(address);
+                        address += 4;
+                    }
+
+                    core.set_sp(sp + regs_size);
+                    if registers.contains(&Reg::PC) == false {
+                        core.r[Reg::PC.value()] += 2;
+                    }
+
+                }
+
                 Instruction::LDR_imm { rt, rn, imm32 } => {
                     let address = read_reg(core, rn) + imm32;
                     core.r[rt.value()] = core.bus.read32(address & 0xfffffffc);
