@@ -39,27 +39,29 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
                 }
                 Instruction::BX { rm } => {
-                    core.r[Reg::PC.value()] = read_reg(core, rm) & 0xfffffffe;
+                    core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
                 }
                 Instruction::BLX { rm } => {
                     let pc = read_reg(core, Reg::PC);
                     core.r[Reg::LR.value()] = (((pc - 2) >> 1) << 1) | 1;
-                    core.r[Reg::PC.value()] = read_reg(core, rm) & 0xfffffffe;
+                    core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
                 }
                 Instruction::MOV_imm { rd, imm32 } => {
                     core.r[rd.value()] = imm32 as u32;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::B { cond, imm32 } => if condition_passed(cond, &core.psr) {
-                    let pc = read_reg(core, Reg::PC);
-                    core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
-                } else {
-                    core.r[Reg::PC.value()] += 2;
-                },
+                Instruction::B { cond, imm32 } => {
+                    if condition_passed(cond, &core.psr) {
+                        let pc = read_reg(core, Reg::PC);
+                        core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
+                    } else {
+                        core.r[Reg::PC.value()] += 2;
+                    }
+                }
 
                 Instruction::CMP_imm { rn, imm32 } => {
                     let (result, carry, overflow) =
-                        add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFFFFFF, true);
+                        add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFF_FFFF, true);
                     core.psr.set_n(result.get_bit(31));
                     core.psr.set_z(result == 0);
                     core.psr.set_c(carry);
@@ -68,7 +70,7 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                 }
                 Instruction::CMP { rn, rm } => {
                     let (result, carry, overflow) =
-                        add_with_carry(read_reg(core, rn), read_reg(core, rm) ^ 0xFFFFFFFF, true);
+                        add_with_carry(read_reg(core, rn), read_reg(core, rm) ^ 0xFFFF_FFFF, true);
                     core.psr.set_n(result.get_bit(31));
                     core.psr.set_z(result == 0);
                     core.psr.set_c(carry);
@@ -99,7 +101,7 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     for reg in registers.iter() {
                         println!("popping reg {} (address 0x{:x}) ", reg, address);
                         if reg == Reg::PC {
-                            core.r[reg.value()] = core.bus.read32(address) & 0xfffffffe;
+                            core.r[reg.value()] = core.bus.read32(address) & 0xffff_fffe;
                         } else {
                             core.r[reg.value()] = core.bus.read32(address);
                         }
@@ -107,24 +109,24 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     }
 
                     core.set_sp(sp + regs_size);
-                    if registers.contains(&Reg::PC) == false {
+                    if !registers.contains(&Reg::PC) {
                         core.r[Reg::PC.value()] += 2;
                     }
                 }
 
                 Instruction::LDR_imm { rt, rn, imm32 } => {
                     let address = read_reg(core, rn) + imm32;
-                    core.r[rt.value()] = core.bus.read32(address & 0xfffffffc);
+                    core.r[rt.value()] = core.bus.read32(address & 0xffff_fffc);
                     core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::STR_imm { rt, rn, imm32 } => {
-                    let address = (read_reg(core, rn) + imm32) & 0xfffffffc;
+                    let address = (read_reg(core, rn) + imm32) & 0xffff_fffc;
                     let value = read_reg(core, rt);
                     core.bus.write32(address, value);
                     core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::LDR_lit { rt, imm32 } => {
-                    let base = read_reg(core, Reg::PC) & 0xfffffffc;
+                    let base = read_reg(core, Reg::PC) & 0xffff_fffc;
                     core.r[rt.value()] = core.bus.read32(base + imm32);
                     core.r[Reg::PC.value()] += 2;
                 }
@@ -134,12 +136,7 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rdn.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::ADD_imm {
-                    rn,
-                    rd,
-                    imm32,
-                    setflags,
-                } => {
+                Instruction::ADD_imm { rn, rd, imm32, setflags } => {
                     let r_n = read_reg(core, rn);
                     let (result, carry, overflow) =
                         add_with_carry(read_reg(core, rn), imm32, false);
@@ -154,15 +151,10 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::SUB_imm {
-                    rn,
-                    rd,
-                    imm32,
-                    setflags,
-                } => {
+                Instruction::SUB_imm { rn, rd, imm32, setflags } => {
                     let r_n = read_reg(core, rn);
                     let (result, carry, overflow) =
-                        add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFFFFFF, true);
+                        add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFF_FFFF, true);
 
                     if setflags {
                         core.psr.set_n(result.get_bit(31));

@@ -25,38 +25,32 @@ impl<'a, T, R> Bus for BusMatrix<'a, T, R>
 
         if self.extr.in_range(addr) {
             return self.extr.read16(addr);
-        } else {
-
-            if self.intr.in_range(addr) {
-                return self.intr.read16(addr);
-            }
+        } else if self.intr.in_range(addr) {
+            return self.intr.read16(addr);
         }
+
         panic!("read out of bus range");
     }
 
     fn read32(&mut self, addr: u32) -> u32 {
         if self.extr.in_range(addr) {
             return self.extr.read32(addr);
-        } else {
-
-            if self.intr.in_range(addr) {
-                return self.intr.read32(addr);
-            }
+        } else if self.intr.in_range(addr) {
+            return self.intr.read32(addr);
         }
+
         panic!("read out of bus range");
     }
 
     fn write32(&mut self, addr: u32, value: u32) {
         if self.extr.in_range(addr) {
             self.extr.write32(addr, value);
+        } else if self.intr.in_range(addr) {
+            self.intr.write32(addr, value);
         } else {
-
-            if self.intr.in_range(addr) {
-                self.intr.write32(addr, value);
-            } else {
-                panic!("write out of bus range");
-            }
+            panic!("write out of bus range");
         }
+
     }
     fn in_range(&self, addr: u32) -> bool {
         true

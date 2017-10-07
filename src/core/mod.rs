@@ -64,7 +64,7 @@ impl<'a, T: Bus> Core<'a, T> {
         let reset_vector = self.bus.read32(4);
         println!("\nRESET");
 
-        self.r[Reg::PC.value()] = reset_vector & 0xfffffffe;
+        self.r[Reg::PC.value()] = reset_vector & 0xffff_fffe;
         self.psr.set_t((reset_vector & 1) == 1);
         let sp = self.bus.read32(0);
         self.set_sp(sp);
@@ -97,13 +97,13 @@ impl<'a, T: Bus> Core<'a, T> {
 
         let hw = self.bus.read16(self.r[Reg::PC.value()]);
 
-        let op = match is_thumb32(hw) {
-            true => {
-                let hw2 = self.bus.read16(self.r[Reg::PC.value()] + 2);
-                decode_32(hw, hw2)
-            }
-            false => decode_16(hw),
+        let op = if is_thumb32(hw) {
+            let hw2 = self.bus.read16(self.r[Reg::PC.value()] + 2);
+            decode_32(hw, hw2)
+        } else {
+            decode_16(hw)
         };
+
 
         execute(self, op);
     }

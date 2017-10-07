@@ -20,7 +20,7 @@ use memory::flash::FlashMemory;
 
 pub fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R) {
 
-    let mut internal_bus = bus::internal::InternalBus::new();
+    let mut internal_bus = bus::internal::InternalBus::default();
     let mut ahb = bus::ahblite::AHBLite::new(code, sram);
 
     let mut bus = bus::busmatrix::BusMatrix::new(&mut internal_bus, &mut ahb);

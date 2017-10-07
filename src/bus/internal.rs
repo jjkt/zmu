@@ -1,15 +1,10 @@
 use bus::Bus;
 
+#[derive(Default)]
 pub struct InternalBus {}
 
-const INTERNAL_BUS_START : u32 = 0xE0000000;
-const INTERNAL_BUS_END : u32 = 0xF0000000;
-
-impl InternalBus {
-    pub fn new() -> InternalBus {
-        InternalBus {}
-    }
-}
+const INTERNAL_BUS_START : u32 = 0xE000_0000;
+const INTERNAL_BUS_END : u32 = 0xF000_0000;
 
 impl Bus for InternalBus {
     fn read16(&mut self, addr: u32) -> u16 {

@@ -24,14 +24,14 @@ impl<'a> FlashMemory<'a> {
 
 impl<'a> Bus for FlashMemory<'a> {
     fn read16(&mut self, addr: u32) -> u16 {
-        self.access.seek(SeekFrom::Start((addr - self.start_address) as u64)).unwrap();
+        self.access.seek(SeekFrom::Start(u64::from(addr - self.start_address))).unwrap();
         let value = self.access.read_u16::<LittleEndian>().unwrap();
         print!("FLASH R16 [0x{:x}] => 0x{:x}\n", addr, value);
         value
     }
 
     fn read32(&mut self, addr: u32) -> u32 {
-        self.access.seek(SeekFrom::Start((addr - self.start_address) as u64)).unwrap();
+        self.access.seek(SeekFrom::Start(u64::from(addr - self.start_address))).unwrap();
         let value = self.access.read_u32::<LittleEndian>().unwrap();
         print!("FLASH R32 [0x{:x}] => 0x{:x}\n", addr, value);
         value
