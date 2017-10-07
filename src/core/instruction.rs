@@ -70,9 +70,13 @@ pub enum Instruction {
     STRB_reg,
     STRH_imm,
     STRH_reg,
-    SUBS_imm { rd: Reg, rn: Reg, imm32: u32 },
+    SUBS_imm {
+        rd: Reg,
+        rn: Reg,
+        imm32: u32,
+        setflags: bool,
+    },
     SUBS_reg { rm: Reg, rn: Reg, rd: Reg },
-    SUB_SP_imm,
     SVC,
     SXTB,
     SXTH,
@@ -146,15 +150,26 @@ impl fmt::Display for Instruction {
             Instruction::STM => write!(f, "STM"),
             Instruction::STMIA => write!(f, "STMIA"),
             Instruction::STMEA => write!(f, "STMEA"),
-            Instruction::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{}, #{}]", rt, rn, imm32),            
+            Instruction::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{}, #{}]", rt, rn, imm32),
             Instruction::STR_reg { rn, rm, rt } => write!(f, "STR {}, [{}, {}]", rt, rn, rm),
             Instruction::STRB_imm => write!(f, "STRB"),
             Instruction::STRB_reg => write!(f, "STRB_reg"),
             Instruction::STRH_imm => write!(f, "STRH_imm"),
             Instruction::STRH_reg => write!(f, "STRH_reg"),
-            Instruction::SUBS_imm { rd, rn, imm32 } => write!(f, "SUBS_imm"),
+            Instruction::SUBS_imm {
+                rd,
+                rn,
+                imm32,
+                setflags,
+            } => write!(
+                f,
+                "SUB{} {},{},#{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                imm32
+            ),
             Instruction::SUBS_reg { rm, rn, rd } => write!(f, "SUBS_reg"),
-            Instruction::SUB_SP_imm => write!(f, "SUB_SP_imm"),
             Instruction::SVC => write!(f, "SVC"),
             Instruction::SXTB => write!(f, "SXTB"),
             Instruction::SXTH => write!(f, "SXTH"),
@@ -165,7 +180,6 @@ impl fmt::Display for Instruction {
             Instruction::WFE => write!(f, "WFE"),
             Instruction::WFI => write!(f, "WFI"),
             Instruction::YIELD => write!(f, "YIELD"),
-
         }
     }
 }

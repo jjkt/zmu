@@ -147,15 +147,22 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::SUBS_imm { rn, rd, imm32 } => {
+                Instruction::SUBS_imm {
+                    rn,
+                    rd,
+                    imm32,
+                    setflags,
+                } => {
                     let r_n = read_reg(core, rn);
                     let (result, carry, overflow) =
                         add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFFFFFF, true);
 
-                    core.psr.set_n(result.get_bit(31));
-                    core.psr.set_z(result == 0);
-                    core.psr.set_c(carry);
-                    core.psr.set_v(overflow);
+                    if setflags {
+                        core.psr.set_n(result.get_bit(31));
+                        core.psr.set_z(result == 0);
+                        core.psr.set_c(carry);
+                        core.psr.set_v(overflow);
+                    }
 
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
