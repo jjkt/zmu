@@ -115,8 +115,10 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
             match command.get_bits(11..16) {
                 0b10011 => Some(decode_LDR_imm_t2(command)),
                 0b10010 => Some(decode_STR_imm_t2(command)),
+                0b10101 => Some(decode_ADD_SP_imm_t1(command)),
                 _ => match command.get_bits(7..16) {
                     0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
+                    0b101100000 => Some(decode_ADD_SP_imm_t2(command)),
                     _ => match command.get_bits(9..14) {
                         0b11110 => Some(decode_POP(command)),
                         0b11010 => Some(decode_PUSH(command)),
@@ -511,22 +513,37 @@ fn test_decode_add() {
 
     // ADDS R1, R1, 24
     match decode_16(0x3118).unwrap() {
-        Instruction::ADDS_imm { rn, rd, imm32 } => {
+        Instruction::ADD_imm { rn, rd, imm32, setflags } => {
             assert!(rn == Reg::R1);
             assert!(rd == Reg::R1);
             assert!(imm32 == 24);
+            assert!(setflags);
         }
         _ => {
             assert!(false);
         }
     }
+
+    // ADD R1, SP, #0xc
+    match decode_16(0xa903).unwrap() {
+        Instruction::ADD_imm { rn, rd, imm32, setflags } => {
+            assert!(rn == Reg::R1);
+            assert!(rd == Reg::SP);
+            assert!(imm32 == 0xc);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
 }
 
 #[test]
 fn test_decode_sub() {
     // SUB SP,SP, #0x8
     match decode_16(0xb082).unwrap() {
-        Instruction::SUBS_imm {
+        Instruction::SUB_imm {
             rd,
             rn,
             imm32,

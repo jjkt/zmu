@@ -9,7 +9,12 @@ pub enum Instruction {
     ADC,
     ADDS { rm: Reg, rn: Reg, rd: Reg },
     ADD { rm: Reg, rdn: Reg },
-    ADDS_imm { rn: Reg, rd: Reg, imm32: u32 },
+    ADD_imm {
+        rn: Reg,
+        rd: Reg,
+        imm32: u32,
+        setflags: bool,
+    },
     ADR,
     AND,
     ASR,
@@ -70,7 +75,7 @@ pub enum Instruction {
     STRB_reg,
     STRH_imm,
     STRH_reg,
-    SUBS_imm {
+    SUB_imm {
         rd: Reg,
         rn: Reg,
         imm32: u32,
@@ -93,8 +98,20 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Instruction::ADD { rdn, rm } => write!(f, "ADD"),
-            Instruction::ADDS_imm { rn, rd, imm32 } => write!(f, "ADDS {},{},#{}", rn, rd, imm32),
-            Instruction::ADDS { rm, rn, rd } => write!(f, "ADDS {},{},{}", rn, rd, rm),
+            Instruction::ADD_imm {
+                rn,
+                rd,
+                imm32,
+                setflags,
+            } => write!(
+                f,
+                "ADD{} {},{},#{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                imm32
+            ),
+            Instruction::ADDS { rm, rn, rd } => write!(f, "ADDS {},{},{}", rd, rn, rm),
             Instruction::ADC => write!(f, "ADC"),
             Instruction::ADR => write!(f, "ADR"),
             Instruction::AND => write!(f, "AND"),
@@ -156,7 +173,7 @@ impl fmt::Display for Instruction {
             Instruction::STRB_reg => write!(f, "STRB_reg"),
             Instruction::STRH_imm => write!(f, "STRH_imm"),
             Instruction::STRH_reg => write!(f, "STRH_reg"),
-            Instruction::SUBS_imm {
+            Instruction::SUB_imm {
                 rd,
                 rn,
                 imm32,
