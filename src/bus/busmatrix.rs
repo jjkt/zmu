@@ -21,6 +21,16 @@ impl<'a, T, R> Bus for BusMatrix<'a, T, R>
     where T: Bus,
           R: Bus
 {
+    fn read8(&mut self, addr: u32) -> u8 {
+
+        if self.extr.in_range(addr) {
+            return self.extr.read8(addr);
+        } else if self.intr.in_range(addr) {
+            return self.intr.read8(addr);
+        }
+
+        panic!("read out of bus range");
+    }
     fn read16(&mut self, addr: u32) -> u16 {
 
         if self.extr.in_range(addr) {

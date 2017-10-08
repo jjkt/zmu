@@ -30,6 +30,15 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
             panic!("bus access fault read16 addr 0x{:x}", addr);
         }
     }
+    fn read8(&mut self, addr: u32) -> u8 {
+        if self.code.in_range(addr) {
+            self.code.read8(addr)
+        } else if self.sram.in_range(addr) {
+            self.sram.read8(addr)
+        } else {
+            panic!("bus access fault read8 addr 0x{:x}", addr);
+        }
+    }
 
     fn read32(&mut self, addr: u32) -> u32 {
         if self.code.in_range(addr) {

@@ -23,6 +23,12 @@ impl<'a> FlashMemory<'a> {
 }
 
 impl<'a> Bus for FlashMemory<'a> {
+    fn read8(&mut self, addr: u32) -> u8 {
+        self.access.seek(SeekFrom::Start(u64::from(addr - self.start_address))).unwrap();
+        let value = self.access.read_u8().unwrap();
+        print!("FLASH R8 [0x{:x}] => 0x{:x}\n", addr, value);
+        value
+    }
     fn read16(&mut self, addr: u32) -> u16 {
         self.access.seek(SeekFrom::Start(u64::from(addr - self.start_address))).unwrap();
         let value = self.access.read_u16::<LittleEndian>().unwrap();

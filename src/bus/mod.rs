@@ -11,6 +11,10 @@ pub trait Bus {
     ///
     fn read16(&mut self, addr: u32) -> u16;
 
+    /// Reads a 8 bit value via the bus from the given address.
+    ///
+    fn read8(&mut self, addr: u32) -> u8;
+
     /// Writes a 32 bit value to the bus targeting the given address.
     ///
     fn write32(&mut self, addr: u32, value: u32);

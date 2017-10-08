@@ -14,6 +14,9 @@ impl Bus for InternalBus {
     fn read32(&mut self, addr: u32) -> u32 {
         panic!("bus access fault read addr 0x{:x}", addr);
     }
+    fn read8(&mut self, addr: u32) -> u8 {
+        panic!("bus access fault read addr 0x{:x}", addr);
+    }
 
     fn write32(&mut self, addr: u32, value: u32) {
         panic!("bus access fault write addr 0x{:x}", addr);
