@@ -22,8 +22,10 @@ mod bl;
 mod push;
 mod pop;
 mod tst;
+mod mvn;
 
 use decoder::mov::*;
+use decoder::mvn::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::add::*;
@@ -86,7 +88,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                             0b000_1100 => Some(Instruction::ORR),
                             0b000_1101 => Some(Instruction::MUL),
                             0b000_1110 => Some(Instruction::BIC),
-                            0b000_1111 => Some(Instruction::MVN_reg),
+                            0b000_1111 => Some(decode_MVN_reg_t1(command)),
 
                             0b001_0000 | 0b001_0001 | 0b001_0010 | 0b001_0011 => {
                                 Some(decode_ADD(command))
@@ -597,6 +599,21 @@ fn test_decode_ldrb() {
             assert!(rt == Reg::R0);
             assert!(rn == Reg::R0);
             assert!(imm32 == 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_mvns() {
+    // MVNS R5,R5
+    match decode_16(0x43ed).unwrap() {
+        Instruction::MVN_reg{ rd, rm, setflags} => {
+            assert!(rd == Reg::R5);
+            assert!(rm == Reg::R5);
+            assert!(setflags);
         }
         _ => {
             assert!(false);

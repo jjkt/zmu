@@ -50,6 +50,17 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = imm32 as u32;
                     core.r[Reg::PC.value()] += 2;
                 }
+                Instruction::MVN_reg { rd, rm, setflags } => {
+                    let result = read_reg(core, rm) ^ 0xFFFF_FFFF;
+                    core.r[rd.value()] =  result;
+
+                    if setflags
+                    {
+                    core.psr.set_n(result.get_bit(31));
+                    core.psr.set_z(result == 0);
+                    }
+                    core.r[Reg::PC.value()] += 2;
+                }
                 Instruction::B { cond, imm32 } => {
                     if condition_passed(cond, &core.psr) {
                         let pc = read_reg(core, Reg::PC);
