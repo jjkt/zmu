@@ -119,6 +119,11 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rt.value()] = core.bus.read32(address & 0xffff_fffc);
                     core.r[Reg::PC.value()] += 2;
                 }
+                Instruction::LDRB_imm { rt, rn, imm32 } => {
+                    let address = read_reg(core, rn) + imm32;
+                    core.r[rt.value()] = u32::from(core.bus.read8(address & 0xffff_fffc));
+                    core.r[Reg::PC.value()] += 2;
+                }
                 Instruction::STR_imm { rt, rn, imm32 } => {
                     let address = (read_reg(core, rn) + imm32) & 0xffff_fffc;
                     let value = read_reg(core, rt);
@@ -186,7 +191,7 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[Reg::PC.value()] += 2;
                 }
 
-                _ => panic!("unimplemented instruction"),
+                _ => panic!("unimplemented instruction {}", oper),
             }
         }
     }

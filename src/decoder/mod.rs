@@ -10,6 +10,7 @@ use core::condition::Condition;
 
 mod mov;
 mod ldr;
+mod ldrb;
 mod str;
 mod add;
 mod bx;
@@ -24,6 +25,7 @@ mod tst;
 
 use decoder::mov::*;
 use decoder::ldr::*;
+use decoder::ldrb::*;
 use decoder::add::*;
 use decoder::bx::*;
 use decoder::cmp::*;
@@ -104,12 +106,19 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                     _ => None,
                 }
             } else {
-                match command.get_bits(11..16) {
+                println!("here!");
+                match command.get_bits(9..16) {
+                    0b0101_100 => Some(decode_LDR_reg_t1(command)),
+                    0b0101_110 => Some(decode_LDRB_reg_t1(command)),
+                    _ => match command.get_bits(11..16) {
                     0b01101 => Some(decode_LDR_imm_t1(command)),
                     0b01001 => Some(decode_LDR_lit_t1(command)),
                     0b01011 => Some(decode_LDR_reg_t1(command)),
+                    0b01111 => Some(decode_LDRB_imm_t1(command)),
                     _ => None,
+                },
                 }
+                
             }
         }
         0b10 => {
@@ -505,7 +514,7 @@ fn test_decode_ldr() {
 }
 
 #[test]
-fn test_decode_add() {
+fn test_decode_add_reg_pc() {
     // ADD R1,R1, PC
     match decode_16(0x4479).unwrap() {
         Instruction::ADD { rdn, rm } => {
@@ -516,7 +525,9 @@ fn test_decode_add() {
             assert!(false);
         }
     }
-
+}
+#[test]
+fn test_decode_add_reg_imm() {
     // ADDS R1, R1, 24
     match decode_16(0x3118).unwrap() {
         Instruction::ADD_imm { rn, rd, imm32, setflags } => {
@@ -529,12 +540,15 @@ fn test_decode_add() {
             assert!(false);
         }
     }
+}
 
+#[test]
+fn test_decode_add_reg_sp() {
     // ADD R1, SP, #0xc
     match decode_16(0xa903).unwrap() {
         Instruction::ADD_imm { rn, rd, imm32, setflags } => {
-            assert!(rn == Reg::R1);
-            assert!(rd == Reg::SP);
+            assert!(rn == Reg::SP);
+            assert!(rd == Reg::R1);
             assert!(imm32 == 0xc);
             assert!(setflags == false);
         }
@@ -542,7 +556,6 @@ fn test_decode_add() {
             assert!(false);
         }
     }
-
 }
 
 #[test]
@@ -569,6 +582,21 @@ fn test_decode_tst() {
         Instruction::TST_reg { rn, rm } => {
             assert!(rn == Reg::R4);
             assert!(rm == Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrb() {
+    // LDRB R0, [R0m 0]
+    match decode_16(0x7800).unwrap() {
+        Instruction::LDRB_imm { rt, rn, imm32 } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R0);
+            assert!(imm32 == 0);
         }
         _ => {
             assert!(false);
