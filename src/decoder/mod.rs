@@ -11,6 +11,7 @@ use core::condition::Condition;
 mod mov;
 mod ldr;
 mod ldrb;
+mod lsl;
 mod str;
 mod add;
 mod bx;
@@ -28,6 +29,7 @@ use decoder::mov::*;
 use decoder::mvn::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
+use decoder::lsl::*;
 use decoder::add::*;
 use decoder::bx::*;
 use decoder::cmp::*;
@@ -52,7 +54,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
         0b00 => {
             // Shift (immediate), add, substract, move and compare
             match command.get_bits(9..14) {
-                0b000_01 | 0b000_10 | 0b000_11 => Some(Instruction::LSL_imm),
+                0b000_01 | 0b000_10 | 0b000_11 => Some(decode_LSL_imm_t1(command)),
                 0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Instruction::LSR_imm),
                 0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Instruction::ASR),
                 0b011_00 => Some(decode_ADDS(command)),
@@ -63,7 +65,13 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                 0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm_t1(command)),
                 0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 | 0b111_00 | 0b111_01 | 0b111_10 |
                 0b111_11 => Some(decode_ADDS_imm_t2(command)),
-                0 => Some(decode_MOV_reg_t2(command)),
+                0 => match command.get_bits(6..11)
+                {
+                       0 =>             Some(decode_MOV_reg_t2(command)),
+                       _ =>             Some(decode_LSL_imm_t1(command)),
+
+                },
+                  
                 _ => None,
             }
         }
@@ -75,7 +83,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         match command.get_bits(6..13) {
                             0b000_0000 => Some(Instruction::AND),
                             0b000_0001 => Some(Instruction::EOR),
-                            0b000_0010 => Some(Instruction::LSL_imm),
+                            0b000_0010 => Some(Instruction::LSL_reg),
                             0b000_0011 => Some(Instruction::LSR_imm),
                             0b000_0100 => Some(Instruction::ASR),
                             0b000_0101 => Some(Instruction::ADC),
@@ -108,7 +116,6 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                     _ => None,
                 }
             } else {
-                println!("here!");
                 match command.get_bits(9..16) {
                     0b0101_100 => Some(decode_LDR_reg_t1(command)),
                     0b0101_110 => Some(decode_LDRB_reg_t1(command)),
@@ -613,6 +620,22 @@ fn test_decode_mvns() {
         Instruction::MVN_reg{ rd, rm, setflags} => {
             assert!(rd == Reg::R5);
             assert!(rm == Reg::R5);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_lsls() {
+    // LSLS R1, R4, #2
+    match decode_16(0x00a1).unwrap() {
+        Instruction::LSL_imm{ rd, rm, imm5, setflags} => {
+            assert!(rd == Reg::R1);
+            assert!(rm == Reg::R4);
+            assert!(imm5 == 2);
             assert!(setflags);
         }
         _ => {
