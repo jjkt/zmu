@@ -377,9 +377,21 @@ fn test_decode_mov() {
     }
     //MOVS (mov immediate)
     match decode_16(0x2001).unwrap() {
-        Instruction::MOV_imm { rd, imm32 } => {
+        Instruction::MOV_imm { rd, imm32, setflags } => {
             assert!(rd == Reg::R0);
             assert!(imm32 == 1);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    //MOVS (mov immediate)
+    match decode_16(0x2101).unwrap() {        
+        Instruction::MOV_imm { rd, imm32, setflags } => {
+            assert!(rd == Reg::R1);
+            assert!(imm32 == 1);
+            assert!(setflags);
         }
         _ => {
             assert!(false);

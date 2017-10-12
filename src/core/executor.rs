@@ -71,8 +71,13 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[Reg::LR.value()] = (((pc - 2) >> 1) << 1) | 1;
                     core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
                 }
-                Instruction::MOV_imm { rd, imm32 } => {
-                    core.r[rd.value()] = imm32 as u32;
+                Instruction::MOV_imm { rd, imm32, setflags } => {
+                    let result = imm32 as u32;
+                    core.r[rd.value()] = result;
+                    if setflags {
+                        core.psr.set_n(result.get_bit(31));
+                        core.psr.set_z(result == 0);
+                    }
                     core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::MVN_reg { rd, rm, setflags } => {
