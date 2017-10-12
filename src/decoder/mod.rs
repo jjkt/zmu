@@ -10,39 +10,46 @@ use core::condition::Condition;
 
 mod add;
 mod adr;
-mod mov;
+
+mod b;
+mod blx;
+mod bx;
+mod bl;
+mod bkpt;
+
+mod cmp;
+
 mod ldr;
 mod ldrb;
 mod lsl;
-mod str;
-mod bx;
-mod cmp;
-mod sub;
-mod b;
-mod blx;
-mod bl;
+mod mvn;
+mod mov;
+
 mod push;
 mod pop;
+
+mod str;
+mod sub;
 mod tst;
-mod mvn;
 
 use decoder::add::*;
 use decoder::adr::*;
-use decoder::mov::*;
-use decoder::mvn::*;
+use decoder::b::*;
+use decoder::bx::*;
+use decoder::blx::*;
+use decoder::bl::*;
+use decoder::bkpt::*;
+use decoder::cmp::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::lsl::*;
-use decoder::bx::*;
-use decoder::cmp::*;
-use decoder::sub::*;
-use decoder::b::*;
-use decoder::blx::*;
-use decoder::bl::*;
+use decoder::mov::*;
+use decoder::mvn::*;
 use decoder::push::*;
 use decoder::pop::*;
-use decoder::tst::*;
+use decoder::sub::*;
 use decoder::str::*;
+use decoder::tst::*;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11..16) {
@@ -143,6 +150,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                     match command.get_bits(7..16) {
                         0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
                         0b101100000 => Some(decode_ADD_SP_imm_t2(command)),
+                        0b101111100 | 0b101111101 => Some(decode_BKPT_t1(command)),
                         _ => {
                             match command.get_bits(9..14) {
                                 0b11110 => Some(decode_POP(command)),
@@ -666,6 +674,19 @@ fn test_decode_adr() {
         Instruction::ADR{ rd, imm32} => {
             assert!(rd == Reg::R0);
             assert!(imm32 == 7<<2);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_bkpt() {
+    // BKPT #0xab
+    match decode_16(0xbeab).unwrap() {
+        Instruction::BKPT{imm32} => {
+            assert!(imm32 == 0xab);
         }
         _ => {
             assert!(false);

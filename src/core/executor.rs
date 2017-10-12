@@ -63,6 +63,10 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[Reg::LR.value()] = pc | 0x01;
                     core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
                 }
+                Instruction::BKPT { imm32 } => {
+                    
+                    core.r[Reg::PC.value()] += 2;
+                }
                 Instruction::BX { rm } => {
                     core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
                 }
