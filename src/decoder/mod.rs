@@ -8,12 +8,13 @@ use core::register::Reg;
 #[cfg(test)]
 use core::condition::Condition;
 
+mod add;
+mod adr;
 mod mov;
 mod ldr;
 mod ldrb;
 mod lsl;
 mod str;
-mod add;
 mod bx;
 mod cmp;
 mod sub;
@@ -25,12 +26,13 @@ mod pop;
 mod tst;
 mod mvn;
 
+use decoder::add::*;
+use decoder::adr::*;
 use decoder::mov::*;
 use decoder::mvn::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::lsl::*;
-use decoder::add::*;
 use decoder::bx::*;
 use decoder::cmp::*;
 use decoder::sub::*;
@@ -136,6 +138,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                 0b10011 => Some(decode_LDR_imm_t2(command)),
                 0b10010 => Some(decode_STR_imm_t2(command)),
                 0b10101 => Some(decode_ADD_SP_imm_t1(command)),
+                0b10100 => Some(decode_ADR_t1(command)),
                 _ => {
                     match command.get_bits(7..16) {
                         0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
@@ -649,6 +652,20 @@ fn test_decode_lsls() {
             assert!(rm == Reg::R4);
             assert!(imm5 == 2);
             assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_adr() {
+    // ADR R0, PC, #(7<<2)
+    match decode_16(0xa007).unwrap() {
+        Instruction::ADR{ rd, imm32} => {
+            assert!(rd == Reg::R0);
+            assert!(imm32 == 7<<2);
         }
         _ => {
             assert!(false);

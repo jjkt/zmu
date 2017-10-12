@@ -199,6 +199,11 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
+                Instruction::ADR { rd, imm32 } => {
+                    let result = (read_reg(core, Reg::PC) & 0xffff_fffc) + imm32;
+                    core.r[rd.value()] = result;
+                    core.r[Reg::PC.value()] += 2;
+                }
                 Instruction::SUB_imm {
                     rn,
                     rd,
