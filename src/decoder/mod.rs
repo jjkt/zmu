@@ -74,13 +74,14 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                 0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm_t1(command)),
                 0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 | 0b111_00 | 0b111_01 | 0b111_10 |
                 0b111_11 => Some(decode_ADDS_imm_t2(command)),
-                0 => match command.get_bits(6..11)
-                {
-                       0 =>             Some(decode_MOV_reg_t2(command)),
-                       _ =>             Some(decode_LSL_imm_t1(command)),
+                0 => {
+                    match command.get_bits(6..11) {
+                        0 => Some(decode_MOV_reg_t2(command)),
+                        _ => Some(decode_LSL_imm_t1(command)),
 
-                },
-                  
+                    }
+                }
+
                 _ => None,
             }
         }
@@ -121,22 +122,30 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                             _ => None,
                         }
                     }
-                    0b011 => Some(decode_STR_imm_t1(command)),
+                    0b011 => {
+                        if command.get_bit(12) {
+                            Some(decode_STRB_imm_t1(command))
+                        } else {
+                            Some(decode_STR_imm_t1(command))
+                        }
+                    }
                     _ => None,
                 }
             } else {
                 match command.get_bits(9..16) {
                     0b0101_100 => Some(decode_LDR_reg_t1(command)),
                     0b0101_110 => Some(decode_LDRB_reg_t1(command)),
-                    _ => match command.get_bits(11..16) {
-                    0b01101 => Some(decode_LDR_imm_t1(command)),
-                    0b01001 => Some(decode_LDR_lit_t1(command)),
-                    0b01011 => Some(decode_LDR_reg_t1(command)),
-                    0b01111 => Some(decode_LDRB_imm_t1(command)),
-                    _ => None,
-                },
+                    _ => {
+                        match command.get_bits(11..16) {
+                            0b01101 => Some(decode_LDR_imm_t1(command)),
+                            0b01001 => Some(decode_LDR_lit_t1(command)),
+                            0b01011 => Some(decode_LDR_reg_t1(command)),
+                            0b01111 => Some(decode_LDRB_imm_t1(command)),
+                            _ => None,
+                        }
+                    }
                 }
-                
+
             }
         }
         0b10 => {
@@ -640,7 +649,7 @@ fn test_decode_ldrb() {
 fn test_decode_mvns() {
     // MVNS R5,R5
     match decode_16(0x43ed).unwrap() {
-        Instruction::MVN_reg{ rd, rm, setflags} => {
+        Instruction::MVN_reg { rd, rm, setflags } => {
             assert!(rd == Reg::R5);
             assert!(rm == Reg::R5);
             assert!(setflags);
@@ -655,7 +664,7 @@ fn test_decode_mvns() {
 fn test_decode_lsls() {
     // LSLS R1, R4, #2
     match decode_16(0x00a1).unwrap() {
-        Instruction::LSL_imm{ rd, rm, imm5, setflags} => {
+        Instruction::LSL_imm { rd, rm, imm5, setflags } => {
             assert!(rd == Reg::R1);
             assert!(rm == Reg::R4);
             assert!(imm5 == 2);
@@ -671,9 +680,9 @@ fn test_decode_lsls() {
 fn test_decode_adr() {
     // ADR R0, PC, #(7<<2)
     match decode_16(0xa007).unwrap() {
-        Instruction::ADR{ rd, imm32} => {
+        Instruction::ADR { rd, imm32 } => {
             assert!(rd == Reg::R0);
-            assert!(imm32 == 7<<2);
+            assert!(imm32 == 7 << 2);
         }
         _ => {
             assert!(false);
@@ -685,8 +694,23 @@ fn test_decode_adr() {
 fn test_decode_bkpt() {
     // BKPT #0xab
     match decode_16(0xbeab).unwrap() {
-        Instruction::BKPT{imm32} => {
+        Instruction::BKPT { imm32 } => {
             assert!(imm32 == 0xab);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_strb() {
+    // STRB R0, [R1]
+    match decode_16(0x7008).unwrap() {
+        Instruction::STRB_imm { rt, rn, imm32 } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R1);
+            assert!(imm32 == 0x0);
         }
         _ => {
             assert!(false);
