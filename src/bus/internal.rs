@@ -21,6 +21,9 @@ impl Bus for InternalBus {
     fn write32(&mut self, addr: u32, value: u32) {
         panic!("bus access fault write addr 0x{:x}", addr);
     }
+    fn write8(&mut self, addr: u32, value: u8) {
+        panic!("bus access fault write addr 0x{:x}", addr);
+    }
 
     fn in_range(&self, addr: u32) -> bool {
         if (addr >= INTERNAL_BUS_START) && (addr < INTERNAL_BUS_END) {

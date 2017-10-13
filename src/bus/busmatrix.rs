@@ -62,6 +62,17 @@ impl<'a, T, R> Bus for BusMatrix<'a, T, R>
         }
 
     }
+    fn write8(&mut self, addr: u32, value: u8) {
+        if self.extr.in_range(addr) {
+            self.extr.write8(addr, value);
+        } else if self.intr.in_range(addr) {
+            self.intr.write8(addr, value);
+        } else {
+            panic!("write out of bus range");
+        }
+
+    }
+
     fn in_range(&self, addr: u32) -> bool {
         true
     }
