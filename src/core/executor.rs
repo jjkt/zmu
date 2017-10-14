@@ -121,7 +121,6 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     let mut address = sp - regs_size;
 
                     for reg in registers.iter() {
-                        println!("pushing reg {} (address 0x{:x}) ", reg, address);
                         core.bus.write32(address, core.r[reg.value()]);
                         address += 4;
                     }
@@ -136,7 +135,6 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     let mut address = sp;
 
                     for reg in registers.iter() {
-                        println!("popping reg {} (address 0x{:x}) ", reg, address);
                         if reg == Reg::PC {
                             core.r[reg.value()] = core.bus.read32(address) & 0xffff_fffe;
                         } else {
@@ -158,7 +156,7 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                 }
                 Instruction::LDRB_imm { rt, rn, imm32 } => {
                     let address = read_reg(core, rn) + imm32;
-                    core.r[rt.value()] = u32::from(core.bus.read8(address & 0xffff_fffc));
+                    core.r[rt.value()] = u32::from(core.bus.read8(address));
                     core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::STR_imm { rt, rn, imm32 } => {
@@ -221,7 +219,7 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                 }
                 Instruction::SUBS_reg { rn, rd, rm } => {
                     let r_n = read_reg(core, rn);
-                    let r_m = read_reg(core, rn);
+                    let r_m = read_reg(core, rm);
                     let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
                     core.r[rd.value()] = result;
 

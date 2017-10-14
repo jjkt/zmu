@@ -117,7 +117,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                             0b001_1000 | 0b001_1001 | 0b001_1010 | 0b001_1011 => {
                                 Some(decode_MOV_reg_t1(command))
                             }
-                            0b001_1101 => Some(decode_BX(command)),
+                            0b001_1101 | 0b001_1100 => Some(decode_BX(command)),
                             0b001_1110 | 0b001_1111 => Some(decode_BLX(command)),
                             _ => None,
                         }
@@ -425,6 +425,15 @@ fn test_decode_bx() {
     match decode_16(0x4770).unwrap() {
         Instruction::BX { rm } => {
             assert!(rm == Reg::LR);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    //BX R1
+    match decode_16(0x4708).unwrap() {
+        Instruction::BX { rm } => {
+            assert!(rm == Reg::R1);
         }
         _ => {
             assert!(false);

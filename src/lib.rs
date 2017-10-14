@@ -28,7 +28,10 @@ pub fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R) {
     let mut core = Core::new(&mut bus);
     core.reset();
     loop {
-        core.run();
+        if core.run() == false
+        {
+            break;
+        }
     }
 }
 

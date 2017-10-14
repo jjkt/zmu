@@ -8,7 +8,7 @@ pub mod register;
 use bus::Bus;
 use core::executor::execute;
 use decoder::{decode_16, decode_32, is_thumb32};
-use core::register::{Reg, PSR, Epsr};
+use core::register::{Reg, PSR, Epsr, Apsr};
 
 pub enum ProcessorMode {
     ThreadMode,
@@ -27,6 +27,7 @@ pub struct Core<'a, T: Bus + 'a> {
     pub mode: ProcessorMode,
     pub bus: &'a mut T,
     instruction_count: u32,
+    running : bool
 }
 
 impl<'a, T: Bus> Core<'a, T> {
@@ -39,6 +40,7 @@ impl<'a, T: Bus> Core<'a, T> {
             r: [0; 16],
             bus: bus,
             instruction_count: 0,
+            running : true
         }
     }
 
@@ -109,6 +111,17 @@ impl<'a, T: Bus> Core<'a, T> {
                     // return code in reg R0. 0 == no error
                     self.r[Reg::R0.value()] = 0;
                 }
+                24 => {
+                    // report exception
+                    // R1 = reason / type
+                    // ADP_Stopped_ApplicationExit 	0x20026
+                    // 
+                    // return code in reg R0. 0 == no error
+                    if self.r[Reg::R1.value()] == 0x20026
+                    {
+                    self.running = false
+                    }
+                }
                 _ => {}
             }
         }
@@ -130,7 +143,7 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     // fetch, decode and execute single instruction
     //
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> bool{
 
         let hw = self.bus.read16(self.r[Reg::PC.value()]);
 
@@ -141,13 +154,14 @@ impl<'a, T: Bus> Core<'a, T> {
             decode_16(hw)
         };
 
-        print!("{} ", self.instruction_count);
+        print!("{} 0x{:x}: ", self.instruction_count, self.r[Reg::PC.value()]);
         execute(self, op);
-        println!(" PC:{:08X} PSR:{:08X} LR:{:08X} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
-                  R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X}",
+        println!(" PC:{:08X} PSR:{:08X} Z={}, C={} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
+                  R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X} ",
                  self.r[Reg::PC.value()],
                  self.psr.value,
-                 self.r[Reg::LR.value()],
+                 self.psr.get_z(),
+                 self.psr.get_c(),
                  self.r[Reg::R0.value()],
                  self.r[Reg::R1.value()],
                  self.r[Reg::R2.value()],
@@ -162,7 +176,9 @@ impl<'a, T: Bus> Core<'a, T> {
                  self.r[Reg::R11.value()],
                  self.r[Reg::R12.value()],
                  self.r[Reg::SP.value()],
+                 self.r[Reg::LR.value()],
                  );
         self.instruction_count = self.instruction_count + 1;
+        self.running
     }
 }
