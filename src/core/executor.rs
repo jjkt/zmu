@@ -1,12 +1,8 @@
-use core::operation::shift_c;
-use core::operation::decode_imm_shift;
-use core::operation::add_with_carry;
-use core::operation::condition_passed;
+use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c};
 use core::operation::SRType;
 use bit_field::BitField;
 use core::instruction::Instruction;
-use core::register::Reg;
-use core::register::Apsr;
+use core::register::{Apsr, Reg};
 use core::Core;
 use bus::Bus;
 
@@ -17,11 +13,14 @@ fn read_reg<T: Bus>(core: &mut Core<T>, r: Reg) -> u32 {
     }
 }
 
-pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
+pub fn execute<T: Bus, F>(core: &mut Core<T>, op: Option<Instruction>, mut bkpt_func: F)
+where
+    F: FnMut(u32, u32, u32),
+{
     match op {
         None => panic!("undefined code"),
         Some(oper) => {
-            print!("{} ", oper);
+            //print!("{} ", oper);
             match oper {
                 Instruction::MOV_reg { rd, rm, setflags } => {
                     let result = read_reg(core, rm);
@@ -35,12 +34,19 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                         core.r[Reg::PC.value()] += 2;
                     }
                 }
-                Instruction::LSL_imm { rd, rm, imm5, setflags } => {
+                Instruction::LSL_imm {
+                    rd,
+                    rm,
+                    imm5,
+                    setflags,
+                } => {
                     let (shift_t, shift_n) = decode_imm_shift(0b00, imm5);
-                    let (result, carry) = shift_c(read_reg(core, rm),
-                                                  SRType::LSL,
-                                                  u32::from(shift_n),
-                                                  core.psr.get_c());
+                    let (result, carry) = shift_c(
+                        read_reg(core, rm),
+                        SRType::LSL,
+                        u32::from(shift_n),
+                        core.psr.get_c(),
+                    );
                     core.r[rd.value() as usize] = result;
 
                     if setflags {
@@ -57,7 +63,8 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
                 }
                 Instruction::BKPT { imm32 } => {
-                    core.bkpt(imm32);
+                    bkpt_func(imm32, core.r[Reg::R0.value()], core.r[Reg::R1.value()]);
+
                     core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::BX { rm } => {
@@ -68,7 +75,11 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[Reg::LR.value()] = (((pc - 2) >> 1) << 1) | 1;
                     core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
                 }
-                Instruction::MOV_imm { rd, imm32, setflags } => {
+                Instruction::MOV_imm {
+                    rd,
+                    imm32,
+                    setflags,
+                } => {
                     let result = imm32 as u32;
                     core.r[rd.value()] = result;
                     if setflags {
@@ -87,14 +98,12 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     }
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::B { cond, imm32 } => {
-                    if condition_passed(cond, &core.psr) {
-                        let pc = read_reg(core, Reg::PC);
-                        core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
-                    } else {
-                        core.r[Reg::PC.value()] += 2;
-                    }
-                }
+                Instruction::B { cond, imm32 } => if condition_passed(cond, &core.psr) {
+                    let pc = read_reg(core, Reg::PC);
+                    core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
+                } else {
+                    core.r[Reg::PC.value()] += 2;
+                },
 
                 Instruction::CMP_imm { rn, imm32 } => {
                     let (result, carry, overflow) =
@@ -182,7 +191,12 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rdn.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::ADD_imm { rn, rd, imm32, setflags } => {
+                Instruction::ADD_imm {
+                    rn,
+                    rd,
+                    imm32,
+                    setflags,
+                } => {
                     let r_n = read_reg(core, rn);
                     let (result, carry, overflow) =
                         add_with_carry(read_reg(core, rn), imm32, false);
@@ -202,7 +216,12 @@ pub fn execute<T: Bus>(core: &mut Core<T>, op: Option<Instruction>) {
                     core.r[rd.value()] = result;
                     core.r[Reg::PC.value()] += 2;
                 }
-                Instruction::SUB_imm { rn, rd, imm32, setflags } => {
+                Instruction::SUB_imm {
+                    rn,
+                    rd,
+                    imm32,
+                    setflags,
+                } => {
                     let r_n = read_reg(core, rn);
                     let (result, carry, overflow) =
                         add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFF_FFFF, true);
