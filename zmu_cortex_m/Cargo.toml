@@ -1,5 +1,5 @@
 [package]
-name = "zmu-cortex-m"
+name = "zmu_cortex_m"
 version = "0.1.0"
 authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
 

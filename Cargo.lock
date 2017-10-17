@@ -2,7 +2,8 @@
 name = "zmu-armv6m"
 version = "0.1.0"
 dependencies = [
- "zmu-cortex-m 0.1.0",
+ "bit_field 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zmu_cortex_m 0.1.0",
 ]
 
 [[package]]
@@ -21,7 +22,7 @@ version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "zmu-cortex-m"
+name = "zmu_cortex_m"
 version = "0.1.0"
 dependencies = [
  "bit_field 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
