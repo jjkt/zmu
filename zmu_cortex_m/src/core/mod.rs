@@ -9,12 +9,17 @@ use bus::Bus;
 use core::executor::execute;
 use decoder::{decode_16, decode_32, is_thumb32};
 use core::register::{Reg, PSR, Epsr};
+use core::instruction::Instruction;
 
 pub enum ProcessorMode {
     ThreadMode,
     HandlerMode,
 }
 
+pub enum ThumbCode {
+    Thumb32 { half_word: u16, half_word2: u16 },
+    Thumb16 { half_word: u16 },
+}
 
 pub struct Core<'a, T: Bus + 'a> {
     pub r: [u32; 16],
@@ -73,22 +78,32 @@ impl<'a, T: Bus> Core<'a, T> {
         self.set_sp(sp);
     }
 
-    //
-    // fetch, decode and execute single instruction
-    //
-    pub fn run<F>(&mut self, bkpt_func: F)  where F : FnMut(u32, u32, u32){
-
+    pub fn fetch(&mut self) -> ThumbCode {
         let hw = self.bus.read16(self.r[Reg::PC.value()]);
 
-        let op = if is_thumb32(hw) {
+        if is_thumb32(hw) {
             let hw2 = self.bus.read16(self.r[Reg::PC.value()] + 2);
-            decode_32(hw, hw2)
+            ThumbCode::Thumb32 {
+                half_word: hw,
+                half_word2: hw2,
+            }
         } else {
-            decode_16(hw)
-        };
+            ThumbCode::Thumb16 { half_word: hw }
+        }
+    }
 
-        //print!("{} 0x{:x}: ", self.instruction_count, self.r[Reg::PC.value()]);
-        execute(self, op, bkpt_func);
+    pub fn decode(&self, code: &ThumbCode) -> Option<Instruction> {
+        match *code {
+            ThumbCode::Thumb32 { half_word, half_word2 } => decode_32(half_word, half_word2),
+            ThumbCode::Thumb16 { half_word } => decode_16(half_word),
+        }
+    }
+
+    pub fn step<F>(&mut self, instruction: Instruction, bkpt_func: F)
+        where F: FnMut(u32, u32, u32)
+    {
+
+        execute(self, instruction, bkpt_func);
         /*println!(" PC:{:08X} PSR:{:08X} Z={}, C={} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
                   R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X} ",
                  self.r[Reg::PC.value()],
@@ -111,6 +126,5 @@ impl<'a, T: Bus> Core<'a, T> {
                  self.r[Reg::SP.value()],
                  self.r[Reg::LR.value()],
                  );*/
-        self.instruction_count = self.instruction_count + 1;
     }
 }
