@@ -19,10 +19,10 @@ impl Bus for InternalBus {
     }
 
     fn write32(&mut self, addr: u32, value: u32) {
-        panic!("bus access fault write addr 0x{:x}", addr);
+        panic!("bus access fault write addr 0x{:x} = 0x{:x}", addr, value);
     }
     fn write8(&mut self, addr: u32, value: u8) {
-        panic!("bus access fault write addr 0x{:x}", addr);
+        panic!("bus access fault write addr 0x{:x} = 0x{:x}", addr, value);
     }
 
     fn in_range(&self, addr: u32) -> bool {

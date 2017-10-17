@@ -40,7 +40,7 @@ where
                     imm5,
                     setflags,
                 } => {
-                    let (shift_t, shift_n) = decode_imm_shift(0b00, imm5);
+                    let (_, shift_n) = decode_imm_shift(0b00, imm5);
                     let (result, carry) = shift_c(
                         read_reg(core, rm),
                         SRType::LSL,
@@ -186,7 +186,7 @@ where
                     core.r[Reg::PC.value()] += 2;
                 }
                 Instruction::ADD { rdn, rm } => {
-                    let (result, carry, overflow) =
+                    let (result, _, _) =
                         add_with_carry(read_reg(core, rdn), read_reg(core, rm), false);
                     core.r[rdn.value()] = result;
                     core.r[Reg::PC.value()] += 2;
@@ -198,8 +198,7 @@ where
                     setflags,
                 } => {
                     let r_n = read_reg(core, rn);
-                    let (result, carry, overflow) =
-                        add_with_carry(read_reg(core, rn), imm32, false);
+                    let (result, carry, overflow) = add_with_carry(r_n, imm32, false);
 
                     if setflags {
                         core.psr.set_n(result.get_bit(31));
@@ -223,8 +222,7 @@ where
                     setflags,
                 } => {
                     let r_n = read_reg(core, rn);
-                    let (result, carry, overflow) =
-                        add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFF_FFFF, true);
+                    let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
 
                     if setflags {
                         core.psr.set_n(result.get_bit(31));

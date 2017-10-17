@@ -72,6 +72,7 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
         }
 
     }
+    #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         true
     }

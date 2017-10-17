@@ -27,7 +27,6 @@ pub struct Core<'a, T: Bus + 'a> {
     pub mode: ProcessorMode,
     pub bus: &'a mut T,
     instruction_count: u32,
-    running : bool
 }
 
 impl<'a, T: Bus> Core<'a, T> {
@@ -40,7 +39,6 @@ impl<'a, T: Bus> Core<'a, T> {
             r: [0; 16],
             bus: bus,
             instruction_count: 0,
-            running : true
         }
     }
 

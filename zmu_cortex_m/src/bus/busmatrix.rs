@@ -6,8 +6,9 @@ pub struct BusMatrix<'a, T: 'a + Bus, R: 'a + Bus> {
 }
 
 impl<'a, T, R> BusMatrix<'a, T, R>
-    where T: Bus,
-          R: Bus
+where
+    T: Bus,
+    R: Bus,
 {
     pub fn new(intr: &'a mut T, extr: &'a mut R) -> BusMatrix<'a, T, R> {
         BusMatrix {
@@ -18,11 +19,11 @@ impl<'a, T, R> BusMatrix<'a, T, R>
 }
 
 impl<'a, T, R> Bus for BusMatrix<'a, T, R>
-    where T: Bus,
-          R: Bus
+where
+    T: Bus,
+    R: Bus,
 {
     fn read8(&mut self, addr: u32) -> u8 {
-
         if self.extr.in_range(addr) {
             return self.extr.read8(addr);
         } else if self.intr.in_range(addr) {
@@ -32,7 +33,6 @@ impl<'a, T, R> Bus for BusMatrix<'a, T, R>
         panic!("read out of bus range");
     }
     fn read16(&mut self, addr: u32) -> u16 {
-
         if self.extr.in_range(addr) {
             return self.extr.read16(addr);
         } else if self.intr.in_range(addr) {
@@ -60,7 +60,6 @@ impl<'a, T, R> Bus for BusMatrix<'a, T, R>
         } else {
             panic!("write out of bus range");
         }
-
     }
     fn write8(&mut self, addr: u32, value: u8) {
         if self.extr.in_range(addr) {
@@ -70,9 +69,8 @@ impl<'a, T, R> Bus for BusMatrix<'a, T, R>
         } else {
             panic!("write out of bus range");
         }
-
     }
-
+    #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         true
     }

@@ -15,12 +15,12 @@ pub enum Instruction {
         imm32: u32,
         setflags: bool,
     },
-    ADR {rd : Reg, imm32: u32},
+    ADR { rd: Reg, imm32: u32 },
     AND,
     ASR,
     B { cond: Condition, imm32: i32 },
     BIC,
-    BKPT {imm32 : u32},
+    BKPT { imm32: u32 },
     BL { imm32: i32 },
     BLX { rm: Reg },
     BX { rm: Reg },
@@ -45,7 +45,12 @@ pub enum Instruction {
     LDRH_reg,
     LDRSB_reg,
     LDRSH_reg,
-    LSL_imm {rd: Reg, rm: Reg, imm5 : u8, setflags: bool},
+    LSL_imm {
+        rd: Reg,
+        rm: Reg,
+        imm5: u8,
+        setflags: bool,
+    },
     LSL_reg,
     LSR_imm,
     LSR_reg,
@@ -54,7 +59,7 @@ pub enum Instruction {
     MRS,
     MRS_reg,
     MUL,
-    MVN_reg {rd : Reg, rm : Reg, setflags : bool},
+    MVN_reg { rd: Reg, rm: Reg, setflags: bool },
     NOP,
     ORR,
     POP { registers: EnumSet<Reg> },
@@ -71,7 +76,7 @@ pub enum Instruction {
     STMEA,
     STR_imm { rn: Reg, rt: Reg, imm32: u32 },
     STR_reg { rm: Reg, rn: Reg, rt: Reg },
-    STRB_imm{ rn: Reg, rt: Reg, imm32: u32 },
+    STRB_imm { rn: Reg, rt: Reg, imm32: u32 },
     STRB_reg,
     STRH_imm,
     STRH_reg,
@@ -97,7 +102,7 @@ pub enum Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Instruction::ADD { rdn, rm } => write!(f, "ADD"),
+            Instruction::ADD { rdn, rm } => write!(f, "ADD {},{},{}", rdn, rdn, rm),
             Instruction::ADD_imm {
                 rn,
                 rd,
@@ -113,15 +118,15 @@ impl fmt::Display for Instruction {
             ),
             Instruction::ADDS { rm, rn, rd } => write!(f, "ADDS {},{},{}", rd, rn, rm),
             Instruction::ADC => write!(f, "ADC"),
-            Instruction::ADR{rd, imm32} => write!(f, "ADR {}, PC, #{}", rd, imm32),
+            Instruction::ADR { rd, imm32 } => write!(f, "ADR {}, PC, #{}", rd, imm32),
             Instruction::AND => write!(f, "AND"),
             Instruction::ASR => write!(f, "ASR"),
             Instruction::B { ref cond, imm32 } => write!(f, "B{} {}", cond, imm32),
             Instruction::BIC => write!(f, "BIC"),
-            Instruction::BL { imm32 } => write!(f, "BL"),
-            Instruction::BX { rm } => write!(f, "BX"),
+            Instruction::BL { imm32 } => write!(f, "BL #{}", imm32),
+            Instruction::BX { rm } => write!(f, "BX {}", rm),
             Instruction::BLX { rm } => write!(f, "BLX {}", rm),
-            Instruction::BKPT{imm32} => write!(f, "BKPT #{}", imm32),
+            Instruction::BKPT { imm32 } => write!(f, "BKPT #{}", imm32),
             Instruction::CMN => write!(f, "CMN"),
             Instruction::CMP_imm { rn, imm32 } => write!(f, "CMP {}, #{}", rn, imm32),
             Instruction::CMP { rn, rm } => write!(f, "CMP {}, {}", rn, rm),
@@ -137,12 +142,24 @@ impl fmt::Display for Instruction {
             Instruction::LDR_reg { rt, rn, rm } => write!(f, "LDR {}, [{}, {}]", rt, rn, rm),
             Instruction::LDR_imm { rt, rn, imm32 } => write!(f, "LDR {},[{},#{}]", rt, rn, imm32),
             Instruction::LDR_lit { rt, imm32 } => write!(f, "LDR {},[PC, #{}]", rt, imm32),
-            Instruction::LDRB_imm { rt, rn, imm32 }=> write!(f, "LDRB {},[{},#{}]", rt, rn, imm32),
+            Instruction::LDRB_imm { rt, rn, imm32 } => write!(f, "LDRB {},[{},#{}]", rt, rn, imm32),
             Instruction::LDRB_reg { rt, rn, rm } => write!(f, "LDRB {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRH_imm => write!(f, "LDRH imm"),
             Instruction::LDRSB_reg => write!(f, "LDRSB reg"),
             Instruction::LDRSH_reg => write!(f, "LDRSH reg"),
-            Instruction::LSL_imm {rd, rm, imm5, setflags}=> write!(f, "LSL{} {}, {}, #{}", if setflags {"S"} else {""}, rd, rm, imm5),
+            Instruction::LSL_imm {
+                rd,
+                rm,
+                imm5,
+                setflags,
+            } => write!(
+                f,
+                "LSL{} {}, {}, #{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rm,
+                imm5
+            ),
             Instruction::LDRH_reg => write!(f, "LDRH reg"),
             Instruction::LSL_reg => write!(f, "LSL reg"),
             Instruction::LSR_imm => write!(f, "LSR imm"),
@@ -150,13 +167,27 @@ impl fmt::Display for Instruction {
             Instruction::MRS_reg => write!(f, "MSR reg"),
             Instruction::MRS => write!(f, "MSR"),
             Instruction::MUL => write!(f, "MUL"),
-            Instruction::MOV_reg { rd, rm, setflags } => write!(f, "MOV {},{}", rd, rm),
-            Instruction::MOV_imm { rd, imm32,setflags } => write!(f, "MOV{} {},#{}", if setflags {"S"} else {""}, rd, imm32),
-            Instruction::MVN_reg{ rd, rm, setflags} => write!(f, "MVN{} {},{}", if setflags {"S"} else {""}, rd, rm),
+            Instruction::MOV_reg { rd, rm, setflags } => {
+                write!(f, "MOV{} {},{}", if setflags { "S" } else { "" }, rd, rm)
+            }
+            Instruction::MOV_imm {
+                rd,
+                imm32,
+                setflags,
+            } => write!(
+                f,
+                "MOV{} {},#{}",
+                if setflags { "S" } else { "" },
+                rd,
+                imm32
+            ),
+            Instruction::MVN_reg { rd, rm, setflags } => {
+                write!(f, "MVN{} {},{}", if setflags { "S" } else { "" }, rd, rm)
+            }
             Instruction::NOP => write!(f, "NOP"),
             Instruction::ORR => write!(f, "ORR"),
-            Instruction::POP { registers } => write!(f, "POP"),
-            Instruction::PUSH { registers } => write!(f, "PUSH"),
+            Instruction::POP { registers } => write!(f, "POP {:?}", registers),
+            Instruction::PUSH { registers } => write!(f, "PUSH {:?}", registers),
             Instruction::REV => write!(f, "REV"),
             Instruction::REV16 => write!(f, "REV16"),
             Instruction::REVSH => write!(f, "REVSH"),
@@ -169,7 +200,9 @@ impl fmt::Display for Instruction {
             Instruction::STMEA => write!(f, "STMEA"),
             Instruction::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{}, #{}]", rt, rn, imm32),
             Instruction::STR_reg { rn, rm, rt } => write!(f, "STR {}, [{}, {}]", rt, rn, rm),
-            Instruction::STRB_imm {rn, rt, imm32} => write!(f, "STRB {}, [{}, #{}]", rt, rn, imm32),
+            Instruction::STRB_imm { rn, rt, imm32 } => {
+                write!(f, "STRB {}, [{}, #{}]", rt, rn, imm32)
+            }
             Instruction::STRB_reg => write!(f, "STRB_reg"),
             Instruction::STRH_imm => write!(f, "STRH_imm"),
             Instruction::STRH_reg => write!(f, "STRH_reg"),

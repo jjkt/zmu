@@ -116,6 +116,7 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
     }
 }
 
+#[allow(unused)]
 pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingResponse) {
     match *response {
         SemihostingResponse::SysOpen { result } => match result {

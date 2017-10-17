@@ -186,7 +186,6 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
 
 //A 5.3.1 Branch and misc (thumb32)
 pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Option<Instruction> {
-    let op1 = (t1 >> 4) & 0x7f;
     let op2 = (t2 >> 12) & 0x07;
 
     match op2 {
