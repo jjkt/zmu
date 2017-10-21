@@ -59,6 +59,22 @@ pub fn execute<T: Bus, F>(core: &mut Core<T>, instruction: Instruction, mut bkpt
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::MUL {rd, rn, rm, setflags} => {
+            let operand1 = read_reg(core, rn);
+            let operand2 = read_reg(core, rm);
+
+
+            let result = operand1 * operand2;
+
+            core.r[rd.value() as usize] = result;
+
+            if setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::BX { rm } => {
             core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
         }

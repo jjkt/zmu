@@ -58,7 +58,12 @@ pub enum Instruction {
     MOV_imm { rd: Reg, imm32: u32, setflags: bool },
     MRS,
     MRS_reg,
-    MUL,
+    MUL {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     MVN_reg { rd: Reg, rm: Reg, setflags: bool },
     NOP,
     ORR,
@@ -166,7 +171,14 @@ impl fmt::Display for Instruction {
             Instruction::LSR_reg => write!(f, "LSR reg"),
             Instruction::MRS_reg => write!(f, "MSR reg"),
             Instruction::MRS => write!(f, "MSR"),
-            Instruction::MUL => write!(f, "MUL"),
+            Instruction::MUL{rd, rn, rm, setflags} => write!(
+                f,
+                "MUL{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::MOV_reg { rd, rm, setflags } => {
                 write!(f, "MOV{} {},{}", if setflags { "S" } else { "" }, rd, rm)
             }

@@ -22,8 +22,9 @@ mod cmp;
 mod ldr;
 mod ldrb;
 mod lsl;
-mod mvn;
 mod mov;
+mod mvn;
+mod mul;
 
 mod nop;
 
@@ -46,6 +47,7 @@ use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::lsl::*;
 use decoder::mov::*;
+use decoder::mul::*;
 use decoder::mvn::*;
 use decoder::nop::*;
 use decoder::push::*;
@@ -109,7 +111,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_1010 => Some(decode_CMP_t1(command)),
                         0b000_1011 => Some(Instruction::CMN),
                         0b000_1100 => Some(Instruction::ORR),
-                        0b000_1101 => Some(Instruction::MUL),
+                        0b000_1101 => Some(decode_MUL_reg_t1(command)),
                         0b000_1110 => Some(Instruction::BIC),
                         0b000_1111 => Some(decode_MVN_reg_t1(command)),
 
@@ -755,6 +757,23 @@ fn test_decode_nop() {
     // NOP
     match decode_16(0xbf00).unwrap() {
         Instruction::NOP => {}
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_mul() {
+    // MULS R4, R0, R4 
+    match decode_16(0x4344).unwrap() {
+        Instruction::MUL{rd, rn, rm, setflags} => {
+            assert!(rd == Reg::R4);
+            assert!(rn == Reg::R0);
+            assert!(rm == Reg::R4);
+            assert!(setflags);
+
+        }
         _ => {
             assert!(false);
         }
