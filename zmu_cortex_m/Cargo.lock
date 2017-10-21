@@ -1,0 +1,28 @@
+[root]
+name = "zmu_cortex_m"
+version = "0.1.0"
+dependencies = [
+ "bit_field 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enum-set 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "bit_field"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "byteorder"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "enum-set"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum bit_field 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ff91a64014e1bc53bf643920f2c9ab5f0980d92a0948295f3ee550e9266849ad"
+"checksum byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)" = "29b2aa490a8f546381308d68fc79e6bd753cd3ad839f7a7172897f1feedfa175"
+"checksum enum-set 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "da4d062c93d122903dbbbfc0c9a82f25af63ef65339a85dc1d0f6951458601b5"
