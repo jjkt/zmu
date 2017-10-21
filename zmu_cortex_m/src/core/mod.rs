@@ -31,7 +31,6 @@ pub struct Core<'a, T: Bus + 'a> {
 
     pub mode: ProcessorMode,
     pub bus: &'a mut T,
-    instruction_count: u32,
 }
 
 impl<'a, T: Bus> Core<'a, T> {
@@ -43,7 +42,6 @@ impl<'a, T: Bus> Core<'a, T> {
             control: 0,
             r: [0; 16],
             bus: bus,
-            instruction_count: 0,
         }
     }
 
@@ -104,27 +102,5 @@ impl<'a, T: Bus> Core<'a, T> {
     {
 
         execute(self, instruction, bkpt_func);
-        /*println!(" PC:{:08X} PSR:{:08X} Z={}, C={} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
-                  R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X} ",
-                 self.r[Reg::PC.value()],
-                 self.psr.value,
-                 self.psr.get_z(),
-                 self.psr.get_c(),
-                 self.r[Reg::R0.value()],
-                 self.r[Reg::R1.value()],
-                 self.r[Reg::R2.value()],
-                 self.r[Reg::R3.value()],
-                 self.r[Reg::R4.value()],
-                 self.r[Reg::R5.value()],
-                 self.r[Reg::R6.value()],
-                 self.r[Reg::R7.value()],
-                 self.r[Reg::R8.value()],
-                 self.r[Reg::R9.value()],
-                 self.r[Reg::R10.value()],
-                 self.r[Reg::R11.value()],
-                 self.r[Reg::R12.value()],
-                 self.r[Reg::SP.value()],
-                 self.r[Reg::LR.value()],
-                 );*/
     }
 }

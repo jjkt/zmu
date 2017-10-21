@@ -55,6 +55,10 @@ pub fn execute<T: Bus, F>(core: &mut Core<T>, instruction: Instruction, mut bkpt
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::NOP => {
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::BX { rm } => {
             core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
         }
