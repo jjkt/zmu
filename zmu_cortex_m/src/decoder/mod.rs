@@ -22,6 +22,7 @@ mod cmp;
 mod ldr;
 mod ldrb;
 mod lsl;
+mod lsr;
 mod mov;
 mod mvn;
 mod mul;
@@ -47,6 +48,7 @@ use decoder::cmp::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::lsl::*;
+use decoder::lsr::*;
 use decoder::mov::*;
 use decoder::mul::*;
 use decoder::mvn::*;
@@ -71,7 +73,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
             // Shift (immediate), add, substract, move and compare
             match command.get_bits(9..14) {
                 0b000_01 | 0b000_10 | 0b000_11 => Some(decode_LSL_imm_t1(command)),
-                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(Instruction::LSR_imm),
+                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(decode_LSR_imm_t1(command)),
                 0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Instruction::ASR),
                 0b011_00 => Some(decode_ADDS(command)),
                 0b011_01 => Some(decode_SUBS_reg_t1(command)),
@@ -103,7 +105,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_0000 => Some(Instruction::AND),
                         0b000_0001 => Some(Instruction::EOR),
                         0b000_0010 => Some(Instruction::LSL_reg),
-                        0b000_0011 => Some(Instruction::LSR_imm),
+                        0b000_0011 => Some(Instruction::LSR_reg),
                         0b000_0100 => Some(Instruction::ASR),
                         0b000_0101 => Some(Instruction::ADC),
                         0b000_0110 => Some(Instruction::SBC),
@@ -790,6 +792,22 @@ fn test_decode_orr() {
             assert!(rd == Reg::R3);
             assert!(rn == Reg::R3);
             assert!(rm == Reg::R1);
+            assert!(setflags);
+
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+#[test]
+fn test_decode_lsr_imm() {
+    // LSRS R3, R0, #8
+    match decode_16(0x0a03).unwrap() {
+        Instruction::LSR_imm{rd, rm, imm5, setflags} => {
+            assert!(rd == Reg::R3);
+            assert!(rm == Reg::R0);
+            assert!(imm5 == 8);
             assert!(setflags);
 
         }

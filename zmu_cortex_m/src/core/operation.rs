@@ -100,6 +100,14 @@ fn lsl_c(value: u32, shift: u32) -> (u32, bool) {
     (extended.get_bits(0..32) as u32, extended.get_bit(32))
 }
 
+fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
+    assert!(shift > 0);
+
+    let extended = u64::from(value);
+
+    (extended.get_bits(shift..(shift+32)) as u32, extended.get_bit(shift-1))
+}
+
 
 pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32, bool) {
     assert!(!((shift_t == SRType::RRX) && (amount != 1)));
@@ -108,6 +116,7 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32
     } else {
         match shift_t {
             SRType::LSL => lsl_c(value, amount),
+            SRType::LSR => lsr_c(value, amount as u8),
             _ => panic!("not implemented"),
         }
     }

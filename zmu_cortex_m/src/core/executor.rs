@@ -45,6 +45,22 @@ pub fn execute<T: Bus, F>(core: &mut Core<T>, instruction: Instruction, mut bkpt
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::LSR_imm { rd, rm, imm5, setflags } => {
+            let (_, shift_n) = decode_imm_shift(0b01, imm5);
+            let (result, carry) = shift_c(read_reg(core, rm),
+                                          SRType::LSR,
+                                          u32::from(shift_n),
+                                          core.psr.get_c());
+            core.r[rd.value() as usize] = result;
+
+            if setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::BL { imm32 } => {
             let pc = read_reg(core, Reg::PC);
             core.r[Reg::LR.value()] = pc | 0x01;
