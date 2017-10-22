@@ -66,7 +66,12 @@ pub enum Instruction {
     },
     MVN_reg { rd: Reg, rm: Reg, setflags: bool },
     NOP,
-    ORR,
+    ORR {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     POP { registers: EnumSet<Reg> },
     PUSH { registers: EnumSet<Reg> },
     REV,
@@ -171,7 +176,12 @@ impl fmt::Display for Instruction {
             Instruction::LSR_reg => write!(f, "LSR reg"),
             Instruction::MRS_reg => write!(f, "MSR reg"),
             Instruction::MRS => write!(f, "MSR"),
-            Instruction::MUL{rd, rn, rm, setflags} => write!(
+            Instruction::MUL {
+                rd,
+                rn,
+                rm,
+                setflags,
+            } => write!(
                 f,
                 "MUL{} {},{},{}",
                 if setflags { "S" } else { "" },
@@ -197,7 +207,19 @@ impl fmt::Display for Instruction {
                 write!(f, "MVN{} {},{}", if setflags { "S" } else { "" }, rd, rm)
             }
             Instruction::NOP => write!(f, "NOP"),
-            Instruction::ORR => write!(f, "ORR"),
+            Instruction::ORR {
+                rd,
+                rn,
+                rm,
+                setflags,
+            }=> write!(
+                f,
+                "ORR{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::POP { registers } => write!(f, "POP {:?}", registers),
             Instruction::PUSH { registers } => write!(f, "PUSH {:?}", registers),
             Instruction::REV => write!(f, "REV"),

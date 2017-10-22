@@ -27,6 +27,7 @@ mod mvn;
 mod mul;
 
 mod nop;
+mod orr;
 
 mod push;
 mod pop;
@@ -50,6 +51,7 @@ use decoder::mov::*;
 use decoder::mul::*;
 use decoder::mvn::*;
 use decoder::nop::*;
+use decoder::orr::*;
 use decoder::push::*;
 use decoder::pop::*;
 use decoder::sub::*;
@@ -110,7 +112,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_1001 => Some(Instruction::RSB),
                         0b000_1010 => Some(decode_CMP_t1(command)),
                         0b000_1011 => Some(Instruction::CMN),
-                        0b000_1100 => Some(Instruction::ORR),
+                        0b000_1100 => Some(decode_ORR_reg_t1(command)),
                         0b000_1101 => Some(decode_MUL_reg_t1(command)),
                         0b000_1110 => Some(Instruction::BIC),
                         0b000_1111 => Some(decode_MVN_reg_t1(command)),
@@ -771,6 +773,23 @@ fn test_decode_mul() {
             assert!(rd == Reg::R4);
             assert!(rn == Reg::R0);
             assert!(rm == Reg::R4);
+            assert!(setflags);
+
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_orr() {
+    // ORRS R3, R3, R1 
+    match decode_16(0x430b).unwrap() {
+        Instruction::ORR{rd, rn, rm, setflags} => {
+            assert!(rd == Reg::R3);
+            assert!(rn == Reg::R3);
+            assert!(rm == Reg::R1);
             assert!(setflags);
 
         }

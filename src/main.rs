@@ -127,8 +127,8 @@ fn main() {
             println!("Value for device: {}", device);
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
             println!("Using EXECUTABLE file: {}", filename);
-            let mut ram_mem = vec![0; 1024 + 8];
-            let mut flash_mem = [0; 2048];
+            let mut ram_mem = vec![0; 32768];
+            let mut flash_mem = [0; 8192];
 
             let file = File::open(filename);
 
