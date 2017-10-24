@@ -1,12 +1,15 @@
-extern crate clap;
 extern crate bit_field;
+extern crate clap;
+extern crate tabwriter;
 extern crate zmu_cortex_m;
 
 use std::process;
-use clap::{App, SubCommand, AppSettings};
+use clap::{App, AppSettings, SubCommand};
 use std::io::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
+use std::io;
+use tabwriter::TabWriter;
 
 use zmu_cortex_m::semihosting::semihost_return;
 use zmu_cortex_m::semihosting::{decode_semihostcmd, SemihostingCommand, SemihostingResponse,
@@ -30,42 +33,30 @@ pub fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R) {
     let mut semihost = (0, 0);
     let mut semihost_triggered = false;
     let mut count = 0;
+    let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
 
     core.reset();
     while running {
-
         let pc = core.r[Reg::PC.value()];
         let thumb = core.fetch();
         let instruction = core.decode(&thumb).unwrap();
-        println!("{} 0x{:x}: {}", count, pc, instruction);
-        core.step(instruction, |imm32, r0, r1| if imm32 == 0xab {
+        let count_before = count;
+        core.step(&instruction, |imm32, r0, r1| if imm32 == 0xab {
             semihost_triggered = true;
             semihost = (r0, r1);
         });
         count += 1;
 
-        /*println!(" PC:{:08X} PSR:{:08X} Z={}, C={} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
-                  R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X} ",
-                 self.r[Reg::PC.value()],
-                 self.psr.value,
-                 self.psr.get_z(),
-                 self.psr.get_c(),
-                 self.r[Reg::R0.value()],
-                 self.r[Reg::R1.value()],
-                 self.r[Reg::R2.value()],
-                 self.r[Reg::R3.value()],
-                 self.r[Reg::R4.value()],
-                 self.r[Reg::R5.value()],
-                 self.r[Reg::R6.value()],
-                 self.r[Reg::R7.value()],
-                 self.r[Reg::R8.value()],
-                 self.r[Reg::R9.value()],
-                 self.r[Reg::R10.value()],
-                 self.r[Reg::R11.value()],
-                 self.r[Reg::R12.value()],
-                 self.r[Reg::SP.value()],
-                 self.r[Reg::LR.value()],
-                 );*/
+        writeln!(
+            &mut trace_stdout,
+            "{0:} 0x{1:08x}\t{2:}\t{3:}",
+            count_before,
+            pc,
+            instruction,
+            core
+        ).unwrap();
+        trace_stdout.flush().unwrap();
+
 
         if semihost_triggered {
             let (r0, r1) = semihost;
@@ -108,16 +99,19 @@ pub fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R) {
 
 
 fn main() {
-
     let matches = App::new("zmu")
         .version("1.0")
         .about("a Low level emulator for microcontrollers")
         .setting(AppSettings::SubcommandRequiredElseHelp)
-        .subcommand(SubCommand::with_name("run")
-            .about("Load and run <EXECUTABLE>")
-            .args_from_usage("-d, --device=[DEVICE] 'Use specific device'
+        .subcommand(
+            SubCommand::with_name("run")
+                .about("Load and run <EXECUTABLE>")
+                .args_from_usage(
+                    "-d, --device=[DEVICE] 'Use specific device'
                               \
-                              <EXECUTABLE>         'Set executable to load'"))
+                              <EXECUTABLE>         'Set executable to load'",
+                ),
+        )
         .subcommand(SubCommand::with_name("devices").about("List available devices"))
         .get_matches();
 
@@ -136,30 +130,27 @@ fn main() {
                 Ok(f) => {
                     let mut buf_reader = BufReader::new(f);
 
-                    match buf_reader.read(&mut flash_mem)
-                    {
+                    match buf_reader.read(&mut flash_mem) {
                         Ok(_) => {
-                    let mut hellow = FlashMemory::new(&mut flash_mem, 0x0);
-                    let mut ram = RAM::new(&mut ram_mem, 0x20000000);
-                    run_bin(&mut hellow, &mut ram);
-
+                            let mut hellow = FlashMemory::new(&mut flash_mem, 0x0);
+                            let mut ram = RAM::new(&mut ram_mem, 0x20000000);
+                            run_bin(&mut hellow, &mut ram);
                         }
                         Err(_) => {
                             println!("Failed to read file {}", filename);
                         }
                     };
-
                 }
-                Err(_) => {println!("Failed to open file {}", filename);}
+                Err(_) => {
+                    println!("Failed to open file {}", filename);
+                }
             };
-
         }
         ("devices", Some(_)) => {
             println!("cortex-m0");
             process::exit(0);
         }
-        ("", None) => panic!("No sub command found"), 
+        ("", None) => panic!("No sub command found"),
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
     }
-
 }

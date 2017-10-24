@@ -41,8 +41,8 @@ fn test_add_with_carry() {
 // • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction
 // • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
 //
-pub fn condition_passed(condition: Condition, psr: &PSR) -> bool {
-    match condition {
+pub fn condition_passed(condition: &Condition, psr: &PSR) -> bool {
+    match *condition {
         Condition::EQ => psr.get_z(),
         Condition::NE => !psr.get_z(),
         Condition::CS => psr.get_c(),
@@ -105,7 +105,10 @@ fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
 
     let extended = u64::from(value);
 
-    (extended.get_bits(shift..(shift+32)) as u32, extended.get_bit(shift-1))
+    (
+        extended.get_bits(shift..(shift + 32)) as u32,
+        extended.get_bit(shift - 1),
+    )
 }
 
 

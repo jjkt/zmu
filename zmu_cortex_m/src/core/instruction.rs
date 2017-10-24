@@ -125,7 +125,7 @@ impl fmt::Display for Instruction {
                 setflags,
             } => write!(
                 f,
-                "ADD{} {},{},#{}",
+                "ADD{} {},{},#{:x}",
                 if setflags { "S" } else { "" },
                 rd,
                 rn,
@@ -133,15 +133,15 @@ impl fmt::Display for Instruction {
             ),
             Instruction::ADDS { rm, rn, rd } => write!(f, "ADDS {},{},{}", rd, rn, rm),
             Instruction::ADC => write!(f, "ADC"),
-            Instruction::ADR { rd, imm32 } => write!(f, "ADR {}, PC, #{}", rd, imm32),
+            Instruction::ADR { rd, imm32 } => write!(f, "ADR {}, PC, #{:x}", rd, imm32),
             Instruction::AND => write!(f, "AND"),
             Instruction::ASR => write!(f, "ASR"),
             Instruction::B { ref cond, imm32 } => write!(f, "B{} {}", cond, imm32),
             Instruction::BIC => write!(f, "BIC"),
-            Instruction::BL { imm32 } => write!(f, "BL #{}", imm32),
+            Instruction::BL { imm32 } => write!(f, "BL #{:x}", imm32),
             Instruction::BX { rm } => write!(f, "BX {}", rm),
             Instruction::BLX { rm } => write!(f, "BLX {}", rm),
-            Instruction::BKPT { imm32 } => write!(f, "BKPT #{}", imm32),
+            Instruction::BKPT { imm32 } => write!(f, "BKPT #{:x}", imm32),
             Instruction::CMN => write!(f, "CMN"),
             Instruction::CMP_imm { rn, imm32 } => write!(f, "CMP {}, #{}", rn, imm32),
             Instruction::CMP { rn, rm } => write!(f, "CMP {}, {}", rn, rm),
@@ -156,8 +156,8 @@ impl fmt::Display for Instruction {
             Instruction::LDMFD => write!(f, "LDMFD"),
             Instruction::LDR_reg { rt, rn, rm } => write!(f, "LDR {}, [{}, {}]", rt, rn, rm),
             Instruction::LDR_imm { rt, rn, imm32 } => write!(f, "LDR {},[{},#{}]", rt, rn, imm32),
-            Instruction::LDR_lit { rt, imm32 } => write!(f, "LDR {},[PC, #{}]", rt, imm32),
-            Instruction::LDRB_imm { rt, rn, imm32 } => write!(f, "LDRB {},[{},#{}]", rt, rn, imm32),
+            Instruction::LDR_lit { rt, imm32 } => write!(f, "LDR {},[PC, #{:x}]", rt, imm32),
+            Instruction::LDRB_imm { rt, rn, imm32 } => write!(f, "LDRB {},[{},#{:x}]", rt, rn, imm32),
             Instruction::LDRB_reg { rt, rn, rm } => write!(f, "LDRB {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRH_imm => write!(f, "LDRH imm"),
             Instruction::LDRSB_reg => write!(f, "LDRSB reg"),
@@ -184,7 +184,7 @@ impl fmt::Display for Instruction {
                 setflags,
             } => write!(
                 f,
-                "LSR{} {}, {}, #{}",
+                "LSR{} {}, {}, #{:x}",
                 if setflags { "S" } else { "" },
                 rd,
                 rm,
@@ -215,7 +215,7 @@ impl fmt::Display for Instruction {
                 setflags,
             } => write!(
                 f,
-                "MOV{} {},#{}",
+                "MOV{} {},#{:x}",
                 if setflags { "S" } else { "" },
                 rd,
                 imm32
@@ -249,10 +249,10 @@ impl fmt::Display for Instruction {
             Instruction::STM => write!(f, "STM"),
             Instruction::STMIA => write!(f, "STMIA"),
             Instruction::STMEA => write!(f, "STMEA"),
-            Instruction::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{}, #{}]", rt, rn, imm32),
+            Instruction::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{},#{:x}]", rt, rn, imm32),
             Instruction::STR_reg { rn, rm, rt } => write!(f, "STR {}, [{}, {}]", rt, rn, rm),
             Instruction::STRB_imm { rn, rt, imm32 } => {
-                write!(f, "STRB {}, [{}, #{}]", rt, rn, imm32)
+                write!(f, "STRB {}, [{},#{:x}]", rt, rn, imm32)
             }
             Instruction::STRB_reg => write!(f, "STRB_reg"),
             Instruction::STRH_imm => write!(f, "STRH_imm"),
@@ -264,7 +264,7 @@ impl fmt::Display for Instruction {
                 setflags,
             } => write!(
                 f,
-                "SUB{} {},{},#{}",
+                "SUB{} {},{},#{:x}",
                 if setflags { "S" } else { "" },
                 rd,
                 rn,

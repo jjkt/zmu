@@ -8,8 +8,9 @@ pub mod register;
 use bus::Bus;
 use core::executor::execute;
 use decoder::{decode_16, decode_32, is_thumb32};
-use core::register::{Reg, PSR, Epsr};
+use core::register::{Reg, PSR, Epsr, Apsr};
 use core::instruction::Instruction;
+use std::fmt;
 
 pub enum ProcessorMode {
     ThreadMode,
@@ -97,10 +98,39 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
-    pub fn step<F>(&mut self, instruction: Instruction, bkpt_func: F)
+    pub fn step<F>(&mut self, instruction: &Instruction, bkpt_func: F)
         where F: FnMut(u32, u32, u32)
     {
 
         execute(self, instruction, bkpt_func);
     }
 }
+
+impl<'a, T: Bus> fmt::Display for Core<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "PC:{:08X} {}{}{}{}{} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
+                  R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X}",
+                 self.r[Reg::PC.value()],
+                 if self.psr.get_z() {'Z'} else {'z'},
+                 if self.psr.get_n() {'N'} else {'n'},
+                 if self.psr.get_c() {'C'} else {'c'},
+                 if self.psr.get_v() {'V'} else {'v'},
+                 if self.psr.get_q() {'Q'} else {'q'},
+                 self.r[Reg::R0.value()],
+                 self.r[Reg::R1.value()],
+                 self.r[Reg::R2.value()],
+                 self.r[Reg::R3.value()],
+                 self.r[Reg::R4.value()],
+                 self.r[Reg::R5.value()],
+                 self.r[Reg::R6.value()],
+                 self.r[Reg::R7.value()],
+                 self.r[Reg::R8.value()],
+                 self.r[Reg::R9.value()],
+                 self.r[Reg::R10.value()],
+                 self.r[Reg::R11.value()],
+                 self.r[Reg::R12.value()],
+                 self.r[Reg::SP.value()],
+                 self.r[Reg::LR.value()])
+    }
+}
+
