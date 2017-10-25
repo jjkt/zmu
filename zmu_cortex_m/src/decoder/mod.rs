@@ -8,6 +8,7 @@ use core::register::Reg;
 #[cfg(test)]
 use core::condition::Condition;
 
+mod adc;
 mod add;
 mod adr;
 
@@ -37,6 +38,7 @@ mod str;
 mod sub;
 mod tst;
 
+use decoder::adc::*;
 use decoder::add::*;
 use decoder::adr::*;
 use decoder::b::*;
@@ -107,7 +109,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_0010 => Some(Instruction::LSL_reg),
                         0b000_0011 => Some(Instruction::LSR_reg),
                         0b000_0100 => Some(Instruction::ASR),
-                        0b000_0101 => Some(Instruction::ADC),
+                        0b000_0101 => Some(decode_ADC_reg_t1(command)),
                         0b000_0110 => Some(Instruction::SBC),
                         0b000_0111 => Some(Instruction::ROR),
                         0b000_1000 => Some(decode_TST_reg_t1(command)),
@@ -800,6 +802,7 @@ fn test_decode_orr() {
         }
     }
 }
+
 #[test]
 fn test_decode_lsr_imm() {
     // LSRS R3, R0, #8
@@ -808,6 +811,22 @@ fn test_decode_lsr_imm() {
             assert!(rd == Reg::R3);
             assert!(rm == Reg::R0);
             assert!(imm5 == 8);
+            assert!(setflags);
+
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+#[test]
+fn test_decode_adc_reg() {
+    // ADCS R2,R2,R2
+    match decode_16(0x4152).unwrap() {
+        Instruction::ADC_reg{rd, rm, rn, setflags} => {
+            assert!(rd == Reg::R2);
+            assert!(rm == Reg::R2);
+            assert!(rn == Reg::R2);
             assert!(setflags);
 
         }

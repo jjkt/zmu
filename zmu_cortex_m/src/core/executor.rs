@@ -18,6 +18,26 @@ where
     F: FnMut(u32, u32, u32),
 {
     match *instruction {
+        Instruction::ADC_reg {
+            ref rn,
+            ref rd,
+            ref rm,
+            ref setflags,
+        } => {
+            let r_n = read_reg(core, rn);
+            let r_m = read_reg(core, rm);
+            let (result, carry, overflow) = add_with_carry(r_n, r_m, core.psr.get_c());
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
+
+            core.r[rd.value()] = result;
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::MOV_reg {
             ref rd,
             ref rm,
@@ -361,6 +381,6 @@ where
             core.r[Reg::PC.value()] += 2;
         }
 
-        _ => panic!("unimplemented instruction {}", instruction),
+        _ => panic!("unimplemented instruction {} at {:#x}", instruction, core.r[Reg::PC.value()]),
     }
 }

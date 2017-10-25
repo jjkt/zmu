@@ -6,7 +6,12 @@ use std::fmt;
 
 #[allow(non_camel_case_types)]
 pub enum Instruction {
-    ADC,
+    ADC_reg {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     ADDS { rm: Reg, rn: Reg, rd: Reg },
     ADD { rm: Reg, rdn: Reg },
     ADD_imm {
@@ -52,7 +57,7 @@ pub enum Instruction {
         setflags: bool,
     },
     LSL_reg,
-    LSR_imm{
+    LSR_imm {
         rd: Reg,
         rm: Reg,
         imm5: u8,
@@ -132,7 +137,19 @@ impl fmt::Display for Instruction {
                 imm32
             ),
             Instruction::ADDS { rm, rn, rd } => write!(f, "ADDS {},{},{}", rd, rn, rm),
-            Instruction::ADC => write!(f, "ADC"),
+            Instruction::ADC_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+            } => write!(
+                f,
+                "ADC{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::ADR { rd, imm32 } => write!(f, "ADR {}, PC, #{:x}", rd, imm32),
             Instruction::AND => write!(f, "AND"),
             Instruction::ASR => write!(f, "ASR"),
@@ -157,7 +174,9 @@ impl fmt::Display for Instruction {
             Instruction::LDR_reg { rt, rn, rm } => write!(f, "LDR {}, [{}, {}]", rt, rn, rm),
             Instruction::LDR_imm { rt, rn, imm32 } => write!(f, "LDR {},[{},#{}]", rt, rn, imm32),
             Instruction::LDR_lit { rt, imm32 } => write!(f, "LDR {},[PC, #{:x}]", rt, imm32),
-            Instruction::LDRB_imm { rt, rn, imm32 } => write!(f, "LDRB {},[{},#{:x}]", rt, rn, imm32),
+            Instruction::LDRB_imm { rt, rn, imm32 } => {
+                write!(f, "LDRB {},[{},#{:x}]", rt, rn, imm32)
+            }
             Instruction::LDRB_reg { rt, rn, rm } => write!(f, "LDRB {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRH_imm => write!(f, "LDRH imm"),
             Instruction::LDRSB_reg => write!(f, "LDRSB reg"),
@@ -229,7 +248,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 setflags,
-            }=> write!(
+            } => write!(
                 f,
                 "ORR{} {},{},{}",
                 if setflags { "S" } else { "" },
@@ -249,7 +268,9 @@ impl fmt::Display for Instruction {
             Instruction::STM => write!(f, "STM"),
             Instruction::STMIA => write!(f, "STMIA"),
             Instruction::STMEA => write!(f, "STMEA"),
-            Instruction::STR_imm { rn, rt, imm32 } => write!(f, "STR {}, [{},#{:x}]", rt, rn, imm32),
+            Instruction::STR_imm { rn, rt, imm32 } => {
+                write!(f, "STR {}, [{},#{:x}]", rt, rn, imm32)
+            }
             Instruction::STR_reg { rn, rm, rt } => write!(f, "STR {}, [{}, {}]", rt, rn, rm),
             Instruction::STRB_imm { rn, rt, imm32 } => {
                 write!(f, "STRB {}, [{},#{:x}]", rt, rn, imm32)
