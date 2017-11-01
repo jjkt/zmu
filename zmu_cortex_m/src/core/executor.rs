@@ -38,6 +38,29 @@ where
             core.r[rd.value()] = result;
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::ASR_imm {
+            ref rd,
+            ref rm,
+            ref imm5,
+            ref setflags,
+        } => {
+            let (_, shift_n) = decode_imm_shift(0b10, *imm5);
+            let (result, carry) = shift_c(
+                read_reg(core, rm),
+                SRType::ASR,
+                u32::from(shift_n),
+                core.psr.get_c(),
+            );
+            core.r[rd.value() as usize] = result;
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::MOV_reg {
             ref rd,
             ref rm,

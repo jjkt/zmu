@@ -11,6 +11,7 @@ use core::condition::Condition;
 mod adc;
 mod add;
 mod adr;
+mod asr;
 
 mod b;
 mod blx;
@@ -41,6 +42,7 @@ mod tst;
 use decoder::adc::*;
 use decoder::add::*;
 use decoder::adr::*;
+use decoder::asr::*;
 use decoder::b::*;
 use decoder::bx::*;
 use decoder::blx::*;
@@ -76,7 +78,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
             match command.get_bits(9..14) {
                 0b000_01 | 0b000_10 | 0b000_11 => Some(decode_LSL_imm_t1(command)),
                 0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => Some(decode_LSR_imm_t1(command)),
-                0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(Instruction::ASR),
+                0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => Some(decode_ASR_imm_t1(command)),
                 0b011_00 => Some(decode_ADDS(command)),
                 0b011_01 => Some(decode_SUBS_reg_t1(command)),
                 0b011_10 => Some(decode_ADDS_imm_t1(command)),
@@ -108,7 +110,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_0001 => Some(Instruction::EOR),
                         0b000_0010 => Some(Instruction::LSL_reg),
                         0b000_0011 => Some(Instruction::LSR_reg),
-                        0b000_0100 => Some(Instruction::ASR),
+                        0b000_0100 => Some(decode_ASR_reg_t1(command)),
                         0b000_0101 => Some(decode_ADC_reg_t1(command)),
                         0b000_0110 => Some(Instruction::SBC),
                         0b000_0111 => Some(Instruction::ROR),
@@ -771,14 +773,18 @@ fn test_decode_nop() {
 
 #[test]
 fn test_decode_mul() {
-    // MULS R4, R0, R4 
+    // MULS R4, R0, R4
     match decode_16(0x4344).unwrap() {
-        Instruction::MUL{rd, rn, rm, setflags} => {
+        Instruction::MUL {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
             assert!(rd == Reg::R4);
             assert!(rn == Reg::R0);
             assert!(rm == Reg::R4);
             assert!(setflags);
-
         }
         _ => {
             assert!(false);
@@ -788,14 +794,18 @@ fn test_decode_mul() {
 
 #[test]
 fn test_decode_orr() {
-    // ORRS R3, R3, R1 
+    // ORRS R3, R3, R1
     match decode_16(0x430b).unwrap() {
-        Instruction::ORR{rd, rn, rm, setflags} => {
+        Instruction::ORR {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
             assert!(rd == Reg::R3);
             assert!(rn == Reg::R3);
             assert!(rm == Reg::R1);
             assert!(setflags);
-
         }
         _ => {
             assert!(false);
@@ -807,28 +817,58 @@ fn test_decode_orr() {
 fn test_decode_lsr_imm() {
     // LSRS R3, R0, #8
     match decode_16(0x0a03).unwrap() {
-        Instruction::LSR_imm{rd, rm, imm5, setflags} => {
+        Instruction::LSR_imm {
+            rd,
+            rm,
+            imm5,
+            setflags,
+        } => {
             assert!(rd == Reg::R3);
             assert!(rm == Reg::R0);
             assert!(imm5 == 8);
             assert!(setflags);
-
         }
         _ => {
             assert!(false);
         }
     }
 }
+
 #[test]
 fn test_decode_adc_reg() {
     // ADCS R2,R2,R2
     match decode_16(0x4152).unwrap() {
-        Instruction::ADC_reg{rd, rm, rn, setflags} => {
+        Instruction::ADC_reg {
+            rd,
+            rm,
+            rn,
+            setflags,
+        } => {
             assert!(rd == Reg::R2);
             assert!(rm == Reg::R2);
             assert!(rn == Reg::R2);
             assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
 
+#[test]
+fn test_decode_asr_imm() {
+    // ASR R2,R2,#8
+    match decode_16(0x1212).unwrap() {
+        Instruction::ASR_imm {
+            rd,
+            rm,
+            imm5,
+            setflags,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rm == Reg::R2);
+            assert!(imm5 == 8);
+            assert!(setflags);
         }
         _ => {
             assert!(false);

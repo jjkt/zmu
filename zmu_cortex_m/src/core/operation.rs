@@ -3,11 +3,11 @@ use core::register::Apsr;
 use core::PSR;
 use bit_field::BitField;
 
-pub fn sign_extend(word: u32, topbit: u8, size: u8) -> i32 {
+pub fn sign_extend(word: u32, topbit: u8, size: u8) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
-        return (word | (((1 << (size - topbit)) - 1) << topbit)) as i32;
+        return u64::from(word) | u64::from(((1_u64 << (size - topbit)) - 1) << topbit);
     }
-    word as i32
+    word as u64
 }
 
 //
@@ -19,7 +19,9 @@ pub fn sign_extend(word: u32, topbit: u8, size: u8) -> i32 {
 //
 pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     let unsigned_sum = u64::from(x) + u64::from(y) + (carry_in as u64);
-    let signed_sum = (x as i32).wrapping_add((y as i32)).wrapping_add((carry_in as i32));
+    let signed_sum = (x as i32)
+        .wrapping_add((y as i32))
+        .wrapping_add((carry_in as i32));
     let result = (unsigned_sum & 0xffff_ffff) as u32; // same value as signed_sum<N-1:0>
     let carry_out = u64::from(result) != unsigned_sum;
     let overflow = (result as i32) != signed_sum;
@@ -111,6 +113,17 @@ fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
     )
 }
 
+fn asr_c(value: u32, shift: u8) -> (u32, bool) {
+    assert!(shift > 0);
+
+    let extended = sign_extend(value, 31, 32 + shift);
+
+    (
+        extended.get_bits(shift..(shift + 32)) as u32,
+        extended.get_bit(shift - 1),
+    )
+}
+
 
 pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32, bool) {
     assert!(!((shift_t == SRType::RRX) && (amount != 1)));
@@ -120,7 +133,27 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32
         match shift_t {
             SRType::LSL => lsl_c(value, amount),
             SRType::LSR => lsr_c(value, amount as u8),
+            SRType::ASR => asr_c(value, amount as u8),
             _ => panic!("not implemented"),
         }
+    }
+}
+
+#[test]
+fn test_shift_c() {
+    {
+        let (result, carry) = shift_c(0xFFFFFFF8, SRType::ASR, 8, false);
+        assert!(result == 0xFFFFFFFF);
+        assert!(carry == true);
+    }
+    {
+        let (result, carry) = shift_c(0xef, SRType::ASR, 9, false);
+        assert!(result == 0);
+        assert!(carry == false);
+    }
+    {
+        let (result, carry) = shift_c(0xFFFFFFC0, SRType::ASR, 1, false);
+        assert!(result == 0xFFFFFFE0);
+        assert!(carry == false);
     }
 }

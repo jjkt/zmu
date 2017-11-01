@@ -77,6 +77,9 @@ impl<'a, T: Bus> Core<'a, T> {
         self.set_sp(sp);
     }
 
+    // Fetch next Thumb2-coded instruction from current
+    // PC location. Depending on instruction type, fetches
+    // one or two half-words.
     pub fn fetch(&mut self) -> ThumbCode {
         let hw = self.bus.read16(self.r[Reg::PC.value()]);
 
@@ -91,6 +94,7 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
+    // Decode ThumbCode into Instruction
     pub fn decode(&self, code: &ThumbCode) -> Option<Instruction> {
         match *code {
             ThumbCode::Thumb32 { half_word, half_word2 } => decode_32(half_word, half_word2),
@@ -98,6 +102,8 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
+    // Run single instruction on core
+    // bkpt_func: 
     pub fn step<F>(&mut self, instruction: &Instruction, bkpt_func: F)
         where F: FnMut(u32, u32, u32)
     {

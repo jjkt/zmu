@@ -16,7 +16,7 @@ pub fn decode_B_t1(command: u16) -> Instruction {
 
     Instruction::B {
         cond: Condition::from_u16(cond).unwrap(),
-        imm32: sign_extend((command.get_bits(0..8) as u32) << 1, 8, 32),
+        imm32: sign_extend((command.get_bits(0..8) as u32) << 1, 8, 32) as i32,
     }
 }
 
@@ -24,6 +24,6 @@ pub fn decode_B_t1(command: u16) -> Instruction {
 pub fn decode_B_t2(command: u16) -> Instruction {
     Instruction::B {
         cond: Condition::AL,
-        imm32: sign_extend((command.get_bits(0..11) as u32) << 1, 11, 32),
+        imm32: sign_extend((command.get_bits(0..11) as u32) << 1, 11, 32) as i32,
     }
 }

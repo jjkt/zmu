@@ -22,7 +22,19 @@ pub enum Instruction {
     },
     ADR { rd: Reg, imm32: u32 },
     AND,
-    ASR,
+    ASR_imm {
+        rd: Reg,
+        rm: Reg,
+        imm5: u8,
+        setflags: bool,
+    },
+    ASR_reg {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
+
     B { cond: Condition, imm32: i32 },
     BIC,
     BKPT { imm32: u32 },
@@ -152,7 +164,32 @@ impl fmt::Display for Instruction {
             ),
             Instruction::ADR { rd, imm32 } => write!(f, "ADR {}, PC, #{:x}", rd, imm32),
             Instruction::AND => write!(f, "AND"),
-            Instruction::ASR => write!(f, "ASR"),
+            Instruction::ASR_imm {
+                rd,
+                rm,
+                imm5,
+                setflags,
+            } => write!(
+                f,
+                "ASR{} {}, {}, #{:x}",
+                if setflags { "S" } else { "" },
+                rd,
+                rm,
+                imm5
+            ),
+            Instruction::ASR_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+            } => write!(
+                f,
+                "ASR{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::B { ref cond, imm32 } => write!(f, "B{} {}", cond, imm32),
             Instruction::BIC => write!(f, "BIC"),
             Instruction::BL { imm32 } => write!(f, "BL #{:x}", imm32),
