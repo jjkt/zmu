@@ -49,6 +49,11 @@ impl<'a> Bus for RAM<'a> {
         self.access.write_u32::<LittleEndian>(value).unwrap();
         //print!("RAM W32 [0x{:x}] <= 0x{:x}\n", addr, value);
     }
+    fn write16(&mut self, addr: u32, value: u16) {
+        self.access.seek(SeekFrom::Start(u64::from(addr - self.start_address))).unwrap();
+        self.access.write_u16::<LittleEndian>(value).unwrap();
+        //print!("RAM W32 [0x{:x}] <= 0x{:x}\n", addr, value);
+    }
     fn write8(&mut self, addr: u32, value: u8) {
         self.access.seek(SeekFrom::Start(u64::from(addr - self.start_address))).unwrap();
         self.access.write_u8(value).unwrap();

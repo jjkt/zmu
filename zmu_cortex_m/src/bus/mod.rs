@@ -19,6 +19,10 @@ pub trait Bus {
     ///
     fn write32(&mut self, addr: u32, value: u32);
 
+    /// Writes a 16 bit value to the bus targeting the given address.
+    ///
+    fn write16(&mut self, addr: u32, value: u16);
+
     /// Writes a 8 bit value to the bus targeting the given address.
     ///
     fn write8(&mut self, addr: u32, value: u8);

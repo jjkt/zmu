@@ -70,6 +70,15 @@ where
             panic!("write out of bus range");
         }
     }
+    fn write16(&mut self, addr: u32, value: u16) {
+        if self.extr.in_range(addr) {
+            self.extr.write16(addr, value);
+        } else if self.intr.in_range(addr) {
+            self.intr.write16(addr, value);
+        } else {
+            panic!("write out of bus range");
+        }
+    }
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         true

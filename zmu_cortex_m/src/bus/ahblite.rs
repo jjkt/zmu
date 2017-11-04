@@ -62,6 +62,17 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
 
     }
 
+    fn write16(&mut self, addr: u32, value: u16) {
+        if self.code.in_range(addr) {
+            self.code.write16(addr, value);
+        } else if self.sram.in_range(addr) {
+            self.sram.write16(addr, value);
+        } else {
+            panic!("bus access fault write addr 0x{:x}", addr);
+        }
+
+    }
+
     fn write8(&mut self, addr: u32, value: u8) {
         if self.code.in_range(addr) {
             self.code.write8(addr, value);
