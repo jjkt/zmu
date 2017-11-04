@@ -110,7 +110,7 @@ pub enum Instruction {
     STR_reg { rm: Reg, rn: Reg, rt: Reg },
     STRB_imm { rn: Reg, rt: Reg, imm32: u32 },
     STRB_reg,
-    STRH_imm,
+    STRH_imm { rt: Reg, rn: Reg, imm32: u32 },
     STRH_reg,
     SUB_imm {
         rd: Reg,
@@ -313,7 +313,9 @@ impl fmt::Display for Instruction {
                 write!(f, "STRB {}, [{},#{:x}]", rt, rn, imm32)
             }
             Instruction::STRB_reg => write!(f, "STRB_reg"),
-            Instruction::STRH_imm => write!(f, "STRH_imm"),
+            Instruction::STRH_imm { rt, rn, imm32 } => {
+                write!(f, "STRH {}, [{},#{:x}]", rt, rn, imm32)
+            }
             Instruction::STRH_reg => write!(f, "STRH_reg"),
             Instruction::SUB_imm {
                 rd,

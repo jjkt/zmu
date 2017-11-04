@@ -164,6 +164,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                 0b10010 => Some(decode_STR_imm_t2(command)),
                 0b10101 => Some(decode_ADD_SP_imm_t1(command)),
                 0b10100 => Some(decode_ADR_t1(command)),
+                0b10000 => Some(decode_STRH_imm_t1(command)),
                 _ => match command.get_bits(7..16) {
                     0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
                     0b101100000 => Some(decode_ADD_SP_imm_t2(command)),
@@ -869,6 +870,24 @@ fn test_decode_asr_imm() {
             assert!(rm == Reg::R2);
             assert!(imm5 == 8);
             assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+#[test]
+fn test_decode_strh_imm() {
+    // STRH R0, [R1, #0x38]
+    match decode_16(0x8708).unwrap() {
+        Instruction::STRH_imm {
+            rt,
+            rn,
+            imm32,
+        } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R1);
+            assert!(imm32 == 0x38);
         }
         _ => {
             assert!(false);
