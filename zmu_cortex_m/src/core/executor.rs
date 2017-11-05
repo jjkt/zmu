@@ -413,6 +413,16 @@ where
             //core.psr.set_c(carry); carry = shift_c()
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::UXTB { ref rd, ref rm } => {
+            let rotated = read_reg(core, rm);
+            core.r[rd.value()] = rotated.get_bits(0..8);
+            core.r[Reg::PC.value()] += 2;
+        }
+        Instruction::UXTH { ref rd, ref rm } => {
+            let rotated = read_reg(core, rm);
+            core.r[rd.value()] = rotated.get_bits(0..16);
+            core.r[Reg::PC.value()] += 2;
+        }
 
         _ => panic!("unimplemented instruction {} at {:#x}", instruction, core.r[Reg::PC.value()]),
     }
