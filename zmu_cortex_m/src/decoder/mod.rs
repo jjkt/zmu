@@ -14,6 +14,7 @@ mod adr;
 mod asr;
 
 mod b;
+mod bic;
 mod blx;
 mod bx;
 mod bl;
@@ -45,6 +46,7 @@ use decoder::add::*;
 use decoder::adr::*;
 use decoder::asr::*;
 use decoder::b::*;
+use decoder::bic::*;
 use decoder::bx::*;
 use decoder::blx::*;
 use decoder::bl::*;
@@ -122,7 +124,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_1011 => Some(Instruction::CMN),
                         0b000_1100 => Some(decode_ORR_reg_t1(command)),
                         0b000_1101 => Some(decode_MUL_reg_t1(command)),
-                        0b000_1110 => Some(Instruction::BIC),
+                        0b000_1110 => Some(decode_BIC_reg_t1(command)),
                         0b000_1111 => Some(decode_MVN_reg_t1(command)),
 
                         0b001_0000 | 0b001_0001 | 0b001_0010 | 0b001_0011 => {
@@ -906,6 +908,22 @@ fn test_decode_uxtb() {
         Instruction::UXTB { rd, rm } => {
             assert!(rd == Reg::R1);
             assert!(rm == Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_bic() {
+    // BICS R2,R2,R0
+    match decode_16(0x4382).unwrap() {
+        Instruction::BIC_reg { rd, rm, rn, setflags } => {
+            assert!(rd == Reg::R2);
+            assert!(rn == Reg::R2);
+            assert!(rm == Reg::R0);
+            assert!(setflags);
         }
         _ => {
             assert!(false);

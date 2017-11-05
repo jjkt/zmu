@@ -61,6 +61,21 @@ where
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::BIC_reg {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref setflags,
+        } => {
+            let result = read_reg(core, rn) & (read_reg(core, rm) ^ 0xffff_ffff);
+            core.r[rd.value()] = result;
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+            }
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::MOV_reg {
             ref rd,
             ref rm,

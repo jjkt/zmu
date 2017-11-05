@@ -36,7 +36,12 @@ pub enum Instruction {
     },
 
     B { cond: Condition, imm32: i32 },
-    BIC,
+    BIC_reg {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     BKPT { imm32: u32 },
     BL { imm32: i32 },
     BLX { rm: Reg },
@@ -191,7 +196,19 @@ impl fmt::Display for Instruction {
                 rm
             ),
             Instruction::B { ref cond, imm32 } => write!(f, "B{} {}", cond, imm32),
-            Instruction::BIC => write!(f, "BIC"),
+            Instruction::BIC_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+            } => write!(
+                f,
+                "BIC{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::BL { imm32 } => write!(f, "BL #{:x}", imm32),
             Instruction::BX { rm } => write!(f, "BX {}", rm),
             Instruction::BLX { rm } => write!(f, "BLX {}", rm),
