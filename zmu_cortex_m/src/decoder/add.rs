@@ -26,7 +26,7 @@ pub fn decode_ADDS_imm_t1(command: u16) -> Instruction {
         rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
         rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
         imm32: command.get_bits(6..9) as u32,
-        setflags : true
+        setflags: true,
     }
 }
 
@@ -36,7 +36,7 @@ pub fn decode_ADDS_imm_t2(command: u16) -> Instruction {
         rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         imm32: command.get_bits(0..8) as u32,
-        setflags : true
+        setflags: true,
     }
 }
 
@@ -46,7 +46,7 @@ pub fn decode_ADD_SP_imm_t1(command: u16) -> Instruction {
         rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         rn: Reg::SP,
         imm32: (command.get_bits(0..8) as u32) << 2,
-        setflags : false
+        setflags: false,
     }
 }
 
@@ -56,6 +56,6 @@ pub fn decode_ADD_SP_imm_t2(command: u16) -> Instruction {
         rd: Reg::SP,
         rn: Reg::SP,
         imm32: (command.get_bits(0..7) as u32) << 2,
-        setflags : false
+        setflags: false,
     }
 }

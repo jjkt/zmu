@@ -30,8 +30,6 @@ pub fn decode_STR_imm_t2(command: u16) -> Instruction {
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
     }
 }*/
-
-
 #[allow(non_snake_case)]
 pub fn decode_STRB_imm_t1(command: u16) -> Instruction {
     Instruction::STRB_imm {

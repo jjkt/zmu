@@ -22,21 +22,21 @@ pub enum Condition {
 impl Condition {
     pub fn value(&self) -> usize {
         match *self {
-            Condition::EQ => 0b0000, 
-            Condition::NE => 0b0001, 
-            Condition::CS => 0b0010, 
-            Condition::CC => 0b0011, 
-            Condition::MI => 0b0100, 
-            Condition::PL => 0b0101, 
-            Condition::VS => 0b0110, 
-            Condition::VC => 0b0111, 
-            Condition::HI => 0b1000, 
-            Condition::LS => 0b1001, 
-            Condition::GE => 0b1010, 
-            Condition::LT => 0b1011, 
-            Condition::GT => 0b1100, 
-            Condition::LE => 0b1101, 
-            Condition::AL => 0b1110, 
+            Condition::EQ => 0b0000,
+            Condition::NE => 0b0001,
+            Condition::CS => 0b0010,
+            Condition::CC => 0b0011,
+            Condition::MI => 0b0100,
+            Condition::PL => 0b0101,
+            Condition::VS => 0b0110,
+            Condition::VC => 0b0111,
+            Condition::HI => 0b1000,
+            Condition::LS => 0b1001,
+            Condition::GE => 0b1010,
+            Condition::LT => 0b1011,
+            Condition::GT => 0b1100,
+            Condition::LE => 0b1101,
+            Condition::AL => 0b1110,
         }
     }
 
@@ -65,21 +65,21 @@ impl Condition {
 impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Condition::EQ => write!(f, "EQ"), 
-            Condition::NE => write!(f, "NE"), 
-            Condition::CS => write!(f, "CS"), 
-            Condition::CC => write!(f, "CC"), 
-            Condition::MI => write!(f, "MI"), 
-            Condition::PL => write!(f, "PL"), 
-            Condition::VS => write!(f, "VS"), 
-            Condition::VC => write!(f, "VC"), 
-            Condition::HI => write!(f, "HI"), 
-            Condition::LS => write!(f, "LS"), 
-            Condition::GE => write!(f, "GE"), 
-            Condition::LT => write!(f, "LT"), 
-            Condition::GT => write!(f, "GT"), 
-            Condition::LE => write!(f, "LE"), 
-            Condition::AL => write!(f, ""), 
+            Condition::EQ => write!(f, "EQ"),
+            Condition::NE => write!(f, "NE"),
+            Condition::CS => write!(f, "CS"),
+            Condition::CC => write!(f, "CC"),
+            Condition::MI => write!(f, "MI"),
+            Condition::PL => write!(f, "PL"),
+            Condition::VS => write!(f, "VS"),
+            Condition::VC => write!(f, "VC"),
+            Condition::HI => write!(f, "HI"),
+            Condition::LS => write!(f, "LS"),
+            Condition::GE => write!(f, "GE"),
+            Condition::LT => write!(f, "LT"),
+            Condition::GT => write!(f, "GT"),
+            Condition::LE => write!(f, "LE"),
+            Condition::AL => write!(f, ""),
         }
     }
 }

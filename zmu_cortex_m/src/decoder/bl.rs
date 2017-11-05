@@ -13,9 +13,11 @@ pub fn decode_bl(t1: u16, t2: u16) -> Instruction {
     let i1 = ((j1 ^ s) ^ 1) as u32;
     let i2 = ((j2 ^ s) ^ 1) as u32;
 
-    let imm = sign_extend((imm11 << 1) + (imm10 << 12) + (i2 << 22) + (i1 << 23) + (s << 24),
-                          24,
-                          32);
+    let imm = sign_extend(
+        (imm11 << 1) + (imm10 << 12) + (i2 << 22) + (i1 << 23) + (s << 24),
+        24,
+        32,
+    );
 
     Instruction::BL { imm32: imm as i32 }
 }

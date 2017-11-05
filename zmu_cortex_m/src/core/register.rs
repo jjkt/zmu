@@ -194,4 +194,3 @@ impl fmt::Display for Reg {
         }
     }
 }
-

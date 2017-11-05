@@ -6,8 +6,9 @@ pub struct AHBLite<'a, T: 'a + Bus, R: 'a + Bus> {
 }
 
 impl<'a, T, R> AHBLite<'a, T, R>
-    where T: Bus,
-          R: Bus
+where
+    T: Bus,
+    R: Bus,
 {
     pub fn new(code: &'a mut T, sram: &'a mut R) -> AHBLite<'a, T, R> {
         AHBLite {
@@ -18,8 +19,9 @@ impl<'a, T, R> AHBLite<'a, T, R>
 }
 
 impl<'a, T, R> Bus for AHBLite<'a, T, R>
-    where T: Bus,
-          R: Bus
+where
+    T: Bus,
+    R: Bus,
 {
     fn read16(&mut self, addr: u32) -> u16 {
         if self.code.in_range(addr) {
@@ -48,7 +50,6 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
         } else {
             panic!("bus access fault read32 addr 0x{:x}", addr);
         }
-
     }
 
     fn write32(&mut self, addr: u32, value: u32) {
@@ -59,7 +60,6 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
         } else {
             panic!("bus access fault write addr 0x{:x}", addr);
         }
-
     }
 
     fn write16(&mut self, addr: u32, value: u16) {
@@ -70,7 +70,6 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
         } else {
             panic!("bus access fault write addr 0x{:x}", addr);
         }
-
     }
 
     fn write8(&mut self, addr: u32, value: u8) {
@@ -81,7 +80,6 @@ impl<'a, T, R> Bus for AHBLite<'a, T, R>
         } else {
             panic!("bus access fault write addr 0x{:x}", addr);
         }
-
     }
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {

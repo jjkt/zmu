@@ -124,14 +124,8 @@ pub enum Instruction {
     SXTH,
     TST_reg { rn: Reg, rm: Reg },
     UDF,
-    UXTB {
-        rd : Reg,
-        rm : Reg
-    },
-    UXTH {
-        rd : Reg,
-        rm : Reg
-    },
+    UXTB { rd: Reg, rm: Reg },
+    UXTH { rd: Reg, rm: Reg },
     WFE,
     WFI,
     YIELD,
@@ -342,8 +336,8 @@ impl fmt::Display for Instruction {
             Instruction::SXTH => write!(f, "SXTH"),
             Instruction::TST_reg { rn, rm } => write!(f, "TST {},{}", rn, rm),
             Instruction::UDF => write!(f, "UDF"),
-            Instruction::UXTB {rd, rm} =>  write!(f, "UXTB {}, {}", rd, rm),
-            Instruction::UXTH {rd, rm}=> write!(f, "UXTH {},{}", rd, rm),
+            Instruction::UXTB { rd, rm } => write!(f, "UXTB {}, {}", rd, rm),
+            Instruction::UXTH { rd, rm } => write!(f, "UXTH {},{}", rd, rm),
             Instruction::WFE => write!(f, "WFE"),
             Instruction::WFI => write!(f, "WFI"),
             Instruction::YIELD => write!(f, "YIELD"),

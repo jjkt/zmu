@@ -424,6 +424,10 @@ where
             core.r[Reg::PC.value()] += 2;
         }
 
-        _ => panic!("unimplemented instruction {} at {:#x}", instruction, core.r[Reg::PC.value()]),
+        _ => panic!(
+            "unimplemented instruction {} at {:#x}",
+            instruction,
+            core.r[Reg::PC.value()]
+        ),
     }
 }

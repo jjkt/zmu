@@ -8,7 +8,7 @@ pub fn decode_MOV_imm_t1(command: u16) -> Instruction {
     Instruction::MOV_imm {
         rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
         imm32: command.get_bits(0..8) as u32,
-        setflags : true
+        setflags: true,
     }
 }
 #[allow(non_snake_case)]
@@ -31,6 +31,4 @@ pub fn decode_MOV_reg_t2(command: u16) -> Instruction {
 
 
 #[test]
-fn test_decode_mov_reg() {
-
-}
+fn test_decode_mov_reg() {}

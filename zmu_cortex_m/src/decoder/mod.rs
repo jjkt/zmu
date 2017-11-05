@@ -171,15 +171,10 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                     0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
                     0b101100000 => Some(decode_ADD_SP_imm_t2(command)),
                     0b101111110 => Some(decode_NOP_t1(command)),
-                    0b101100101 => {
-                        if command.get_bit(6)
-                        {
-                            Some(decode_UXTB_t1(command))
-                        }
-                        else
-                        {
-                            Some(decode_UXTH_t1(command))
-                        }
+                    0b101100101 => if command.get_bit(6) {
+                        Some(decode_UXTB_t1(command))
+                    } else {
+                        Some(decode_UXTH_t1(command))
                     },
                     0b101111100 | 0b101111101 => Some(decode_BKPT_t1(command)),
                     _ => match command.get_bits(9..14) {
@@ -893,11 +888,7 @@ fn test_decode_asr_imm() {
 fn test_decode_strh_imm() {
     // STRH R0, [R1, #0x38]
     match decode_16(0x8708).unwrap() {
-        Instruction::STRH_imm {
-            rt,
-            rn,
-            imm32,
-        } => {
+        Instruction::STRH_imm { rt, rn, imm32 } => {
             assert!(rt == Reg::R0);
             assert!(rn == Reg::R1);
             assert!(imm32 == 0x38);
@@ -912,10 +903,7 @@ fn test_decode_strh_imm() {
 fn test_decode_uxtb() {
     // UXTB R1,R1
     match decode_16(0xb2c9).unwrap() {
-        Instruction::UXTB {
-            rd,
-            rm,
-        } => {
+        Instruction::UXTB { rd, rm } => {
             assert!(rd == Reg::R1);
             assert!(rm == Reg::R1);
         }

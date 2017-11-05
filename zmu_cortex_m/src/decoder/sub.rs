@@ -31,6 +31,3 @@ pub fn decode_SUBS_reg_t1(command: u16) -> Instruction {
         rm: Reg::from_u16(command.get_bits(6..9) as u16).unwrap(),
     }
 }
-
-
-
