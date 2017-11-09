@@ -22,6 +22,7 @@ mod bkpt;
 
 mod cmp;
 
+mod ldm;
 mod ldr;
 mod ldrb;
 mod lsl;
@@ -36,6 +37,7 @@ mod orr;
 mod push;
 mod pop;
 
+mod stm;
 mod str;
 mod sub;
 mod tst;
@@ -52,6 +54,7 @@ use decoder::blx::*;
 use decoder::bl::*;
 use decoder::bkpt::*;
 use decoder::cmp::*;
+use decoder::ldm::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::lsl::*;
@@ -64,6 +67,7 @@ use decoder::orr::*;
 use decoder::push::*;
 use decoder::pop::*;
 use decoder::sub::*;
+use decoder::stm::*;
 use decoder::str::*;
 use decoder::tst::*;
 use decoder::uxt::*;
@@ -192,6 +196,11 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
             match command.get_bits(12..16) {
                 0b1101 => Some(decode_B_t1(command)),
                 0b1110 => Some(decode_B_t2(command)),
+                0b1100 => if command.get_bit(11) {
+                    Some(decode_LDM_t1(command))
+                } else {
+                    Some(decode_STM_t1(command))
+                },
                 _ => None,
             }
         }
@@ -919,11 +928,46 @@ fn test_decode_uxtb() {
 fn test_decode_bic() {
     // BICS R2,R2,R0
     match decode_16(0x4382).unwrap() {
-        Instruction::BIC_reg { rd, rm, rn, setflags } => {
+        Instruction::BIC_reg {
+            rd,
+            rm,
+            rn,
+            setflags,
+        } => {
             assert!(rd == Reg::R2);
             assert!(rn == Reg::R2);
             assert!(rm == Reg::R0);
             assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldm() {
+    // LDM R2!, {R0, R1}
+    match decode_16(0xca03).unwrap() {
+        Instruction::LDM { rn, registers } => {
+            assert!(rn == Reg::R2);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_stm() {
+    // STM R2!, {R0, R1}
+    match decode_16(0xc203).unwrap() {
+        Instruction::STM { rn, registers } => {
+            assert!(rn == Reg::R2);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1], elems);
         }
         _ => {
             assert!(false);

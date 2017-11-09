@@ -200,6 +200,23 @@ where
             core.r[Reg::LR.value()] = (((pc - 2) >> 1) << 1) | 1;
             core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
         }
+        Instruction::LDM { ref registers, ref rn } => {
+            let regs_size = 4 * (registers.len() as u32);
+
+            let mut address = read_reg(core, rn);
+
+            for reg in registers.iter() {
+                core.r[reg.value()] = core.bus.read32(address);
+                address += 4;
+            }
+
+            if !registers.contains(rn)
+            {
+                core.r[rn.value()] += regs_size;
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::MOV_imm {
             rd,
             imm32,
@@ -303,6 +320,21 @@ where
         } => {
             let address = read_reg(core, rn) + imm32;
             core.r[rt.value()] = u32::from(core.bus.read8(address));
+            core.r[Reg::PC.value()] += 2;
+        }
+        Instruction::STM { ref registers, ref rn } => {
+            let regs_size = 4 * (registers.len() as u32);
+
+            let mut address = read_reg(core, rn);
+
+            for reg in registers.iter() {
+                core.bus.write32(address, core.r[reg.value()]);
+                address += 4;
+            }
+
+            //wback always true
+            core.r[rn.value()] += regs_size;
+
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::STR_imm {
