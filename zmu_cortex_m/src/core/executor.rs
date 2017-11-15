@@ -381,6 +381,16 @@ where
             core.bus.write32(address, value);
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::STR_reg {
+            ref rt,
+            ref rn,
+            ref rm,
+        } => {
+            let address = (read_reg(core, rn) + read_reg(core, rm)) & 0xffff_fffc;
+            let value = read_reg(core, rt);
+            core.bus.write32(address, value);
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::STRB_imm {
             ref rt,
             ref rn,

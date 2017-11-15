@@ -146,6 +146,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         }
                         0b001_1101 | 0b001_1100 => Some(decode_BX(command)),
                         0b001_1110 | 0b001_1111 => Some(decode_BLX(command)),
+                        0b100_0000 | 0b100_0001 | 0b100_0010 | 0b100_0011 | 0b100_0100 | 0b100_0101 | 0b100_0110 | 0b100_0111 => Some(decode_STR_reg_t1(command)),
                         _ => None,
                     },
                     0b011 => if command.get_bit(12) {
@@ -778,6 +779,21 @@ fn test_decode_strb() {
             assert!(rt == Reg::R0);
             assert!(rn == Reg::R1);
             assert!(imm32 == 0x0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_str_reg() {
+    // STR R0, [R1, R2]
+    match decode_16(0x5088).unwrap() {
+        Instruction::STR_reg { rt, rn, rm } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R1);
+            assert!(rm == Reg::R2);
         }
         _ => {
             assert!(false);
