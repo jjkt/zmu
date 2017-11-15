@@ -55,8 +55,8 @@ pub fn condition_passed(condition: &Condition, psr: &PSR) -> bool {
         Condition::VS => psr.get_v(),
         Condition::VC => !psr.get_v(),
 
-        Condition::HI => psr.get_c() && psr.get_z(),
-        Condition::LS => !(psr.get_c() && psr.get_z()),
+        Condition::HI => psr.get_c() && !psr.get_z(),
+        Condition::LS => !(psr.get_c() && !psr.get_z()),
 
         Condition::GE => psr.get_n() == psr.get_v(),
         Condition::LT => !(psr.get_n() == psr.get_v()),
