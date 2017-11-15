@@ -150,6 +150,15 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         }
                         0b001_1101 | 0b001_1100 => Some(decode_BX(command)),
                         0b001_1110 | 0b001_1111 => Some(decode_BLX(command)),
+                        0b101_0000 |
+                        0b101_0001 |
+                        0b101_0010 |
+                        0b101_0011 |
+                        0b101_0100 |
+                        0b101_0101 |
+                        0b101_0110 |
+                        0b101_0111 => Some(decode_STRB_reg_t1(command)),
+                        
                         0b100_0000 |
                         0b100_0001 |
                         0b100_0010 |
@@ -1096,6 +1105,25 @@ fn test_decode_sbc() {
             assert!(rn == Reg::R5);
             assert!(rm == Reg::R3);
             assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_strb() {
+    // STRB R2, [R0, R5]
+    match decode_16(0x5542).unwrap() {
+        Instruction::SBC_reg {
+            rt,
+            rn,
+            rm,
+        } => {
+            assert!(rt == Reg::R2);
+            assert!(rn == Reg::R0);
+            assert!(rm == Reg::R5);
         }
         _ => {
             assert!(false);
