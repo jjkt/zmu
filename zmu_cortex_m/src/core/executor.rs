@@ -192,6 +192,26 @@ where
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::AND_reg {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref setflags,
+        } => {
+            let r_n = read_reg(core, rn);
+            let r_m = read_reg(core, rm);
+
+            let result = r_n & r_m;
+
+            core.r[rd.value() as usize] = result;
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::BX { ref rm } => {
             core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
         }
@@ -200,7 +220,10 @@ where
             core.r[Reg::LR.value()] = (((pc - 2) >> 1) << 1) | 1;
             core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
         }
-        Instruction::LDM { ref registers, ref rn } => {
+        Instruction::LDM {
+            ref registers,
+            ref rn,
+        } => {
             let regs_size = 4 * (registers.len() as u32);
 
             let mut address = read_reg(core, rn);
@@ -210,8 +233,7 @@ where
                 address += 4;
             }
 
-            if !registers.contains(rn)
-            {
+            if !registers.contains(rn) {
                 core.r[rn.value()] += regs_size;
             }
 
@@ -331,7 +353,10 @@ where
             core.r[rt.value()] = u32::from(core.bus.read16(address));
             core.r[Reg::PC.value()] += 2;
         }
-        Instruction::STM { ref registers, ref rn } => {
+        Instruction::STM {
+            ref registers,
+            ref rn,
+        } => {
             let regs_size = 4 * (registers.len() as u32);
 
             let mut address = read_reg(core, rn);

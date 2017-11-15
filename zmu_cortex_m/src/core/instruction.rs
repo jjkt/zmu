@@ -21,7 +21,12 @@ pub enum Instruction {
         setflags: bool,
     },
     ADR { rd: Reg, imm32: u32 },
-    AND,
+    AND_reg {
+        rd: Reg,
+        rm: Reg,
+        rn: Reg,
+        setflags: bool,
+    },
     ASR_imm {
         rd: Reg,
         rm: Reg,
@@ -55,7 +60,7 @@ pub enum Instruction {
     DSB,
     EOR,
     ISB,
-    LDM { rn: Reg, registers: EnumSet<Reg>},
+    LDM { rn: Reg, registers: EnumSet<Reg> },
     LDR_imm { rt: Reg, rn: Reg, imm32: u32 },
     LDR_lit { rt: Reg, imm32: u32 },
     LDR_reg { rt: Reg, rn: Reg, rm: Reg },
@@ -106,7 +111,7 @@ pub enum Instruction {
     RSB,
     SBC,
     SEV,
-    STM { rn: Reg, registers: EnumSet<Reg>},
+    STM { rn: Reg, registers: EnumSet<Reg> },
     STR_imm { rn: Reg, rt: Reg, imm32: u32 },
     STR_reg { rm: Reg, rn: Reg, rt: Reg },
     STRB_imm { rn: Reg, rt: Reg, imm32: u32 },
@@ -164,7 +169,19 @@ impl fmt::Display for Instruction {
                 rm
             ),
             Instruction::ADR { rd, imm32 } => write!(f, "ADR {}, PC, #{:x}", rd, imm32),
-            Instruction::AND => write!(f, "AND"),
+            Instruction::AND_reg {
+                rn,
+                rd,
+                rm,
+                setflags,
+            } => write!(
+                f,
+                "AND{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::ASR_imm {
                 rd,
                 rm,

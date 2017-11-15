@@ -8,6 +8,7 @@ use core::register::Reg;
 #[cfg(test)]
 use core::condition::Condition;
 
+mod and;
 mod adc;
 mod add;
 mod adr;
@@ -47,6 +48,7 @@ mod uxt;
 use decoder::adc::*;
 use decoder::add::*;
 use decoder::adr::*;
+use decoder::and::*;
 use decoder::asr::*;
 use decoder::b::*;
 use decoder::bic::*;
@@ -116,7 +118,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
             if !command.get_bit(11) {
                 match command.get_bits(13..16) {
                     0b010 => match command.get_bits(6..13) {
-                        0b000_0000 => Some(Instruction::AND),
+                        0b000_0000 => Some(decode_AND_reg_t1(command)),
                         0b000_0001 => Some(Instruction::EOR),
                         0b000_0010 => Some(Instruction::LSL_reg),
                         0b000_0011 => Some(Instruction::LSR_reg),
@@ -987,6 +989,27 @@ fn test_decode_ldrh() {
             assert!(rn == Reg::R0);
             assert!(rt == Reg::R0);
             assert!(imm32 == 0x38);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_and() {
+    // ANDS R2,R2,R3
+    match decode_16(0x401a).unwrap() {
+        Instruction::AND_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rn == Reg::R2);
+            assert!(rm == Reg::R3);
+            assert!(setflags);
         }
         _ => {
             assert!(false);
