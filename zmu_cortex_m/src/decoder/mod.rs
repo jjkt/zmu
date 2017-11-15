@@ -21,6 +21,7 @@ mod bx;
 mod bl;
 mod bkpt;
 
+mod cmn;
 mod cmp;
 
 mod ldm;
@@ -56,6 +57,7 @@ use decoder::bx::*;
 use decoder::blx::*;
 use decoder::bl::*;
 use decoder::bkpt::*;
+use decoder::cmn::*;
 use decoder::cmp::*;
 use decoder::ldm::*;
 use decoder::ldr::*;
@@ -129,7 +131,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_1000 => Some(decode_TST_reg_t1(command)),
                         0b000_1001 => Some(Instruction::RSB),
                         0b000_1010 => Some(decode_CMP_t1(command)),
-                        0b000_1011 => Some(Instruction::CMN),
+                        0b000_1011 => Some(decode_CMN_reg_t1(command)),
                         0b000_1100 => Some(decode_ORR_reg_t1(command)),
                         0b000_1101 => Some(decode_MUL_reg_t1(command)),
                         0b000_1110 => Some(decode_BIC_reg_t1(command)),
@@ -146,7 +148,14 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         }
                         0b001_1101 | 0b001_1100 => Some(decode_BX(command)),
                         0b001_1110 | 0b001_1111 => Some(decode_BLX(command)),
-                        0b100_0000 | 0b100_0001 | 0b100_0010 | 0b100_0011 | 0b100_0100 | 0b100_0101 | 0b100_0110 | 0b100_0111 => Some(decode_STR_reg_t1(command)),
+                        0b100_0000 |
+                        0b100_0001 |
+                        0b100_0010 |
+                        0b100_0011 |
+                        0b100_0100 |
+                        0b100_0101 |
+                        0b100_0110 |
+                        0b100_0111 => Some(decode_STR_reg_t1(command)),
                         _ => None,
                     },
                     0b011 => if command.get_bit(12) {
@@ -1026,6 +1035,23 @@ fn test_decode_and() {
             assert!(rn == Reg::R2);
             assert!(rm == Reg::R3);
             assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_cmn() {
+    // CMN R4,R5
+    match decode_16(0x42ec).unwrap() {
+        Instruction::CMN_reg {
+            rn,
+            rm,
+        } => {
+            assert!(rn == Reg::R4);
+            assert!(rm == Reg::R5);
         }
         _ => {
             assert!(false);

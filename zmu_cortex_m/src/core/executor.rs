@@ -291,6 +291,15 @@ where
             core.psr.set_v(overflow);
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::CMN_reg { ref rn, ref rm } => {
+            let (result, carry, overflow) =
+                add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
+            core.psr.set_n(result.get_bit(31));
+            core.psr.set_z(result == 0);
+            core.psr.set_c(carry);
+            core.psr.set_v(overflow);
+            core.r[Reg::PC.value()] += 2;
+        }
 
         Instruction::PUSH { ref registers } => {
             let regs_size = 4 * (registers.len() as u32);
