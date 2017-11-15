@@ -109,7 +109,12 @@ pub enum Instruction {
     REVSH,
     ROR,
     RSB,
-    SBC,
+    SBC_reg{
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     SEV,
     STM { rn: Reg, registers: EnumSet<Reg> },
     STR_imm { rn: Reg, rt: Reg, imm32: u32 },
@@ -330,8 +335,20 @@ impl fmt::Display for Instruction {
             Instruction::REVSH => write!(f, "REVSH"),
             Instruction::ROR => write!(f, "ROR"),
             Instruction::RSB => write!(f, "RSB"),
-            Instruction::SBC => write!(f, "SBC"),
             Instruction::SEV => write!(f, "SEV"),
+            Instruction::SBC_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+            } => write!(
+                f,
+                "SBC{} {},{},{}",
+                if setflags { "S" } else { "" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::STM { rn, registers } => write!(f, "STM {}, {{{:?}}}", rn, registers),
             Instruction::STR_imm { rn, rt, imm32 } => {
                 write!(f, "STR {}, [{},#{:x}]", rt, rn, imm32)

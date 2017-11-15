@@ -362,6 +362,26 @@ where
             core.r[rt.value()] = u32::from(core.bus.read16(address));
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::SBC_reg {
+            ref rn,
+            ref rd,
+            ref rm,
+            ref setflags,
+        } => {
+            let r_n = read_reg(core, rn);
+            let r_m = read_reg(core, rm);
+            let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
+
+            core.r[rd.value()] = result;
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::STM {
             ref registers,
             ref rn,

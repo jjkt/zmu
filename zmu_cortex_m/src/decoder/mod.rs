@@ -40,6 +40,7 @@ mod orr;
 mod push;
 mod pop;
 
+mod sbc;
 mod stm;
 mod str;
 mod sub;
@@ -72,6 +73,7 @@ use decoder::nop::*;
 use decoder::orr::*;
 use decoder::push::*;
 use decoder::pop::*;
+use decoder::sbc::*;
 use decoder::sub::*;
 use decoder::stm::*;
 use decoder::str::*;
@@ -126,7 +128,7 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                         0b000_0011 => Some(Instruction::LSR_reg),
                         0b000_0100 => Some(decode_ASR_reg_t1(command)),
                         0b000_0101 => Some(decode_ADC_reg_t1(command)),
-                        0b000_0110 => Some(Instruction::SBC),
+                        0b000_0110 => Some(decode_SBC_reg_t1(command)),
                         0b000_0111 => Some(Instruction::ROR),
                         0b000_1000 => Some(decode_TST_reg_t1(command)),
                         0b000_1001 => Some(Instruction::RSB),
@@ -1073,6 +1075,27 @@ fn test_decode_cmn() {
         } => {
             assert!(rn == Reg::R4);
             assert!(rm == Reg::R5);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sbc() {
+    // SBCS R5, R5, R3
+    match decode_16(0x419d).unwrap() {
+        Instruction::SBC_reg {
+            rd,
+            rn,
+            rm,
+            setflags
+        } => {
+            assert!(rd == Reg::R5);
+            assert!(rn == Reg::R5);
+            assert!(rm == Reg::R3);
+            assert!(setflags);
         }
         _ => {
             assert!(false);
