@@ -96,17 +96,17 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
                 0b011_00 => Some(decode_ADDS(command)),
                 0b011_01 => Some(decode_SUBS_reg_t1(command)),
                 0b011_10 => Some(decode_ADDS_imm_t1(command)),
-                0b011_11 => Some(decode_SUBS_imm_t1(command)),
+                0b011_11 => Some(decode_SUB_imm_t1(command)),
                 0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => Some(decode_MOV_imm_t1(command)),
                 0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => Some(decode_CMP_imm_t1(command)),
                 0b110_00 |
                 0b110_01 |
                 0b110_10 |
-                0b110_11 |
+                0b110_11 => Some(decode_ADDS_imm_t2(command)),
                 0b111_00 |
                 0b111_01 |
                 0b111_10 |
-                0b111_11 => Some(decode_ADDS_imm_t2(command)),
+                0b111_11 => Some(decode_SUB_imm_t2(command)),
                 0 => match command.get_bits(6..11) {
                     0 => Some(decode_MOV_reg_t2(command)),
                     _ => Some(decode_LSL_imm_t1(command)),
@@ -680,6 +680,27 @@ fn test_decode_sub() {
             assert!(rn == Reg::SP);
             assert!(imm32 == 0x8);
             assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sub2() {
+    // SUBS R2,R2,#48
+    match decode_16(0x3a30).unwrap() {
+        Instruction::SUB_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rn == Reg::R2);
+            assert!(imm32 == 48);
+            assert!(setflags == true);
         }
         _ => {
             assert!(false);
