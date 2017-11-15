@@ -25,6 +25,7 @@ mod cmp;
 mod ldm;
 mod ldr;
 mod ldrb;
+mod ldrh;
 mod lsl;
 mod lsr;
 mod mov;
@@ -57,6 +58,7 @@ use decoder::cmp::*;
 use decoder::ldm::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
+use decoder::ldrh::*;
 use decoder::lsl::*;
 use decoder::lsr::*;
 use decoder::mov::*;
@@ -154,11 +156,12 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
             } else {
                 match command.get_bits(9..16) {
                     0b0101_100 => Some(decode_LDR_reg_t1(command)),
+                    0b0101_101 => Some(decode_LDRH_reg_t1(command)),
                     0b0101_110 => Some(decode_LDRB_reg_t1(command)),
                     _ => match command.get_bits(11..16) {
-                        0b01101 => Some(decode_LDR_imm_t1(command)),
                         0b01001 => Some(decode_LDR_lit_t1(command)),
                         0b01011 => Some(decode_LDR_reg_t1(command)),
+                        0b01101 => Some(decode_LDR_imm_t1(command)),
                         0b01111 => Some(decode_LDRB_imm_t1(command)),
                         _ => None,
                     },
@@ -168,14 +171,15 @@ pub fn decode_16(command: u16) -> Option<Instruction> {
         0b10 => {
             // generate pc relative addr, sp rela, misc
             match command.get_bits(11..16) {
-                0b10011 => Some(decode_LDR_imm_t2(command)),
-                0b10010 => Some(decode_STR_imm_t2(command)),
-                0b10101 => Some(decode_ADD_SP_imm_t1(command)),
-                0b10100 => Some(decode_ADR_t1(command)),
                 0b10000 => Some(decode_STRH_imm_t1(command)),
+                0b10001 => Some(decode_LDRH_imm_t1(command)),
+                0b10010 => Some(decode_STR_imm_t2(command)),
+                0b10011 => Some(decode_LDR_imm_t2(command)),
+                0b10100 => Some(decode_ADR_t1(command)),
+                0b10101 => Some(decode_ADD_SP_imm_t1(command)),
                 _ => match command.get_bits(7..16) {
-                    0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
                     0b101100000 => Some(decode_ADD_SP_imm_t2(command)),
+                    0b101100001 => Some(decode_SUB_SP_imm_t1(command)),
                     0b101111110 => Some(decode_NOP_t1(command)),
                     0b101100101 => if command.get_bit(6) {
                         Some(decode_UXTB_t1(command))
@@ -968,6 +972,21 @@ fn test_decode_stm() {
             assert!(rn == Reg::R2);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrh() {
+    // LDRH R0,[R0, #0x38]
+    match decode_16(0x8f00).unwrap() {
+        Instruction::LDRH_imm { rn, rt, imm32 } => {
+            assert!(rn == Reg::R0);
+            assert!(rt == Reg::R0);
+            assert!(imm32 == 0x38);
         }
         _ => {
             assert!(false);

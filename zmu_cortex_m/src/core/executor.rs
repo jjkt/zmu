@@ -322,6 +322,15 @@ where
             core.r[rt.value()] = u32::from(core.bus.read8(address));
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::LDRH_imm {
+            ref rt,
+            ref rn,
+            imm32,
+        } => {
+            let address = read_reg(core, rn) + imm32;
+            core.r[rt.value()] = u32::from(core.bus.read16(address));
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::STM { ref registers, ref rn } => {
             let regs_size = 4 * (registers.len() as u32);
 

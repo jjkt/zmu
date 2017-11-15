@@ -61,8 +61,8 @@ pub enum Instruction {
     LDR_reg { rt: Reg, rn: Reg, rm: Reg },
     LDRB_imm { rt: Reg, rn: Reg, imm32: u32 },
     LDRB_reg { rt: Reg, rn: Reg, rm: Reg },
-    LDRH_imm,
-    LDRH_reg,
+    LDRH_imm { rt: Reg, rn: Reg, imm32: u32 },
+    LDRH_reg { rt: Reg, rn: Reg, rm: Reg },
     LDRSB_reg,
     LDRSH_reg,
     LSL_imm {
@@ -226,7 +226,10 @@ impl fmt::Display for Instruction {
                 write!(f, "LDRB {},[{},#{:x}]", rt, rn, imm32)
             }
             Instruction::LDRB_reg { rt, rn, rm } => write!(f, "LDRB {}, [{}, {}]", rt, rn, rm),
-            Instruction::LDRH_imm => write!(f, "LDRH imm"),
+            Instruction::LDRH_imm { rt, rn, imm32 } => {
+                write!(f, "LDRH {},[{},#{:x}]", rt, rn, imm32)
+            }
+            Instruction::LDRH_reg { rt, rn, rm } => write!(f, "LDRH {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRSB_reg => write!(f, "LDRSB reg"),
             Instruction::LDRSH_reg => write!(f, "LDRSH reg"),
             Instruction::LSL_imm {
@@ -242,7 +245,6 @@ impl fmt::Display for Instruction {
                 rm,
                 imm5
             ),
-            Instruction::LDRH_reg => write!(f, "LDRH reg"),
             Instruction::LSL_reg => write!(f, "LSL reg"),
             Instruction::LSR_imm {
                 rd,
