@@ -282,7 +282,7 @@ where
             core.psr.set_v(overflow);
             core.r[Reg::PC.value()] += 2;
         }
-        Instruction::CMP { ref rn, ref rm } => {
+        Instruction::CMP_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm) ^ 0xFFFF_FFFF, true);
             core.psr.set_n(result.get_bit(31));
@@ -370,7 +370,8 @@ where
         } => {
             let r_n = read_reg(core, rn);
             let r_m = read_reg(core, rm);
-            let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
+            let (result, carry, overflow) =
+                add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -455,9 +456,23 @@ where
             core.r[rt.value()] = core.bus.read32(base + imm32);
             core.r[Reg::PC.value()] += 2;
         }
-        Instruction::ADD { ref rdn, ref rm } => {
-            let (result, _, _) = add_with_carry(read_reg(core, rdn), read_reg(core, rm), false);
-            core.r[rdn.value()] = result;
+        Instruction::ADD_reg {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref setflags,
+        } => {
+            let (result, carry, overflow) =
+                add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
+
+            core.r[rd.value()] = result;
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::ADD_imm {
@@ -503,36 +518,24 @@ where
             core.r[rd.value()] = result;
             core.r[Reg::PC.value()] += 2;
         }
-        Instruction::SUBS_reg {
+        Instruction::SUB_reg {
             ref rn,
             ref rd,
             ref rm,
+            ref setflags,
         } => {
             let r_n = read_reg(core, rn);
             let r_m = read_reg(core, rm);
             let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
             core.r[rd.value()] = result;
 
-            core.psr.set_n(result.get_bit(31));
-            core.psr.set_z(result == 0);
-            core.psr.set_c(carry);
-            core.psr.set_v(overflow);
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
 
-            core.r[Reg::PC.value()] += 2;
-        }
-        Instruction::ADDS {
-            ref rm,
-            ref rn,
-            ref rd,
-        } => {
-            let (result, carry, overflow) =
-                add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
-            core.psr.set_n(result.get_bit(31));
-            core.psr.set_z(result == 0);
-            core.psr.set_c(carry);
-            core.psr.set_v(overflow);
-
-            core.r[rd.value()] = result;
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::TST_reg { ref rn, ref rm } => {

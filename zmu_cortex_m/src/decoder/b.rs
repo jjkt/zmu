@@ -8,10 +8,12 @@ use core::operation::sign_extend;
 pub fn decode_B_t1(command: u16) -> Instruction {
     let cond = command.get_bits(8..12);
     if cond == 0b1111 {
-        return Instruction::SVC;
+        return Instruction::SVC {
+            imm32: command.get_bits(0..8) as u32,
+        };
     }
     if cond == 0b1110 {
-        return Instruction::UDF;
+        return Instruction::UDF { imm32: 0 };
     }
 
     Instruction::B {

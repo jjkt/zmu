@@ -34,10 +34,11 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_SUBS_reg_t1(command: u16) -> Instruction {
-    Instruction::SUBS_reg {
+pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
+    Instruction::SUB_reg {
         rd: Reg::from_u16(command.get_bits(0..3) as u16).unwrap(),
         rn: Reg::from_u16(command.get_bits(3..6) as u16).unwrap(),
         rm: Reg::from_u16(command.get_bits(6..9) as u16).unwrap(),
+        setflags: true,
     }
 }

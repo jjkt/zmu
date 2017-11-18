@@ -1,5 +1,4 @@
 use std::fmt;
-
 use enum_set::CLike;
 use bit_field::BitField;
 use std::mem;
@@ -117,6 +116,21 @@ pub enum Reg {
     PC,
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
+pub enum SpecialReg {
+    APSR,
+    IAPSR,
+    EAPSR,
+    XPSR,
+    IPSR,
+    EPSR,
+    MSP,
+    PSP,
+    PRIMASK,
+    CONTROL,
+}
+
 impl CLike for Reg {
     fn to_u32(&self) -> u32 {
         *self as u32
@@ -172,6 +186,7 @@ impl Reg {
     }
 }
 
+
 impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -191,6 +206,23 @@ impl fmt::Display for Reg {
             Reg::SP => write!(f, "SP"),
             Reg::LR => write!(f, "LR"),
             Reg::PC => write!(f, "PC"),
+        }
+    }
+}
+
+impl fmt::Display for SpecialReg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SpecialReg::APSR => write!(f, "APSR"),
+            SpecialReg::IAPSR => write!(f, "IAPSR"),
+            SpecialReg::EAPSR => write!(f, "EAPSR"),
+            SpecialReg::XPSR => write!(f, "XPSR"),
+            SpecialReg::IPSR => write!(f, "IPSR"),
+            SpecialReg::EPSR => write!(f, "EPSR"),
+            SpecialReg::MSP => write!(f, "MSP"),
+            SpecialReg::PSP => write!(f, "PSP"),
+            SpecialReg::PRIMASK => write!(f, "PRIMASK"),
+            SpecialReg::CONTROL => write!(f, "CONTROL"),
         }
     }
 }

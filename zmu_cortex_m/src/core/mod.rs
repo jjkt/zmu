@@ -95,7 +95,7 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     // Decode ThumbCode into Instruction
-    pub fn decode(&self, code: &ThumbCode) -> Option<Instruction> {
+    pub fn decode(&self, code: &ThumbCode) -> Instruction {
         match *code {
             ThumbCode::Thumb32 { half_word, half_word2 } => decode_32(half_word, half_word2),
             ThumbCode::Thumb16 { half_word } => decode_16(half_word),
