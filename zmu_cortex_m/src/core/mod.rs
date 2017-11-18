@@ -22,6 +22,27 @@ pub enum ThumbCode {
     Thumb16 { half_word: u16 },
 }
 
+impl From<u16> for ThumbCode {
+    fn from(value : u16) -> Self{
+        ThumbCode::Thumb16 {half_word : value}
+    }
+}
+
+impl From<u32> for ThumbCode {
+    fn from(value : u32)-> Self{
+        ThumbCode::Thumb32 {half_word : (value & 0xffff) as u16, half_word2: ((value >> 16)& 0xffff) as u16}
+    }
+}
+impl fmt::Display for ThumbCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ThumbCode::Thumb16 {half_word} => write!(f, "0x{:x}", half_word),
+            ThumbCode::Thumb32 {half_word, half_word2}=> write!(f, "0x{}, 0x{}", half_word, half_word2),
+        }
+    }
+}
+
+
 pub struct Core<'a, T: Bus + 'a> {
     pub r: [u32; 16],
 

@@ -1,6 +1,6 @@
 use bit_field::BitField;
 use core::instruction::Instruction;
-
+use core::ThumbCode;
 
 #[cfg(test)]
 use core::register::Reg;
@@ -125,7 +125,10 @@ pub fn decode_16(command: u16) -> Instruction {
                     _ => decode_LSL_imm_t1(command),
                 },
 
-                _ => Instruction::UDF { imm32: 0 },
+                _ => Instruction::UDF {
+                    imm32: 0,
+                    opcode: ThumbCode::from(command),
+                },
             }
         }
         0b01 => {
@@ -177,14 +180,20 @@ pub fn decode_16(command: u16) -> Instruction {
                         0b100_0101 |
                         0b100_0110 |
                         0b100_0111 => decode_STR_reg_t1(command),
-                        _ => Instruction::UDF { imm32: 0 },
+                        _ => Instruction::UDF {
+                            imm32: 0,
+                            opcode: ThumbCode::from(command),
+                        },
                     },
                     0b011 => if command.get_bit(12) {
                         decode_STRB_imm_t1(command)
                     } else {
                         decode_STR_imm_t1(command)
                     },
-                    _ => Instruction::UDF { imm32: 0 },
+                    _ => Instruction::UDF {
+                        imm32: 0,
+                        opcode: ThumbCode::from(command),
+                    },
                 }
             } else {
                 match command.get_bits(9..16) {
@@ -198,7 +207,10 @@ pub fn decode_16(command: u16) -> Instruction {
                         0b01011 => decode_LDR_reg_t1(command),
                         0b01101 => decode_LDR_imm_t1(command),
                         0b01111 => decode_LDRB_imm_t1(command),
-                        _ => Instruction::UDF { imm32: 0 },
+                        _ => Instruction::UDF {
+                            imm32: 0,
+                            opcode: ThumbCode::from(command),
+                        },
                     },
                 }
             }
@@ -225,7 +237,10 @@ pub fn decode_16(command: u16) -> Instruction {
                     _ => match command.get_bits(9..14) {
                         0b11110 => decode_POP(command),
                         0b11010 => decode_PUSH(command),
-                        _ => Instruction::UDF { imm32: 0 },
+                        _ => Instruction::UDF {
+                            imm32: 0,
+                            opcode: ThumbCode::from(command),
+                        },
                     },
                 },
             }
@@ -240,11 +255,17 @@ pub fn decode_16(command: u16) -> Instruction {
                 } else {
                     decode_STM_t1(command)
                 },
-                _ => Instruction::UDF { imm32: 0 },
+                _ => Instruction::UDF {
+                    imm32: 0,
+                    opcode: ThumbCode::from(command),
+                },
             }
         }
 
-        _ => Instruction::UDF { imm32: 0 },
+        _ => Instruction::UDF {
+            imm32: 0,
+            opcode: ThumbCode::from(command),
+        },
     }
 }
 
@@ -254,7 +275,10 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Instruction {
 
     match op2 {
         0x7 | 0x5 => decode_bl(t1, t2),
-        _ => Instruction::UDF { imm32: 0 },
+        _ => Instruction::UDF {
+            imm32: 0,
+            opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
+        },
     }
 }
 
@@ -264,10 +288,16 @@ pub fn decode_32(t1: u16, t2: u16) -> Instruction {
     let op = (t2 >> 15) & 0x01;
 
     if op1 != 0x2 {
-        return Instruction::UDF { imm32: 0 };
+        return Instruction::UDF {
+            imm32: 0,
+            opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
+        };
     }
     if op != 0x01 {
-        return Instruction::UDF { imm32: 0 };
+        return Instruction::UDF {
+            imm32: 0,
+            opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
+        };
     }
 
     decode_branch_and_misc(t1, t2)
@@ -638,12 +668,16 @@ fn test_decode_ldr() {
 fn test_decode_add_reg_pc() {
     // ADD R1,R1, PC
     match decode_16(0x4479) {
-        Instruction::ADD_reg { rd, rn, rm, setflags } => {
+        Instruction::ADD_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
             assert_eq!(rd, Reg::R1);
             assert_eq!(rn, Reg::R1);
             assert_eq!(rm, Reg::PC);
             assert!(setflags == false);
-            
         }
         _ => {
             assert!(false);

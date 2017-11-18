@@ -1,6 +1,7 @@
 use core::register::Reg;
 use core::register::SpecialReg;
 use core::condition::Condition;
+use core::ThumbCode;
 use enum_set::EnumSet;
 
 
@@ -167,7 +168,7 @@ pub enum Instruction {
     SXTB { rd: Reg, rm: Reg },
     SXTH { rd: Reg, rm: Reg },
     TST_reg { rn: Reg, rm: Reg },
-    UDF { imm32: u32 },
+    UDF { imm32: u32, opcode: ThumbCode },
     UXTB { rd: Reg, rm: Reg },
     UXTH { rd: Reg, rm: Reg },
     WFE,
@@ -498,7 +499,9 @@ impl fmt::Display for Instruction {
             Instruction::SXTB { rd, rm } => write!(f, "SXTB {},{}", rd, rm),
             Instruction::SXTH { rd, rm } => write!(f, "SXTH {},{}", rd, rm),
             Instruction::TST_reg { rn, rm } => write!(f, "TST {},{}", rn, rm),
-            Instruction::UDF { imm32 } => write!(f, "UDF {}", imm32),
+            Instruction::UDF { imm32, ref opcode } => {
+                write!(f, "UDF {} (opcode = {})", imm32, opcode)
+            }
             Instruction::UXTB { rd, rm } => write!(f, "UXTB {}, {}", rd, rm),
             Instruction::UXTH { rd, rm } => write!(f, "UXTH {},{}", rd, rm),
             Instruction::WFE => write!(f, "WFE"),

@@ -3,6 +3,7 @@ use bit_field::BitField;
 use core::condition::Condition;
 use core::instruction::Instruction;
 use core::operation::sign_extend;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 pub fn decode_B_t1(command: u16) -> Instruction {
@@ -13,7 +14,10 @@ pub fn decode_B_t1(command: u16) -> Instruction {
         };
     }
     if cond == 0b1110 {
-        return Instruction::UDF { imm32: 0 };
+        return Instruction::UDF {
+            imm32: 0,
+            opcode: ThumbCode::from(command),
+        };
     }
 
     Instruction::B {
