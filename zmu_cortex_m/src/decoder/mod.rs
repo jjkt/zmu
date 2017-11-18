@@ -30,6 +30,7 @@ mod ldm;
 mod ldr;
 mod ldrb;
 mod ldrh;
+mod ldrsh;
 mod lsl;
 mod lsr;
 mod mov;
@@ -74,6 +75,7 @@ use decoder::ldm::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::ldrh::*;
+use decoder::ldrsh::*;
 use decoder::lsl::*;
 use decoder::lsr::*;
 
@@ -189,6 +191,7 @@ pub fn decode_16(command: u16) -> Instruction {
                     0b0101_100 => decode_LDR_reg_t1(command),
                     0b0101_101 => decode_LDRH_reg_t1(command),
                     0b0101_110 => decode_LDRB_reg_t1(command),
+                    0b0101_111 => decode_LDRSH_reg_t1(command),
                     0b0100_010 => decode_ADD_reg_t2(command),
                     _ => match command.get_bits(11..16) {
                         0b01001 => decode_LDR_lit_t1(command),
@@ -1129,6 +1132,21 @@ fn test_decode_strb2() {
             assert!(rt == Reg::R2);
             assert!(rn == Reg::R0);
             assert!(rm == Reg::R5);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrsh() {
+    // LDRSH R0, [R6, R0]
+    match decode_16(0x5e30) {
+        Instruction::LDRSH_reg { rt, rn, rm } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R6);
+            assert!(rm == Reg::R0);
         }
         _ => {
             assert!(false);

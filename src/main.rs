@@ -56,7 +56,7 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
         while running {
             let pc = core.r[Reg::PC.value()];
             let thumb = core.fetch();
-            let instruction = core.decode(&thumb).unwrap();
+            let instruction = core.decode(&thumb);
             let count_before = count;
             core.step(&instruction, |imm32, r0, r1| if imm32 == 0xab {
                 semihost_triggered = true;
@@ -80,24 +80,24 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                 let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
 
                 let semihost_response = match semihost_cmd {
-                    SemihostingCommand::SysOpen { name, mode } => {
-                        println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
+                    SemihostingCommand::SysOpen { .. } => {
+                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
                         SemihostingResponse::SysOpen { result: Ok(1) }
                     }
-                    SemihostingCommand::SysClose { handle } => {
-                        println!("SEMIHOST: SYS_CLOSE({})", handle);
+                    SemihostingCommand::SysClose { .. } => {
+                        //println!("SEMIHOST: SYS_CLOSE({})", handle);
                         SemihostingResponse::SysClose { success: true }
                     }
                     SemihostingCommand::SysWrite { handle, data } => {
                         if handle == 1 {
-                            print!("{}", data[0] as char);
+                            print!("{}", String::from_utf8(data).unwrap());
                         } else {
-                            println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
+                            //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
                         }
                         SemihostingResponse::SysWrite { result: Ok(0) }
                     }
                     SemihostingCommand::SysException { reason } => {
-                        println!("SEMIHOST: EXCEPTION({:?})", reason);
+                        //println!("SEMIHOST: EXCEPTION({:?})", reason);
 
                         if reason == SysExceptionReason::ADPStoppedApplicationExit {
                             running = false;
@@ -114,7 +114,7 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
     } else {
         while running {
             let thumb = core.fetch();
-            let instruction = core.decode(&thumb).unwrap();
+            let instruction = core.decode(&thumb);
             core.step(&instruction, |imm32, r0, r1| if imm32 == 0xab {
                 semihost_triggered = true;
                 semihost = (r0, r1);
@@ -125,24 +125,24 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                 let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
 
                 let semihost_response = match semihost_cmd {
-                    SemihostingCommand::SysOpen { name, mode } => {
-                        println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
+                    SemihostingCommand::SysOpen { .. } => {
+                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
                         SemihostingResponse::SysOpen { result: Ok(1) }
                     }
-                    SemihostingCommand::SysClose { handle } => {
-                        println!("SEMIHOST: SYS_CLOSE({})", handle);
+                    SemihostingCommand::SysClose { .. } => {
+                        //println!("SEMIHOST: SYS_CLOSE({})", handle);
                         SemihostingResponse::SysClose { success: true }
                     }
                     SemihostingCommand::SysWrite { handle, data } => {
                         if handle == 1 {
-                            print!("{}", data[0] as char);
+                            print!("{}", String::from_utf8(data).unwrap());
                         } else {
-                            println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
+                            //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
                         }
                         SemihostingResponse::SysWrite { result: Ok(0) }
                     }
                     SemihostingCommand::SysException { reason } => {
-                        println!("SEMIHOST: EXCEPTION({:?})", reason);
+                        //println!("SEMIHOST: EXCEPTION({:?})", reason);
 
                         if reason == SysExceptionReason::ADPStoppedApplicationExit {
                             running = false;
@@ -175,7 +175,7 @@ fn run(args: &ArgMatches) -> Result<()> {
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
             println!("Using EXECUTABLE file: {}", filename);
             let mut ram_mem = vec![0; 32768];
-            let mut flash_mem = [0; 8192];
+            let mut flash_mem = [0; 32768];
 
             load_bin(filename.to_string(), &mut flash_mem)
                 .chain_err(|| "loading of binary image failed")?;
