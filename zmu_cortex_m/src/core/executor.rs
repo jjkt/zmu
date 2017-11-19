@@ -415,6 +415,16 @@ where
             core.r[rt.value()] = sign_extend(data, 15, 32) as u32; 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::LDRSB_reg {
+            ref rt,
+            ref rn,
+            ref rm,
+        } => {
+            let address = read_reg(core, rn) + read_reg(core, rm);
+            let data = u32::from(core.bus.read8(address));
+            core.r[rt.value()] = sign_extend(data, 7, 32) as u32; 
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::SBC_reg {
             ref rn,
             ref rd,
