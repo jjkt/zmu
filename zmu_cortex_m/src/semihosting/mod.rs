@@ -56,6 +56,7 @@ pub enum SemihostingCommand {
     SysClose { handle: u32 },
     SysWrite { handle: u32, data: Vec<u8> },
     SysException { reason: SysExceptionReason },
+    SysClock,
 }
 
 pub enum SemihostingResponse {
@@ -63,6 +64,7 @@ pub enum SemihostingResponse {
     SysClose { success: bool },
     SysWrite { result: Result<u32, u32> },
     SysException { success: bool },
+    SysClock { result: Result<u32, i32> },
 }
 
 pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> SemihostingCommand {
@@ -107,6 +109,7 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
                 data: data,
             }
         }
+        16 => SemihostingCommand::SysClock,
         24 => SemihostingCommand::SysException {
             reason: SysExceptionReason::from_u32(r1).unwrap(),
         },
@@ -132,6 +135,10 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
         SemihostingResponse::SysWrite { result } => match result {
             Ok(_) => core.r[Reg::R0.value()] = 0,
             Err(unwritten_bytes) => core.r[Reg::R0.value()] = unwritten_bytes as u32,
+        },
+        SemihostingResponse::SysClock { result } => match result {
+            Ok(centiseconds) => core.r[Reg::R0.value()] = centiseconds,
+            Err(error_code) => core.r[Reg::R0.value()] = error_code as u32,
         },
     }
 }

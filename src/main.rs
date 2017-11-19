@@ -14,6 +14,7 @@ extern crate zmu_cortex_m;
 use clap::{App, AppSettings, ArgMatches, SubCommand};
 use std::io::prelude::*;
 use std::io;
+use std::time::Instant;
 use tabwriter::TabWriter;
 
 use zmu_cortex_m::semihosting::semihost_return;
@@ -48,6 +49,7 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
     let mut semihost_triggered = false;
 
     core.reset();
+    let start = Instant::now();
 
     if trace {
         let mut count = 0;
@@ -96,6 +98,13 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                         }
                         SemihostingResponse::SysWrite { result: Ok(0) }
                     }
+                    SemihostingCommand::SysClock { .. } => {
+                        let elapsed = start.elapsed();
+                        let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
+
+                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
+                        SemihostingResponse::SysClock { result: Ok(in_cs  as u32) }
+                    }
                     SemihostingCommand::SysException { reason } => {
                         //println!("SEMIHOST: EXCEPTION({:?})", reason);
 
@@ -140,6 +149,13 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                             //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
                         }
                         SemihostingResponse::SysWrite { result: Ok(0) }
+                    }
+                    SemihostingCommand::SysClock { .. } => {
+                        let elapsed = start.elapsed();
+                        let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
+
+                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
+                        SemihostingResponse::SysClock { result: Ok(in_cs as u32) }
                     }
                     SemihostingCommand::SysException { reason } => {
                         //println!("SEMIHOST: EXCEPTION({:?})", reason);
