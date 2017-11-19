@@ -461,6 +461,16 @@ where
             core.bus.write16(address, value.get_bits(0..16) as u16);
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::STRH_reg {
+            ref rt,
+            ref rn,
+            ref rm,
+        } => {
+            let address = read_reg(core, rn) + read_reg(core, rm);
+            let value = read_reg(core, rt);
+            core.bus.write16(address, value.get_bits(0..16) as u16);
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::LDR_lit { ref rt, imm32 } => {
             let base = read_reg(core, &Reg::PC) & 0xffff_fffc;
             core.r[rt.value()] = core.bus.read32(base + imm32);

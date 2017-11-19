@@ -180,6 +180,14 @@ pub fn decode_16(command: u16) -> Instruction {
                         0b100_0101 |
                         0b100_0110 |
                         0b100_0111 => decode_STR_reg_t1(command),
+                        0b100_1000 |
+                        0b100_1001 |
+                        0b100_1010 |
+                        0b100_1011 |
+                        0b100_1100 |
+                        0b100_1101 |
+                        0b100_1110 |
+                        0b100_1111 => decode_STRH_reg_t1(command),
                         _ => Instruction::UDF {
                             imm32: 0,
                             opcode: ThumbCode::from(command),
@@ -1181,6 +1189,21 @@ fn test_decode_ldrsh() {
             assert!(rt == Reg::R0);
             assert!(rn == Reg::R6);
             assert!(rm == Reg::R0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_strh_reg() {
+    // STRH R4, [R6, R1]
+    match decode_16(0x5274) {
+        Instruction::STRH_reg { rt, rn, rm } => {
+            assert_eq!(rt,Reg::R4);
+            assert_eq!(rn,Reg::R6);
+            assert_eq!(rm,Reg::R1);
         }
         _ => {
             assert!(false);
