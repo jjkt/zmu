@@ -175,7 +175,7 @@ pub fn decode_16(command: u16) -> Instruction {
                         0b101_0101 |
                         0b101_0110 |
                         0b101_0111 => decode_STRB_reg_t1(command),
-                        
+
                         0b101_1000 |
                         0b101_1001 |
                         0b101_1010 |
@@ -1241,9 +1241,9 @@ fn test_decode_strh_reg() {
     // STRH R4, [R6, R1]
     match decode_16(0x5274) {
         Instruction::STRH_reg { rt, rn, rm } => {
-            assert_eq!(rt,Reg::R4);
-            assert_eq!(rn,Reg::R6);
-            assert_eq!(rm,Reg::R1);
+            assert_eq!(rt, Reg::R4);
+            assert_eq!(rn, Reg::R6);
+            assert_eq!(rm, Reg::R1);
         }
         _ => {
             assert!(false);
@@ -1255,11 +1255,16 @@ fn test_decode_strh_reg() {
 fn test_decode_eor_reg() {
     // EOR R0, R0, R4
     match decode_16(0x4060) {
-        Instruction::EOR_reg { rd, rn, rm, setflags } => {
-            assert_eq!(rd,Reg::R0);
-            assert_eq!(rn,Reg::R0);
-            assert_eq!(rm,Reg::R4);
-            assert_eq!(setflags,true);
+        Instruction::EOR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
+            assert_eq!(rd, Reg::R0);
+            assert_eq!(rn, Reg::R0);
+            assert_eq!(rm, Reg::R4);
+            assert_eq!(setflags, true);
         }
         _ => {
             assert!(false);
@@ -1271,10 +1276,10 @@ fn test_decode_eor_reg() {
 fn test_decode_ldrsb_reg() {
     // LDRSB R4, [R4, R0]
     match decode_16(0x5624) {
-        Instruction::LDRSB_reg { rt, rn, rm} => {
-            assert_eq!(rt,Reg::R4);
-            assert_eq!(rn,Reg::R4);
-            assert_eq!(rm,Reg::R0);
+        Instruction::LDRSB_reg { rt, rn, rm } => {
+            assert_eq!(rt, Reg::R4);
+            assert_eq!(rn, Reg::R4);
+            assert_eq!(rm, Reg::R0);
         }
         _ => {
             assert!(false);
@@ -1286,9 +1291,9 @@ fn test_decode_ldrsb_reg() {
 fn test_decode_sxth_reg() {
     // SXTH R1,R1
     match decode_16(0xb209) {
-        Instruction::SXTH { rd, rm} => {
-            assert_eq!(rd,Reg::R1);
-            assert_eq!(rm,Reg::R1);
+        Instruction::SXTH { rd, rm } => {
+            assert_eq!(rd, Reg::R1);
+            assert_eq!(rm, Reg::R1);
         }
         _ => {
             assert!(false);
