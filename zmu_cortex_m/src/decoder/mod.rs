@@ -51,6 +51,7 @@ mod sbc;
 mod stm;
 mod str;
 mod sub;
+mod sxt;
 mod tst;
 mod uxt;
 
@@ -96,6 +97,7 @@ use decoder::sbc::*;
 use decoder::sub::*;
 use decoder::stm::*;
 use decoder::str::*;
+use decoder::sxt::*;
 use decoder::tst::*;
 use decoder::uxt::*;
 
@@ -247,6 +249,11 @@ pub fn decode_16(command: u16) -> Instruction {
                     0b101100000 => decode_ADD_SP_imm_t2(command),
                     0b101100001 => decode_SUB_SP_imm_t1(command),
                     0b101111110 => decode_NOP_t1(command),
+                    0b101100100 => if command.get_bit(6) {
+                        decode_SXTB_t1(command)
+                    } else {
+                        decode_SXTH_t1(command)
+                    },
                     0b101100101 => if command.get_bit(6) {
                         decode_UXTB_t1(command)
                     } else {
@@ -1268,6 +1275,20 @@ fn test_decode_ldrsb_reg() {
             assert_eq!(rt,Reg::R4);
             assert_eq!(rn,Reg::R4);
             assert_eq!(rm,Reg::R0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sxth_reg() {
+    // SXTH R1,R1
+    match decode_16(0xb209) {
+        Instruction::SXTH { rd, rm} => {
+            assert_eq!(rd,Reg::R1);
+            assert_eq!(rm,Reg::R1);
         }
         _ => {
             assert!(false);

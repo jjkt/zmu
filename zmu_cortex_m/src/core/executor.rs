@@ -629,6 +629,16 @@ where
             core.r[rd.value()] = rotated.get_bits(0..16);
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::SXTB { ref rd, ref rm } => {
+            let rotated = read_reg(core, rm);
+            core.r[rd.value()] = sign_extend(rotated.get_bits(0..8), 7, 32) as u32;
+            core.r[Reg::PC.value()] += 2;
+        }
+        Instruction::SXTH { ref rd, ref rm } => {
+            let rotated = read_reg(core, rm);
+            core.r[rd.value()] = sign_extend(rotated.get_bits(0..16), 15, 32) as u32;
+            core.r[Reg::PC.value()] += 2;
+        }
 
         _ => panic!(
             "unimplemented instruction {} at {:#x}",
