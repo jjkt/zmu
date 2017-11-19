@@ -138,6 +138,29 @@ where
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::LSR_reg {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref setflags,
+        } => {
+            let shift_n = read_reg(core, rm).get_bits(0..8);
+            let (result, carry) = shift_c(
+                read_reg(core, rn),
+                SRType::LSR,
+                u32::from(shift_n),
+                core.psr.get_c(),
+            );
+            core.r[rd.value() as usize] = result;
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::BL { imm32 } => {
             let pc = read_reg(core, &Reg::PC);
             core.r[Reg::LR.value()] = pc | 0x01;

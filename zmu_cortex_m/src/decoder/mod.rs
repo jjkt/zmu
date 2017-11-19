@@ -974,6 +974,28 @@ fn test_decode_lsr_imm() {
 }
 
 #[test]
+fn test_decode_lsr_reg() {
+    // LSRS R1, R1, R4
+    match decode_16(0x40e1) {
+        Instruction::LSR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
+            assert_eq!(rd, Reg::R1);
+            assert_eq!(rn, Reg::R1);
+            assert_eq!(rm, Reg::R4);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+
+#[test]
 fn test_decode_adc_reg() {
     // ADCS R2,R2,R2
     match decode_16(0x4152) {
