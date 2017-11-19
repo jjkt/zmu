@@ -384,7 +384,7 @@ where
             imm32,
         } => {
             let address = read_reg(core, rn) + imm32;
-            core.r[rt.value()] = core.bus.read32(address & 0xffff_fffc);
+            core.r[rt.value()] = core.bus.read32(address);
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::LDR_reg {
@@ -393,7 +393,7 @@ where
             ref rm,
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
-            core.r[rt.value()] = core.bus.read32(address & 0xffff_fffc);
+            core.r[rt.value()] = core.bus.read32(address);
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::LDRB_imm {
@@ -421,7 +421,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let data = u32::from(core.bus.read16(address));
-            core.r[rt.value()] = sign_extend(data, 15, 32) as u32; 
+            core.r[rt.value()] = sign_extend(data, 15, 32) as u32;
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::LDRSB_reg {
@@ -431,7 +431,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let data = u32::from(core.bus.read8(address));
-            core.r[rt.value()] = sign_extend(data, 7, 32) as u32; 
+            core.r[rt.value()] = sign_extend(data, 7, 32) as u32;
             core.r[Reg::PC.value()] += 2;
         }
         Instruction::SBC_reg {
@@ -478,7 +478,7 @@ where
             ref rn,
             imm32,
         } => {
-            let address = (read_reg(core, rn) + imm32) & 0xffff_fffc;
+            let address = read_reg(core, rn) + imm32;
             let value = read_reg(core, rt);
             core.bus.write32(address, value);
             core.r[Reg::PC.value()] += 2;
@@ -488,7 +488,7 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = (read_reg(core, rn) + read_reg(core, rm)) & 0xffff_fffc;
+            let address = read_reg(core, rn) + read_reg(core, rm);
             let value = read_reg(core, rt);
             core.bus.write32(address, value);
             core.r[Reg::PC.value()] += 2;
@@ -518,7 +518,7 @@ where
             ref rn,
             imm32,
         } => {
-            let address = (read_reg(core, rn) + imm32) & 0xffff_fffc;
+            let address = read_reg(core, rn) + imm32;
             let value = read_reg(core, rt);
             core.bus.write16(address, value.get_bits(0..16) as u16);
             core.r[Reg::PC.value()] += 2;
@@ -547,15 +547,20 @@ where
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
 
-            if *setflags {
-                core.psr.set_n(result.get_bit(31));
-                core.psr.set_z(result == 0);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+            if rd == &Reg::PC
+            {
+                core.r[rd.value()] = result & 0xffff_fffe;
             }
-
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            else {
+                if *setflags {
+                    core.psr.set_n(result.get_bit(31));
+                    core.psr.set_z(result == 0);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+                core.r[rd.value()] = result;
+                core.r[Reg::PC.value()] += 2;
+            }
         }
         Instruction::ADD_imm {
             ref rn,
