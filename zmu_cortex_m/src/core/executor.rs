@@ -387,6 +387,15 @@ where
             core.r[rt.value()] = core.bus.read32(address & 0xffff_fffc);
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::LDR_reg {
+            ref rt,
+            ref rn,
+            ref rm,
+        } => {
+            let address = read_reg(core, rn) + read_reg(core, rm);
+            core.r[rt.value()] = core.bus.read32(address & 0xffff_fffc);
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::LDRB_imm {
             ref rt,
             ref rn,
