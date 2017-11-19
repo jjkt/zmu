@@ -1232,3 +1232,19 @@ fn test_decode_strh_reg() {
         }
     }
 }
+
+#[test]
+fn test_decode_eor_reg() {
+    // EOR R0, R0, R4
+    match decode_16(0x4060) {
+        Instruction::EOR_reg { rd, rn, rm, setflags } => {
+            assert_eq!(rd,Reg::R0);
+            assert_eq!(rn,Reg::R0);
+            assert_eq!(rm,Reg::R4);
+            assert_eq!(setflags,true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}

@@ -215,6 +215,26 @@ where
 
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::EOR_reg {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref setflags,
+        } => {
+            let r_n = read_reg(core, rn);
+            let r_m = read_reg(core, rm);
+
+            let result = r_n ^ r_m;
+
+            core.r[rd.value() as usize] = result;
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+            }
+
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::AND_reg {
             ref rd,
             ref rn,
