@@ -586,6 +586,20 @@ where
             core.r[rd.value()] = result;
             core.r[Reg::PC.value()] += 2;
         }
+        Instruction::RSB_imm {ref rd, ref rn, imm32, ref setflags} =>{
+            let r_n = read_reg(core, rn);
+            let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32 , true);
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
+
+            core.r[rd.value()] = result;
+            core.r[Reg::PC.value()] += 2;
+        }
         Instruction::SUB_imm {
             ref rn,
             ref rd,
