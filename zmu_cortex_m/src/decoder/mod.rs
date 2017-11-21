@@ -1300,3 +1300,19 @@ fn test_decode_sxth_reg() {
         }
     }
 }
+
+#[test]
+fn test_decode_rsb_imm() {
+    // RSB R2, R0, #0
+    match decode_16(0x4242) {
+        Instruction::RSB_imm {rd, rn, imm32, setflags} =>{
+            assert_eq!(rd, Reg::R2);
+            assert_eq!(rn, Reg::R0);
+            assert_eq!(imm32, 0);
+            assert_eq!(setflags,true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
