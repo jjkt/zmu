@@ -526,7 +526,7 @@ where
             ref rn,
             imm32,
         } => {
-            let address = (read_reg(core, rn) + imm32) & 0xffff_fffc;
+            let address = read_reg(core, rn) + imm32;
             let value = read_reg(core, rt);
             core.bus.write8(address, value.get_bits(0..8) as u8);
             core.r[Reg::PC.value()] += 2;
