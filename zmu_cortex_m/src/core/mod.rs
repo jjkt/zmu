@@ -90,7 +90,7 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     pub fn reset(&mut self) {
         let reset_vector = self.bus.read32(4);
-        println!("\nRESET");
+        //println!("\nRESET");
 
         self.r[Reg::PC.value()] = reset_vector & 0xffff_fffe;
         self.psr.set_t((reset_vector & 1) == 1);
