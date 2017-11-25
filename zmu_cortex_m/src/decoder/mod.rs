@@ -825,6 +825,22 @@ fn test_decode_ldrb() {
 }
 
 #[test]
+fn test_decode_ldrb2() {
+    // LDRB R2, [R0, 0x10]
+    match decode_16(0x7c02) {
+        Instruction::LDRB_imm { rt, rn, imm32 } => {
+            assert!(rt == Reg::R2);
+            assert!(rn == Reg::R0);
+            assert!(imm32 == 0x10);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+
+#[test]
 fn test_decode_mvns() {
     // MVNS R5,R5
     match decode_16(0x43ed) {
