@@ -11,7 +11,7 @@ extern crate clap;
 extern crate tabwriter;
 extern crate zmu_cortex_m;
 
-use clap::{App, AppSettings, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io::prelude::*;
 use std::io;
 use std::time::Instant;
@@ -37,7 +37,7 @@ mod errors {
 
 use errors::*;
 
-fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
+fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool, instructions: Option<u64>) {
     let mut internal_bus = zmu_cortex_m::bus::internal::InternalBus::default();
     let mut ahb = zmu_cortex_m::bus::ahblite::AHBLite::new(code, sram);
 
@@ -50,19 +50,23 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
 
     core.reset();
     let start = Instant::now();
+    let max_instructions = instructions.unwrap_or(0xffff_ffff_ffff_ffff);
+    let mut count = 0;
 
     if trace {
-        let mut count = 0;
         let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
 
-        while running {
+
+        while running && (count < max_instructions) {
             let pc = core.r[Reg::PC.value()];
             let thumb = core.fetch();
             let instruction = core.decode(&thumb);
             let count_before = count;
-            core.step(&instruction, |imm32, r0, r1| if imm32 == 0xab {
-                semihost_triggered = true;
-                semihost = (r0, r1);
+            core.step(&instruction, |imm32, r0, r1| {
+                if imm32 == 0xab {
+                    semihost_triggered = true;
+                    semihost = (r0, r1);
+                }
             });
             count += 1;
 
@@ -74,7 +78,7 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                 instruction,
                 core
             ).unwrap();
-            trace_stdout.flush().unwrap();
+          
 
 
             if semihost_triggered {
@@ -100,10 +104,13 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                     }
                     SemihostingCommand::SysClock { .. } => {
                         let elapsed = start.elapsed();
-                        let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
+                        let in_cs =
+                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
 
                         //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                        SemihostingResponse::SysClock { result: Ok(in_cs  as u32) }
+                        SemihostingResponse::SysClock {
+                            result: Ok(in_cs as u32),
+                        }
                     }
                     SemihostingCommand::SysException { reason } => {
                         //println!("SEMIHOST: EXCEPTION({:?})", reason);
@@ -120,14 +127,18 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                 semihost_triggered = false;
             }
         }
+        trace_stdout.flush().unwrap();
     } else {
-        while running {
+        while running && (count < max_instructions) {
             let thumb = core.fetch();
             let instruction = core.decode(&thumb);
-            core.step(&instruction, |imm32, r0, r1| if imm32 == 0xab {
-                semihost_triggered = true;
-                semihost = (r0, r1);
+            core.step(&instruction, |imm32, r0, r1| {
+                if imm32 == 0xab {
+                    semihost_triggered = true;
+                    semihost = (r0, r1);
+                }
             });
+            count += 1;
 
             if semihost_triggered {
                 let (r0, r1) = semihost;
@@ -152,10 +163,13 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool) {
                     }
                     SemihostingCommand::SysClock { .. } => {
                         let elapsed = start.elapsed();
-                        let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
+                        let in_cs =
+                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
 
                         //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                        SemihostingResponse::SysClock { result: Ok(in_cs as u32) }
+                        SemihostingResponse::SysClock {
+                            result: Ok(in_cs as u32),
+                        }
                     }
                     SemihostingCommand::SysException { reason } => {
                         //println!("SEMIHOST: EXCEPTION({:?})", reason);
@@ -186,18 +200,27 @@ fn load_bin(filename: String, target: &mut [u8]) -> Result<()> {
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("run", Some(run_matches)) => {
-            let device = run_matches.value_of("DEVICE").unwrap_or("cortex-m0");
-            println!("Value for device: {}", device);
+            let device = run_matches.value_of("device").unwrap_or("cortex-m0");
+            //println!("Value for device: {}", device);
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
-            println!("Using EXECUTABLE file: {}", filename);
+            //println!("Using EXECUTABLE file: {}", filename);
             let mut ram_mem = vec![0; 32768];
             let mut flash_mem = [0; 32768];
+            let instructions = match run_matches.value_of("instructions") {
+                Some(instr) => Some(instr.parse::<u64>().unwrap()),
+                None => None,
+            };
 
             load_bin(filename.to_string(), &mut flash_mem)
                 .chain_err(|| "loading of binary image failed")?;
             let mut hellow = FlashMemory::new(&mut flash_mem, 0x0);
             let mut ram = RAM::new(&mut ram_mem, 0x20000000);
-            run_bin(&mut hellow, &mut ram, run_matches.is_present("trace"));
+            run_bin(
+                &mut hellow,
+                &mut ram,
+                run_matches.is_present("trace"),
+                instructions,
+            );
         }
         ("devices", Some(_)) => {
             println!("cortex-m0");
@@ -217,10 +240,31 @@ fn main() {
         .subcommand(
             SubCommand::with_name("run")
                 .about("Load and run <EXECUTABLE>")
-                .args_from_usage(
-                    "-d, --device=[DEVICE] 'Use specific device'
-                     -t, --trace=          'Print instruction trace to stdout'
-                     <EXECUTABLE>          'Set executable to load'",
+                .arg(
+                    Arg::with_name("device")
+                        .short("d")
+                        .long("device")
+                        .help("Use specific device")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("trace")
+                        .short("t")
+                        .long("trace")
+                        .help("Print instruction trace to stdout"),
+                )
+                .arg(
+                    Arg::with_name("instructions")
+                        .short("n")
+                        .long("max_instructions")
+                        .help("Max number of instructions to run")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("EXECUTABLE")
+                        .index(1)
+                        .help("Set executable to load")
+                        .required(true),
                 ),
         )
         .subcommand(SubCommand::with_name("devices").about("List available devices"))
