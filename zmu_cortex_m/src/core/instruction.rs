@@ -261,7 +261,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::B { ref cond, imm32 } => write!(f, "B{} {}", cond, imm32),
+            Instruction::B { ref cond, imm32 } => write!(f, "B{}.N {}", cond, imm32),
             Instruction::BIC_reg {
                 rd,
                 rn,
