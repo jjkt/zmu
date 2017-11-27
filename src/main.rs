@@ -37,7 +37,13 @@ mod errors {
 
 use errors::*;
 
-fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool, instructions: Option<u64>) {
+fn run_bin<T: Bus, R: Bus>(
+    code: &mut T,
+    sram: &mut R,
+    trace: bool,
+    instructions: Option<u64>,
+    option_trace_start: Option<u64>,
+) {
     let mut internal_bus = zmu_cortex_m::bus::internal::InternalBus::default();
     let mut ahb = zmu_cortex_m::bus::ahblite::AHBLite::new(code, sram);
 
@@ -55,30 +61,44 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool, instructions
 
     if trace {
         let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
+        let trace_start = option_trace_start.unwrap_or(0);
 
 
         while running && (count < max_instructions) {
             let pc = core.r[Reg::PC.value()];
             let thumb = core.fetch();
             let instruction = core.decode(&thumb);
-            let count_before = count;
             core.step(&instruction, |imm32, r0, r1| {
                 if imm32 == 0xab {
                     semihost_triggered = true;
                     semihost = (r0, r1);
                 }
             });
+            if count >= trace_start {
+                writeln!(
+                    &mut trace_stdout,
+                    "{0:} {1:}        0x{2:04x}: \t{3:}\t{4:}",
+                    count,
+                    count + 1,
+                    pc,
+                    instruction,
+                    core
+                ).unwrap();
+
+                /*    writeln!(
+                &mut trace_stdout,
+                "{0:} {1:}\t0x{2:x}: \t{3:}",
+                count,
+                count+1,
+                pc,
+                instruction
+            ).unwrap();*/
+
+
+                trace_stdout.flush().unwrap();
+            }
             count += 1;
 
-            writeln!(
-                &mut trace_stdout,
-                "{0:} 0x{1:08x}\t{2:}\t{3:}",
-                count_before,
-                pc,
-                instruction,
-                core
-            ).unwrap();
-          
 
 
             if semihost_triggered {
@@ -105,7 +125,8 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool, instructions
                     SemihostingCommand::SysClock { .. } => {
                         let elapsed = start.elapsed();
                         let in_cs =
-                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
+                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
+
 
                         //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
                         SemihostingResponse::SysClock {
@@ -127,7 +148,6 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool, instructions
                 semihost_triggered = false;
             }
         }
-        trace_stdout.flush().unwrap();
     } else {
         while running && (count < max_instructions) {
             let thumb = core.fetch();
@@ -164,7 +184,7 @@ fn run_bin<T: Bus, R: Bus>(code: &mut T, sram: &mut R, trace: bool, instructions
                     SemihostingCommand::SysClock { .. } => {
                         let elapsed = start.elapsed();
                         let in_cs =
-                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 100_000;
+                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
 
                         //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
                         SemihostingResponse::SysClock {
@@ -201,12 +221,14 @@ fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("run", Some(run_matches)) => {
             let device = run_matches.value_of("device").unwrap_or("cortex-m0");
-            //println!("Value for device: {}", device);
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
-            //println!("Using EXECUTABLE file: {}", filename);
             let mut ram_mem = vec![0; 32768];
             let mut flash_mem = [0; 32768];
             let instructions = match run_matches.value_of("instructions") {
+                Some(instr) => Some(instr.parse::<u64>().unwrap()),
+                None => None,
+            };
+            let trace_start = match run_matches.value_of("trace_start") {
                 Some(instr) => Some(instr.parse::<u64>().unwrap()),
                 None => None,
             };
@@ -220,6 +242,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                 &mut ram,
                 run_matches.is_present("trace"),
                 instructions,
+                trace_start,
             );
         }
         ("devices", Some(_)) => {
@@ -258,6 +281,12 @@ fn main() {
                         .short("n")
                         .long("max_instructions")
                         .help("Max number of instructions to run")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("trace_start")
+                        .long("trace_start")
+                        .help("Instruction on which to start tracing")
                         .takes_value(true),
                 )
                 .arg(
