@@ -1137,6 +1137,21 @@ fn test_decode_ldm() {
 }
 
 #[test]
+fn test_decode_ldm2() {
+    // LDM R1!, {R3}
+    match decode_16(0xc908) {
+        Instruction::LDM { rn, registers } => {
+            assert!(rn == Reg::R1);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R3], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
 fn test_decode_stm() {
     // STM R2!, {R0, R1}
     match decode_16(0xc203) {
