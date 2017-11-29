@@ -184,7 +184,7 @@ where
             let operand2 = read_reg(core, rm);
 
 
-            let result = operand1 * operand2;
+            let result = operand1.wrapping_mul(operand2);
 
             core.r[rd.value() as usize] = result;
 
