@@ -1,15 +1,15 @@
 use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
 use core::operation::SRType;
 use bit_field::BitField;
-use core::instruction::Instruction;
+use core::instruction::{CPS_Effect, Instruction};
 use core::register::{Apsr, Reg};
 use core::Core;
 use bus::Bus;
 
 fn read_reg<T: Bus>(core: &mut Core<T>, r: &Reg) -> u32 {
     match *r {
-        Reg::PC => core.r[r.value()] + 4,
-        _ => core.r[r.value()],
+        Reg::PC => core.get_r(r) + 4,
+        _ => core.get_r(r),
     }
 }
 
@@ -35,8 +35,8 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd, result);
+            core.add_pc(2);
         }
         Instruction::ASR_imm {
             ref rd,
@@ -51,7 +51,7 @@ where
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd,result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -59,7 +59,30 @@ where
                 core.psr.set_c(carry);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
+        }
+        Instruction::ASR_reg {
+            ref rd,
+            ref rm,
+            ref rn,
+            ref setflags,
+        } => {
+            let shift_n = read_reg(core, rm).get_bits(0..8);
+            let (result, carry) = shift_c(
+                read_reg(core, rn),
+                SRType::ASR,
+                u32::from(shift_n),
+                core.psr.get_c(),
+            );
+            core.set_r(rd, result);
+
+            if *setflags {
+                core.psr.set_n(result.get_bit(31));
+                core.psr.set_z(result == 0);
+                core.psr.set_c(carry);
+            }
+
+            core.add_pc(2);
         }
         Instruction::BIC_reg {
             ref rd,
@@ -68,28 +91,59 @@ where
             ref setflags,
         } => {
             let result = read_reg(core, rn) & (read_reg(core, rm) ^ 0xffff_ffff);
-            core.r[rd.value()] = result;
+            core.set_r(rd,result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
+        Instruction::CPS { ref im } => {
+            if im == &CPS_Effect::IE {
+                core.primask = false;
+            } else {
+                core.primask = true;
+            }
+            core.add_pc(2);
+        }
+        Instruction::DMB => {
+            core.add_pc(2);
+        }
+        Instruction::DSB => {
+            core.add_pc(2);
+        }
+        Instruction::ISB => {
+            core.add_pc(2);
+        }
+/*        Instruction::MRS { ref rd, ref spec_reg } => {
+            
+            match spec_reg{
+                APSR => core.set_r(rd,core.psr),
+                IPSR => core.set_r(rd,core.psr),
+                MSP => core.set_r(rd,core.get_msp()),
+                PSP => core.set_r(rd,core.get_psp()),
+                PRIMASK => core.set_r(rd,core.primask),
+                CONTROL => core.set_r(rd,core.control),
+                _ => panic!("unsupported MRS operation");
+            }
+
+            core.add_pc(2);
+        }*/
         Instruction::MOV_reg {
             ref rd,
             ref rm,
             ref setflags,
         } => {
             let result = read_reg(core, rm);
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *rd != Reg::PC {
                 if *setflags {
                     core.psr.set_n(result.get_bit(31));
                     core.psr.set_z(result == 0);
                 }
-                core.r[Reg::PC.value()] += 2;
+                core.add_pc(2);
             }
         }
         Instruction::LSL_imm {
@@ -105,7 +159,7 @@ where
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -113,7 +167,7 @@ where
                 core.psr.set_c(carry);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::LSL_reg {
             ref rd,
@@ -128,7 +182,7 @@ where
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -136,7 +190,7 @@ where
                 core.psr.set_c(carry);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
 
         Instruction::LSR_imm {
@@ -152,7 +206,7 @@ where
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -160,7 +214,7 @@ where
                 core.psr.set_c(carry);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::LSR_reg {
             ref rd,
@@ -175,7 +229,7 @@ where
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -183,20 +237,20 @@ where
                 core.psr.set_c(carry);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::BL { imm32 } => {
             let pc = read_reg(core, &Reg::PC);
-            core.r[Reg::LR.value()] = pc | 0x01;
-            core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
+            core.set_r(&Reg::LR, pc | 0x01);
+            core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
         }
         Instruction::BKPT { imm32 } => {
-            bkpt_func(imm32, core.r[Reg::R0.value()], core.r[Reg::R1.value()]);
+            bkpt_func(imm32, core.get_r(&Reg::R0), core.get_r(&Reg::R1));
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::NOP => {
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::MUL {
             ref rd,
@@ -210,14 +264,14 @@ where
 
             let result = operand1.wrapping_mul(operand2);
 
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::ORR {
             ref rd,
@@ -230,14 +284,14 @@ where
 
             let result = r_n | r_m;
 
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::EOR_reg {
             ref rd,
@@ -250,14 +304,14 @@ where
 
             let result = r_n ^ r_m;
 
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::AND_reg {
             ref rd,
@@ -270,22 +324,24 @@ where
 
             let result = r_n & r_m;
 
-            core.r[rd.value() as usize] = result;
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::BX { ref rm } => {
-            core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
+            let r_m = read_reg(core, rm) & 0xffff_fffe;
+            core.set_r(&Reg::PC, r_m);
         }
         Instruction::BLX { ref rm } => {
             let pc = read_reg(core, &Reg::PC);
-            core.r[Reg::LR.value()] = (((pc - 2) >> 1) << 1) | 1;
-            core.r[Reg::PC.value()] = read_reg(core, rm) & 0xffff_fffe;
+            let value = read_reg(core, rm) & 0xffff_fffe;
+            core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
+            core.set_r(&Reg::PC, value);
         }
         Instruction::LDM {
             ref registers,
@@ -296,28 +352,29 @@ where
             let mut address = read_reg(core, rn);
 
             for reg in registers.iter() {
-                core.r[reg.value()] = core.bus.read32(address);
+                let value = core.bus.read32(address);
+                core.set_r(&reg, value);
                 address += 4;
             }
 
             if !registers.contains(rn) {
-                core.r[rn.value()] += regs_size;
+                core.add_r(rn, regs_size);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::MOV_imm {
-            rd,
+            ref rd,
             imm32,
             setflags,
         } => {
             let result = imm32 as u32;
-            core.r[rd.value()] = result;
+            core.set_r(rd,result);
             if setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::MVN_reg {
             ref rd,
@@ -325,19 +382,19 @@ where
             ref setflags,
         } => {
             let result = read_reg(core, rm) ^ 0xFFFF_FFFF;
-            core.r[rd.value()] = result;
+            core.set_r(rd,result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
             }
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::B { ref cond, imm32 } => if condition_passed(cond, &core.psr) {
             let pc = read_reg(core, &Reg::PC);
-            core.r[Reg::PC.value()] = ((pc as i32) + imm32) as u32;
+            core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
         } else {
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         },
 
         Instruction::CMP_imm { ref rn, imm32 } => {
@@ -347,7 +404,7 @@ where
             core.psr.set_z(result == 0);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::CMP_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
@@ -356,7 +413,7 @@ where
             core.psr.set_z(result == 0);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::CMN_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
@@ -365,40 +422,43 @@ where
             core.psr.set_z(result == 0);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
 
         Instruction::PUSH { ref registers } => {
             let regs_size = 4 * (registers.len() as u32);
-            let sp = core.get_sp();
+            let sp = core.get_r(&Reg::SP);
             let mut address = sp - regs_size;
 
             for reg in registers.iter() {
-                core.bus.write32(address, core.r[reg.value()]);
+                let value = core.get_r(&reg);
+                core.bus.write32(address, value);
                 address += 4;
             }
 
-            core.set_sp(sp - regs_size);
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(&Reg::SP, sp - regs_size);
+            core.add_pc(2);
         }
 
         Instruction::POP { ref registers } => {
             let regs_size = 4 * (registers.len() as u32);
-            let sp = core.get_sp();
+            let sp = core.get_r(&Reg::SP);
             let mut address = sp;
 
             for reg in registers.iter() {
                 if reg == Reg::PC {
-                    core.r[reg.value()] = core.bus.read32(address) & 0xffff_fffe;
+                    let value = core.bus.read32(address) & 0xffff_fffe;
+                    core.set_r(&reg, value);
                 } else {
-                    core.r[reg.value()] = core.bus.read32(address);
+                    let value = core.bus.read32(address);
+                    core.set_r(&reg, value);
                 }
                 address += 4;
             }
 
-            core.set_sp(sp + regs_size);
+            core.set_r(&Reg::SP, sp + regs_size);
             if !registers.contains(&Reg::PC) {
-                core.r[Reg::PC.value()] += 2;
+                core.add_pc(2);
             }
         }
 
@@ -408,8 +468,9 @@ where
             imm32,
         } => {
             let address = read_reg(core, rn) + imm32;
-            core.r[rt.value()] = core.bus.read32(address);
-            core.r[Reg::PC.value()] += 2;
+            let value = core.bus.read32(address);
+            core.set_r(rt, value);
+            core.add_pc(2);
         }
         Instruction::LDR_reg {
             ref rt,
@@ -417,8 +478,9 @@ where
             ref rm,
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
-            core.r[rt.value()] = core.bus.read32(address);
-            core.r[Reg::PC.value()] += 2;
+            let value = core.bus.read32(address);
+            core.set_r(rt,value);
+            core.add_pc(2);
         }
         Instruction::LDRB_imm {
             ref rt,
@@ -426,8 +488,9 @@ where
             imm32,
         } => {
             let address = read_reg(core, rn) + imm32;
-            core.r[rt.value()] = u32::from(core.bus.read8(address));
-            core.r[Reg::PC.value()] += 2;
+            let value = u32::from(core.bus.read8(address));
+            core.set_r(rt,value);
+            core.add_pc(2);
         }
         Instruction::LDRB_reg {
             ref rt,
@@ -435,8 +498,9 @@ where
             ref rm,
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
-            core.r[rt.value()] = u32::from(core.bus.read8(address));
-            core.r[Reg::PC.value()] += 2;
+            let value = u32::from(core.bus.read8(address));
+            core.set_r(rt,value);
+            core.add_pc(2);
         }
         Instruction::LDRH_imm {
             ref rt,
@@ -444,8 +508,9 @@ where
             imm32,
         } => {
             let address = read_reg(core, rn) + imm32;
-            core.r[rt.value()] = u32::from(core.bus.read16(address));
-            core.r[Reg::PC.value()] += 2;
+            let value = u32::from(core.bus.read16(address));
+            core.set_r(rt,value);
+            core.add_pc(2);
         }
         Instruction::LDRH_reg {
             ref rt,
@@ -453,8 +518,9 @@ where
             ref rm,
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
-            core.r[rt.value()] = u32::from(core.bus.read16(address));
-            core.r[Reg::PC.value()] += 2;
+            let value = u32::from(core.bus.read16(address));
+            core.set_r(rt,value);
+            core.add_pc(2);
         }
         Instruction::LDRSH_reg {
             ref rt,
@@ -463,8 +529,8 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let data = u32::from(core.bus.read16(address));
-            core.r[rt.value()] = sign_extend(data, 15, 32) as u32;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rt,sign_extend(data, 15, 32) as u32);
+            core.add_pc(2);
         }
         Instruction::LDRSB_reg {
             ref rt,
@@ -473,8 +539,8 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let data = u32::from(core.bus.read8(address));
-            core.r[rt.value()] = sign_extend(data, 7, 32) as u32;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rt,sign_extend(data, 7, 32) as u32);
+            core.add_pc(2);
         }
         Instruction::SBC_reg {
             ref rn,
@@ -494,8 +560,8 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,result);
+            core.add_pc(2);
         }
         Instruction::STM {
             ref registers,
@@ -506,14 +572,15 @@ where
             let mut address = read_reg(core, rn);
 
             for reg in registers.iter() {
-                core.bus.write32(address, core.r[reg.value()]);
+                let r = core.get_r(&reg);
+                core.bus.write32(address, r);
                 address += 4;
             }
 
             //wback always true
-            core.r[rn.value()] += regs_size;
+            core.add_r(rn, regs_size);
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::STR_imm {
             ref rt,
@@ -523,7 +590,7 @@ where
             let address = read_reg(core, rn) + imm32;
             let value = read_reg(core, rt);
             core.bus.write32(address, value);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::STR_reg {
             ref rt,
@@ -533,7 +600,7 @@ where
             let address = read_reg(core, rn) + read_reg(core, rm);
             let value = read_reg(core, rt);
             core.bus.write32(address, value);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::STRB_reg {
             ref rt,
@@ -543,7 +610,7 @@ where
             let address = read_reg(core, rn) + read_reg(core, rm);
             let value = read_reg(core, rt);
             core.bus.write8(address, value.get_bits(0..8) as u8);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::STRB_imm {
             ref rt,
@@ -553,7 +620,7 @@ where
             let address = read_reg(core, rn) + imm32;
             let value = read_reg(core, rt);
             core.bus.write8(address, value.get_bits(0..8) as u8);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::STRH_imm {
             ref rt,
@@ -563,7 +630,7 @@ where
             let address = read_reg(core, rn) + imm32;
             let value = read_reg(core, rt);
             core.bus.write16(address, value.get_bits(0..16) as u16);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::STRH_reg {
             ref rt,
@@ -573,12 +640,13 @@ where
             let address = read_reg(core, rn) + read_reg(core, rm);
             let value = read_reg(core, rt);
             core.bus.write16(address, value.get_bits(0..16) as u16);
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::LDR_lit { ref rt, imm32 } => {
             let base = read_reg(core, &Reg::PC) & 0xffff_fffc;
-            core.r[rt.value()] = core.bus.read32(base + imm32);
-            core.r[Reg::PC.value()] += 2;
+            let value = core.bus.read32(base + imm32);
+            core.set_r(rt, value);
+            core.add_pc(2);
         }
         Instruction::ADD_reg {
             ref rd,
@@ -589,19 +657,17 @@ where
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
 
-            if rd == &Reg::PC
-            {
-                core.r[rd.value()] = result & 0xffff_fffe;
-            }
-            else {
+            if rd == &Reg::PC {
+                core.set_r(rd,result & 0xffff_fffe);
+            } else {
                 if *setflags {
                     core.psr.set_n(result.get_bit(31));
                     core.psr.set_z(result == 0);
                     core.psr.set_c(carry);
                     core.psr.set_v(overflow);
                 }
-                core.r[rd.value()] = result;
-                core.r[Reg::PC.value()] += 2;
+                core.set_r(rd,result);
+                core.add_pc(2);
             }
         }
         Instruction::ADD_imm {
@@ -620,17 +686,22 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,result);
+            core.add_pc(2);
         }
         Instruction::ADR { ref rd, imm32 } => {
             let result = (read_reg(core, &Reg::PC) & 0xffff_fffc) + imm32;
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,result);
+            core.add_pc(2);
         }
-        Instruction::RSB_imm {ref rd, ref rn, imm32, ref setflags} =>{
+        Instruction::RSB_imm {
+            ref rd,
+            ref rn,
+            imm32,
+            ref setflags,
+        } => {
             let r_n = read_reg(core, rn);
-            let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32 , true);
+            let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32, true);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -639,8 +710,8 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,result);
+            core.add_pc(2);
         }
         Instruction::SUB_imm {
             ref rn,
@@ -658,8 +729,8 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.r[rd.value()] = result;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,result);
+            core.add_pc(2);
         }
         Instruction::SUB_reg {
             ref rn,
@@ -670,7 +741,7 @@ where
             let r_n = read_reg(core, rn);
             let r_m = read_reg(core, rm);
             let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
-            core.r[rd.value()] = result;
+            core.set_r(rd,result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -679,7 +750,7 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::TST_reg { ref rn, ref rm } => {
             let result = read_reg(core, rn) & read_reg(core, rm);
@@ -687,33 +758,32 @@ where
             core.psr.set_n(result.get_bit(31));
             core.psr.set_z(result == 0);
             //core.psr.set_c(carry); carry = shift_c()
-            core.r[Reg::PC.value()] += 2;
+            core.add_pc(2);
         }
         Instruction::UXTB { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.r[rd.value()] = rotated.get_bits(0..8);
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,rotated.get_bits(0..8));
+            core.add_pc(2);
         }
         Instruction::UXTH { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.r[rd.value()] = rotated.get_bits(0..16);
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,rotated.get_bits(0..16));
+            core.add_pc(2);
         }
         Instruction::SXTB { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.r[rd.value()] = sign_extend(rotated.get_bits(0..8), 7, 32) as u32;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
+            core.add_pc(2);
         }
         Instruction::SXTH { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.r[rd.value()] = sign_extend(rotated.get_bits(0..16), 15, 32) as u32;
-            core.r[Reg::PC.value()] += 2;
+            core.set_r(rd,sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
+            core.add_pc(2);
         }
-
         _ => panic!(
             "unimplemented instruction {} at {:#x}",
             instruction,
-            core.r[Reg::PC.value()]
-        ),
+            core.get_r(&Reg::PC)
+        )
     }
 }

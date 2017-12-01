@@ -1,8 +1,5 @@
-// `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
 
-// Import the macro. Don't forget to add `error-chain` in your
-// `Cargo.toml`!
 #[macro_use]
 extern crate error_chain;
 
@@ -10,12 +7,15 @@ extern crate bit_field;
 extern crate clap;
 extern crate tabwriter;
 extern crate zmu_cortex_m;
+extern crate goblin;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io::prelude::*;
 use std::io;
 use std::time::Instant;
+use std::fs::File;
 use tabwriter::TabWriter;
+use goblin::Object;
 
 use zmu_cortex_m::semihosting::semihost_return;
 use zmu_cortex_m::semihosting::{decode_semihostcmd, SemihostingCommand, SemihostingResponse,
@@ -65,7 +65,7 @@ fn run_bin<T: Bus, R: Bus>(
 
 
         while running && (count < max_instructions) {
-            let pc = core.r[Reg::PC.value()];
+            let pc = core.get_r(&Reg::PC);
             let thumb = core.fetch();
             let instruction = core.decode(&thumb);
             core.step(&instruction, |imm32, r0, r1| {
@@ -209,13 +209,6 @@ fn run_bin<T: Bus, R: Bus>(
     }
 }
 
-fn load_bin(filename: String, target: &mut [u8]) -> Result<()> {
-    use std::fs::File;
-    let mut f = File::open(filename).chain_err(|| "unable to open file")?;
-    f.read(target).chain_err(|| "failed to read file")?;
-
-    Ok(())
-}
 
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
@@ -233,8 +226,30 @@ fn run(args: &ArgMatches) -> Result<()> {
                 None => None,
             };
 
-            load_bin(filename.to_string(), &mut flash_mem)
-                .chain_err(|| "loading of binary image failed")?;
+            let buffer = { let mut v = Vec::new(); let mut f = File::open(&filename).chain_err(|| "unable to open file")?; 
+                            f.read_to_end(&mut v).chain_err(|| "failed to read file")?; v};
+            let res = Object::parse(&buffer).unwrap();
+            match res {
+                Object::Elf(elf) => {
+                    //println!("elf: {:#?}", &elf);
+                    for ph in elf.program_headers {
+                        if ph.p_type == goblin::elf::program_header::PT_LOAD {
+                        println!("load: {} bytes from offset 0x{:x} to addr 0x{:x}", ph.p_filesz, ph.p_offset, ph.p_paddr);
+                        let dst_addr = ph.p_paddr as usize;
+                        let dst_end_addr = (ph.p_paddr+ph.p_filesz) as usize;
+
+                        let src_addr = ph.p_offset as usize;
+                        let src_end_addr = (ph.p_offset+ph.p_filesz) as usize;
+                        flash_mem[dst_addr..dst_end_addr].copy_from_slice(&buffer[src_addr..src_end_addr]);
+                        }
+                    }
+                },
+                _ => {
+                    panic!("unsupported file format");
+                }
+            }
+
+
             let mut hellow = FlashMemory::new(&mut flash_mem, 0x0);
             let mut ram = RAM::new(&mut ram_mem, 0x20000000);
             run_bin(

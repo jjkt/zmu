@@ -59,7 +59,7 @@ pub enum Instruction {
     CMN_reg { rn: Reg, rm: Reg },
     CMP_imm { rn: Reg, imm32: u32 },
     CMP_reg { rm: Reg, rn: Reg },
-    CPS,
+    CPS { im: CPS_Effect },
     DMB,
     DSB,
     EOR_reg {
@@ -176,6 +176,23 @@ pub enum Instruction {
     YIELD,
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
+pub enum CPS_Effect {
+    IE, // Interrupt enable
+    ID, // Interrupt disable
+}
+
+impl fmt::Display for CPS_Effect {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            CPS_Effect::IE => write!(f, "IE"),
+            CPS_Effect::ID => write!(f, "ID"),
+        }
+    }
+}
+
+
 use std::fmt;
 
 
@@ -282,7 +299,7 @@ impl fmt::Display for Instruction {
             Instruction::CMN_reg { rn, rm } => write!(f, "CMN {}, {}", rn, rm),
             Instruction::CMP_imm { rn, imm32 } => write!(f, "CMP {}, #{}", rn, imm32),
             Instruction::CMP_reg { rn, rm } => write!(f, "CMP {}, {}", rn, rm),
-            Instruction::CPS => write!(f, "CPS"),
+            Instruction::CPS { im } => write!(f, "CPS{}", im),
             Instruction::DMB => write!(f, "DMB"),
             Instruction::DSB => write!(f, "DSB"),
             Instruction::EOR_reg {
@@ -301,7 +318,9 @@ impl fmt::Display for Instruction {
             Instruction::ISB => write!(f, "ISB"),
             Instruction::LDM { rn, registers } => write!(f, "LDM {}, {{{:?}}}", rn, registers),
             Instruction::LDR_reg { rt, rn, rm } => write!(f, "LDR {}, [{}, {}]", rt, rn, rm),
-            Instruction::LDR_imm { rt, rn, imm32 } => write!(f, "LDR {}, [{},#0x{:x}]", rt, rn, imm32),
+            Instruction::LDR_imm { rt, rn, imm32 } => {
+                write!(f, "LDR {}, [{},#0x{:x}]", rt, rn, imm32)
+            }
             Instruction::LDR_lit { rt, imm32 } => write!(f, "LDR {}, [PC, #0x{:x}]", rt, imm32),
             Instruction::LDRB_imm { rt, rn, imm32 } => {
                 write!(f, "LDRB {}, [{},#0x{:x}]", rt, rn, imm32)

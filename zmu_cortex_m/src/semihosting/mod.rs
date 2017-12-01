@@ -123,22 +123,22 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
 pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingResponse) {
     match *response {
         SemihostingResponse::SysOpen { result } => match result {
-            Ok(handle) => core.r[Reg::R0.value()] = handle,
-            Err(error_code) => core.r[Reg::R0.value()] = error_code as u32,
+            Ok(handle) => core.set_r(&Reg::R0,handle),
+            Err(error_code) => core.set_r(&Reg::R0,error_code as u32),
         },
         SemihostingResponse::SysException { success } => { /* no core operation needed. */ }
         SemihostingResponse::SysClose { success } => if success {
-            core.r[Reg::R0.value()] = 0;
+            core.set_r(&Reg::R0, 0);
         } else {
-            core.r[Reg::R0.value()] = (-1_i32) as u32;
+            core.set_r(&Reg::R0, (-1_i32) as u32);
         },
         SemihostingResponse::SysWrite { result } => match result {
-            Ok(_) => core.r[Reg::R0.value()] = 0,
-            Err(unwritten_bytes) => core.r[Reg::R0.value()] = unwritten_bytes as u32,
+            Ok(_) => core.set_r(&Reg::R0,0),
+            Err(unwritten_bytes) => core.set_r(&Reg::R0,unwritten_bytes as u32),
         },
         SemihostingResponse::SysClock { result } => match result {
-            Ok(centiseconds) => core.r[Reg::R0.value()] = centiseconds,
-            Err(error_code) => core.r[Reg::R0.value()] = error_code as u32,
+            Ok(centiseconds) => core.set_r(&Reg::R0,centiseconds),
+            Err(error_code) => core.set_r(&Reg::R0,error_code as u32),
         },
     }
 }

@@ -41,15 +41,6 @@ pub trait Epsr {
     fn get_t(&self) -> bool;
 }
 
-pub trait Primask {
-    fn get_primask(&self) -> bool;
-}
-
-pub trait ControlRegister {
-    fn get_active_stack_pointer(&self) -> StackPointer;
-}
-
-
 impl Apsr for PSR {
     fn get_n(&self) -> bool {
         (*self).value.get_bit(31)
@@ -130,6 +121,8 @@ pub enum SpecialReg {
     PRIMASK,
     CONTROL,
 }
+
+
 
 impl CLike for Reg {
     fn to_u32(&self) -> u32 {
@@ -224,5 +217,19 @@ impl fmt::Display for SpecialReg {
             SpecialReg::PRIMASK => write!(f, "PRIMASK"),
             SpecialReg::CONTROL => write!(f, "CONTROL"),
         }
+    }
+}
+
+
+pub struct Control
+{
+    pub nPriv : bool,
+    pub spSel : bool
+}
+
+impl From<Control> for u8
+{
+    fn from(control : Control) -> Self{
+        control.nPriv as u8 + ((control.spSel as u8) << 1)
     }
 }
