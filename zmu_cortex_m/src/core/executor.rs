@@ -1,8 +1,8 @@
 use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
 use core::operation::SRType;
 use bit_field::BitField;
-use core::instruction::{CPS_Effect, Instruction};
-use core::register::{Apsr, Reg};
+use core::instruction::{CpsEffect, Instruction};
+use core::register::{Apsr, Ipsr, Reg};
 use core::Core;
 use bus::Bus;
 
@@ -51,7 +51,7 @@ where
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
-            core.set_r(rd,result);
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -91,7 +91,7 @@ where
             ref setflags,
         } => {
             let result = read_reg(core, rn) & (read_reg(core, rm) ^ 0xffff_ffff);
-            core.set_r(rd,result);
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -100,7 +100,7 @@ where
             core.add_pc(2);
         }
         Instruction::CPS { ref im } => {
-            if im == &CPS_Effect::IE {
+            if im == &CpsEffect::IE {
                 core.primask = false;
             } else {
                 core.primask = true;
@@ -116,20 +116,25 @@ where
         Instruction::ISB => {
             core.add_pc(2);
         }
-/*        Instruction::MRS { ref rd, ref spec_reg } => {
-            
-            match spec_reg{
-                APSR => core.set_r(rd,core.psr),
-                IPSR => core.set_r(rd,core.psr),
-                MSP => core.set_r(rd,core.get_msp()),
-                PSP => core.set_r(rd,core.get_psp()),
-                PRIMASK => core.set_r(rd,core.primask),
-                CONTROL => core.set_r(rd,core.control),
-                _ => panic!("unsupported MRS operation");
+        Instruction::MRS {
+            ref rd,
+            ref spec_reg,
+        } => {
+            match spec_reg {
+                //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
+                IPSR => {
+                    let ipsr = core.psr.get_exception_number() as u32;
+                    core.set_r(rd, ipsr);
+                }
+                //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
+                //PSP => core.set_r(rd, core.get_r(Reg::PSP),
+                //PRIMASK => core.set_r(rd,core.primask as u32),
+                //CONTROL => core.set_r(rd,core.control as u32),
+                _ => panic!("unsupported MRS operation"),
             }
 
-            core.add_pc(2);
-        }*/
+            core.add_pc(4);
+        }
         Instruction::MOV_reg {
             ref rd,
             ref rm,
@@ -369,7 +374,7 @@ where
             setflags,
         } => {
             let result = imm32 as u32;
-            core.set_r(rd,result);
+            core.set_r(rd, result);
             if setflags {
                 core.psr.set_n(result.get_bit(31));
                 core.psr.set_z(result == 0);
@@ -382,7 +387,7 @@ where
             ref setflags,
         } => {
             let result = read_reg(core, rm) ^ 0xFFFF_FFFF;
-            core.set_r(rd,result);
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -479,7 +484,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let value = core.bus.read32(address);
-            core.set_r(rt,value);
+            core.set_r(rt, value);
             core.add_pc(2);
         }
         Instruction::LDRB_imm {
@@ -489,7 +494,7 @@ where
         } => {
             let address = read_reg(core, rn) + imm32;
             let value = u32::from(core.bus.read8(address));
-            core.set_r(rt,value);
+            core.set_r(rt, value);
             core.add_pc(2);
         }
         Instruction::LDRB_reg {
@@ -499,7 +504,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let value = u32::from(core.bus.read8(address));
-            core.set_r(rt,value);
+            core.set_r(rt, value);
             core.add_pc(2);
         }
         Instruction::LDRH_imm {
@@ -509,7 +514,7 @@ where
         } => {
             let address = read_reg(core, rn) + imm32;
             let value = u32::from(core.bus.read16(address));
-            core.set_r(rt,value);
+            core.set_r(rt, value);
             core.add_pc(2);
         }
         Instruction::LDRH_reg {
@@ -519,7 +524,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let value = u32::from(core.bus.read16(address));
-            core.set_r(rt,value);
+            core.set_r(rt, value);
             core.add_pc(2);
         }
         Instruction::LDRSH_reg {
@@ -529,7 +534,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let data = u32::from(core.bus.read16(address));
-            core.set_r(rt,sign_extend(data, 15, 32) as u32);
+            core.set_r(rt, sign_extend(data, 15, 32) as u32);
             core.add_pc(2);
         }
         Instruction::LDRSB_reg {
@@ -539,7 +544,7 @@ where
         } => {
             let address = read_reg(core, rn) + read_reg(core, rm);
             let data = u32::from(core.bus.read8(address));
-            core.set_r(rt,sign_extend(data, 7, 32) as u32);
+            core.set_r(rt, sign_extend(data, 7, 32) as u32);
             core.add_pc(2);
         }
         Instruction::SBC_reg {
@@ -560,7 +565,7 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.set_r(rd,result);
+            core.set_r(rd, result);
             core.add_pc(2);
         }
         Instruction::STM {
@@ -658,7 +663,7 @@ where
                 add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
 
             if rd == &Reg::PC {
-                core.set_r(rd,result & 0xffff_fffe);
+                core.set_r(rd, result & 0xffff_fffe);
             } else {
                 if *setflags {
                     core.psr.set_n(result.get_bit(31));
@@ -666,7 +671,7 @@ where
                     core.psr.set_c(carry);
                     core.psr.set_v(overflow);
                 }
-                core.set_r(rd,result);
+                core.set_r(rd, result);
                 core.add_pc(2);
             }
         }
@@ -686,12 +691,12 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.set_r(rd,result);
+            core.set_r(rd, result);
             core.add_pc(2);
         }
         Instruction::ADR { ref rd, imm32 } => {
             let result = (read_reg(core, &Reg::PC) & 0xffff_fffc) + imm32;
-            core.set_r(rd,result);
+            core.set_r(rd, result);
             core.add_pc(2);
         }
         Instruction::RSB_imm {
@@ -710,7 +715,7 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.set_r(rd,result);
+            core.set_r(rd, result);
             core.add_pc(2);
         }
         Instruction::SUB_imm {
@@ -729,7 +734,7 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.set_r(rd,result);
+            core.set_r(rd, result);
             core.add_pc(2);
         }
         Instruction::SUB_reg {
@@ -741,7 +746,7 @@ where
             let r_n = read_reg(core, rn);
             let r_m = read_reg(core, rm);
             let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
-            core.set_r(rd,result);
+            core.set_r(rd, result);
 
             if *setflags {
                 core.psr.set_n(result.get_bit(31));
@@ -762,28 +767,28 @@ where
         }
         Instruction::UXTB { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.set_r(rd,rotated.get_bits(0..8));
+            core.set_r(rd, rotated.get_bits(0..8));
             core.add_pc(2);
         }
         Instruction::UXTH { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.set_r(rd,rotated.get_bits(0..16));
+            core.set_r(rd, rotated.get_bits(0..16));
             core.add_pc(2);
         }
         Instruction::SXTB { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.set_r(rd,sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
+            core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
             core.add_pc(2);
         }
         Instruction::SXTH { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
-            core.set_r(rd,sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
+            core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
             core.add_pc(2);
         }
         _ => panic!(
             "unimplemented instruction {} at {:#x}",
             instruction,
             core.get_r(&Reg::PC)
-        )
+        ),
     }
 }

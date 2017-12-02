@@ -86,6 +86,12 @@ impl Epsr for PSR {
     }
 }
 
+impl Ipsr for PSR {
+    fn get_exception_number(&self) -> u8 {
+        (*self).value.get_bits(0..6) as u8
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
 pub enum Reg {
@@ -116,6 +122,7 @@ pub enum SpecialReg {
     XPSR,
     IPSR,
     EPSR,
+    IEPSR,
     MSP,
     PSP,
     PRIMASK,
@@ -179,6 +186,24 @@ impl Reg {
     }
 }
 
+impl SpecialReg {
+    pub fn from_u16(n: u16) -> Option<SpecialReg> {
+        match n {
+            0 => Some(SpecialReg::APSR),
+            1 => Some(SpecialReg::IAPSR),
+            2 => Some(SpecialReg::EAPSR),
+            3 => Some(SpecialReg::XPSR),
+            5 => Some(SpecialReg::IPSR),
+            6 => Some(SpecialReg::EPSR),
+            7 => Some(SpecialReg::IEPSR),
+            8 => Some(SpecialReg::MSP),
+            9 => Some(SpecialReg::PSP),
+            16 => Some(SpecialReg::PRIMASK),
+            20 => Some(SpecialReg::CONTROL),
+            _ => None,
+        }
+    }
+}
 
 impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -212,6 +237,7 @@ impl fmt::Display for SpecialReg {
             SpecialReg::XPSR => write!(f, "XPSR"),
             SpecialReg::IPSR => write!(f, "IPSR"),
             SpecialReg::EPSR => write!(f, "EPSR"),
+            SpecialReg::IEPSR => write!(f, "IEPSR"),
             SpecialReg::MSP => write!(f, "MSP"),
             SpecialReg::PSP => write!(f, "PSP"),
             SpecialReg::PRIMASK => write!(f, "PRIMASK"),
@@ -221,15 +247,13 @@ impl fmt::Display for SpecialReg {
 }
 
 
-pub struct Control
-{
-    pub nPriv : bool,
-    pub spSel : bool
+pub struct Control {
+    pub n_priv: bool,
+    pub sp_sel: bool,
 }
 
-impl From<Control> for u8
-{
-    fn from(control : Control) -> Self{
-        control.nPriv as u8 + ((control.spSel as u8) << 1)
+impl From<Control> for u8 {
+    fn from(control: Control) -> Self {
+        control.n_priv as u8 + ((control.sp_sel as u8) << 1)
     }
 }

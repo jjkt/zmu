@@ -38,7 +38,7 @@ impl fmt::Display for ThumbCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ThumbCode::Thumb16 {half_word} => write!(f, "0x{:x}", half_word),
-            ThumbCode::Thumb32 {half_word, half_word2}=> write!(f, "0x{}, 0x{}", half_word, half_word2),
+            ThumbCode::Thumb32 {half_word, half_word2}=> write!(f, "0x{:x}{:x}", half_word2, half_word),
         }
     }
 }
@@ -77,7 +77,7 @@ impl<'a, T: Bus> Core<'a, T> {
             mode: ProcessorMode::ThreadMode,
             psr: PSR { value: 0 },
             primask: false,
-            control: Control { nPriv: false, spSel : false},
+            control: Control { n_priv: false, sp_sel : false},
             r0_12: [0; 13],
             pc : 0,
             msp : 0,
@@ -94,7 +94,7 @@ impl<'a, T: Bus> Core<'a, T> {
     pub fn get_r(&self, r : &Reg) -> u32 {
         match *r {
                 Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => self.r0_12[r.value()],
-    Reg::SP => if self.control.spSel {self.msp} else { self.psp},
+    Reg::SP => if self.control.sp_sel {self.msp} else { self.psp},
     Reg::LR => self.lr, 
     Reg::PC => self.pc
 
@@ -106,7 +106,7 @@ impl<'a, T: Bus> Core<'a, T> {
     pub fn set_r(&mut self, r : &Reg, value: u32) {
         match *r {
                 Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => self.r0_12[r.value()] = value,
-    Reg::SP => if self.control.spSel {self.msp = value} else { self.psp = value},
+    Reg::SP => if self.control.sp_sel {self.msp = value} else { self.psp = value},
     Reg::LR => self.lr = value, 
     Reg::PC => self.pc = value
 
@@ -123,7 +123,7 @@ impl<'a, T: Bus> Core<'a, T> {
     pub fn add_r(&mut self, r : &Reg, value: u32) {
         match *r {
                 Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => self.r0_12[r.value()] += value,
-    Reg::SP => if self.control.spSel {self.msp = value} else { self.psp += value},
+    Reg::SP => if self.control.sp_sel {self.msp = value} else { self.psp += value},
     Reg::LR => self.lr += value, 
     Reg::PC => self.pc += value
 

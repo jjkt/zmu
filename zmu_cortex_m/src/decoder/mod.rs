@@ -3,7 +3,7 @@ use core::instruction::Instruction;
 use core::ThumbCode;
 
 #[cfg(test)]
-use core::register::Reg;
+use core::register::{Reg, SpecialReg};
 
 #[cfg(test)]
 use core::condition::Condition;
@@ -23,6 +23,8 @@ mod bkpt;
 
 mod cmn;
 mod cmp;
+mod control;
+mod cps;
 
 mod eor;
 
@@ -37,6 +39,8 @@ mod lsr;
 mod mov;
 mod mvn;
 mod mul;
+mod mrs;
+mod msr;
 
 mod nop;
 mod orr;
@@ -70,6 +74,8 @@ use decoder::bkpt::*;
 
 use decoder::cmn::*;
 use decoder::cmp::*;
+use decoder::control::*;
+use decoder::cps::*;
 
 use decoder::eor::*;
 
@@ -85,6 +91,8 @@ use decoder::lsr::*;
 use decoder::mov::*;
 use decoder::mul::*;
 use decoder::mvn::*;
+use decoder::mrs::*;
+use decoder::msr::*;
 
 use decoder::nop::*;
 use decoder::orr::*;
@@ -249,6 +257,7 @@ pub fn decode_16(command: u16) -> Instruction {
                     0b101100000 => decode_ADD_SP_imm_t2(command),
                     0b101100001 => decode_SUB_SP_imm_t1(command),
                     0b101111110 => decode_NOP_t1(command),
+                    0b101101100 => decode_CPS_t1(command),
                     0b101100100 => if command.get_bit(6) {
                         decode_SXTB_t1(command)
                     } else {
@@ -297,10 +306,20 @@ pub fn decode_16(command: u16) -> Instruction {
 
 //A 5.3.1 Branch and misc (thumb32)
 pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Instruction {
-    let op2 = (t2 >> 12) & 0x07;
+    let op2 = t2.get_bits(12..15);
+    let op1 = t1.get_bits(4..11);
 
     match op2 {
         0x7 | 0x5 => decode_bl(t1, t2),
+        0 => match op1 {
+            0b0111000 | 0b0111001 => decode_msr_reg(t1, t2),
+            0b0111011 => decode_control(t1, t2),
+            0b0111111 | 0b0111110 => decode_mrs(t1, t2),
+            _ => Instruction::UDF {
+                imm32: 0,
+                opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
+            },
+        },
         _ => Instruction::UDF {
             imm32: 0,
             opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
@@ -1336,11 +1355,43 @@ fn test_decode_sxth_reg() {
 fn test_decode_rsb_imm() {
     // RSB R2, R0, #0
     match decode_16(0x4242) {
-        Instruction::RSB_imm {rd, rn, imm32, setflags} =>{
+        Instruction::RSB_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => {
             assert_eq!(rd, Reg::R2);
             assert_eq!(rn, Reg::R0);
             assert_eq!(imm32, 0);
-            assert_eq!(setflags,true);
+            assert_eq!(setflags, true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_mrs() {
+    // MRS R0, ipsr
+    match decode_32(0xf3ef, 0x8005) {
+        Instruction::MRS { rd, spec_reg } => {
+            assert_eq!(rd, Reg::R0);
+            assert_eq!(spec_reg, SpecialReg::IPSR);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_cpsid() {
+    // CPSID i
+    match decode_16(0xB672) {
+        Instruction::CPS { im } => {
+            assert_eq!(rd, CpsEffect::ID);
         }
         _ => {
             assert!(false);

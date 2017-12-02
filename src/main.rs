@@ -5,9 +5,9 @@ extern crate error_chain;
 
 extern crate bit_field;
 extern crate clap;
+extern crate goblin;
 extern crate tabwriter;
 extern crate zmu_cortex_m;
-extern crate goblin;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io::prelude::*;
@@ -215,7 +215,7 @@ fn run(args: &ArgMatches) -> Result<()> {
         ("run", Some(run_matches)) => {
             let device = run_matches.value_of("device").unwrap_or("cortex-m0");
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
-            let mut ram_mem = vec![0; 32768];
+            let mut ram_mem = vec![0; 128 * 1024];
             let mut flash_mem = [0; 32768];
             let instructions = match run_matches.value_of("instructions") {
                 Some(instr) => Some(instr.parse::<u64>().unwrap()),
@@ -226,24 +226,36 @@ fn run(args: &ArgMatches) -> Result<()> {
                 None => None,
             };
 
-            let buffer = { let mut v = Vec::new(); let mut f = File::open(&filename).chain_err(|| "unable to open file")?; 
-                            f.read_to_end(&mut v).chain_err(|| "failed to read file")?; v};
+            let buffer = {
+                let mut v = Vec::new();
+                let mut f = File::open(&filename).chain_err(|| "unable to open file")?;
+                f.read_to_end(&mut v).chain_err(|| "failed to read file")?;
+                v
+            };
             let res = Object::parse(&buffer).unwrap();
             match res {
                 Object::Elf(elf) => {
                     //println!("elf: {:#?}", &elf);
                     for ph in elf.program_headers {
                         if ph.p_type == goblin::elf::program_header::PT_LOAD {
-                        println!("load: {} bytes from offset 0x{:x} to addr 0x{:x}", ph.p_filesz, ph.p_offset, ph.p_paddr);
-                        let dst_addr = ph.p_paddr as usize;
-                        let dst_end_addr = (ph.p_paddr+ph.p_filesz) as usize;
+                            println!(
+                                "load: {} bytes from offset 0x{:x} to addr 0x{:x}",
+                                ph.p_filesz,
+                                ph.p_offset,
+                                ph.p_paddr
+                            );
+                            if ph.p_filesz > 0 {
+                                let dst_addr = ph.p_paddr as usize;
+                                let dst_end_addr = (ph.p_paddr + ph.p_filesz) as usize;
 
-                        let src_addr = ph.p_offset as usize;
-                        let src_end_addr = (ph.p_offset+ph.p_filesz) as usize;
-                        flash_mem[dst_addr..dst_end_addr].copy_from_slice(&buffer[src_addr..src_end_addr]);
+                                let src_addr = ph.p_offset as usize;
+                                let src_end_addr = (ph.p_offset + ph.p_filesz) as usize;
+                                flash_mem[dst_addr..dst_end_addr]
+                                    .copy_from_slice(&buffer[src_addr..src_end_addr]);
+                            }
                         }
                     }
-                },
+                }
                 _ => {
                     panic!("unsupported file format");
                 }

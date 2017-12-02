@@ -59,7 +59,7 @@ pub enum Instruction {
     CMN_reg { rn: Reg, rm: Reg },
     CMP_imm { rn: Reg, imm32: u32 },
     CMP_reg { rm: Reg, rn: Reg },
-    CPS { im: CPS_Effect },
+    CPS { im: CpsEffect },
     DMB,
     DSB,
     EOR_reg {
@@ -178,16 +178,16 @@ pub enum Instruction {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
-pub enum CPS_Effect {
+pub enum CpsEffect {
     IE, // Interrupt enable
     ID, // Interrupt disable
 }
 
-impl fmt::Display for CPS_Effect {
+impl fmt::Display for CpsEffect {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            CPS_Effect::IE => write!(f, "IE"),
-            CPS_Effect::ID => write!(f, "ID"),
+            CpsEffect::IE => write!(f, "IE"),
+            CpsEffect::ID => write!(f, "ID"),
         }
     }
 }
