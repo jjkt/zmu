@@ -44,7 +44,7 @@ fn run_bin<T: Bus, R: Bus>(
     instructions: Option<u64>,
     option_trace_start: Option<u64>,
 ) {
-    let mut internal_bus = zmu_cortex_m::bus::internal::InternalBus::default();
+    let mut internal_bus = zmu_cortex_m::bus::internal::InternalBus::new();
     let mut ahb = zmu_cortex_m::bus::ahblite::AHBLite::new(code, sram);
 
     let mut bus = zmu_cortex_m::bus::busmatrix::BusMatrix::new(&mut internal_bus, &mut ahb);
@@ -213,7 +213,7 @@ fn run_bin<T: Bus, R: Bus>(
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("run", Some(run_matches)) => {
-            let device = run_matches.value_of("device").unwrap_or("cortex-m0");
+            let _device = run_matches.value_of("device").unwrap_or("cortex-m0");
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
             let mut ram_mem = vec![0; 128 * 1024];
             let mut flash_mem = [0; 32768];
