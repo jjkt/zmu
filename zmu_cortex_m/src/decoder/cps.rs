@@ -1,5 +1,4 @@
 use bit_field::BitField;
-use core::register::Reg;
 use core::instruction::{CpsEffect, Instruction};
 
 #[allow(non_snake_case)]

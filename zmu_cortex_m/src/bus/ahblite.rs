@@ -25,9 +25,7 @@ where
     R: Bus,
 {
     fn read16(&mut self, addr: u32) -> u16 {
-
-        if addr.get_bit(0)
-        {
+        if addr.get_bit(0) {
             panic!("unaliged read16 addr 0x{:x}", addr);
         }
 
@@ -50,8 +48,7 @@ where
     }
 
     fn read32(&mut self, addr: u32) -> u32 {
-        if addr.get_bits(0..2) != 0
-        {
+        if addr.get_bits(0..2) != 0 {
             panic!("unaliged read32 addr 0x{:x}", addr);
         }
         if self.code.in_range(addr) {
@@ -64,8 +61,7 @@ where
     }
 
     fn write32(&mut self, addr: u32, value: u32) {
-        if addr.get_bits(0..2) != 0
-        {
+        if addr.get_bits(0..2) != 0 {
             panic!("unaliged write32 addr 0x{:x}", addr);
         }
         if self.code.in_range(addr) {
@@ -78,8 +74,7 @@ where
     }
 
     fn write16(&mut self, addr: u32, value: u16) {
-        if addr.get_bit(0)
-        {
+        if addr.get_bit(0) {
             panic!("unaliged write16 addr 0x{:x}", addr);
         }
         if self.code.in_range(addr) {
@@ -102,6 +97,6 @@ where
     }
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
-        true
+        self.code.in_range(addr) || self.sram.in_range(addr)
     }
 }

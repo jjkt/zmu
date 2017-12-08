@@ -2,7 +2,7 @@ use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_
 use core::operation::SRType;
 use bit_field::BitField;
 use core::instruction::{CpsEffect, Instruction};
-use core::register::{Apsr, Ipsr, Reg};
+use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
 use bus::Bus;
 
@@ -122,15 +122,40 @@ where
         } => {
             match spec_reg {
                 //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
-                IPSR => {
-                    let ipsr = core.psr.get_exception_number() as u32;
-                    core.set_r(rd, ipsr);
+                &SpecialReg::IPSR => {
+                    let ipsr_val = core.psr.get_exception_number() as u32;
+                    core.set_r(rd, ipsr_val);
                 }
                 //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
                 //PSP => core.set_r(rd, core.get_r(Reg::PSP),
-                //PRIMASK => core.set_r(rd,core.primask as u32),
+                &SpecialReg::PRIMASK => {
+                    let primask = core.primask as u32;
+                    core.set_r(rd, primask);
+                }
                 //CONTROL => core.set_r(rd,core.control as u32),
                 _ => panic!("unsupported MRS operation"),
+            }
+
+            core.add_pc(4);
+        }
+        Instruction::MSR_reg {
+            ref rn,
+            ref spec_reg,
+        } => {
+            match spec_reg {
+                //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
+                /*&SpecialReg::IPSR => {
+                    let ipsr_val = core.psr.get_exception_number() as u32;
+                    core.set_r(rd, ipsr_val);
+                }*/
+                //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
+                //PSP => core.set_r(rd, core.get_r(Reg::PSP),
+                &SpecialReg::PRIMASK => {
+                    let primask = core.get_r(rn) & 1 == 1;
+                    core.primask = primask;
+                }
+                //CONTROL => core.set_r(rd,core.control as u32),
+                _ => panic!("unsupported MSR operation"),
             }
 
             core.add_pc(4);
