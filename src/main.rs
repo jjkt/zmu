@@ -17,15 +17,10 @@ use std::fs::File;
 use tabwriter::TabWriter;
 use goblin::Object;
 
-use zmu_cortex_m::semihosting::semihost_return;
-use zmu_cortex_m::semihosting::{decode_semihostcmd, SemihostingCommand, SemihostingResponse,
-                                SysExceptionReason};
-use zmu_cortex_m::core::Core;
-use zmu_cortex_m::core::register::Reg;
-use zmu_cortex_m::bus::Bus;
+use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
+use zmu_cortex_m::core::instruction::Instruction;
 
-use zmu_cortex_m::memory::ram::RAM;
-use zmu_cortex_m::memory::flash::FlashMemory;
+use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -37,176 +32,84 @@ mod errors {
 
 use errors::*;
 
-fn run_bin<T: Bus, R: Bus>(
-    code: &mut T,
-    sram: &mut R,
-    trace: bool,
-    instructions: Option<u64>,
-    option_trace_start: Option<u64>,
-) {
-    let mut internal_bus = zmu_cortex_m::bus::internal::InternalBus::new();
-    let mut ahb = zmu_cortex_m::bus::ahblite::AHBLite::new(code, sram);
-
-    let mut bus = zmu_cortex_m::bus::busmatrix::BusMatrix::new(&mut internal_bus, &mut ahb);
-
-    let mut core = Core::new(&mut bus);
-    let mut running = true;
-    let mut semihost = (0, 0);
-    let mut semihost_triggered = false;
-
-    core.reset();
+fn run_bin(code: &[u8], trace: bool, instructions: Option<u64>, option_trace_start: Option<u64>) {
+    let _max_instructions = instructions.unwrap_or(0xffff_ffff_ffff_ffff);
     let start = Instant::now();
-    let max_instructions = instructions.unwrap_or(0xffff_ffff_ffff_ffff);
-    let mut count = 0;
 
-    if trace {
-        let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
-        let trace_start = option_trace_start.unwrap_or(0);
-
-
-        while running && (count < max_instructions) {
-            let pc = core.get_r(&Reg::PC);
-            let thumb = core.fetch();
-            let instruction = core.decode(&thumb);
-            core.step(&instruction, |imm32, r0, r1| {
-                if imm32 == 0xab {
-                    semihost_triggered = true;
-                    semihost = (r0, r1);
+    let semihost_func = |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+        match semihost_cmd {
+            &SemihostingCommand::SysOpen { .. } => {
+                //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
+                SemihostingResponse::SysOpen { result: Ok(1) }
+            }
+            &SemihostingCommand::SysClose { .. } => {
+                //println!("SEMIHOST: SYS_CLOSE({})", handle);
+                SemihostingResponse::SysClose { success: true }
+            }
+            &SemihostingCommand::SysWrite { handle, ref data } => {
+                if handle == 1 {
+                    let text = &**data;
+                    print!("{}", String::from_utf8_lossy(text));
+                } else {
+                    //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
                 }
-            });
-            if count >= trace_start {
-                writeln!(
-                    &mut trace_stdout,
-                    "{0:} {1:}        0x{2:04x}: \t{3:}\t{4:}",
-                    count,
-                    count + 1,
-                    pc,
-                    instruction,
-                    core
-                ).unwrap();
+                SemihostingResponse::SysWrite { result: Ok(0) }
+            }
+            &SemihostingCommand::SysClock { .. } => {
+                let elapsed = start.elapsed();
+                let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
 
-                /*    writeln!(
+
+                //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
+                SemihostingResponse::SysClock {
+                    result: Ok(in_cs as u32),
+                }
+            }
+            &SemihostingCommand::SysException { ref reason } => {
+                //println!("SEMIHOST: EXCEPTION({:?})", reason);
+                let mut stop = false;
+                if reason == &SysExceptionReason::ADPStoppedApplicationExit {
+                    stop = true;
+                }
+
+                SemihostingResponse::SysException {
+                    success: true,
+                    stop: stop,
+                }
+            }
+        }
+    };
+
+
+    let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
+    let trace_start = option_trace_start.unwrap_or(0);
+
+    let tracefunc = |count: u64, pc: u32, instruction: &Instruction| {
+        if trace && count >= trace_start {
+            writeln!(
                 &mut trace_stdout,
-                "{0:} {1:}\t0x{2:x}: \t{3:}",
+                "{0:} {1:}        0x{2:04x}: \t{3:}",
                 count,
-                count+1,
+                count + 1,
                 pc,
                 instruction
-            ).unwrap();*/
-
-
-                trace_stdout.flush().unwrap();
-            }
-            count += 1;
-
-
-
-            if semihost_triggered {
-                let (r0, r1) = semihost;
-                let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
-
-                let semihost_response = match semihost_cmd {
-                    SemihostingCommand::SysOpen { .. } => {
-                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                        SemihostingResponse::SysOpen { result: Ok(1) }
-                    }
-                    SemihostingCommand::SysClose { .. } => {
-                        //println!("SEMIHOST: SYS_CLOSE({})", handle);
-                        SemihostingResponse::SysClose { success: true }
-                    }
-                    SemihostingCommand::SysWrite { handle, data } => {
-                        if handle == 1 {
-                            print!("{}", String::from_utf8(data).unwrap());
-                        } else {
-                            //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
-                        }
-                        SemihostingResponse::SysWrite { result: Ok(0) }
-                    }
-                    SemihostingCommand::SysClock { .. } => {
-                        let elapsed = start.elapsed();
-                        let in_cs =
-                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
-
-
-                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                        SemihostingResponse::SysClock {
-                            result: Ok(in_cs as u32),
-                        }
-                    }
-                    SemihostingCommand::SysException { reason } => {
-                        //println!("SEMIHOST: EXCEPTION({:?})", reason);
-
-                        if reason == SysExceptionReason::ADPStoppedApplicationExit {
-                            running = false;
-                        }
-
-                        SemihostingResponse::SysException { success: true }
-                    }
-                };
-
-                semihost_return(&mut core, &semihost_response);
-                semihost_triggered = false;
-            }
+            ).unwrap();
+            let _ = trace_stdout.flush();
         }
-    } else {
-        while running && (count < max_instructions) {
-            let thumb = core.fetch();
-            let instruction = core.decode(&thumb);
-            core.step(&instruction, |imm32, r0, r1| {
-                if imm32 == 0xab {
-                    semihost_triggered = true;
-                    semihost = (r0, r1);
-                }
-            });
-            count += 1;
+    };
 
-            if semihost_triggered {
-                let (r0, r1) = semihost;
-                let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
+    let instruction_count = cortex_m0_simulate(code, tracefunc, semihost_func);
+    let end = Instant::now();
 
-                let semihost_response = match semihost_cmd {
-                    SemihostingCommand::SysOpen { .. } => {
-                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                        SemihostingResponse::SysOpen { result: Ok(1) }
-                    }
-                    SemihostingCommand::SysClose { .. } => {
-                        //println!("SEMIHOST: SYS_CLOSE({})", handle);
-                        SemihostingResponse::SysClose { success: true }
-                    }
-                    SemihostingCommand::SysWrite { handle, data } => {
-                        if handle == 1 {
-                            print!("{}", String::from_utf8(data).unwrap());
-                        } else {
-                            //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
-                        }
-                        SemihostingResponse::SysWrite { result: Ok(0) }
-                    }
-                    SemihostingCommand::SysClock { .. } => {
-                        let elapsed = start.elapsed();
-                        let in_cs =
-                            elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
+    let duration = end.duration_since(start);
 
-                        //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                        SemihostingResponse::SysClock {
-                            result: Ok(in_cs as u32),
-                        }
-                    }
-                    SemihostingCommand::SysException { reason } => {
-                        //println!("SEMIHOST: EXCEPTION({:?})", reason);
-
-                        if reason == SysExceptionReason::ADPStoppedApplicationExit {
-                            running = false;
-                        }
-
-                        SemihostingResponse::SysException { success: true }
-                    }
-                };
-
-                semihost_return(&mut core, &semihost_response);
-                semihost_triggered = false;
-            }
-        }
-    }
+    println!(
+        "{:?}, {} instructions, {} instructions per sec",
+        duration,
+        instruction_count,
+        instruction_count as f64
+            / (duration.as_secs() as f64 + (duration.subsec_nanos() as f64 / 1000_000_000f64))
+    );
 }
 
 
@@ -215,7 +118,6 @@ fn run(args: &ArgMatches) -> Result<()> {
         ("run", Some(run_matches)) => {
             let _device = run_matches.value_of("device").unwrap_or("cortex-m0");
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
-            let mut ram_mem = vec![0; 128 * 1024];
             let mut flash_mem = [0; 32768];
             let instructions = match run_matches.value_of("instructions") {
                 Some(instr) => Some(instr.parse::<u64>().unwrap()),
@@ -262,11 +164,8 @@ fn run(args: &ArgMatches) -> Result<()> {
             }
 
 
-            let mut hellow = FlashMemory::new(&mut flash_mem, 0x0);
-            let mut ram = RAM::new(&mut ram_mem, 0x20000000);
             run_bin(
-                &mut hellow,
-                &mut ram,
+                &flash_mem,
                 run_matches.is_present("trace"),
                 instructions,
                 trace_start,

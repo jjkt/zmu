@@ -5,6 +5,10 @@ use core::instruction::{CpsEffect, Instruction};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
 use bus::Bus;
+use semihosting::SemihostingCommand;
+use semihosting::SemihostingResponse;
+use semihosting::decode_semihostcmd;
+use semihosting::semihost_return;
 
 fn read_reg<T: Bus>(core: &mut Core<T>, r: &Reg) -> u32 {
     match *r {
@@ -13,9 +17,9 @@ fn read_reg<T: Bus>(core: &mut Core<T>, r: &Reg) -> u32 {
     }
 }
 
-pub fn execute<T: Bus, F>(core: &mut Core<T>, instruction: &Instruction, mut bkpt_func: F)
+pub fn execute<T: Bus, F>(mut core: &mut Core<T>, instruction: &Instruction, mut semihost_func: F)
 where
-    F: FnMut(u32, u32, u32),
+    F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
     match *instruction {
         Instruction::ADC_reg {
@@ -148,7 +152,14 @@ where
                     let ipsr_val = core.psr.get_exception_number() as u32;
                     core.set_r(rd, ipsr_val);
                 }*/
-                //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
+                &SpecialReg::MSP => {
+                    let msp = core.get_r(rn);
+                    core.set_msp(msp);
+                }
+                &SpecialReg::PSP => {
+                    let psp = core.get_r(rn);
+                    core.set_psp(psp);
+                }
                 //PSP => core.set_r(rd, core.get_r(Reg::PSP),
                 &SpecialReg::PRIMASK => {
                     let primask = core.get_r(rn) & 1 == 1;
@@ -275,8 +286,13 @@ where
             core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
         }
         Instruction::BKPT { imm32 } => {
-            bkpt_func(imm32, core.get_r(&Reg::R0), core.get_r(&Reg::R1));
-
+            if imm32 == 0xab {
+                let r0 = core.get_r(&Reg::R0);
+                let r1 = core.get_r(&Reg::R1);
+                let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
+                let semihost_response = semihost_func(&semihost_cmd);
+                semihost_return(&mut core, &semihost_response);
+            }
             core.add_pc(2);
         }
         Instruction::NOP => {
