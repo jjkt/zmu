@@ -32,9 +32,6 @@ pub fn decode_STM_t1(command: u16) -> Instruction {
     if command.get_bit(7) {
         regs.insert(Reg::R7);
     }
-    if command.get_bit(8) {
-        regs.insert(Reg::PC);
-    }
 
     Instruction::STM {
         registers: regs,
