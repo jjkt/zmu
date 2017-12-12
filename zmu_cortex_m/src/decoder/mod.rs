@@ -4,6 +4,8 @@ use core::ThumbCode;
 
 #[cfg(test)]
 use core::register::{Reg, SpecialReg};
+#[cfg(test)]
+use core::instruction::CpsEffect;
 
 #[cfg(test)]
 use core::condition::Condition;
@@ -1171,6 +1173,21 @@ fn test_decode_ldm2() {
 }
 
 #[test]
+fn test_decode_ldm3() {
+    // LDM R4!, {R0-R2}
+    match decode_16(0xcc07) {
+        Instruction::LDM { rn, registers } => {
+            assert!(rn == Reg::R4);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
 fn test_decode_stm() {
     // STM R2!, {R0, R1}
     match decode_16(0xc203) {
@@ -1178,6 +1195,21 @@ fn test_decode_stm() {
             assert!(rn == Reg::R2);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_stm2() {
+    // STM R3!, {R0-R2}
+    match decode_16(0xc307) {
+        Instruction::STM { rn, registers } => {
+            assert!(rn == Reg::R3);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
         }
         _ => {
             assert!(false);
@@ -1391,7 +1423,7 @@ fn test_decode_cpsid() {
     // CPSID i
     match decode_16(0xB672) {
         Instruction::CPS { im } => {
-            assert_eq!(rd, CpsEffect::ID);
+            assert_eq!(im, CpsEffect::ID);
         }
         _ => {
             assert!(false);
