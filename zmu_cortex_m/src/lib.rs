@@ -5,6 +5,6 @@ extern crate enum_set;
 pub mod bus;
 pub mod memory;
 pub mod core;
+pub mod device;
 pub mod decoder;
 pub mod semihosting;
-
