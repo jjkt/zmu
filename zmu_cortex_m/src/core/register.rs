@@ -186,6 +186,54 @@ impl Reg {
     }
 }
 
+impl From<u8> for Reg {
+    fn from(value: u8) -> Self {
+        match value & 0xf {
+            0 => Reg::R0,
+            1 => Reg::R1,
+            2 => Reg::R2,
+            3 => Reg::R3,
+            4 => Reg::R4,
+            5 => Reg::R5,
+            6 => Reg::R6,
+            7 => Reg::R7,
+            8 => Reg::R8,
+            9 => Reg::R9,
+            10 => Reg::R10,
+            11 => Reg::R11,
+            12 => Reg::R12,
+            13 => Reg::SP,
+            14 => Reg::LR,
+            15 => Reg::PC,
+            _ => Reg::R0
+        }
+    }
+}
+
+impl From<Reg> for u8 {
+    fn from(value: Reg) -> Self {
+        match value {
+            Reg::R0 => 0,
+            Reg::R1 => 1,
+            Reg::R2 => 2,
+            Reg::R3 => 3,
+            Reg::R4 => 4,
+            Reg::R5 => 5,
+            Reg::R6 => 6,
+            Reg::R7 => 7,
+            Reg::R8 => 8,
+            Reg::R9 => 9,
+            Reg::R10 => 10,
+            Reg::R11 => 11,
+            Reg::R12 => 12,
+            Reg::SP => 13,
+            Reg::LR => 14,
+            Reg::PC => 15,
+        }
+    }
+}
+
+
 impl SpecialReg {
     pub fn from_u16(n: u16) -> Option<SpecialReg> {
         match n {

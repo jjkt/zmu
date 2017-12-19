@@ -1,16 +1,13 @@
-use bit_field::BitField;
-
-use core::register::Reg;
 use core::instruction::Instruction;
-
+use core::bits::*;
 
 
 #[allow(non_snake_case)]
-pub fn decode_ADC_reg_t1(command: u16) -> Instruction {
+pub fn decode_ADC_reg_t1(opcode: u16) -> Instruction {
     Instruction::ADC_reg {
-        rn: Reg::from_u16(command.get_bits(0..3)).unwrap(),
-        rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
-        rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_0_3(opcode)),
+        rd: From::from(bits_0_3(opcode)),
+        rm: From::from(bits_3_6(opcode)),
         setflags: true,
     }
 }
