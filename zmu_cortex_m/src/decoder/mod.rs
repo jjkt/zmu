@@ -118,191 +118,148 @@ pub fn is_thumb32(word: u16) -> bool {
     }
 }
 
-pub fn decode_16(command: u16) -> Instruction {
-    match command.get_bits(14..16) {
-        0b00 => {
-            // Shift (immediate), add, substract, move and compare
-            match command.get_bits(9..14) {
-                0b000_01 | 0b000_10 | 0b000_11 => decode_LSL_imm_t1(command),
-                0b001_00 | 0b001_01 | 0b001_10 | 0b001_11 => decode_LSR_imm_t1(command),
-                0b010_00 | 0b010_01 | 0b010_10 | 0b010_11 => decode_ASR_imm_t1(command),
-                0b011_00 => decode_ADD_reg_t1(command),
-                0b011_01 => decode_SUB_reg_t1(command),
-                0b011_10 => decode_ADD_imm_t1(command),
-                0b011_11 => decode_SUB_imm_t1(command),
-                0b100_00 | 0b100_01 | 0b100_10 | 0b100_11 => decode_MOV_imm_t1(command),
-                0b101_00 | 0b101_01 | 0b101_10 | 0b101_11 => decode_CMP_imm_t1(command),
-                0b110_00 | 0b110_01 | 0b110_10 | 0b110_11 => decode_ADD_imm_t2(command),
-                0b111_00 | 0b111_01 | 0b111_10 | 0b111_11 => decode_SUB_imm_t2(command),
-                0 => match command.get_bits(6..11) {
-                    0 => decode_MOV_reg_t2(command),
-                    _ => decode_LSL_imm_t1(command),
-                },
 
-                _ => Instruction::UDF {
-                    imm32: 0,
-                    opcode: ThumbCode::from(command),
-                },
-            }
-        }
-        0b01 => {
-            // data process, special data, load from lp...
-            if !command.get_bit(11) {
-                match command.get_bits(13..16) {
-                    0b010 => match command.get_bits(6..13) {
-                        0b000_0000 => decode_AND_reg_t1(command),
-                        0b000_0001 => decode_EOR_reg_t1(command),
-                        0b000_0010 => decode_LSL_reg_t1(command),
-                        0b000_0011 => decode_LSR_reg_t1(command),
-                        0b000_0100 => decode_ASR_reg_t1(command),
-                        0b000_0101 => decode_ADC_reg_t1(command),
-                        0b000_0110 => decode_SBC_reg_t1(command),
-                        0b000_0111 => decode_ROR_reg_t1(command),
-                        0b000_1000 => decode_TST_reg_t1(command),
-                        0b000_1001 => decode_RSB_imm_t1(command),
-                        0b000_1010 => decode_CMP_reg_t1(command),
-                        0b000_1011 => decode_CMN_reg_t1(command),
-                        0b000_1100 => decode_ORR_reg_t1(command),
-                        0b000_1101 => decode_MUL_reg_t1(command),
-                        0b000_1110 => decode_BIC_reg_t1(command),
-                        0b000_1111 => decode_MVN_reg_t1(command),
 
-                        0b001_0000 | 0b001_0001 | 0b001_0010 | 0b001_0011 => {
-                            decode_ADD_reg_t2(command)
-                        }
+#[allow(non_snake_case)]
+fn decode_undefined(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
 
-                        0b001_0101 | 0b001_0110 | 0b001_0111 => decode_CMP_reg_t2(command),
-                        0b001_1000 | 0b001_1001 | 0b001_1010 | 0b001_1011 => {
-                            decode_MOV_reg_t1(command)
-                        }
-                        0b001_1101 | 0b001_1100 => decode_BX(command),
-                        0b001_1110 | 0b001_1111 => decode_BLX(command),
-                        0b101_0000 |
-                        0b101_0001 |
-                        0b101_0010 |
-                        0b101_0011 |
-                        0b101_0100 |
-                        0b101_0101 |
-                        0b101_0110 |
-                        0b101_0111 => decode_STRB_reg_t1(command),
+#[allow(non_snake_case)]
+fn decode_REVSH_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
 
-                        0b101_1000 |
-                        0b101_1001 |
-                        0b101_1010 |
-                        0b101_1011 |
-                        0b101_1100 |
-                        0b101_1101 |
-                        0b101_1110 |
-                        0b101_1111 => decode_LDRSB_reg_t1(command),
+#[allow(non_snake_case)]
+fn decode_REV_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
 
-                        0b100_0000 |
-                        0b100_0001 |
-                        0b100_0010 |
-                        0b100_0011 |
-                        0b100_0100 |
-                        0b100_0101 |
-                        0b100_0110 |
-                        0b100_0111 => decode_STR_reg_t1(command),
-                        0b100_1000 |
-                        0b100_1001 |
-                        0b100_1010 |
-                        0b100_1011 |
-                        0b100_1100 |
-                        0b100_1101 |
-                        0b100_1110 |
-                        0b100_1111 => decode_STRH_reg_t1(command),
-                        _ => Instruction::UDF {
-                            imm32: 0,
-                            opcode: ThumbCode::from(command),
-                        },
-                    },
-                    0b011 => if command.get_bit(12) {
-                        decode_STRB_imm_t1(command)
-                    } else {
-                        decode_STR_imm_t1(command)
-                    },
-                    _ => Instruction::UDF {
-                        imm32: 0,
-                        opcode: ThumbCode::from(command),
-                    },
-                }
-            } else {
-                match command.get_bits(9..16) {
-                    0b0101_100 => decode_LDR_reg_t1(command),
-                    0b0101_101 => decode_LDRH_reg_t1(command),
-                    0b0101_110 => decode_LDRB_reg_t1(command),
-                    0b0101_111 => decode_LDRSH_reg_t1(command),
-                    0b0100_010 => decode_ADD_reg_t2(command),
-                    _ => match command.get_bits(11..16) {
-                        0b01001 => decode_LDR_lit_t1(command),
-                        0b01011 => decode_LDR_reg_t1(command),
-                        0b01101 => decode_LDR_imm_t1(command),
-                        0b01111 => decode_LDRB_imm_t1(command),
-                        _ => Instruction::UDF {
-                            imm32: 0,
-                            opcode: ThumbCode::from(command),
-                        },
-                    },
-                }
-            }
-        }
-        0b10 => {
-            // generate pc relative addr, sp rela, misc
-            match command.get_bits(11..16) {
-                0b10000 => decode_STRH_imm_t1(command),
-                0b10001 => decode_LDRH_imm_t1(command),
-                0b10010 => decode_STR_imm_t2(command),
-                0b10011 => decode_LDR_imm_t2(command),
-                0b10100 => decode_ADR_t1(command),
-                0b10101 => decode_ADD_SP_imm_t1(command),
-                _ => match command.get_bits(7..16) {
-                    0b101100000 => decode_ADD_SP_imm_t2(command),
-                    0b101100001 => decode_SUB_SP_imm_t1(command),
-                    0b101111110 => decode_NOP_t1(command),
-                    0b101101100 => decode_CPS_t1(command),
-                    0b101100100 => if command.get_bit(6) {
-                        decode_SXTB_t1(command)
-                    } else {
-                        decode_SXTH_t1(command)
-                    },
-                    0b101100101 => if command.get_bit(6) {
-                        decode_UXTB_t1(command)
-                    } else {
-                        decode_UXTH_t1(command)
-                    },
-                    0b101111100 | 0b101111101 => decode_BKPT_t1(command),
-                    _ => match command.get_bits(9..14) {
-                        0b11110 => decode_POP(command),
-                        0b11010 => decode_PUSH(command),
-                        _ => Instruction::UDF {
-                            imm32: 0,
-                            opcode: ThumbCode::from(command),
-                        },
-                    },
-                },
-            }
-        }
-        0b11 => {
-            // store, load multiple, branch, svc, uncond branch
-            match command.get_bits(12..16) {
-                0b1101 => decode_B_t1(command),
-                0b1110 => decode_B_t2(command),
-                0b1100 => if command.get_bit(11) {
-                    decode_LDM_t1(command)
-                } else {
-                    decode_STM_t1(command)
-                },
-                _ => Instruction::UDF {
-                    imm32: 0,
-                    opcode: ThumbCode::from(command),
-                },
-            }
-        }
+#[allow(non_snake_case)]
+fn decode_REV16_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
 
-        _ => Instruction::UDF {
-            imm32: 0,
-            opcode: ThumbCode::from(command),
-        },
+#[allow(non_snake_case)]
+fn decode_WFI_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_WFE_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_YIELD_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_SEV_t1(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+pub fn decode_16(opcode: u16) -> Instruction {
+    match opcode {
+        0...2047 => decode_MOV_reg_t2_LSL_imm_t1(opcode),
+        2048...4095 => decode_LSR_imm_t1(opcode),
+        4096...6143 => decode_ASR_imm_t1(opcode),
+        6144...6655 => decode_ADD_reg_t1(opcode),
+        6656...7167 => decode_SUB_reg_t1(opcode),
+        7168...7679 => decode_ADD_imm_t1(opcode),
+        7680...8191 => decode_SUB_imm_t1(opcode),
+        8192...10239 => decode_MOV_imm_t1(opcode),
+        10240...12287 => decode_CMP_imm_t1(opcode),
+        12288...14335 => decode_ADD_imm_t2(opcode),
+        14336...16383 => decode_SUB_imm_t2(opcode),
+        16384...16447 => decode_AND_reg_t1(opcode),
+        16448...16511 => decode_EOR_reg_t1(opcode),
+        16512...16575 => decode_LSL_reg_t1(opcode),
+        16576...16639 => decode_LSR_reg_t1(opcode),
+        16640...16703 => decode_ASR_reg_t1(opcode),
+        16704...16767 => decode_ADC_reg_t1(opcode),
+        16768...16831 => decode_SBC_reg_t1(opcode),
+        16832...16895 => decode_ROR_reg_t1(opcode),
+        16896...16959 => decode_TST_reg_t1(opcode),
+        16960...17023 => decode_RSB_imm_t1(opcode),
+        17024...17087 => decode_CMP_reg_t1(opcode),
+        17088...17151 => decode_CMN_reg_t1(opcode),
+        17152...17215 => decode_ORR_reg_t1(opcode),
+        17216...17279 => decode_MUL_t1(opcode),
+        17280...17343 => decode_BIC_reg_t1(opcode),
+        17344...17407 => decode_MVN_reg_t1(opcode),
+        17408...17663 => decode_ADD_reg_t2_ADD_SP_reg(opcode),
+        17664...17919 => decode_CMP_reg_t2(opcode),
+        17920...18175 => decode_MOV_reg_t1(opcode),
+        18176...18296 => decode_BX_t1(opcode),
+        18304...18424 => decode_BLX_t1(opcode),
+        18432...20479 => decode_LDR_lit_t1(opcode),
+        20480...20991 => decode_STR_reg_t1(opcode),
+        20992...21503 => decode_STRH_reg_t1(opcode),
+        21504...22015 => decode_STRB_reg_t1(opcode),
+        22016...22527 => decode_LDRSB_reg_t1(opcode),
+        22528...23039 => decode_LDR_reg_t1(opcode),
+        23040...23551 => decode_LDRH_reg_t1(opcode),
+        23552...24063 => decode_LDRB_reg_t1(opcode),
+        24064...24575 => decode_LDRSH_reg_t1(opcode),
+        24576...26623 => decode_STR_imm_t1(opcode),
+        26624...28671 => decode_LDR_imm_t1(opcode),
+        28672...30719 => decode_STRB_imm_t1(opcode),
+        30720...32767 => decode_LDRB_imm_t1(opcode),
+        32768...34815 => decode_STRH_imm_t1(opcode),
+        34816...36863 => decode_LDRH_imm_t1(opcode),
+        36864...38911 => decode_STR_imm_t2(opcode),
+        38912...40959 => decode_LDR_imm_t2(opcode),
+        40960...43007 => decode_ADR_t1(opcode),
+        43008...45055 => decode_ADD_SP_imm_t1(opcode),
+        45056...45183 => decode_ADD_SP_imm_t2(opcode),
+        45184...45311 => decode_SUB_SP_imm_t1(opcode),
+        45568...45631 => decode_SXTH_t1(opcode),
+        45632...45695 => decode_SXTB_t1(opcode),
+        45696...45759 => decode_UXTH_t1(opcode),
+        45760...45823 => decode_UXTB_t1(opcode),
+        46080...46591 => decode_PUSH_t1(opcode),
+        46690...46706 => decode_CPS_t1(opcode),
+        47616...47679 => decode_REV_t1(opcode),
+        47680...47743 => decode_REV16_t1(opcode),
+        47808...47871 => decode_REVSH_t1(opcode),
+        48128...48639 => decode_POP_reg_t1(opcode),
+        48640...48895 => decode_BKPT_t1(opcode),
+        48896...48896 => decode_NOP_t1(opcode),
+        48912...48912 => decode_YIELD_t1(opcode),
+        48928...48928 => decode_WFE_t1(opcode),
+        48944...48944 => decode_WFI_t1(opcode),
+        48960...48960 => decode_SEV_t1(opcode),
+        49152...51199 => decode_STM_t1(opcode),
+        51200...53247 => decode_LDM_t1(opcode),
+        53248...57343 => decode_B_t1_SVC_t1(opcode),
+        57344...59391 => decode_B_t2(opcode),
+        _ => decode_undefined(opcode),
     }
 }
 
@@ -349,7 +306,6 @@ pub fn decode_32(t1: u16, t2: u16) -> Instruction {
 
     decode_branch_and_misc(t1, t2)
 }
-
 
 
 #[test]
@@ -629,10 +585,11 @@ fn test_decode_b() {
     // BEQ.N
     match decode_16(0xd001) {
         Instruction::B { cond, imm32 } => {
-            assert!(cond == Condition::EQ);
-            assert!(imm32 == (1 << 1));
+            assert_eq!(cond, Condition::EQ);
+            assert_eq!(imm32, (1 << 1));
         }
         _ => {
+            println!(" {}", decode_16(0xd001));
             assert!(false);
         }
     }
@@ -1424,6 +1381,27 @@ fn test_decode_cpsid() {
     match decode_16(0xB672) {
         Instruction::CPS { im } => {
             assert_eq!(im, CpsEffect::ID);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_lsl_2() {
+    // LSL r1, r1, #31
+    match decode_16(0x07c9) {
+        Instruction::LSL_imm {
+            rd,
+            rm,
+            imm5,
+            setflags,
+        } => {
+            assert_eq!(rd, Reg::R1);
+            assert_eq!(rm, Reg::R1);
+            assert_eq!(imm5, 31);
+            assert_eq!(setflags, true);
         }
         _ => {
             assert!(false);
