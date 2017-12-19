@@ -27,7 +27,7 @@ pub fn decode_STR_reg_t1(command: u16) -> Instruction {
     Instruction::STR_reg {
         rt: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
-        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
+        rm: From::from(bits_6_9(command)),
     }
 }
 
@@ -45,7 +45,7 @@ pub fn decode_STRB_reg_t1(command: u16) -> Instruction {
     Instruction::STRB_reg {
         rt: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
-        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
+        rm: From::from(bits_6_9(command)),
     }
 }
 
@@ -64,6 +64,6 @@ pub fn decode_STRH_reg_t1(command: u16) -> Instruction {
     Instruction::STRH_reg {
         rt: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
-        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
+        rm: From::from(bits_6_9(command)),
     }
 }

@@ -6,7 +6,7 @@ use core::instruction::Instruction;
 #[allow(non_snake_case)]
 pub fn decode_ADD_reg_t1(command: u16) -> Instruction {
     Instruction::ADD_reg {
-        rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
+        rm: From::from(bits_6_9(command)),
         rn: From::from(bits_3_6(command)),
         rd: From::from(bits_0_3(command)),
         setflags: true,
