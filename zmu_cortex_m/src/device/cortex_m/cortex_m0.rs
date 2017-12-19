@@ -27,17 +27,34 @@ where
     let mut count = 0;
     core.reset();
 
+    let mut instruction_cache = Vec::new();
+    // pre-cache the decoded instructions
+
+    {
+        let mut pc = 0;
+        core.set_r(&Reg::PC, pc);
+
+        while pc < (code.len() as u32 / 2) {
+            let thumb = core.fetch();
+            let instruction = core.decode(&thumb);
+            instruction_cache.push(instruction);
+            pc += 2;
+            core.set_r(&Reg::PC, pc);
+        }
+    }
+
+    core.reset();
     while core.running {
         let pc = core.get_r(&Reg::PC);
-        let thumb = core.fetch();
-        let instruction = core.decode(&thumb);
+        let instruction = &instruction_cache[(pc / 2) as usize];
+
         core.step(
-            &instruction,
+            instruction,
             |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 semihost_func(semihost_cmd)
             },
         );
-        trace_func(count, pc, &instruction);
+        trace_func(count, pc as u32, instruction);
         count += 1;
     }
     count
