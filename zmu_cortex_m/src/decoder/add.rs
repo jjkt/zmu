@@ -14,8 +14,9 @@ pub fn decode_ADD_reg_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_ADD_reg_t2(command: u16) -> Instruction {
+pub fn decode_ADD_reg_t2_ADD_SP_reg(command: u16) -> Instruction {
     let rdn = Reg::from_u16(((command.get_bit(7) as u16) << 3) + command.get_bits(0..3)).unwrap();
+
     Instruction::ADD_reg {
         rm: Reg::from_u16(command.get_bits(3..7)).unwrap(),
         rd: rdn,

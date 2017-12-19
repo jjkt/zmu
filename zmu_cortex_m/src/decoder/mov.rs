@@ -21,11 +21,26 @@ pub fn decode_MOV_reg_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MOV_reg_t2(command: u16) -> Instruction {
-    Instruction::MOV_reg {
+pub fn decode_MOV_reg_t2_LSL_imm_t1(command: u16) -> Instruction {
+
+    let imm5 = command.get_bits(6..11) as u8;
+
+    if imm5 == 0
+    {
+        Instruction::MOV_reg {
+            rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
+            rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+            setflags: true,
+        }
+    }
+    else
+    {
+    Instruction::LSL_imm {
         rd: Reg::from_u16(command.get_bits(0..3)).unwrap(),
         rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        imm5: imm5,
         setflags: true,
+    }
     }
 }
 

@@ -6,7 +6,7 @@ use core::operation::sign_extend;
 use core::ThumbCode;
 
 #[allow(non_snake_case)]
-pub fn decode_B_t1(command: u16) -> Instruction {
+pub fn decode_B_t1_SVC_t1(command: u16) -> Instruction {
     let cond = command.get_bits(8..12);
     if cond == 0b1111 {
         return Instruction::SVC {

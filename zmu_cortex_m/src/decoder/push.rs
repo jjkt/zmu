@@ -5,7 +5,7 @@ use core::register::Reg;
 use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
-pub fn decode_PUSH(command: u16) -> Instruction {
+pub fn decode_PUSH_t1(command: u16) -> Instruction {
     let mut regs: EnumSet<Reg> = EnumSet::new();
 
     if command.get_bit(0) {
