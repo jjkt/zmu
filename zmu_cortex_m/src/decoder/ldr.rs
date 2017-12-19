@@ -3,6 +3,7 @@ use core::register::Reg;
 use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_LDR_imm_t2(command: u16) -> Instruction {
     Instruction::LDR_imm {
         rt: From::from(bits_8_11(command)),
@@ -11,6 +12,7 @@ pub fn decode_LDR_imm_t2(command: u16) -> Instruction {
     }
 }
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_LDR_imm_t1(command: u16) -> Instruction {
     Instruction::LDR_imm {
         rt: From::from(bits_0_3(command)),
@@ -20,6 +22,7 @@ pub fn decode_LDR_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_LDR_lit_t1(command: u16) -> Instruction {
     Instruction::LDR_lit {
         rt: From::from(bits_8_11(command)),
@@ -28,6 +31,7 @@ pub fn decode_LDR_lit_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_LDR_reg_t1(command: u16) -> Instruction {
     Instruction::LDR_reg {
         rt: From::from(bits_0_3(command)),

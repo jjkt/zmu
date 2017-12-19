@@ -3,6 +3,7 @@ use core::instruction::Instruction;
 
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_LDRSB_reg_t1(command: u16) -> Instruction {
     Instruction::LDRSB_reg {
         rt: From::from(bits_0_3(command)),

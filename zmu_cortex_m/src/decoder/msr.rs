@@ -6,6 +6,7 @@ use core::instruction::Instruction;
 
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_msr_reg(op1: u16, op2: u16) -> Instruction {
     Instruction::MSR_reg {
         rn: Reg::from_u16(op1.get_bits(0..4) as u16).unwrap(),

@@ -3,6 +3,7 @@ use core::register::Reg;
 use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rd: From::from(bits_0_3(command)),
@@ -13,6 +14,7 @@ pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rd: From::from(bits_8_11(command)),
@@ -23,6 +25,7 @@ pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rn: Reg::SP,
@@ -33,6 +36,7 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
     Instruction::SUB_reg {
         rd: From::from(bits_0_3(command)),

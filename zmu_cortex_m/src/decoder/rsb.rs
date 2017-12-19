@@ -4,6 +4,7 @@ use core::instruction::Instruction;
 
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_RSB_imm_t1(command: u16) -> Instruction {
     Instruction::RSB_imm {
         rd: From::from(bits_0_3(command)),

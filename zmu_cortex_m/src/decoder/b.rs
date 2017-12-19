@@ -7,6 +7,7 @@ use core::ThumbCode;
 use core::bits::*;
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_B_t1_SVC_t1(command: u16) -> Instruction {
     let cond = command.get_bits(8..12);
     if cond == 0b1111 {
@@ -28,6 +29,7 @@ pub fn decode_B_t1_SVC_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_B_t2(command: u16) -> Instruction {
     Instruction::B {
         cond: Condition::AL,

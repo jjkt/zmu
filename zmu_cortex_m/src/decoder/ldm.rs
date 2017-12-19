@@ -6,6 +6,7 @@ use core::instruction::Instruction;
 use core::bits::*;
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_LDM_t1(command: u16) -> Instruction {
     let mut regs: EnumSet<Reg> = EnumSet::new();
 

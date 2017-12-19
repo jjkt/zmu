@@ -4,6 +4,7 @@ use core::register::Reg;
 use core::instruction::Instruction;
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_ADD_reg_t1(command: u16) -> Instruction {
     Instruction::ADD_reg {
         rm: From::from(bits_6_9(command)),
@@ -14,6 +15,7 @@ pub fn decode_ADD_reg_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_ADD_reg_t2_ADD_SP_reg(command: u16) -> Instruction {
     let rdn = Reg::from_u16(((command.get_bit(7) as u16) << 3) + command.get_bits(0..3)).unwrap();
 
@@ -26,6 +28,7 @@ pub fn decode_ADD_reg_t2_ADD_SP_reg(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_ADD_imm_t1(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: From::from(bits_0_3(command)),
@@ -36,6 +39,7 @@ pub fn decode_ADD_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_ADD_imm_t2(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rn: From::from(bits_8_11(command)),
@@ -46,6 +50,7 @@ pub fn decode_ADD_imm_t2(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_ADD_SP_imm_t1(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: From::from(bits_8_11(command)),
@@ -56,6 +61,7 @@ pub fn decode_ADD_SP_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+#[inline]
 pub fn decode_ADD_SP_imm_t2(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: Reg::SP,
