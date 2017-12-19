@@ -6,9 +6,9 @@ use core::instruction::Instruction;
 #[allow(non_snake_case)]
 pub fn decode_LDR_imm_t2(command: u16) -> Instruction {
     Instruction::LDR_imm {
-        rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        rt: From::from(bits_8_11(command)),
         rn: Reg::SP,
-        imm32: (command.get_bits(0..8) as u32) << 2,
+        imm32: (bits_0_8(command) as u32) << 2,
     }
 }
 #[allow(non_snake_case)]
@@ -23,8 +23,8 @@ pub fn decode_LDR_imm_t1(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_LDR_lit_t1(command: u16) -> Instruction {
     Instruction::LDR_lit {
-        rt: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        imm32: (command.get_bits(0..8) as u32) << 2,
+        rt: From::from(bits_8_11(command)),
+        imm32: (bits_0_8(command) as u32) << 2,
     }
 }
 

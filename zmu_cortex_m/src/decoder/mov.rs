@@ -6,8 +6,8 @@ use core::instruction::Instruction;
 #[allow(non_snake_case)]
 pub fn decode_MOV_imm_t1(command: u16) -> Instruction {
     Instruction::MOV_imm {
-        rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        imm32: command.get_bits(0..8) as u32,
+        rd: From::from(bits_8_11(command)),
+        imm32: bits_0_8(command) as u32,
         setflags: true,
     }
 }

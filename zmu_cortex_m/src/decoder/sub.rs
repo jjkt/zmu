@@ -16,10 +16,10 @@ pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
     Instruction::SUB_imm {
-        rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        rd: From::from(bits_8_11(command)),
+        rn: From::from(bits_8_11(command)),
         setflags: true,
-        imm32: command.get_bits(0..8) as u32,
+        imm32: bits_0_8(command) as u32,
     }
 }
 

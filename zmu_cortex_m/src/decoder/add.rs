@@ -38,9 +38,9 @@ pub fn decode_ADD_imm_t1(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_ADD_imm_t2(command: u16) -> Instruction {
     Instruction::ADD_imm {
-        rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
-        imm32: command.get_bits(0..8) as u32,
+        rn: From::from(bits_8_11(command)),
+        rd: From::from(bits_8_11(command)),
+        imm32: bits_0_8(command) as u32,
         setflags: true,
     }
 }
@@ -48,9 +48,9 @@ pub fn decode_ADD_imm_t2(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_ADD_SP_imm_t1(command: u16) -> Instruction {
     Instruction::ADD_imm {
-        rd: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        rd: From::from(bits_8_11(command)),
         rn: Reg::SP,
-        imm32: (command.get_bits(0..8) as u32) << 2,
+        imm32: (bits_0_8(command) as u32) << 2,
         setflags: false,
     }
 }

@@ -3,6 +3,7 @@ use enum_set::EnumSet;
 
 use core::register::Reg;
 use core::instruction::Instruction;
+use core::bits::*;
 
 #[allow(non_snake_case)]
 pub fn decode_STM_t1(command: u16) -> Instruction {
@@ -35,6 +36,6 @@ pub fn decode_STM_t1(command: u16) -> Instruction {
 
     Instruction::STM {
         registers: regs,
-        rn: Reg::from_u16(command.get_bits(8..11)).unwrap(),
+        rn: From::from(bits_8_11(command)),
     }
 }
