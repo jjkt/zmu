@@ -7,7 +7,7 @@ use core::instruction::Instruction;
 pub fn decode_ADD_reg_t1(command: u16) -> Instruction {
     Instruction::ADD_reg {
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         rd: From::from(bits_0_3(command)),
         setflags: true,
     }
@@ -29,7 +29,7 @@ pub fn decode_ADD_reg_t2_ADD_SP_reg(command: u16) -> Instruction {
 pub fn decode_ADD_imm_t1(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         imm32: command.get_bits(6..9) as u32,
         setflags: true,
     }

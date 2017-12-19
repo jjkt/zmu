@@ -8,7 +8,7 @@ use core::instruction::Instruction;
 pub fn decode_LDRB_reg_t1(command: u16) -> Instruction {
     Instruction::LDRB_reg {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
     }
 }
@@ -17,7 +17,7 @@ pub fn decode_LDRB_reg_t1(command: u16) -> Instruction {
 pub fn decode_LDRB_imm_t1(command: u16) -> Instruction {
     Instruction::LDRB_imm {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         imm32: command.get_bits(6..11) as u32,
     }
 }

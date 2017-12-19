@@ -8,7 +8,7 @@ use core::instruction::Instruction;
 pub fn decode_STR_imm_t1(command: u16) -> Instruction {
     Instruction::STR_imm {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         imm32: (command.get_bits(6..11) as u32) << 2,
     }
 }
@@ -26,7 +26,7 @@ pub fn decode_STR_imm_t2(command: u16) -> Instruction {
 pub fn decode_STR_reg_t1(command: u16) -> Instruction {
     Instruction::STR_reg {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
     }
 }
@@ -35,7 +35,7 @@ pub fn decode_STR_reg_t1(command: u16) -> Instruction {
 pub fn decode_STRB_imm_t1(command: u16) -> Instruction {
     Instruction::STRB_imm {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         imm32: (command.get_bits(6..11) as u32),
     }
 }
@@ -44,7 +44,7 @@ pub fn decode_STRB_imm_t1(command: u16) -> Instruction {
 pub fn decode_STRB_reg_t1(command: u16) -> Instruction {
     Instruction::STRB_reg {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
     }
 }
@@ -54,7 +54,7 @@ pub fn decode_STRB_reg_t1(command: u16) -> Instruction {
 pub fn decode_STRH_imm_t1(command: u16) -> Instruction {
     Instruction::STRH_imm {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         imm32: (command.get_bits(6..11) as u32) << 1,
     }
 }
@@ -63,7 +63,7 @@ pub fn decode_STRH_imm_t1(command: u16) -> Instruction {
 pub fn decode_STRH_reg_t1(command: u16) -> Instruction {
     Instruction::STRH_reg {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
     }
 }

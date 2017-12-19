@@ -29,7 +29,7 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(command: u16) -> Instruction {
     {
         Instruction::MOV_reg {
             rd: From::from(bits_0_3(command)),
-            rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+            rm: From::from(bits_3_6(command)),
             setflags: true,
         }
     }
@@ -37,7 +37,7 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(command: u16) -> Instruction {
     {
     Instruction::LSL_imm {
         rd: From::from(bits_0_3(command)),
-        rm: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rm: From::from(bits_3_6(command)),
         imm5: imm5,
         setflags: true,
     }

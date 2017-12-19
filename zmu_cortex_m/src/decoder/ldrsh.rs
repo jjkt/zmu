@@ -8,7 +8,7 @@ use core::instruction::Instruction;
 pub fn decode_LDRSH_reg_t1(command: u16) -> Instruction {
     Instruction::LDRSH_reg {
         rt: From::from(bits_0_3(command)),
-        rn: Reg::from_u16(command.get_bits(3..6)).unwrap(),
+        rn: From::from(bits_3_6(command)),
         rm: Reg::from_u16(command.get_bits(6..9)).unwrap(),
     }
 }
