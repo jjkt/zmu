@@ -1,4 +1,3 @@
-use bit_field::BitField;
 use core::bits::*;
 use core::register::Reg;
 use core::instruction::Instruction;
@@ -16,7 +15,7 @@ pub fn decode_LDR_imm_t1(command: u16) -> Instruction {
     Instruction::LDR_imm {
         rt: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
-        imm32: (command.get_bits(6..11) as u32) << 2,
+        imm32: (bits_6_11(command) as u32) << 2,
     }
 }
 

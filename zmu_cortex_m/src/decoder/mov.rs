@@ -23,7 +23,7 @@ pub fn decode_MOV_reg_t1(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_MOV_reg_t2_LSL_imm_t1(command: u16) -> Instruction {
 
-    let imm5 = command.get_bits(6..11) as u8;
+    let imm5 = bits_6_11(command) as u8;
 
     if imm5 == 0
     {

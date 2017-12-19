@@ -30,7 +30,7 @@ pub fn decode_ADD_imm_t1(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
-        imm32: command.get_bits(6..9) as u32,
+        imm32: bits_6_9(command) as u32,
         setflags: true,
     }
 }
@@ -60,7 +60,7 @@ pub fn decode_ADD_SP_imm_t2(command: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: Reg::SP,
         rn: Reg::SP,
-        imm32: (command.get_bits(0..7) as u32) << 2,
+        imm32: (bits_0_7(command) as u32) << 2,
         setflags: false,
     }
 }
