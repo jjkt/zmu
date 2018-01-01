@@ -254,6 +254,25 @@ impl From<Reg> for usize {
     }
 }
 
+impl SpecialReg {
+    pub fn from_u16(n: u16) -> Option<SpecialReg> {
+        match n {
+            0 => Some(SpecialReg::APSR),
+            1 => Some(SpecialReg::IAPSR),
+            2 => Some(SpecialReg::EAPSR),
+            3 => Some(SpecialReg::XPSR),
+            5 => Some(SpecialReg::IPSR),
+            6 => Some(SpecialReg::EPSR),
+            7 => Some(SpecialReg::IEPSR),
+            8 => Some(SpecialReg::MSP),
+            9 => Some(SpecialReg::PSP),
+            16 => Some(SpecialReg::PRIMASK),
+            20 => Some(SpecialReg::CONTROL),
+            _ => None,
+        }
+    }
+}
+
 impl From<u8> for SpecialReg {
     fn from(value: u8) -> Self {
         match value & 0x1f {
