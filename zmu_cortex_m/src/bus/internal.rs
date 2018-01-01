@@ -20,6 +20,7 @@ struct Dwt
 pub struct InternalBus {
     shpr3: u32, // RW, 0xe000_ed20, reset value = SBZ (systick, pendsv bits are zero)
     vtor: u32,  // RW, 0xe000_ed08, reset value = 0
+    icsr: u32, // Interrupt Control and State Register RW, 0xe000_ed04, reset value = 0
     syst : SysTick,
     dwt : Dwt
     /*
@@ -31,7 +32,7 @@ pub struct InternalBus {
     SYST_CALIB: u32, // R0, 0xe000_e01C, reset value = implementation_defined, 
     
     CPUID: u32, // RO, 0xe000_ed00, reset value = implementation defined
-    ICSR: u32,  // RW, 0xe000_ed04, reset value = 0
+    
     AIRCR: u32, // RW, 0xe000_ed0c, reset value = bits [10:8] = 0b000
     SCR: u32,   // RW, 0xe000_ed10, reset value = bits [4,2,1] = 0b000
     CCR: u32,   // RO, 0xe000_ed14, reset value = bits [9:3] = 0b111111
@@ -101,7 +102,7 @@ impl InternalBus {
     }
 
     pub fn new() -> InternalBus {
-        InternalBus { vtor : 0, shpr3: 0, syst : SysTick::default(), dwt : Dwt{ ctrl : 0x40000000} }
+        InternalBus { vtor : 0, shpr3: 0, syst : SysTick::default(), dwt : Dwt{ ctrl : 0x40000000}, icsr: 0 }
     }
 }
 
@@ -129,6 +130,7 @@ impl Bus for InternalBus {
     fn write32(&mut self, addr: u32, value: u32) {
         match addr {
             0xE000_1000 => self.dwt.ctrl = value,
+            0xE000_ED04 => self.icsr = value,
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED20 => self.write_shpr3(value),
             0xE000_E010 => self.write_syst_csr(value),
