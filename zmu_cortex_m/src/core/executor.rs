@@ -33,7 +33,7 @@ where
             let (result, carry, overflow) = add_with_carry(r_n, r_m, core.psr.get_c());
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
@@ -58,7 +58,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
             }
@@ -81,7 +81,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
             }
@@ -98,7 +98,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
             core.add_pc(2);
@@ -181,7 +181,7 @@ where
 
             if *rd != Reg::PC {
                 if *setflags {
-                    core.psr.set_n(result.get_bit(31));
+                    core.psr.set_n(result);
                     core.psr.set_z(result == 0);
                 }
                 core.add_pc(2);
@@ -203,7 +203,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
             }
@@ -226,7 +226,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
             }
@@ -250,7 +250,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
             }
@@ -273,7 +273,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
             }
@@ -313,7 +313,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
 
@@ -333,7 +333,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
 
@@ -353,7 +353,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
 
@@ -373,7 +373,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
 
@@ -417,7 +417,7 @@ where
             let result = imm32 as u32;
             core.set_r(rd, result);
             if setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
             core.add_pc(2);
@@ -431,7 +431,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
             }
             core.add_pc(2);
@@ -446,7 +446,7 @@ where
         Instruction::CMP_imm { ref rn, imm32 } => {
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFF_FFFF, true);
-            core.psr.set_n(result.get_bit(31));
+            core.psr.set_n(result);
             core.psr.set_z(result == 0);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
@@ -455,7 +455,7 @@ where
         Instruction::CMP_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm) ^ 0xFFFF_FFFF, true);
-            core.psr.set_n(result.get_bit(31));
+            core.psr.set_n(result);
             core.psr.set_z(result == 0);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
@@ -464,7 +464,7 @@ where
         Instruction::CMN_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
-            core.psr.set_n(result.get_bit(31));
+            core.psr.set_n(result);
             core.psr.set_z(result == 0);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
@@ -600,7 +600,7 @@ where
                 add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
@@ -707,7 +707,7 @@ where
                 core.set_r(rd, result & 0xffff_fffe);
             } else {
                 if *setflags {
-                    core.psr.set_n(result.get_bit(31));
+                    core.psr.set_n(result);
                     core.psr.set_z(result == 0);
                     core.psr.set_c(carry);
                     core.psr.set_v(overflow);
@@ -726,7 +726,7 @@ where
             let (result, carry, overflow) = add_with_carry(r_n, imm32, false);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
@@ -750,7 +750,7 @@ where
             let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32, true);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
@@ -769,7 +769,7 @@ where
             let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
@@ -790,7 +790,7 @@ where
             core.set_r(rd, result);
 
             if *setflags {
-                core.psr.set_n(result.get_bit(31));
+                core.psr.set_n(result);
                 core.psr.set_z(result == 0);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
@@ -801,7 +801,7 @@ where
         Instruction::TST_reg { ref rn, ref rm } => {
             let result = read_reg(core, rn) & read_reg(core, rm);
 
-            core.psr.set_n(result.get_bit(31));
+            core.psr.set_n(result);
             core.psr.set_z(result == 0);
             //core.psr.set_c(carry); carry = shift_c()
             core.add_pc(2);
