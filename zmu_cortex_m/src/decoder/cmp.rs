@@ -1,5 +1,3 @@
-use bit_field::BitField;
-use core::register::Reg;
 use core::instruction::Instruction;
 use core::bits::*;
 
@@ -25,8 +23,7 @@ pub fn decode_CMP_reg_t1(command: u16) -> Instruction {
 #[inline]
 pub fn decode_CMP_reg_t2(command: u16) -> Instruction {
     Instruction::CMP_reg {
-        rn: Reg::from_u16(command.get_bits(0..3) + ((command.get_bit(7) as u8) << 4) as u16)
-            .unwrap(),
+        rn: From::from((bit_7(command) << 4) + bits_0_3(command)),
         rm: From::from(bits_3_7(command)),
     }
 }
