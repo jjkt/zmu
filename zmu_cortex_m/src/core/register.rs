@@ -129,8 +129,6 @@ pub enum SpecialReg {
     CONTROL,
 }
 
-
-
 impl CLike for Reg {
     fn to_u32(&self) -> u32 {
         *self as u32
@@ -205,7 +203,7 @@ impl From<u8> for Reg {
             13 => Reg::SP,
             14 => Reg::LR,
             15 => Reg::PC,
-            _ => Reg::R0
+            _ => Reg::R0,
         }
     }
 }
@@ -233,22 +231,44 @@ impl From<Reg> for u8 {
     }
 }
 
+impl From<Reg> for usize {
+    fn from(value: Reg) -> Self {
+        match value {
+            Reg::R0 => 0,
+            Reg::R1 => 1,
+            Reg::R2 => 2,
+            Reg::R3 => 3,
+            Reg::R4 => 4,
+            Reg::R5 => 5,
+            Reg::R6 => 6,
+            Reg::R7 => 7,
+            Reg::R8 => 8,
+            Reg::R9 => 9,
+            Reg::R10 => 10,
+            Reg::R11 => 11,
+            Reg::R12 => 12,
+            Reg::SP => 13,
+            Reg::LR => 14,
+            Reg::PC => 15,
+        }
+    }
+}
 
-impl SpecialReg {
-    pub fn from_u16(n: u16) -> Option<SpecialReg> {
-        match n {
-            0 => Some(SpecialReg::APSR),
-            1 => Some(SpecialReg::IAPSR),
-            2 => Some(SpecialReg::EAPSR),
-            3 => Some(SpecialReg::XPSR),
-            5 => Some(SpecialReg::IPSR),
-            6 => Some(SpecialReg::EPSR),
-            7 => Some(SpecialReg::IEPSR),
-            8 => Some(SpecialReg::MSP),
-            9 => Some(SpecialReg::PSP),
-            16 => Some(SpecialReg::PRIMASK),
-            20 => Some(SpecialReg::CONTROL),
-            _ => None,
+impl From<u8> for SpecialReg {
+    fn from(value: u8) -> Self {
+        match value & 0x1f {
+            0 => SpecialReg::APSR,
+            1 => SpecialReg::IAPSR,
+            2 => SpecialReg::EAPSR,
+            3 => SpecialReg::XPSR,
+            5 => SpecialReg::IPSR,
+            6 => SpecialReg::EPSR,
+            7 => SpecialReg::IEPSR,
+            8 => SpecialReg::MSP,
+            9 => SpecialReg::PSP,
+            16 => SpecialReg::PRIMASK,
+            20 => SpecialReg::CONTROL,
+            _ => SpecialReg::APSR,
         }
     }
 }
@@ -293,7 +313,6 @@ impl fmt::Display for SpecialReg {
         }
     }
 }
-
 
 pub struct Control {
     pub n_priv: bool,

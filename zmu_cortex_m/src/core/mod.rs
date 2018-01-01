@@ -104,7 +104,10 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     pub fn get_r(&self, r : &Reg) -> u32 {
         match *r {
-                Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => self.r0_12[r.value()],
+                Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => {
+                    let reg : usize = From::from(*r);
+                    self.r0_12[reg]
+                },
     Reg::SP => if self.control.sp_sel {self.psp} else { self.msp},
     Reg::LR => self.lr, 
     Reg::PC => self.pc
@@ -116,7 +119,9 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     pub fn set_r(&mut self, r : &Reg, value: u32) {
         match *r {
-                Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => self.r0_12[r.value()] = value,
+                Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => {
+                    let reg : usize = From::from(*r);
+                    self.r0_12[reg] = value;},
     Reg::SP => if self.control.sp_sel {self.psp = value} else { self.msp = value},
     Reg::LR => self.lr = value, 
     Reg::PC => self.pc = value
@@ -141,7 +146,9 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     pub fn add_r(&mut self, r : &Reg, value: u32) {
         match *r {
-                Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => self.r0_12[r.value()] += value,
+                Reg::R0|Reg::R1|Reg::R2|Reg::R3|Reg::R4|Reg::R5|Reg::R6|Reg::R7|Reg::R8|Reg::R9|Reg::R10|Reg::R11|Reg::R12 => {
+                    let reg : usize = From::from(*r);
+                    self.r0_12[reg] += value;},
     Reg::SP => if self.control.sp_sel {self.psp = value} else { self.msp += value},
     Reg::LR => self.lr += value, 
     Reg::PC => self.pc += value
