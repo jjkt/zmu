@@ -1,11 +1,11 @@
-use bit_field::BitField;
 use core::instruction::{CpsEffect, Instruction};
+use core::bits::*;
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_CPS_t1(command: u16) -> Instruction {
+pub fn decode_CPS_t1(opcode: u16) -> Instruction {
     Instruction::CPS {
-        im: if command.get_bit(4) {
+        im: if bit_4(opcode) == 1 {
             CpsEffect::ID
         } else {
             CpsEffect::IE
