@@ -34,7 +34,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
             }
@@ -59,7 +59,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
 
@@ -82,7 +82,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
 
@@ -99,7 +99,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
             core.add_pc(2);
         }
@@ -182,7 +182,7 @@ where
             if *rd != Reg::PC {
                 if *setflags {
                     core.psr.set_n(result);
-                    core.psr.set_z(result == 0);
+                    core.psr.set_z(result);
                 }
                 core.add_pc(2);
             }
@@ -204,7 +204,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
 
@@ -227,7 +227,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
 
@@ -251,7 +251,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
 
@@ -274,7 +274,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
 
@@ -314,7 +314,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
 
             core.add_pc(2);
@@ -334,7 +334,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
 
             core.add_pc(2);
@@ -354,7 +354,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
 
             core.add_pc(2);
@@ -374,7 +374,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
 
             core.add_pc(2);
@@ -418,7 +418,7 @@ where
             core.set_r(rd, result);
             if setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
             core.add_pc(2);
         }
@@ -432,7 +432,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
             }
             core.add_pc(2);
         }
@@ -447,7 +447,7 @@ where
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), imm32 ^ 0xFFFF_FFFF, true);
             core.psr.set_n(result);
-            core.psr.set_z(result == 0);
+            core.psr.set_z(result);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
             core.add_pc(2);
@@ -456,7 +456,7 @@ where
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm) ^ 0xFFFF_FFFF, true);
             core.psr.set_n(result);
-            core.psr.set_z(result == 0);
+            core.psr.set_z(result);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
             core.add_pc(2);
@@ -465,7 +465,7 @@ where
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
             core.psr.set_n(result);
-            core.psr.set_z(result == 0);
+            core.psr.set_z(result);
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
             core.add_pc(2);
@@ -601,7 +601,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
             }
@@ -708,7 +708,7 @@ where
             } else {
                 if *setflags {
                     core.psr.set_n(result);
-                    core.psr.set_z(result == 0);
+                    core.psr.set_z(result);
                     core.psr.set_c(carry);
                     core.psr.set_v(overflow);
                 }
@@ -727,7 +727,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
             }
@@ -751,7 +751,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
             }
@@ -770,7 +770,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
             }
@@ -791,7 +791,7 @@ where
 
             if *setflags {
                 core.psr.set_n(result);
-                core.psr.set_z(result == 0);
+                core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
             }
@@ -802,7 +802,7 @@ where
             let result = read_reg(core, rn) & read_reg(core, rm);
 
             core.psr.set_n(result);
-            core.psr.set_z(result == 0);
+            core.psr.set_z(result);
             //core.psr.set_c(carry); carry = shift_c()
             core.add_pc(2);
         }
