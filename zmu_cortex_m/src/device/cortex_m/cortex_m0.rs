@@ -45,8 +45,8 @@ where
 
     core.reset();
     while core.running {
-        let pc = core.get_r(&Reg::PC);
-        let instruction = &instruction_cache[(pc / 2) as usize];
+        let pc = core.get_pc();
+        let instruction = &instruction_cache[(pc >> 1) as usize];
 
         core.step(
             instruction,
@@ -54,7 +54,7 @@ where
                 semihost_func(semihost_cmd)
             },
         );
-        trace_func(count, pc as u32, instruction);
+        trace_func(count, pc, instruction);
         count += 1;
     }
     count
