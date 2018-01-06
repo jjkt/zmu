@@ -14,7 +14,7 @@ pub struct PSR {
 
 pub trait Apsr {
     fn get_n(&self) -> bool;
-    fn set_n(&mut self, result : u32);
+    fn set_n(&mut self, result: u32);
 
     fn get_z(&self) -> bool;
     fn set_z(&mut self, result: u32);
@@ -55,12 +55,10 @@ impl Apsr for PSR {
         (*self).value.get_bit(30)
     }
     fn set_z(&mut self, result: u32) {
-        if result == 0
-        {
-            (*self).value |= 0x4000_0000;    
-        }
-        else {
-            (*self).value &= 0x4000_0000 ^ 0xffff_ffff;    
+        if result == 0 {
+            (*self).value |= 0x4000_0000;
+        } else {
+            (*self).value &= 0x4000_0000 ^ 0xffff_ffff;
         }
     }
 
@@ -68,24 +66,20 @@ impl Apsr for PSR {
         (*self).value.get_bit(29)
     }
     fn set_c(&mut self, c: bool) {
-        if c
-        {
-            (*self).value |= 0x2000_0000;    
-        }
-        else {
-            (*self).value &= 0x2000_0000 ^ 0xffff_ffff;    
+        if c {
+            (*self).value |= 0x2000_0000;
+        } else {
+            (*self).value &= 0x2000_0000 ^ 0xffff_ffff;
         }
     }
     fn get_v(&self) -> bool {
         (*self).value.get_bit(28)
     }
     fn set_v(&mut self, v: bool) {
-        if v
-        {
-            (*self).value |= 0x1000_0000;    
-        }
-        else {
-            (*self).value &= 0x1000_0000 ^ 0xffff_ffff;    
+        if v {
+            (*self).value |= 0x1000_0000;
+        } else {
+            (*self).value &= 0x1000_0000 ^ 0xffff_ffff;
         }
     }
 
