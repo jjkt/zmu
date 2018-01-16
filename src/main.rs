@@ -8,14 +8,17 @@ extern crate clap;
 extern crate goblin;
 extern crate tabwriter;
 extern crate zmu_cortex_m;
+extern crate pad;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io::prelude::*;
 use std::io;
 use std::time::Instant;
 use std::fs::File;
+use std::collections::HashMap;
 use tabwriter::TabWriter;
 use goblin::Object;
+use pad::PadStr;
 
 use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 use zmu_cortex_m::core::instruction::Instruction;
@@ -32,26 +35,25 @@ mod errors {
 
 use errors::*;
 
-fn run_bin(code: &[u8], trace: bool, instructions: Option<u64>, option_trace_start: Option<u64>) {
+fn run_bin(
+    code: &[u8],
+    trace: bool,
+    instructions: Option<u64>,
+    option_trace_start: Option<u64>,
+    symboltable: &HashMap<u32, &str>,
+) {
     let _max_instructions = instructions.unwrap_or(0xffff_ffff_ffff_ffff);
     let start = Instant::now();
 
     let semihost_func = |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
         match semihost_cmd {
-            &SemihostingCommand::SysOpen { .. } => {
-                //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
-                SemihostingResponse::SysOpen { result: Ok(1) }
-            }
-            &SemihostingCommand::SysClose { .. } => {
-                //println!("SEMIHOST: SYS_CLOSE({})", handle);
-                SemihostingResponse::SysClose { success: true }
-            }
+            &SemihostingCommand::SysOpen { .. } => SemihostingResponse::SysOpen { result: Ok(1) },
+            &SemihostingCommand::SysClose { .. } => SemihostingResponse::SysClose { success: true },
             &SemihostingCommand::SysWrite { handle, ref data } => {
                 if handle == 1 {
                     let text = &**data;
                     print!("{}", String::from_utf8_lossy(text));
                 } else {
-                    //println!("SEMIHOST: SYS_WRITE({}, data.len={})", handle, data.len());
                 }
                 SemihostingResponse::SysWrite { result: Ok(0) }
             }
@@ -59,14 +61,11 @@ fn run_bin(code: &[u8], trace: bool, instructions: Option<u64>, option_trace_sta
                 let elapsed = start.elapsed();
                 let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
 
-
-                //println!("SEMIHOST: SYS_OPEN('{}',{})", name, mode);
                 SemihostingResponse::SysClock {
                     result: Ok(in_cs as u32),
                 }
             }
             &SemihostingCommand::SysException { ref reason } => {
-                //println!("SEMIHOST: EXCEPTION({:?})", reason);
                 let mut stop = false;
                 if reason == &SysExceptionReason::ADPStoppedApplicationExit {
                     stop = true;
@@ -80,19 +79,19 @@ fn run_bin(code: &[u8], trace: bool, instructions: Option<u64>, option_trace_sta
         }
     };
 
-
     let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
     let trace_start = option_trace_start.unwrap_or(0);
 
+    //    4803        ldr r0, =0x20010000 <__stack_end__>             0x000001A2    Reset_Handler    1
     let tracefunc = |count: u64, pc: u32, instruction: &Instruction| {
         if trace && count >= trace_start {
+            let opcode = 0xdeadbeef;
+            let instruction_str = format!("{}", instruction).with_exact_width(32);
+            let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(16);
             writeln!(
                 &mut trace_stdout,
-                "{0:} {1:}        0x{2:04x}: \t{3:}",
-                count,
-                count + 1,
-                pc,
-                instruction
+                "{0:8x}    {1:} 0x{2:08x}    {3:}\t{4:}",
+                opcode, instruction_str, pc, symbol, count
             ).unwrap();
             let _ = trace_stdout.flush();
         }
@@ -111,7 +110,6 @@ fn run_bin(code: &[u8], trace: bool, instructions: Option<u64>, option_trace_sta
             / (duration.as_secs() as f64 + (duration.subsec_nanos() as f64 / 1000_000_000f64))
     );
 }
-
 
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
@@ -134,6 +132,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                 f.read_to_end(&mut v).chain_err(|| "failed to read file")?;
                 v
             };
+            let mut symboltable = HashMap::new();
             let res = Object::parse(&buffer).unwrap();
             match res {
                 Object::Elf(elf) => {
@@ -142,9 +141,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                         if ph.p_type == goblin::elf::program_header::PT_LOAD {
                             println!(
                                 "load: {} bytes from offset 0x{:x} to addr 0x{:x}",
-                                ph.p_filesz,
-                                ph.p_offset,
-                                ph.p_paddr
+                                ph.p_filesz, ph.p_offset, ph.p_paddr
                             );
                             if ph.p_filesz > 0 {
                                 let dst_addr = ph.p_paddr as usize;
@@ -157,18 +154,37 @@ fn run(args: &ArgMatches) -> Result<()> {
                             }
                         }
                     }
+
+                    for sym in elf.syms {
+                        if sym.st_type() != goblin::elf::sym::STT_FILE {
+                            match elf.strtab.get(sym.st_name) {
+                                Some(maybe_name) => {
+                                    let name = maybe_name.unwrap_or("unknown");
+                                    let mut count = 0;
+                                    let mut pos = sym.st_value as u32;
+                                    while count <= sym.st_size {
+                                        // Align addresses to 2 byte alignment
+                                        symboltable.insert(pos & 0xffff_fffe, name);
+                                        pos += 2;
+                                        count += 2;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
                 }
                 _ => {
                     panic!("unsupported file format");
                 }
             }
 
-
             run_bin(
                 &flash_mem,
                 run_matches.is_present("trace"),
                 instructions,
                 trace_start,
+                &symboltable,
             );
         }
         ("devices", Some(_)) => {
