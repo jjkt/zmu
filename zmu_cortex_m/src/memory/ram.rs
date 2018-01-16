@@ -1,7 +1,5 @@
-use byteorder::{LittleEndian, ByteOrder};
+use byteorder::{ByteOrder, LittleEndian};
 use bus::Bus;
-
-
 
 pub struct RAM {
     start_address: u32,
@@ -18,7 +16,6 @@ impl RAM {
         }
     }
 }
-
 
 impl Bus for RAM {
     fn read8(&mut self, addr: u32) -> u8 {
@@ -60,13 +57,11 @@ impl Bus for RAM {
     }
 }
 
-
 #[test]
 fn test_new() {
     // should be able to make new instance of memory
     let _mem = RAM::new(0, 1024);
 }
-
 
 #[test]
 fn test_in_range() {

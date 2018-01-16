@@ -4,7 +4,6 @@ use core::condition::Condition;
 use core::ThumbCode;
 use enum_set::EnumSet;
 
-
 #[allow(non_camel_case_types)]
 pub enum Instruction {
     ADC_reg {
@@ -25,7 +24,10 @@ pub enum Instruction {
         rm: Reg,
         setflags: bool,
     },
-    ADR { rd: Reg, imm32: u32 },
+    ADR {
+        rd: Reg,
+        imm32: u32,
+    },
     AND_reg {
         rd: Reg,
         rm: Reg,
@@ -45,21 +47,43 @@ pub enum Instruction {
         setflags: bool,
     },
 
-    B { cond: Condition, imm32: i32 },
+    B {
+        cond: Condition,
+        imm32: i32,
+    },
     BIC_reg {
         rd: Reg,
         rn: Reg,
         rm: Reg,
         setflags: bool,
     },
-    BKPT { imm32: u32 },
-    BL { imm32: i32 },
-    BLX { rm: Reg },
-    BX { rm: Reg },
-    CMN_reg { rn: Reg, rm: Reg },
-    CMP_imm { rn: Reg, imm32: u32 },
-    CMP_reg { rm: Reg, rn: Reg },
-    CPS { im: CpsEffect },
+    BKPT {
+        imm32: u32,
+    },
+    BL {
+        imm32: i32,
+    },
+    BLX {
+        rm: Reg,
+    },
+    BX {
+        rm: Reg,
+    },
+    CMN_reg {
+        rn: Reg,
+        rm: Reg,
+    },
+    CMP_imm {
+        rn: Reg,
+        imm32: u32,
+    },
+    CMP_reg {
+        rm: Reg,
+        rn: Reg,
+    },
+    CPS {
+        im: CpsEffect,
+    },
     DMB,
     DSB,
     EOR_reg {
@@ -69,16 +93,54 @@ pub enum Instruction {
         setflags: bool,
     },
     ISB,
-    LDM { rn: Reg, registers: EnumSet<Reg> },
-    LDR_imm { rt: Reg, rn: Reg, imm32: u32 },
-    LDR_lit { rt: Reg, imm32: u32 },
-    LDR_reg { rt: Reg, rn: Reg, rm: Reg },
-    LDRB_imm { rt: Reg, rn: Reg, imm32: u32 },
-    LDRB_reg { rt: Reg, rn: Reg, rm: Reg },
-    LDRH_imm { rt: Reg, rn: Reg, imm32: u32 },
-    LDRH_reg { rt: Reg, rn: Reg, rm: Reg },
-    LDRSB_reg { rt: Reg, rn: Reg, rm: Reg },
-    LDRSH_reg { rt: Reg, rn: Reg, rm: Reg },
+    LDM {
+        rn: Reg,
+        registers: EnumSet<Reg>,
+    },
+    LDR_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+    LDR_lit {
+        rt: Reg,
+        imm32: u32,
+    },
+    LDR_reg {
+        rt: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    LDRB_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+    LDRB_reg {
+        rt: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    LDRH_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+    LDRH_reg {
+        rt: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    LDRSB_reg {
+        rt: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    LDRSH_reg {
+        rt: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
     LSL_imm {
         rd: Reg,
         rm: Reg,
@@ -103,17 +165,35 @@ pub enum Instruction {
         rn: Reg,
         setflags: bool,
     },
-    MOV_imm { rd: Reg, imm32: u32, setflags: bool },
-    MOV_reg { rd: Reg, rm: Reg, setflags: bool },
-    MRS { rd: Reg, spec_reg: SpecialReg },
-    MSR_reg { rn: Reg, spec_reg: SpecialReg },
+    MOV_imm {
+        rd: Reg,
+        imm32: u32,
+        setflags: bool,
+    },
+    MOV_reg {
+        rd: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
+    MRS {
+        rd: Reg,
+        spec_reg: SpecialReg,
+    },
+    MSR_reg {
+        rn: Reg,
+        spec_reg: SpecialReg,
+    },
     MUL {
         rd: Reg,
         rn: Reg,
         rm: Reg,
         setflags: bool,
     },
-    MVN_reg { rd: Reg, rm: Reg, setflags: bool },
+    MVN_reg {
+        rd: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     NOP,
     ORR {
         rd: Reg,
@@ -121,11 +201,24 @@ pub enum Instruction {
         rm: Reg,
         setflags: bool,
     },
-    POP { registers: EnumSet<Reg> },
-    PUSH { registers: EnumSet<Reg> },
-    REV { rd: Reg, rm: Reg },
-    REV16 { rd: Reg, rm: Reg },
-    REVSH { rd: Reg, rm: Reg },
+    POP {
+        registers: EnumSet<Reg>,
+    },
+    PUSH {
+        registers: EnumSet<Reg>,
+    },
+    REV {
+        rd: Reg,
+        rm: Reg,
+    },
+    REV16 {
+        rd: Reg,
+        rm: Reg,
+    },
+    REVSH {
+        rd: Reg,
+        rm: Reg,
+    },
     ROR_reg {
         rd: Reg,
         rn: Reg,
@@ -145,13 +238,40 @@ pub enum Instruction {
         setflags: bool,
     },
     SEV,
-    STM { rn: Reg, registers: EnumSet<Reg> },
-    STR_imm { rn: Reg, rt: Reg, imm32: u32 },
-    STR_reg { rm: Reg, rn: Reg, rt: Reg },
-    STRB_imm { rn: Reg, rt: Reg, imm32: u32 },
-    STRB_reg { rm: Reg, rn: Reg, rt: Reg },
-    STRH_imm { rt: Reg, rn: Reg, imm32: u32 },
-    STRH_reg { rm: Reg, rn: Reg, rt: Reg },
+    STM {
+        rn: Reg,
+        registers: EnumSet<Reg>,
+    },
+    STR_imm {
+        rn: Reg,
+        rt: Reg,
+        imm32: u32,
+    },
+    STR_reg {
+        rm: Reg,
+        rn: Reg,
+        rt: Reg,
+    },
+    STRB_imm {
+        rn: Reg,
+        rt: Reg,
+        imm32: u32,
+    },
+    STRB_reg {
+        rm: Reg,
+        rn: Reg,
+        rt: Reg,
+    },
+    STRH_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+    STRH_reg {
+        rm: Reg,
+        rn: Reg,
+        rt: Reg,
+    },
     SUB_imm {
         rd: Reg,
         rn: Reg,
@@ -164,13 +284,33 @@ pub enum Instruction {
         rd: Reg,
         setflags: bool,
     },
-    SVC { imm32: u32 },
-    SXTB { rd: Reg, rm: Reg },
-    SXTH { rd: Reg, rm: Reg },
-    TST_reg { rn: Reg, rm: Reg },
-    UDF { imm32: u32, opcode: ThumbCode },
-    UXTB { rd: Reg, rm: Reg },
-    UXTH { rd: Reg, rm: Reg },
+    SVC {
+        imm32: u32,
+    },
+    SXTB {
+        rd: Reg,
+        rm: Reg,
+    },
+    SXTH {
+        rd: Reg,
+        rm: Reg,
+    },
+    TST_reg {
+        rn: Reg,
+        rm: Reg,
+    },
+    UDF {
+        imm32: u32,
+        opcode: ThumbCode,
+    },
+    UXTB {
+        rd: Reg,
+        rm: Reg,
+    },
+    UXTH {
+        rd: Reg,
+        rm: Reg,
+    },
     WFE,
     WFI,
     YIELD,
@@ -192,9 +332,7 @@ impl fmt::Display for CpsEffect {
     }
 }
 
-
 use std::fmt;
-
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

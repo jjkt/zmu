@@ -118,8 +118,6 @@ pub fn is_thumb32(word: u16) -> bool {
     }
 }
 
-
-
 #[allow(non_snake_case)]
 fn decode_undefined(opcode: u16) -> Instruction {
     Instruction::UDF {
@@ -306,7 +304,6 @@ pub fn decode_32(t1: u16, t2: u16) -> Instruction {
 
     decode_branch_and_misc(t1, t2)
 }
-
 
 #[test]
 fn test_is_thumb32() {
@@ -579,7 +576,6 @@ fn test_decode_cmp() {
     }
 }
 
-
 #[test]
 fn test_decode_b() {
     // BEQ.N
@@ -772,7 +768,6 @@ fn test_decode_sub2() {
     }
 }
 
-
 #[test]
 fn test_decode_tst() {
     // TST R4, R1
@@ -816,7 +811,6 @@ fn test_decode_ldrb2() {
         }
     }
 }
-
 
 #[test]
 fn test_decode_mvns() {
@@ -1005,7 +999,6 @@ fn test_decode_lsr_reg() {
         }
     }
 }
-
 
 #[test]
 fn test_decode_adc_reg() {

@@ -32,59 +32,58 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
 #[test]
 fn test_add_with_carry() {
     let (result, carry, overflow) = add_with_carry(0x410, 4, false);
-    assert_eq!(result,0x414);
-    assert_eq!(carry,false);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 0x414);
+    assert_eq!(carry, false);
+    assert_eq!(overflow, false);
 }
 
 #[test]
 fn test_add_with_carry_basic() {
     let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, false);
-    assert_eq!(result,0xffff_ffff);
-    assert_eq!(carry,false);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 0xffff_ffff);
+    assert_eq!(carry, false);
+    assert_eq!(overflow, false);
 }
 
 #[test]
 fn test_add_with_carry_basic2() {
     let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, true);
-    assert_eq!(result,0);
-    assert_eq!(carry,true);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 0);
+    assert_eq!(carry, true);
+    assert_eq!(overflow, false);
 }
 
 #[test]
 fn test_add_with_carry_basic3() {
     let (result, carry, overflow) = add_with_carry(0x0, 0, true);
-    assert_eq!(result,1);
-    assert_eq!(carry,false);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 1);
+    assert_eq!(carry, false);
+    assert_eq!(overflow, false);
 }
 
 #[test]
 fn test_add_with_carry_basic4() {
     let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0, true);
-    assert_eq!(result,0);
-    assert_eq!(carry,true);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 0);
+    assert_eq!(carry, true);
+    assert_eq!(overflow, false);
 }
 
 #[test]
 fn test_add_with_carry_basic5() {
     let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, true);
-    assert_eq!(result,0xffff_ffff);
-    assert_eq!(carry,true);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 0xffff_ffff);
+    assert_eq!(carry, true);
+    assert_eq!(overflow, false);
 }
 
 #[test]
 fn test_add_with_carry_basic6() {
     let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, false);
-    assert_eq!(result,0xffff_fffe);
-    assert_eq!(carry,true);
-    assert_eq!(overflow,false);
+    assert_eq!(result, 0xffff_fffe);
+    assert_eq!(carry, true);
+    assert_eq!(overflow, false);
 }
-
 
 //
 // This function performs the condition test for an instruction, based on:
@@ -124,7 +123,6 @@ pub enum SRType {
     RRX,
     ROR,
 }
-
 
 // Decode immedate shift type
 // input: bits[2], immedate
@@ -171,7 +169,6 @@ fn asr_c(value: u32, shift: u8) -> (u32, bool) {
         extended.get_bit(shift - 1),
     )
 }
-
 
 pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32, bool) {
     assert!(!((shift_t == SRType::RRX) && (amount != 1)));

@@ -1,7 +1,6 @@
 use core::instruction::Instruction;
 use core::bits::*;
 
-
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_ADC_reg_t1(opcode: u16) -> Instruction {

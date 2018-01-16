@@ -1,7 +1,6 @@
 use core::instruction::Instruction;
 use core::bits::*;
 
-
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_BIC_reg_t1(command: u16) -> Instruction {

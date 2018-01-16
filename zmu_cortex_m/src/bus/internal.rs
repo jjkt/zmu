@@ -1,29 +1,24 @@
 use bus::Bus;
 
-
 #[derive(Default)]
-struct SysTick
-{
-    pub rvr : u32,
-    pub cvr : u32,
-    pub csr : u32
+struct SysTick {
+    pub rvr: u32,
+    pub cvr: u32,
+    pub csr: u32,
 }
 
 #[derive(Default)]
-struct Dwt
-{
-    pub ctrl : u32,
+struct Dwt {
+    pub ctrl: u32,
 }
-
 
 #[derive(Default)]
 pub struct InternalBus {
     shpr3: u32, // RW, 0xe000_ed20, reset value = SBZ (systick, pendsv bits are zero)
     vtor: u32,  // RW, 0xe000_ed08, reset value = 0
-    icsr: u32, // Interrupt Control and State Register RW, 0xe000_ed04, reset value = 0
-    syst : SysTick,
-    dwt : Dwt
-    /*
+    icsr: u32,  // Interrupt Control and State Register RW, 0xe000_ed04, reset value = 0
+    syst: SysTick,
+    dwt: Dwt, /*
     ACTLR: u32, // RW, 0xe000_e008, reset value = implementation defined
     
     SYST_CSR: u32, // RW, 0xe000_e010, reset value = 0 or 4, 
@@ -72,9 +67,7 @@ CID0	Read-only	0xE0001FF0	0x0D	Value 0x0D
 CID1	Read-only	0xE0001FF4	0xE0	Value 0xE0
 CID2	Read-only	0xE0001FF8	0x05	Value 0x05
 CID3	Read-only	0xE0001FFC	0xB1	Value 0xB1*/
-
 }
-
 
 impl InternalBus {
     fn read_shpr3(&self) -> u32 {
@@ -88,7 +81,7 @@ impl InternalBus {
     fn write_syst_rvr(&mut self, value: u32) {
         self.syst.rvr = value
     }
-    
+
     fn write_syst_cvr(&mut self, value: u32) {
         self.syst.cvr = value
     }
@@ -102,13 +95,18 @@ impl InternalBus {
     }
 
     pub fn new() -> InternalBus {
-        InternalBus { vtor : 0, shpr3: 0, syst : SysTick::default(), dwt : Dwt{ ctrl : 0x40000000}, icsr: 0 }
+        InternalBus {
+            vtor: 0,
+            shpr3: 0,
+            syst: SysTick::default(),
+            dwt: Dwt { ctrl: 0x40000000 },
+            icsr: 0,
+        }
     }
 }
 
 const INTERNAL_BUS_START: u32 = 0xE000_0000;
 const INTERNAL_BUS_END: u32 = 0xF000_0000;
-
 
 impl Bus for InternalBus {
     fn read16(&mut self, addr: u32) -> u16 {
@@ -143,8 +141,7 @@ impl Bus for InternalBus {
     fn write16(&mut self, addr: u32, value: u16) {
         panic!(
             "half-word access write to system area 0x{:x}->{}",
-            addr,
-            value
+            addr, value
         );
     }
 

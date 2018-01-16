@@ -87,10 +87,10 @@ fn run_bin(
         if trace && count >= trace_start {
             let opcode = 0xdeadbeef;
             let instruction_str = format!("{}", instruction).with_exact_width(32);
-            let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(16);
+            let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(32);
             writeln!(
                 &mut trace_stdout,
-                "{0:8x}    {1:} 0x{2:08x}    {3:}\t{4:}",
+                "{0:8x}    {1:} 0x{2:08x}    {3:}    {4:}",
                 opcode, instruction_str, pc, symbol, count
             ).unwrap();
             let _ = trace_stdout.flush();

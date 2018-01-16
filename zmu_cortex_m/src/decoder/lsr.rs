@@ -1,7 +1,6 @@
 use core::bits::*;
 use core::instruction::Instruction;
 
-
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_LSR_imm_t1(command: u16) -> Instruction {

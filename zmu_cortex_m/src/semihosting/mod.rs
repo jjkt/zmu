@@ -2,7 +2,6 @@ use bus::Bus;
 use core::Core;
 use core::register::Reg;
 
-
 #[derive(PartialEq, Debug)]
 pub enum SysExceptionReason {
     ADPStoppedBranchThroughZero,

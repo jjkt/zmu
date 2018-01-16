@@ -1,6 +1,5 @@
 use bus::Bus;
 
-
 pub struct AHBLite<'a, T: 'a + Bus, R: 'a + Bus> {
     code: &'a mut T,
     sram: &'a mut R,
