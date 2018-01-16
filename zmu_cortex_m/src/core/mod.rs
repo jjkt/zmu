@@ -62,6 +62,8 @@ pub struct Core<'a, T: Bus + 'a> {
     // TODO, vtor is in SCS
     vtor: u32,
 
+    pub cycle_count : u64,
+
     /* Processor state register, status flags. */
     psr: PSR,
 
@@ -100,6 +102,7 @@ impl<'a, T: Bus> Core<'a, T> {
             lr: 0,
             bus: bus,
             running: true,
+            cycle_count : 0
         }
     }
 

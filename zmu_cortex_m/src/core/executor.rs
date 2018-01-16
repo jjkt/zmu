@@ -41,6 +41,7 @@ where
 
             core.set_r(rd, result);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
         Instruction::ASR_imm {
             ref rd,
@@ -49,12 +50,14 @@ where
             ref setflags,
         } => {
             let (_, shift_n) = decode_imm_shift(0b10, *imm5);
+
             let (result, carry) = shift_c(
                 read_reg(core, rm),
                 SRType::ASR,
                 u32::from(shift_n),
                 core.psr.get_c(),
             );
+
             core.set_r(rd, result);
 
             if *setflags {
@@ -62,8 +65,8 @@ where
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
             }
-
             core.add_pc(2);
+            core.cycle_count += 1;
         }
         Instruction::ASR_reg {
             ref rd,
@@ -87,6 +90,7 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
         Instruction::BIC_reg {
             ref rd,
@@ -102,6 +106,7 @@ where
                 core.psr.set_z(result);
             }
             core.add_pc(2);
+            core.cycle_count += 1;
         }
         Instruction::CPS { ref im } => {
             if im == &CpsEffect::IE {
@@ -110,15 +115,19 @@ where
                 core.primask = true;
             }
             core.add_pc(2);
+            core.cycle_count += 1;
         }
         Instruction::DMB => {
             core.add_pc(2);
+            core.cycle_count += 4;
         }
         Instruction::DSB => {
             core.add_pc(2);
+            core.cycle_count += 4;
         }
         Instruction::ISB => {
             core.add_pc(2);
+            core.cycle_count += 4;
         }
         Instruction::MRS {
             ref rd,
@@ -141,6 +150,7 @@ where
             }
 
             core.add_pc(4);
+            core.cycle_count += 4;
         }
         Instruction::MSR_reg {
             ref rn,
@@ -170,6 +180,7 @@ where
             }
 
             core.add_pc(4);
+            core.cycle_count += 4;
         }
         Instruction::MOV_reg {
             ref rd,
@@ -186,6 +197,8 @@ where
                 }
                 core.add_pc(2);
             }
+
+            core.cycle_count += 1;
         }
         Instruction::LSL_imm {
             ref rd,
@@ -209,7 +222,9 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::LSL_reg {
             ref rd,
             ref rn,
@@ -232,6 +247,7 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
 
         Instruction::LSR_imm {
@@ -256,7 +272,9 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::LSR_reg {
             ref rd,
             ref rn,
@@ -279,12 +297,16 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::BL { imm32 } => {
             let pc = read_reg(core, &Reg::PC);
             core.set_r(&Reg::LR, pc | 0x01);
             core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
+            core.cycle_count += 4;
         }
+
         Instruction::BKPT { imm32 } => {
             if imm32 == 0xab {
                 let r0 = core.get_r(&Reg::R0);
@@ -294,10 +316,14 @@ where
                 semihost_return(&mut core, &semihost_response);
             }
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::NOP => {
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::MUL {
             ref rd,
             ref rn,
@@ -306,7 +332,6 @@ where
         } => {
             let operand1 = read_reg(core, rn);
             let operand2 = read_reg(core, rm);
-
 
             let result = operand1.wrapping_mul(operand2);
 
@@ -318,7 +343,10 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
+            // TODO or 32 if multiplier implementation is the cheaper one
         }
+
         Instruction::ORR {
             ref rd,
             ref rn,
@@ -338,7 +366,9 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::EOR_reg {
             ref rd,
             ref rn,
@@ -358,7 +388,9 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::AND_reg {
             ref rd,
             ref rn,
@@ -378,17 +410,23 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::BX { ref rm } => {
             let r_m = read_reg(core, rm) & 0xffff_fffe;
             core.set_r(&Reg::PC, r_m);
+            core.cycle_count += 3;
         }
+
         Instruction::BLX { ref rm } => {
             let pc = read_reg(core, &Reg::PC);
             let value = read_reg(core, rm) & 0xffff_fffe;
             core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
             core.set_r(&Reg::PC, value);
+            core.cycle_count += 3;
         }
+
         Instruction::LDM {
             ref registers,
             ref rn,
@@ -408,6 +446,7 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1 + registers.len() as u64;
         }
         Instruction::MOV_imm {
             ref rd,
@@ -421,7 +460,9 @@ where
                 core.psr.set_z(result);
             }
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::MVN_reg {
             ref rd,
             ref rm,
@@ -435,12 +476,16 @@ where
                 core.psr.set_z(result);
             }
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::B { ref cond, imm32 } => if condition_passed(cond, &core.psr) {
             let pc = read_reg(core, &Reg::PC);
             core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
+            core.cycle_count += 3;
         } else {
             core.add_pc(2);
+            core.cycle_count += 1;
         },
 
         Instruction::CMP_imm { ref rn, imm32 } => {
@@ -451,7 +496,9 @@ where
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::CMP_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm) ^ 0xFFFF_FFFF, true);
@@ -460,7 +507,9 @@ where
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::CMN_reg { ref rn, ref rm } => {
             let (result, carry, overflow) =
                 add_with_carry(read_reg(core, rn), read_reg(core, rm), false);
@@ -469,6 +518,7 @@ where
             core.psr.set_c(carry);
             core.psr.set_v(overflow);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
 
         Instruction::PUSH { ref registers } => {
@@ -484,6 +534,7 @@ where
 
             core.set_r(&Reg::SP, sp - regs_size);
             core.add_pc(2);
+            core.cycle_count += 1 + registers.len() as u64;
         }
 
         Instruction::POP { ref registers } => {
@@ -503,7 +554,10 @@ where
             }
 
             core.set_r(&Reg::SP, sp + regs_size);
-            if !registers.contains(&Reg::PC) {
+            if registers.contains(&Reg::PC) {
+                core.cycle_count += 4 + registers.len() as u64;
+            } else {
+                core.cycle_count += 1 + registers.len() as u64;
                 core.add_pc(2);
             }
         }
@@ -517,7 +571,9 @@ where
             let value = core.bus.read32(address);
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDR_reg {
             ref rt,
             ref rn,
@@ -527,7 +583,9 @@ where
             let value = core.bus.read32(address);
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDRB_imm {
             ref rt,
             ref rn,
@@ -537,7 +595,9 @@ where
             let value = u32::from(core.bus.read8(address));
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDRB_reg {
             ref rt,
             ref rn,
@@ -547,7 +607,9 @@ where
             let value = u32::from(core.bus.read8(address));
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDRH_imm {
             ref rt,
             ref rn,
@@ -557,7 +619,9 @@ where
             let value = u32::from(core.bus.read16(address));
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDRH_reg {
             ref rt,
             ref rn,
@@ -567,7 +631,9 @@ where
             let value = u32::from(core.bus.read16(address));
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDRSH_reg {
             ref rt,
             ref rn,
@@ -577,7 +643,9 @@ where
             let data = u32::from(core.bus.read16(address));
             core.set_r(rt, sign_extend(data, 15, 32) as u32);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDRSB_reg {
             ref rt,
             ref rn,
@@ -587,7 +655,9 @@ where
             let data = u32::from(core.bus.read8(address));
             core.set_r(rt, sign_extend(data, 7, 32) as u32);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::SBC_reg {
             ref rn,
             ref rd,
@@ -608,7 +678,9 @@ where
 
             core.set_r(rd, result);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::STM {
             ref registers,
             ref rn,
@@ -627,7 +699,9 @@ where
             core.add_r(rn, regs_size);
 
             core.add_pc(2);
+            core.cycle_count += 1 + registers.len() as u64;
         }
+
         Instruction::STR_imm {
             ref rt,
             ref rn,
@@ -637,7 +711,9 @@ where
             let value = read_reg(core, rt);
             core.bus.write32(address, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::STR_reg {
             ref rt,
             ref rn,
@@ -647,7 +723,9 @@ where
             let value = read_reg(core, rt);
             core.bus.write32(address, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::STRB_reg {
             ref rt,
             ref rn,
@@ -657,7 +735,9 @@ where
             let value = read_reg(core, rt);
             core.bus.write8(address, value.get_bits(0..8) as u8);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::STRB_imm {
             ref rt,
             ref rn,
@@ -667,7 +747,9 @@ where
             let value = read_reg(core, rt);
             core.bus.write8(address, value.get_bits(0..8) as u8);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::STRH_imm {
             ref rt,
             ref rn,
@@ -677,7 +759,9 @@ where
             let value = read_reg(core, rt);
             core.bus.write16(address, value.get_bits(0..16) as u16);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::STRH_reg {
             ref rt,
             ref rn,
@@ -687,13 +771,17 @@ where
             let value = read_reg(core, rt);
             core.bus.write16(address, value.get_bits(0..16) as u16);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::LDR_lit { ref rt, imm32 } => {
             let base = read_reg(core, &Reg::PC) & 0xffff_fffc;
             let value = core.bus.read32(base + imm32);
             core.set_r(rt, value);
             core.add_pc(2);
+            core.cycle_count += 2;
         }
+
         Instruction::ADD_reg {
             ref rd,
             ref rn,
@@ -705,6 +793,7 @@ where
 
             if rd == &Reg::PC {
                 core.set_r(rd, result & 0xffff_fffe);
+                core.cycle_count += 3;
             } else {
                 if *setflags {
                     core.psr.set_n(result);
@@ -714,8 +803,10 @@ where
                 }
                 core.set_r(rd, result);
                 core.add_pc(2);
+                core.cycle_count += 1;
             }
         }
+
         Instruction::ADD_imm {
             ref rn,
             ref rd,
@@ -734,12 +825,16 @@ where
 
             core.set_r(rd, result);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::ADR { ref rd, imm32 } => {
             let result = (read_reg(core, &Reg::PC) & 0xffff_fffc) + imm32;
             core.set_r(rd, result);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::RSB_imm {
             ref rd,
             ref rn,
@@ -758,7 +853,9 @@ where
 
             core.set_r(rd, result);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::SUB_imm {
             ref rn,
             ref rd,
@@ -777,7 +874,9 @@ where
 
             core.set_r(rd, result);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::SUB_reg {
             ref rn,
             ref rd,
@@ -797,7 +896,9 @@ where
             }
 
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::TST_reg { ref rn, ref rm } => {
             let result = read_reg(core, rn) & read_reg(core, rm);
 
@@ -805,26 +906,35 @@ where
             core.psr.set_z(result);
             //core.psr.set_c(carry); carry = shift_c()
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::UXTB { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
             core.set_r(rd, rotated.get_bits(0..8));
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::UXTH { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
             core.set_r(rd, rotated.get_bits(0..16));
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::SXTB { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
             core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
+
         Instruction::SXTH { ref rd, ref rm } => {
             let rotated = read_reg(core, rm);
             core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
             core.add_pc(2);
+            core.cycle_count += 1;
         }
         _ => panic!(
             "unimplemented instruction {} at {:#x}",

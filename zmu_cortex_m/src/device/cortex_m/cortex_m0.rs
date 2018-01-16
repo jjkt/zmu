@@ -54,7 +54,7 @@ where
                 semihost_func(semihost_cmd)
             },
         );
-        trace_func(count, pc, instruction);
+        trace_func(core.cycle_count, pc, instruction);
         count += 1;
     }
     count
