@@ -309,22 +309,22 @@ impl From<u8> for SpecialReg {
 impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Reg::R0 => write!(f, "R0"),
-            Reg::R1 => write!(f, "R1"),
-            Reg::R2 => write!(f, "R2"),
-            Reg::R3 => write!(f, "R3"),
-            Reg::R4 => write!(f, "R4"),
-            Reg::R5 => write!(f, "R5"),
-            Reg::R6 => write!(f, "R6"),
-            Reg::R7 => write!(f, "R7"),
-            Reg::R8 => write!(f, "R8"),
-            Reg::R9 => write!(f, "R9"),
-            Reg::R10 => write!(f, "R10"),
-            Reg::R11 => write!(f, "R11"),
-            Reg::R12 => write!(f, "R12"),
-            Reg::SP => write!(f, "SP"),
-            Reg::LR => write!(f, "LR"),
-            Reg::PC => write!(f, "PC"),
+            Reg::R0 => write!(f, "r0"),
+            Reg::R1 => write!(f, "r1"),
+            Reg::R2 => write!(f, "r2"),
+            Reg::R3 => write!(f, "r3"),
+            Reg::R4 => write!(f, "r4"),
+            Reg::R5 => write!(f, "r5"),
+            Reg::R6 => write!(f, "r6"),
+            Reg::R7 => write!(f, "r7"),
+            Reg::R8 => write!(f, "r8"),
+            Reg::R9 => write!(f, "r9"),
+            Reg::R10 => write!(f, "r10"),
+            Reg::R11 => write!(f, "r11"),
+            Reg::R12 => write!(f, "r12"),
+            Reg::SP => write!(f, "sp"),
+            Reg::LR => write!(f, "lr"),
+            Reg::PC => write!(f, "pc"),
         }
     }
 }
