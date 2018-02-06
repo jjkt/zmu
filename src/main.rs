@@ -6,9 +6,9 @@ extern crate error_chain;
 extern crate bit_field;
 extern crate clap;
 extern crate goblin;
+extern crate pad;
 extern crate tabwriter;
 extern crate zmu_cortex_m;
-extern crate pad;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io::prelude::*;
@@ -22,8 +22,10 @@ use pad::PadStr;
 
 use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 use zmu_cortex_m::core::instruction::Instruction;
+use zmu_cortex_m::core::ThumbCode;
 
 use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate;
+use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate_trace;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -81,23 +83,35 @@ fn run_bin(
 
     let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
     let trace_start = option_trace_start.unwrap_or(0);
-
     //    4803        ldr r0, =0x20010000 <__stack_end__>             0x000001A2    Reset_Handler    1
-    let tracefunc = |count: u64, pc: u32, instruction: &Instruction| {
-        if trace && count >= trace_start {
-            let opcode = 0xdeadbeef;
-            let instruction_str = format!("{}", instruction).with_exact_width(32);
-            let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(32);
-            writeln!(
-                &mut trace_stdout,
-                "{0:8x}    {1:} 0x{2:08x}    {3:}    {4:}",
-                opcode, instruction_str, pc, symbol, count
-            ).unwrap();
-            let _ = trace_stdout.flush();
-        }
+    let instruction_count = if trace {
+        let tracefunc = |opcode: &ThumbCode, count: u64, pc: u32, instruction: &Instruction| {
+            if trace && count >= trace_start {
+                let opcode_str = match *opcode {
+                    ThumbCode::Thumb32 {
+                        half_word,
+                        half_word2,
+                    } => format!("{:04X}{:04X}", half_word, half_word2).with_exact_width(8),
+                    ThumbCode::Thumb16 { half_word } => {
+                        format!("{:04X}", half_word).with_exact_width(8)
+                    }
+                };
+
+                let instruction_str = format!("{}", instruction).with_exact_width(32);
+                let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(32);
+                writeln!(
+                    &mut trace_stdout,
+                    "    {0:}    {1:} 0x{2:08X}    {3:}    {4:}",
+                    opcode_str, instruction_str, pc, symbol, count
+                ).unwrap();
+                let _ = trace_stdout.flush();
+            }
+        };
+        cortex_m0_simulate_trace(code, tracefunc, semihost_func)
+    } else {
+        cortex_m0_simulate(code, semihost_func)
     };
 
-    let instruction_count = cortex_m0_simulate(code, tracefunc, semihost_func);
     let end = Instant::now();
 
     let duration = end.duration_since(start);
@@ -139,10 +153,10 @@ fn run(args: &ArgMatches) -> Result<()> {
                     //println!("elf: {:#?}", &elf);
                     for ph in elf.program_headers {
                         if ph.p_type == goblin::elf::program_header::PT_LOAD {
-                            println!(
+                            /*println!(
                                 "load: {} bytes from offset 0x{:x} to addr 0x{:x}",
                                 ph.p_filesz, ph.p_offset, ph.p_paddr
-                            );
+                            );*/
                             if ph.p_filesz > 0 {
                                 let dst_addr = ph.p_paddr as usize;
                                 let dst_end_addr = (ph.p_paddr + ph.p_filesz) as usize;
@@ -248,8 +262,6 @@ fn main() {
             println!("caused by: {}", e);
         }
 
-        // The backtrace is not always generated. Try to run this example
-        // with `RUST_BACKTRACE=1`.
         if let Some(backtrace) = e.backtrace() {
             println!("backtrace: {:?}", backtrace);
         }
