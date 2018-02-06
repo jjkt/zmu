@@ -40,22 +40,19 @@ impl Bus for FlashMemory {
     fn write32(&mut self, addr: u32, value: u32) {
         panic!(
             "trying to write to flash memory add 0x{:x} = 0x{}",
-            addr,
-            value
+            addr, value
         );
     }
     fn write16(&mut self, addr: u32, value: u16) {
         panic!(
             "trying to write to flash memory add 0x{:x} = 0x{}",
-            addr,
-            value
+            addr, value
         );
     }
     fn write8(&mut self, addr: u32, value: u8) {
         panic!(
             "trying to write to flash memory add 0x{:x} = 0x{}",
-            addr,
-            value
+            addr, value
         );
     }
 
