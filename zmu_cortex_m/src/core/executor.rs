@@ -936,10 +936,23 @@ where
             core.add_pc(2);
             core.cycle_count += 1;
         }
-        _ => panic!(
-            "unimplemented instruction {} at {:#x}",
-            instruction,
-            core.get_r(&Reg::PC)
-        ),
+        Instruction::REV { ref rd, ref rm } => unimplemented!(),
+        Instruction::REVSH { ref rd, ref rm } => unimplemented!(),
+        Instruction::REV16 { ref rd, ref rm } => unimplemented!(),
+        Instruction::ROR_reg {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref setflags,
+        } => unimplemented!(),
+        Instruction::SVC { ref imm32 } => unimplemented!(),
+        Instruction::SEV => unimplemented!(),
+        Instruction::WFE => core.cycle_count += 1,
+        Instruction::WFI => core.cycle_count += 1,
+        Instruction::YIELD => unimplemented!(),
+        Instruction::UDF {
+            ref imm32,
+            ref opcode,
+        } => unimplemented!(),
     }
 }
