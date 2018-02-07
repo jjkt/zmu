@@ -50,6 +50,7 @@ mod orr;
 mod push;
 mod pop;
 
+mod rev;
 mod rsb;
 mod ror;
 
@@ -101,8 +102,10 @@ use decoder::orr::*;
 use decoder::push::*;
 use decoder::pop::*;
 
+use decoder::rev::*;
 use decoder::rsb::*;
 use decoder::ror::*;
+
 use decoder::sbc::*;
 use decoder::sub::*;
 use decoder::stm::*;
@@ -126,29 +129,6 @@ fn decode_undefined(opcode: u16) -> Instruction {
     }
 }
 
-#[allow(non_snake_case)]
-fn decode_REVSH_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
-#[allow(non_snake_case)]
-fn decode_REV_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
-#[allow(non_snake_case)]
-fn decode_REV16_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
 
 #[allow(non_snake_case)]
 fn decode_WFI_t1(opcode: u16) -> Instruction {

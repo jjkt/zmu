@@ -936,9 +936,35 @@ where
             core.add_pc(2);
             core.cycle_count += 1;
         }
-        Instruction::REV { ref rd, ref rm } => unimplemented!(),
-        Instruction::REVSH { ref rd, ref rm } => unimplemented!(),
-        Instruction::REV16 { ref rd, ref rm } => unimplemented!(),
+        Instruction::REV { ref rd, ref rm } => {
+            let rm_ = read_reg(core, rm);
+            core.set_r(
+                rd,
+                ((rm_ & 0xff) << 24) + ((rm_ & 0xff00) << 8) + ((rm_ & 0xff0000) >> 8)
+                    + ((rm_ & 0xff000000) >> 24),
+            );
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
+        Instruction::REV16 { ref rd, ref rm } => {
+            let rm_ = read_reg(core, rm);
+            core.set_r(
+                rd,
+                ((rm_ & 0xff) << 8) + ((rm_ & 0xff00) >> 8) + ((rm_ & 0xff0000) << 8)
+                    + ((rm_ & 0xff000000) >> 8),
+            );
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
+        Instruction::REVSH { ref rd, ref rm } => {
+            let rm_ = read_reg(core, rm);
+            core.set_r(
+                rd,
+                ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
+            );
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
         Instruction::ROR_reg {
             ref rd,
             ref rn,
