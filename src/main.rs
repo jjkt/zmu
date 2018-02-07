@@ -72,6 +72,10 @@ fn run_bin(
                 if reason == &SysExceptionReason::ADPStoppedApplicationExit {
                     stop = true;
                 }
+                else
+                {
+                    println!("semihosting exception!");
+                }
 
                 SemihostingResponse::SysException {
                     success: true,

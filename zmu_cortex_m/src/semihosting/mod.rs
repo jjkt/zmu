@@ -22,30 +22,31 @@ pub enum SysExceptionReason {
     ADPStoppedStackOverflow,
     ADPStoppedDivisionByZero,
     ADPStoppedOSSpecific,
+    ADPStopped,
 }
 
 impl SysExceptionReason {
-    pub fn from_u32(reason: u32) -> Option<SysExceptionReason> {
+    pub fn from_u32(reason: u32) -> SysExceptionReason {
         match reason {
-            0x20000 => Some(SysExceptionReason::ADPStoppedBranchThroughZero),
-            0x20001 => Some(SysExceptionReason::ADPStoppedUndefinedInstr),
-            0x20002 => Some(SysExceptionReason::ADPStoppedSoftwareInterrupt),
-            0x20003 => Some(SysExceptionReason::ADPStoppedPrefetchAbort),
-            0x20004 => Some(SysExceptionReason::ADPStoppedDataAbort),
-            0x20005 => Some(SysExceptionReason::ADPStoppedAddressException),
-            0x20006 => Some(SysExceptionReason::ADPStoppedIRQ),
-            0x20007 => Some(SysExceptionReason::ADPStoppedFIQ),
-            0x20020 => Some(SysExceptionReason::ADPStoppedBreakPoint),
-            0x20021 => Some(SysExceptionReason::ADPStoppedWatchPoint),
-            0x20022 => Some(SysExceptionReason::ADPStoppedStepComplete),
-            0x20023 => Some(SysExceptionReason::ADPStoppedRunTimeErrorUnknown),
-            0x20024 => Some(SysExceptionReason::ADPStoppedInternalError),
-            0x20025 => Some(SysExceptionReason::ADPStoppedUserInterruption),
-            0x20026 => Some(SysExceptionReason::ADPStoppedApplicationExit),
-            0x20027 => Some(SysExceptionReason::ADPStoppedStackOverflow),
-            0x20028 => Some(SysExceptionReason::ADPStoppedDivisionByZero),
-            0x20029 => Some(SysExceptionReason::ADPStoppedOSSpecific),
-            _ => None,
+            0x20000 => SysExceptionReason::ADPStoppedBranchThroughZero,
+            0x20001 => SysExceptionReason::ADPStoppedUndefinedInstr,
+            0x20002 => SysExceptionReason::ADPStoppedSoftwareInterrupt,
+            0x20003 => SysExceptionReason::ADPStoppedPrefetchAbort,
+            0x20004 => SysExceptionReason::ADPStoppedDataAbort,
+            0x20005 => SysExceptionReason::ADPStoppedAddressException,
+            0x20006 => SysExceptionReason::ADPStoppedIRQ,
+            0x20007 => SysExceptionReason::ADPStoppedFIQ,
+            0x20020 => SysExceptionReason::ADPStoppedBreakPoint,
+            0x20021 => SysExceptionReason::ADPStoppedWatchPoint,
+            0x20022 => SysExceptionReason::ADPStoppedStepComplete,
+            0x20023 => SysExceptionReason::ADPStoppedRunTimeErrorUnknown,
+            0x20024 => SysExceptionReason::ADPStoppedInternalError,
+            0x20025 => SysExceptionReason::ADPStoppedUserInterruption,
+            0x20026 => SysExceptionReason::ADPStoppedApplicationExit,
+            0x20027 => SysExceptionReason::ADPStoppedStackOverflow,
+            0x20028 => SysExceptionReason::ADPStoppedDivisionByZero,
+            0x20029 => SysExceptionReason::ADPStoppedOSSpecific,
+            _ => SysExceptionReason::ADPStopped,
         }
     }
 }
@@ -110,7 +111,7 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
         }
         16 => SemihostingCommand::SysClock,
         24 => SemihostingCommand::SysException {
-            reason: SysExceptionReason::from_u32(r1).unwrap(),
+            reason: SysExceptionReason::from_u32(r1),
         },
         _ => {
             panic!("unknown semihosting command");
