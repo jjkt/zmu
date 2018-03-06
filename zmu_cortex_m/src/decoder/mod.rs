@@ -129,39 +129,6 @@ fn decode_undefined(opcode: u16) -> Instruction {
     }
 }
 
-
-#[allow(non_snake_case)]
-fn decode_WFI_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
-#[allow(non_snake_case)]
-fn decode_WFE_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
-#[allow(non_snake_case)]
-fn decode_YIELD_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
-#[allow(non_snake_case)]
-fn decode_SEV_t1(opcode: u16) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
 pub fn decode_16(opcode: u16) -> Instruction {
     match opcode {
         0...2047 => decode_MOV_reg_t2_LSL_imm_t1(opcode),
@@ -229,10 +196,10 @@ pub fn decode_16(opcode: u16) -> Instruction {
         48128...48639 => decode_POP_reg_t1(opcode),
         48640...48895 => decode_BKPT_t1(opcode),
         48896...48896 => decode_NOP_t1(opcode),
-        48912...48912 => decode_YIELD_t1(opcode),
-        48928...48928 => decode_WFE_t1(opcode),
-        48944...48944 => decode_WFI_t1(opcode),
-        48960...48960 => decode_SEV_t1(opcode),
+        48912...48912 => Instruction::YIELD,
+        48928...48928 => Instruction::WFE,
+        48944...48944 => Instruction::WFI,
+        48960...48960 => Instruction::SEV,
         49152...51199 => decode_STM_t1(opcode),
         51200...53247 => decode_LDM_t1(opcode),
         53248...57343 => decode_B_t1_SVC_t1(opcode),
