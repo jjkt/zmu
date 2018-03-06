@@ -970,12 +970,46 @@ where
             ref rn,
             ref rm,
             ref setflags,
-        } => unimplemented!(),
-        Instruction::SVC { ref imm32 } => unimplemented!(),
-        Instruction::SEV => unimplemented!(),
-        Instruction::WFE => core.cycle_count += 1,
-        Instruction::WFI => core.cycle_count += 1,
-        Instruction::YIELD => unimplemented!(),
+        } => {
+            let shift_n = read_reg(core, rm) & 0xff;
+            let (result, carry) = shift_c(
+                read_reg(core, rn),
+                SRType::ROR,
+                u32::from(shift_n),
+                core.psr.get_c(),
+            );
+            core.set_r(rd, result);
+            if *setflags {
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+            }
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
+        Instruction::SVC { ref imm32 } => {
+            println!("SVC {}", imm32);
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
+        Instruction::SEV => {
+            println!("SEV");
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
+        Instruction::WFE => {
+            core.cycle_count += 1;
+            core.add_pc(2);
+        }
+        Instruction::WFI => {
+            core.cycle_count += 1;
+            core.add_pc(2);
+        }
+        Instruction::YIELD => {
+            println!("YIELD");
+            core.add_pc(2);
+            core.cycle_count += 1;
+        }
         Instruction::UDF {
             ref imm32,
             ref opcode,
