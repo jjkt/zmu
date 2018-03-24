@@ -2,6 +2,7 @@ use core::condition::Condition;
 use core::register::Apsr;
 use core::PSR;
 use bit_field::BitField;
+use core::bits::bit_31;
 
 pub fn sign_extend(word: u32, topbit: u8, size: u8) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
@@ -148,6 +149,18 @@ fn lsl_c(value: u32, shift: u32) -> (u32, bool) {
     (extended.get_bits(0..32) as u32, extended.get_bit(32))
 }
 
+fn lsl(value: u32, shift: u32) -> u32 {
+    assert!(shift > 0);
+
+    if shift == 0 {
+        value
+    } else {
+        let (result, _) = lsl_c(value, shift);
+        result
+    }
+}
+
+
 fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
     assert!(shift > 0);
 
@@ -157,6 +170,17 @@ fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
         extended.get_bits(shift..(shift + 32)) as u32,
         extended.get_bit(shift - 1),
     )
+}
+
+fn lsr(value: u32, shift: u8) -> u32 {
+    assert!(shift > 0);
+
+    if shift == 0 {
+        value
+    } else {
+        let (result, _) = lsr_c(value, shift);
+        result
+    }
 }
 
 fn asr_c(value: u32, shift: u8) -> (u32, bool) {
@@ -170,6 +194,26 @@ fn asr_c(value: u32, shift: u8) -> (u32, bool) {
     )
 }
 
+fn ror_c(value: u32, shift: u8) -> (u32, bool) {
+    assert!(shift > 0);
+    let m = shift % 32;
+    let result = lsr(value, m) | lsl(value, 32 - m as u32);
+    let carry_out = bit_31(result) == 1;
+    (result, carry_out)
+}
+
+///
+/// Do the one of the different shifting operations, with carry in support
+///
+/// Parameters:
+/// - value is the number on which to apply the shifting on
+/// - shift_t selects the shift type to use
+/// - amount declares number of bits to shift and
+/// - carry_in gives the input carry bit. Carry in is only used for RRX type shifting.
+///
+/// Returns:
+/// - shifted value
+/// - carry out
 pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32, bool) {
     assert!(!((shift_t == SRType::RRX) && (amount != 1)));
     if amount == 0 {
@@ -179,6 +223,7 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32
             SRType::LSL => lsl_c(value, amount),
             SRType::LSR => lsr_c(value, amount as u8),
             SRType::ASR => asr_c(value, amount as u8),
+            SRType::ROR => ror_c(value, amount as u8),
             _ => panic!("not implemented"),
         }
     }
@@ -199,6 +244,22 @@ fn test_shift_c() {
     {
         let (result, carry) = shift_c(0xFFFFFFC0, SRType::ASR, 1, false);
         assert!(result == 0xFFFFFFE0);
+        assert!(carry == false);
+    }
+
+    {
+        let (result, carry) = shift_c(0, SRType::ROR, 0, false);
+        assert!(result == 0x0);
+        assert!(carry == false);
+    }
+    {
+        let (result, carry) = shift_c(2, SRType::ROR, 1, false);
+        assert!(result == 0x1);
+        assert!(carry == false);
+    }
+    {
+        let (result, carry) = shift_c(1, SRType::ROR, 1, false);
+        assert!(result == 0x8000_0000);
         assert!(carry == false);
     }
 }

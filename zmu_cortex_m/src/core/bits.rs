@@ -64,6 +64,12 @@ pub fn bit_8(n: u16) -> u8 {
 }
 
 #[inline]
+pub fn bit_31(n: u32) -> u32 {
+    ((n & 0b_1000_0000_0000_0000) >> 31) as u32
+}
+
+
+#[inline]
 pub fn bits_0_11(n: u16) -> u16 {
     n & 0b_11_1111_1111
 }
