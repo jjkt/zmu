@@ -4,6 +4,7 @@ pub mod instruction;
 pub mod operation;
 pub mod register;
 pub mod bits;
+pub mod fault;
 
 use bus::Bus;
 use core::executor::execute;

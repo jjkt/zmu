@@ -4,6 +4,7 @@ use bit_field::BitField;
 use core::instruction::{CpsEffect, Instruction};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
+use core::fault::Fault;
 use bus::Bus;
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
@@ -17,7 +18,11 @@ fn read_reg<T: Bus>(core: &mut Core<T>, r: &Reg) -> u32 {
     }
 }
 
-pub fn execute<T: Bus, F>(mut core: &mut Core<T>, instruction: &Instruction, mut semihost_func: F)
+pub fn execute<T: Bus, F>(
+    mut core: &mut Core<T>,
+    instruction: &Instruction,
+    mut semihost_func: F,
+) -> Option<Fault>
 where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
@@ -42,6 +47,7 @@ where
             core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::ASR_imm {
             ref rd,
@@ -67,6 +73,7 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::ASR_reg {
             ref rd,
@@ -91,6 +98,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::BIC_reg {
             ref rd,
@@ -107,6 +115,7 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::CPS { ref im } => {
             if im == &CpsEffect::IE {
@@ -116,18 +125,22 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::DMB => {
             core.add_pc(2);
             core.cycle_count += 4;
+            None
         }
         Instruction::DSB => {
             core.add_pc(2);
             core.cycle_count += 4;
+            None
         }
         Instruction::ISB => {
             core.add_pc(2);
             core.cycle_count += 4;
+            None
         }
         Instruction::MRS {
             ref rd,
@@ -151,6 +164,7 @@ where
 
             core.add_pc(4);
             core.cycle_count += 4;
+            None
         }
         Instruction::MSR_reg {
             ref rn,
@@ -181,6 +195,7 @@ where
 
             core.add_pc(4);
             core.cycle_count += 4;
+            None
         }
         Instruction::MOV_reg {
             ref rd,
@@ -199,6 +214,7 @@ where
             }
 
             core.cycle_count += 1;
+            None
         }
         Instruction::LSL_imm {
             ref rd,
@@ -223,6 +239,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::LSL_reg {
@@ -248,6 +265,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::LSR_imm {
@@ -273,6 +291,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::LSR_reg {
@@ -298,6 +317,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::BL { imm32 } => {
@@ -305,6 +325,7 @@ where
             core.set_r(&Reg::LR, pc | 0x01);
             core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
             core.cycle_count += 4;
+            None
         }
 
         Instruction::BKPT { imm32 } => {
@@ -317,11 +338,13 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::NOP => {
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::MUL {
@@ -345,6 +368,7 @@ where
             core.add_pc(2);
             core.cycle_count += 1;
             // TODO or 32 if multiplier implementation is the cheaper one
+            None
         }
 
         Instruction::ORR {
@@ -367,6 +391,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::EOR_reg {
@@ -389,6 +414,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::AND_reg {
@@ -411,12 +437,14 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::BX { ref rm } => {
             let r_m = read_reg(core, rm) & 0xffff_fffe;
             core.set_r(&Reg::PC, r_m);
             core.cycle_count += 3;
+            None
         }
 
         Instruction::BLX { ref rm } => {
@@ -425,6 +453,7 @@ where
             core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
             core.set_r(&Reg::PC, value);
             core.cycle_count += 3;
+            None
         }
 
         Instruction::LDM {
@@ -447,6 +476,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1 + registers.len() as u64;
+            None
         }
         Instruction::MOV_imm {
             ref rd,
@@ -461,6 +491,7 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::MVN_reg {
@@ -477,15 +508,18 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::B { ref cond, imm32 } => if condition_passed(cond, &core.psr) {
             let pc = read_reg(core, &Reg::PC);
             core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
             core.cycle_count += 3;
+            None
         } else {
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         },
 
         Instruction::CMP_imm { ref rn, imm32 } => {
@@ -497,6 +531,7 @@ where
             core.psr.set_v(overflow);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::CMP_reg { ref rn, ref rm } => {
@@ -508,6 +543,7 @@ where
             core.psr.set_v(overflow);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::CMN_reg { ref rn, ref rm } => {
@@ -519,6 +555,7 @@ where
             core.psr.set_v(overflow);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::PUSH { ref registers } => {
@@ -535,6 +572,7 @@ where
             core.set_r(&Reg::SP, sp - regs_size);
             core.add_pc(2);
             core.cycle_count += 1 + registers.len() as u64;
+            None
         }
 
         Instruction::POP { ref registers } => {
@@ -560,6 +598,7 @@ where
                 core.cycle_count += 1 + registers.len() as u64;
                 core.add_pc(2);
             }
+            None
         }
 
         Instruction::LDR_imm {
@@ -572,6 +611,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDR_reg {
@@ -584,6 +624,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDRB_imm {
@@ -596,6 +637,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDRB_reg {
@@ -608,6 +650,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDRH_imm {
@@ -620,6 +663,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDRH_reg {
@@ -632,6 +676,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDRSH_reg {
@@ -644,6 +689,7 @@ where
             core.set_r(rt, sign_extend(data, 15, 32) as u32);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDRSB_reg {
@@ -656,6 +702,7 @@ where
             core.set_r(rt, sign_extend(data, 7, 32) as u32);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::SBC_reg {
@@ -679,6 +726,7 @@ where
             core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::STM {
@@ -700,6 +748,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1 + registers.len() as u64;
+            None
         }
 
         Instruction::STR_imm {
@@ -712,6 +761,7 @@ where
             core.bus.write32(address, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::STR_reg {
@@ -724,6 +774,7 @@ where
             core.bus.write32(address, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::STRB_reg {
@@ -736,6 +787,7 @@ where
             core.bus.write8(address, value.get_bits(0..8) as u8);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::STRB_imm {
@@ -748,6 +800,7 @@ where
             core.bus.write8(address, value.get_bits(0..8) as u8);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::STRH_imm {
@@ -760,6 +813,7 @@ where
             core.bus.write16(address, value.get_bits(0..16) as u16);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::STRH_reg {
@@ -772,6 +826,7 @@ where
             core.bus.write16(address, value.get_bits(0..16) as u16);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::LDR_lit { ref rt, imm32 } => {
@@ -780,6 +835,7 @@ where
             core.set_r(rt, value);
             core.add_pc(2);
             core.cycle_count += 2;
+            None
         }
 
         Instruction::ADD_reg {
@@ -805,6 +861,7 @@ where
                 core.add_pc(2);
                 core.cycle_count += 1;
             }
+            None
         }
 
         Instruction::ADD_imm {
@@ -826,6 +883,7 @@ where
             core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::ADR { ref rd, imm32 } => {
@@ -833,6 +891,7 @@ where
             core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::RSB_imm {
@@ -854,6 +913,7 @@ where
             core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::SUB_imm {
@@ -875,6 +935,7 @@ where
             core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::SUB_reg {
@@ -897,6 +958,7 @@ where
 
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::TST_reg { ref rn, ref rm } => {
@@ -907,6 +969,7 @@ where
             //core.psr.set_c(carry); carry = shift_c()
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::UXTB { ref rd, ref rm } => {
@@ -914,6 +977,7 @@ where
             core.set_r(rd, rotated.get_bits(0..8));
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::UXTH { ref rd, ref rm } => {
@@ -921,6 +985,7 @@ where
             core.set_r(rd, rotated.get_bits(0..16));
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::SXTB { ref rd, ref rm } => {
@@ -928,6 +993,7 @@ where
             core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
 
         Instruction::SXTH { ref rd, ref rm } => {
@@ -935,6 +1001,7 @@ where
             core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::REV { ref rd, ref rm } => {
             let rm_ = read_reg(core, rm);
@@ -945,6 +1012,7 @@ where
             );
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::REV16 { ref rd, ref rm } => {
             let rm_ = read_reg(core, rm);
@@ -955,6 +1023,7 @@ where
             );
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::REVSH { ref rd, ref rm } => {
             let rm_ = read_reg(core, rm);
@@ -964,6 +1033,7 @@ where
             );
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::ROR_reg {
             ref rd,
@@ -986,33 +1056,39 @@ where
             }
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::SVC { ref imm32 } => {
             println!("SVC {}", imm32);
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::SEV => {
             println!("SEV");
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::WFE => {
             core.cycle_count += 1;
             core.add_pc(2);
+            None
         }
         Instruction::WFI => {
             core.cycle_count += 1;
             core.add_pc(2);
+            None
         }
         Instruction::YIELD => {
             println!("YIELD");
             core.add_pc(2);
             core.cycle_count += 1;
+            None
         }
         Instruction::UDF {
             ref imm32,
             ref opcode,
-        } => unimplemented!(),
+        } => Some(Fault::UndefinedInstruction),
     }
 }
