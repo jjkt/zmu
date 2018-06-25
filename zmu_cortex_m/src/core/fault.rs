@@ -1,7 +1,7 @@
 //!
 //! A Trait for representing a Cortex armv6-m fault
-//! 
-//! 
+//!
+//!
 
 pub enum Fault {
     ///

@@ -3,25 +3,25 @@ use core::instruction::Instruction;
 use core::ThumbCode;
 
 #[cfg(test)]
-use core::register::{Reg, SpecialReg};
-#[cfg(test)]
 use core::instruction::CpsEffect;
+#[cfg(test)]
+use core::register::{Reg, SpecialReg};
 
 #[cfg(test)]
 use core::condition::Condition;
 
-mod and;
 mod adc;
 mod add;
 mod adr;
+mod and;
 mod asr;
 
 mod b;
 mod bic;
+mod bkpt;
+mod bl;
 mod blx;
 mod bx;
-mod bl;
-mod bkpt;
 
 mod cmn;
 mod cmp;
@@ -34,25 +34,25 @@ mod ldm;
 mod ldr;
 mod ldrb;
 mod ldrh;
-mod ldrsh;
 mod ldrsb;
+mod ldrsh;
 mod lsl;
 mod lsr;
 mod mov;
-mod mvn;
-mod mul;
 mod mrs;
 mod msr;
+mod mul;
+mod mvn;
 
 mod nop;
 mod orr;
 
-mod push;
 mod pop;
+mod push;
 
 mod rev;
-mod rsb;
 mod ror;
+mod rsb;
 
 mod sbc;
 mod stm;
@@ -70,10 +70,10 @@ use decoder::asr::*;
 
 use decoder::b::*;
 use decoder::bic::*;
-use decoder::bx::*;
-use decoder::blx::*;
-use decoder::bl::*;
 use decoder::bkpt::*;
+use decoder::bl::*;
+use decoder::blx::*;
+use decoder::bx::*;
 
 use decoder::cmn::*;
 use decoder::cmp::*;
@@ -86,30 +86,30 @@ use decoder::ldm::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
 use decoder::ldrh::*;
-use decoder::ldrsh::*;
 use decoder::ldrsb::*;
+use decoder::ldrsh::*;
 use decoder::lsl::*;
 use decoder::lsr::*;
 
 use decoder::mov::*;
-use decoder::mul::*;
-use decoder::mvn::*;
 use decoder::mrs::*;
 use decoder::msr::*;
+use decoder::mul::*;
+use decoder::mvn::*;
 
 use decoder::nop::*;
 use decoder::orr::*;
-use decoder::push::*;
 use decoder::pop::*;
+use decoder::push::*;
 
 use decoder::rev::*;
-use decoder::rsb::*;
 use decoder::ror::*;
+use decoder::rsb::*;
 
 use decoder::sbc::*;
-use decoder::sub::*;
 use decoder::stm::*;
 use decoder::str::*;
+use decoder::sub::*;
 use decoder::sxt::*;
 use decoder::tst::*;
 use decoder::uxt::*;
@@ -216,9 +216,9 @@ pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Instruction {
     match op2 {
         0x7 | 0x5 => decode_bl(t1, t2),
         0 => match op1 {
-            0b0111000 | 0b0111001 => decode_msr_reg(t1, t2),
-            0b0111011 => decode_control(t1, t2),
-            0b0111111 | 0b0111110 => decode_mrs(t1, t2),
+            0b011_1000 | 0b011_1001 => decode_msr_reg(t1, t2),
+            0b011_1011 => decode_control(t1, t2),
+            0b011_1111 | 0b011_1110 => decode_mrs(t1, t2),
             _ => Instruction::UDF {
                 imm32: 0,
                 opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),

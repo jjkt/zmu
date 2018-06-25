@@ -5,12 +5,14 @@ pub mod operation;
 pub mod register;
 pub mod bits;
 pub mod fault;
+pub mod exception;
 
 use bus::Bus;
 use core::executor::execute;
 use decoder::{decode_16, decode_32, is_thumb32};
 use core::register::{Apsr, Control, Epsr, Reg, PSR};
 use core::instruction::Instruction;
+use core::exception::Exception;
 use std::fmt;
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
@@ -63,7 +65,7 @@ pub struct Core<'a, T: Bus + 'a> {
     // TODO, vtor is in SCS
     vtor: u32,
 
-    pub cycle_count : u64,
+    pub cycle_count: u64,
 
     /* Processor state register, status flags. */
     psr: PSR,
@@ -103,7 +105,7 @@ impl<'a, T: Bus> Core<'a, T> {
             lr: 0,
             bus: bus,
             running: true,
-            cycle_count : 0
+            cycle_count: 0,
         }
     }
 
@@ -264,11 +266,9 @@ impl<'a, T: Bus> Core<'a, T> {
         self.psr.set_t((reset_vector & 1) == 1);
     }
 
-    /*
-    pub fn exception_entry(&mut self, exception_number : u32, return_address : u32)
-    {
+    pub fn exception_entry(&mut self, _exception_number: u32, _return_address: u32) {
         // push stack
-        let (frameptr, frameptralign) = if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode
+        /*let (frameptr, frameptralign) = if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode
         {
             let align = self.psp<2>; ??
             self.psp = (self.psp -0x20) & (4 ^ 0xFFFF_FFFF);
@@ -317,9 +317,8 @@ impl<'a, T: Bus> Core<'a, T> {
 
         let vtor = self.vtor;
         let start = self.bus.read32(vtor + (exception_number * 4));
-        self.set_r(Reg::PC, start);
+        self.set_r(Reg::PC, start);*/
     }
-        */
 
     // Fetch next Thumb2-coded instruction from current
     // PC location. Depending on instruction type, fetches
@@ -355,7 +354,14 @@ impl<'a, T: Bus> Core<'a, T> {
     where
         F: FnMut(&SemihostingCommand) -> SemihostingResponse,
     {
-        execute(self, instruction, semihost_func);
+        match execute(self, instruction, semihost_func) {
+            Some(_fault) => {
+                // all faults are mapped to hardfaults on armv6m
+                let pc = self.get_pc();
+                self.exception_entry(u32::from(Exception::HardFault), pc);
+            }
+            None => {}
+        }
     }
 }
 

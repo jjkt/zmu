@@ -99,7 +99,7 @@ impl InternalBus {
             vtor: 0,
             shpr3: 0,
             syst: SysTick::default(),
-            dwt: Dwt { ctrl: 0x40000000 },
+            dwt: Dwt { ctrl: 0x4000_0000 },
             icsr: 0,
         }
     }
@@ -128,7 +128,10 @@ impl Bus for InternalBus {
     fn write32(&mut self, addr: u32, value: u32) {
         match addr {
             0xE000_1000 => self.dwt.ctrl = value,
-            0xE000_ED04 => self.icsr = value,
+            0xE000_ED04 => {
+                println!("change of ICSR {:x} -> {:x}", self.icsr, value);
+                self.icsr = value;
+            }
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED20 => self.write_shpr3(value),
             0xE000_E010 => self.write_syst_csr(value),

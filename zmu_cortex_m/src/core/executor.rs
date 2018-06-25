@@ -1007,8 +1007,8 @@ where
             let rm_ = read_reg(core, rm);
             core.set_r(
                 rd,
-                ((rm_ & 0xff) << 24) + ((rm_ & 0xff00) << 8) + ((rm_ & 0xff0000) >> 8)
-                    + ((rm_ & 0xff000000) >> 24),
+                ((rm_ & 0xff) << 24) + ((rm_ & 0xff00) << 8) + ((rm_ & 0xff_0000) >> 8)
+                    + ((rm_ & 0xff00_0000) >> 24),
             );
             core.add_pc(2);
             core.cycle_count += 1;
@@ -1018,8 +1018,8 @@ where
             let rm_ = read_reg(core, rm);
             core.set_r(
                 rd,
-                ((rm_ & 0xff) << 8) + ((rm_ & 0xff00) >> 8) + ((rm_ & 0xff0000) << 8)
-                    + ((rm_ & 0xff000000) >> 8),
+                ((rm_ & 0xff) << 8) + ((rm_ & 0xff00) >> 8) + ((rm_ & 0xff_0000) << 8)
+                    + ((rm_ & 0xff00_0000) >> 8),
             );
             core.add_pc(2);
             core.cycle_count += 1;
@@ -1089,6 +1089,9 @@ where
         Instruction::UDF {
             ref imm32,
             ref opcode,
-        } => Some(Fault::UndefinedInstruction),
+        } => {
+            println!("UDF {}, {}", imm32, opcode);
+            Some(Fault::UndefinedInstruction)
+        },
     }
 }

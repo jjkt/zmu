@@ -21,8 +21,8 @@ pub fn sign_extend(word: u32, topbit: u8, size: u8) -> u64 {
 pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     let unsigned_sum = u64::from(x) + u64::from(y) + (carry_in as u64);
     let signed_sum = (x as i32)
-        .wrapping_add((y as i32))
-        .wrapping_add((carry_in as i32));
+        .wrapping_add(y as i32)
+        .wrapping_add(carry_in as i32);
     let result = (unsigned_sum & 0xffff_ffff) as u32; // same value as signed_sum<N-1:0>
     let carry_out = u64::from(result) != unsigned_sum;
     let overflow = (result as i32) != signed_sum;
@@ -159,7 +159,6 @@ fn lsl(value: u32, shift: u32) -> u32 {
         result
     }
 }
-
 
 fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
     assert!(shift > 0);
