@@ -1,22 +1,24 @@
+pub mod bits;
 pub mod condition;
+pub mod exception;
 pub mod executor;
+pub mod fault;
 pub mod instruction;
 pub mod operation;
 pub mod register;
-pub mod bits;
-pub mod fault;
-pub mod exception;
 
 use bus::Bus;
-use core::executor::execute;
-use decoder::{decode_16, decode_32, is_thumb32};
-use core::register::{Apsr, Control, Epsr, Reg, PSR};
-use core::instruction::Instruction;
+use core::bits::*;
 use core::exception::Exception;
-use std::fmt;
+use core::executor::execute;
+use core::instruction::Instruction;
+use core::register::{Apsr, Control, Epsr, Reg, PSR};
+use decoder::{decode_16, decode_32, is_thumb32};
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
+use std::fmt;
 
+#[derive(PartialEq)]
 pub enum ProcessorMode {
     ThreadMode,
     HandlerMode,
@@ -187,7 +189,7 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     //
-    // Setter for registers
+    // Add value to register
     //
     pub fn add_r(&mut self, r: &Reg, value: u32) {
         match *r {
@@ -266,48 +268,57 @@ impl<'a, T: Bus> Core<'a, T> {
         self.psr.set_t((reset_vector & 1) == 1);
     }
 
-    pub fn exception_entry(&mut self, _exception_number: u32, _return_address: u32) {
-        // push stack
-        /*let (frameptr, frameptralign) = if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode
-        {
-            let align = self.psp<2>; ??
-            self.psp = (self.psp -0x20) & (4 ^ 0xFFFF_FFFF);
-            (self.psp, align)
-        }
-        else
-        {
-            let align = self.msp<2>; ??
-            self.msp = (self.msp - 0x20)& (4 ^ 0xFFFF_FFFF);
-            (self.msp, align)
-        }
+    fn push_stack(&mut self, return_address: u32) {
+        const STACK_SIZE: u32 = 0x20;
 
-        self.bus.write32(frameptr, self.get_r(Reg::R0));
-        self.bus.write32(frameptr+0x4, self.get_r(Reg::R1));
-        self.bus.write32(frameptr+0x8, self.get_r(Reg::R2));
-        self.bus.write32(frameptr+0xc, self.get_r(Reg::R3));
-        self.bus.write32(frameptr+0x10, self.get_r(Reg::R12));
-        self.bus.write32(frameptr+0x14, self.get_r(Reg::LR));
-        self.bus.write32(frameptr+0x18, return_address;
-        self.bus.write32(frameptr+0x1c, psr..frameptralign..psr);
+        let (frameptr, frameptralign) =
+            if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
+                let align = bit_2(self.psp as u16) as u32;
+                println!("thread mode");
+                self.psp = (self.psp - STACK_SIZE) & (4 ^ 0xFFFF_FFFF);
+                (self.psp, align)
+            } else {
+                let align = bit_2(self.msp as u16) as u32;
+                self.msp = (self.msp - STACK_SIZE) & (4 ^ 0xFFFF_FFFF);
+                println!("processor mode");
+                (self.msp, align)
+            };
 
-        if self.mode == ProcessorMode::ThreadMode
-        {
+        let r0 = self.get_r(&Reg::R0);
+        let r1 = self.get_r(&Reg::R1);
+        let r2 = self.get_r(&Reg::R2);
+        let r3 = self.get_r(&Reg::R3);
+        let r12 = self.get_r(&Reg::R12);
+        let lr = self.get_r(&Reg::LR);
+
+        self.bus.write32(frameptr, r0);
+        self.bus.write32(frameptr + 0x4, r1);
+        self.bus.write32(frameptr + 0x8, r2);
+        self.bus.write32(frameptr + 0xc, r3);
+        self.bus.write32(frameptr + 0x10, r12);
+        self.bus.write32(frameptr + 0x14, lr);
+        self.bus.write32(frameptr + 0x18, return_address);
+        let xpsr =
+            (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111) | (frameptralign << 9) as u32;
+        self.bus.write32(frameptr + 0x1c, xpsr);
+
+        if self.mode == ProcessorMode::HandlerMode {
             self.lr = 0xFFFF_FFF1;
-        }
-        else
-        {
-            if self.control.sp_sel == false
-            {
+        } else {
+            if self.control.sp_sel == false {
                 self.lr = 0xFFFF_FFF9;
-            }
-            else
-            {
+            } else {
                 self.lr = 0xFFFF_FFFD;
             }
         }
+    }
 
+    pub fn exception_entry(&mut self, _exception_number: u32, return_address: u32) {
+        panic!("Exception entry");
+
+        self.push_stack(return_address);
         //
-        self.mode == ProcessorMode::HandlerMode;
+        /*self.mode == ProcessorMode::HandlerMode;
         self.psr.set_ipsr(exception_number);
         self.control.sp_sel = false;
         self.exception_active[exception_number] = true;
@@ -317,8 +328,7 @@ impl<'a, T: Bus> Core<'a, T> {
 
         let vtor = self.vtor;
         let start = self.bus.read32(vtor + (exception_number * 4));
-        self.set_r(Reg::PC, start);*/
-    }
+        self.set_r(Reg::PC, start);*/    }
 
     // Fetch next Thumb2-coded instruction from current
     // PC location. Depending on instruction type, fetches
@@ -349,7 +359,6 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     // Run single instruction on core
-    // bkpt_func:
     pub fn step<F>(&mut self, instruction: &Instruction, semihost_func: F)
     where
         F: FnMut(&SemihostingCommand) -> SemihostingResponse,
@@ -391,4 +400,53 @@ impl<'a, T: Bus> fmt::Display for Core<'a, T> {
                  self.get_r(&Reg::SP),
                  self.get_r(&Reg::LR))
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use memory::ram::*;
+
+    #[test]
+    fn test_push_stack() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let lr = {
+            let mut core = Core::new(&mut bus);
+            //    if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
+            core.control.sp_sel = false;
+            //core.mode = ProcessorMode::ThreadMode;
+            core.set_r(&Reg::R0, 42);
+            core.set_r(&Reg::R1, 43);
+            core.set_r(&Reg::R2, 44);
+            core.set_r(&Reg::R3, 45);
+            core.set_r(&Reg::R12, 46);
+            core.set_r(&Reg::LR, 47);
+            core.set_psp(0);
+            core.set_msp(0x100);
+            core.psr.value = 0xffff_ffff;
+
+            // act
+            core.push_stack(99);
+
+            assert_eq!(core.msp, 0xe0);
+            core.get_r(&Reg::LR)
+        };
+
+        // values pushed on to stuck
+        assert_eq!(bus.read32(0x100 - 0x20), 42);
+        assert_eq!(bus.read32(0x100 - 0x20 + 4), 43);
+        assert_eq!(bus.read32(0x100 - 0x20 + 8), 44);
+        assert_eq!(bus.read32(0x100 - 0x20 + 12), 45);
+        assert_eq!(bus.read32(0x100 - 0x20 + 16), 46);
+        assert_eq!(bus.read32(0x100 - 0x20 + 20), 47);
+        assert_eq!(bus.read32(0x100 - 0x20 + 24), 99);
+        assert_eq!(
+            bus.read32(0x100 - 0x20 + 28),
+            0b1111_1111_1111_1111_1111_1101_1111_1111
+        );
+        assert_eq!(lr, 0xffff_fff9);
+    }
+
 }

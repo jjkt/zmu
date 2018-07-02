@@ -5,15 +5,15 @@ pub mod busmatrix;
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.
     ///
-    fn read32(&mut self, addr: u32) -> u32;
+    fn read32(&self, addr: u32) -> u32;
 
     /// Reads a 16 bit value via the bus from the given address.
     ///
-    fn read16(&mut self, addr: u32) -> u16;
+    fn read16(&self, addr: u32) -> u16;
 
     /// Reads a 8 bit value via the bus from the given address.
     ///
-    fn read8(&mut self, addr: u32) -> u8;
+    fn read8(&self, addr: u32) -> u8;
 
     /// Writes a 32 bit value to the bus targeting the given address.
     ///

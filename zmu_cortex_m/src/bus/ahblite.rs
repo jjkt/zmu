@@ -23,7 +23,17 @@ where
     T: Bus,
     R: Bus,
 {
-    fn read16(&mut self, addr: u32) -> u16 {
+    fn read8(&self, addr: u32) -> u8 {
+        if self.code.in_range(addr) {
+            self.code.read8(addr)
+        } else if self.sram.in_range(addr) {
+            self.sram.read8(addr)
+        } else {
+            panic!("bus access fault read8 addr 0x{:x}", addr);
+        }
+    }
+
+    fn read16(&self, addr: u32) -> u16 {
         if addr & 1 == 1 {
             panic!("unaliged read16 addr 0x{:x}", addr);
         }
@@ -36,17 +46,9 @@ where
             panic!("bus access fault read16 addr 0x{:x}", addr);
         }
     }
-    fn read8(&mut self, addr: u32) -> u8 {
-        if self.code.in_range(addr) {
-            self.code.read8(addr)
-        } else if self.sram.in_range(addr) {
-            self.sram.read8(addr)
-        } else {
-            panic!("bus access fault read8 addr 0x{:x}", addr);
-        }
-    }
 
-    fn read32(&mut self, addr: u32) -> u32 {
+
+    fn read32(&self, addr: u32) -> u32 {
         if addr & 3 != 0 {
             panic!("unaliged read32 addr 0x{:x}", addr);
         }

@@ -1,5 +1,5 @@
-use byteorder::{ByteOrder, LittleEndian};
 use bus::Bus;
+use byteorder::{ByteOrder, LittleEndian};
 
 pub struct RAM {
     start_address: u32,
@@ -18,17 +18,18 @@ impl RAM {
 }
 
 impl Bus for RAM {
-    fn read8(&mut self, addr: u32) -> u8 {
+    fn read8(&self, addr: u32) -> u8 {
         let a = addr - self.start_address;
         self.data[a as usize]
     }
-    fn read16(&mut self, addr: u32) -> u16 {
+
+    fn read16(&self, addr: u32) -> u16 {
         let a = (addr - self.start_address) as usize;
 
         LittleEndian::read_u16(&self.data[a..a + 2])
     }
 
-    fn read32(&mut self, addr: u32) -> u32 {
+    fn read32(&self, addr: u32) -> u32 {
         let a = (addr - self.start_address) as usize;
         LittleEndian::read_u32(&self.data[a..a + 4])
     }

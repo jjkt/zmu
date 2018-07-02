@@ -109,20 +109,21 @@ const INTERNAL_BUS_START: u32 = 0xE000_0000;
 const INTERNAL_BUS_END: u32 = 0xF000_0000;
 
 impl Bus for InternalBus {
-    fn read16(&mut self, addr: u32) -> u16 {
+    fn read8(&self, addr: u32) -> u8 {
+        panic!("byte access read to system area 0x{:x}", addr);
+    }
+
+    fn read16(&self, addr: u32) -> u16 {
         panic!("half-word access read to system area 0x{:x}", addr);
     }
 
-    fn read32(&mut self, addr: u32) -> u32 {
+    fn read32(&self, addr: u32) -> u32 {
         match addr {
             0xE000_ED20 => self.read_shpr3(),
             // DWT
             0xE000_1000 => self.dwt.ctrl,
             _ => panic!("bus access fault read addr 0x{:x}", addr),
         }
-    }
-    fn read8(&mut self, addr: u32) -> u8 {
-        panic!("byte access read to system area 0x{:x}", addr);
     }
 
     fn write32(&mut self, addr: u32, value: u32) {
