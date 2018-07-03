@@ -1,15 +1,15 @@
-use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
-use core::operation::SRType;
 use bit_field::BitField;
+use bus::Bus;
+use core::fault::Fault;
 use core::instruction::{CpsEffect, Instruction};
+use core::operation::SRType;
+use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
-use core::fault::Fault;
-use bus::Bus;
-use semihosting::SemihostingCommand;
-use semihosting::SemihostingResponse;
 use semihosting::decode_semihostcmd;
 use semihosting::semihost_return;
+use semihosting::SemihostingCommand;
+use semihosting::SemihostingResponse;
 
 fn read_reg<T: Bus>(core: &mut Core<T>, r: &Reg) -> u32 {
     match *r {
@@ -323,7 +323,8 @@ where
         Instruction::BL { imm32 } => {
             let pc = read_reg(core, &Reg::PC);
             core.set_r(&Reg::LR, pc | 0x01);
-            core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
+            let target = ((pc as i32) + imm32) as u32;
+            core.branch_write_pc(target);
             core.cycle_count += 4;
             None
         }
@@ -441,17 +442,17 @@ where
         }
 
         Instruction::BX { ref rm } => {
-            let r_m = read_reg(core, rm) & 0xffff_fffe;
-            core.set_r(&Reg::PC, r_m);
+            let r_m = read_reg(core, rm);
+            core.bx_write_pc(r_m);
             core.cycle_count += 3;
             None
         }
 
         Instruction::BLX { ref rm } => {
             let pc = read_reg(core, &Reg::PC);
-            let value = read_reg(core, rm) & 0xffff_fffe;
+            let target = read_reg(core, rm);
             core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
-            core.set_r(&Reg::PC, value);
+            core.blx_write_pc(target);
             core.cycle_count += 3;
             None
         }
@@ -513,7 +514,8 @@ where
 
         Instruction::B { ref cond, imm32 } => if condition_passed(cond, &core.psr) {
             let pc = read_reg(core, &Reg::PC);
-            core.set_r(&Reg::PC, ((pc as i32) + imm32) as u32);
+            let target = ((pc as i32) + imm32) as u32;
+            core.branch_write_pc(target);
             core.cycle_count += 3;
             None
         } else {
@@ -1007,7 +1009,9 @@ where
             let rm_ = read_reg(core, rm);
             core.set_r(
                 rd,
-                ((rm_ & 0xff) << 24) + ((rm_ & 0xff00) << 8) + ((rm_ & 0xff_0000) >> 8)
+                ((rm_ & 0xff) << 24)
+                    + ((rm_ & 0xff00) << 8)
+                    + ((rm_ & 0xff_0000) >> 8)
                     + ((rm_ & 0xff00_0000) >> 24),
             );
             core.add_pc(2);
@@ -1018,7 +1022,9 @@ where
             let rm_ = read_reg(core, rm);
             core.set_r(
                 rd,
-                ((rm_ & 0xff) << 8) + ((rm_ & 0xff00) >> 8) + ((rm_ & 0xff_0000) << 8)
+                ((rm_ & 0xff) << 8)
+                    + ((rm_ & 0xff00) >> 8)
+                    + ((rm_ & 0xff_0000) << 8)
                     + ((rm_ & 0xff00_0000) >> 8),
             );
             core.add_pc(2);
@@ -1092,6 +1098,6 @@ where
         } => {
             println!("UDF {}, {}", imm32, opcode);
             Some(Fault::UndefinedInstruction)
-        },
+        }
     }
 }

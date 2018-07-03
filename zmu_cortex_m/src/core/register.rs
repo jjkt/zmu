@@ -1,6 +1,6 @@
-use std::fmt;
-use enum_set::CLike;
 use bit_field::BitField;
+use enum_set::CLike;
+use std::fmt;
 use std::mem;
 
 pub enum StackPointer {
@@ -31,6 +31,7 @@ pub trait Apsr {
 
 pub trait Ipsr {
     fn get_exception_number(&self) -> u8;
+    fn set_exception_number(&mut self, exception_number: u8);
 }
 
 // Execution Program Status register
@@ -103,6 +104,9 @@ impl Epsr for PSR {
 impl Ipsr for PSR {
     fn get_exception_number(&self) -> u8 {
         (*self).value.get_bits(0..6) as u8
+    }
+    fn set_exception_number(&mut self, exception_number: u8) {
+        self.value = (self.value & 0xffff_ffc0) | (exception_number & 0b11_1111) as u32;
     }
 }
 

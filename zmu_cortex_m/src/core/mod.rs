@@ -12,13 +12,13 @@ use core::bits::*;
 use core::exception::Exception;
 use core::executor::execute;
 use core::instruction::Instruction;
-use core::register::{Apsr, Control, Epsr, Reg, PSR};
+use core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use decoder::{decode_16, decode_32, is_thumb32};
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
 use std::fmt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum ProcessorMode {
     ThreadMode,
     HandlerMode,
@@ -87,6 +87,9 @@ pub struct Core<'a, T: Bus + 'a> {
 
     /* Is the core simulation currently running or not.*/
     pub running: bool,
+
+    /* One bool per exception on the system: fixed priority system exceptions, configurable priority system exceptions and external exceptions. */
+    pub exception_active: [bool; 64],
 }
 
 impl<'a, T: Bus> Core<'a, T> {
@@ -108,6 +111,30 @@ impl<'a, T: Bus> Core<'a, T> {
             bus: bus,
             running: true,
             cycle_count: 0,
+            exception_active: [false; 64],
+        }
+    }
+
+    pub fn branch_write_pc(&mut self, address: u32) {
+        self.set_r(&Reg::PC, address & 0xffff_fffe);
+    }
+
+    //
+    // interworking branch
+    //
+    pub fn blx_write_pc(&mut self, address: u32) {
+        self.psr.set_t((address & 1) == 1);
+        self.branch_write_pc(address);
+    }
+
+    //
+    // interworking branch
+    //
+    pub fn bx_write_pc(&mut self, address: u32) {
+        if self.mode == ProcessorMode::HandlerMode && (bits_31_28(address) == 0b1111) {
+            self.exception_return(bits_27_0(address));
+        } else {
+            self.blx_write_pc(address);
         }
     }
 
@@ -264,8 +291,7 @@ impl<'a, T: Bus> Core<'a, T> {
 
         let reset_vector = self.bus.read32(vtor + 4);
 
-        self.set_r(&Reg::PC, reset_vector & 0xffff_fffe);
-        self.psr.set_t((reset_vector & 1) == 1);
+        self.blx_write_pc(reset_vector);
     }
 
     fn push_stack(&mut self, return_address: u32) {
@@ -298,8 +324,8 @@ impl<'a, T: Bus> Core<'a, T> {
         self.bus.write32(frameptr + 0x10, r12);
         self.bus.write32(frameptr + 0x14, lr);
         self.bus.write32(frameptr + 0x18, return_address);
-        let xpsr =
-            (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111) | (frameptralign << 9) as u32;
+        let xpsr = (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111)
+            | (frameptralign << 9) as u32;
         self.bus.write32(frameptr + 0x1c, xpsr);
 
         if self.mode == ProcessorMode::HandlerMode {
@@ -313,22 +339,27 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
-    pub fn exception_entry(&mut self, _exception_number: u32, return_address: u32) {
-        panic!("Exception entry");
-
-        self.push_stack(return_address);
-        //
-        /*self.mode == ProcessorMode::HandlerMode;
-        self.psr.set_ipsr(exception_number);
+    pub fn exception_taken(&mut self, exception_number: u8) {
         self.control.sp_sel = false;
-        self.exception_active[exception_number] = true;
-        self.scs.update_status_regs();
-        self.set_event_register();
-        //instruction_sync_barrier();
+        self.mode = ProcessorMode::HandlerMode;
+        self.psr.set_exception_number(exception_number);
+        self.exception_active[exception_number as usize] = true;
 
+        // SetEventRegister();
+        // InstructionSynchronizationBarrier();
         let vtor = self.vtor;
-        let start = self.bus.read32(vtor + (exception_number * 4));
-        self.set_r(Reg::PC, start);*/    }
+        let start = self.bus.read32(vtor + u32::from(exception_number) * 4);
+        self.blx_write_pc(start);
+    }
+
+    pub fn exception_entry(&mut self, exception_number: u8, return_address: u32) {
+        self.push_stack(return_address);
+        self.exception_taken(exception_number);
+    }
+
+    pub fn exception_return(&mut self, exc_return: u32) {
+        unimplemented!();
+    }
 
     // Fetch next Thumb2-coded instruction from current
     // PC location. Depending on instruction type, fetches
@@ -367,7 +398,7 @@ impl<'a, T: Bus> Core<'a, T> {
             Some(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
-                self.exception_entry(u32::from(Exception::HardFault), pc);
+                self.exception_entry(u8::from(Exception::HardFault), pc);
             }
             None => {}
         }
@@ -447,6 +478,26 @@ mod tests {
             0b1111_1111_1111_1111_1111_1101_1111_1111
         );
         assert_eq!(lr, 0xffff_fff9);
+    }
+
+    #[test]
+    fn test_exception_taken() {
+        // Arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+
+        core.control.sp_sel = true;
+        core.mode = ProcessorMode::ThreadMode;
+        core.psr.value = 0xffff_ffff;
+
+        // Act
+        core.exception_taken(5);
+
+        // Assert
+        assert_eq!(core.control.sp_sel, false);
+        assert_eq!(core.mode, ProcessorMode::HandlerMode);
+        assert_eq!(core.psr.get_exception_number(), 5);
+        assert_eq!(core.exception_active[5], true);
     }
 
 }

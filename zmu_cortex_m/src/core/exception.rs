@@ -19,10 +19,10 @@ pub enum Exception {
     Reserved9,
     PendSV,
     SysTick,
-    Interrupt { n: u32 },
+    Interrupt { n: u8 },
 }
 
-impl From<Exception> for u32 {
+impl From<Exception> for u8 {
     fn from(value: Exception) -> Self {
         match value {
             Exception::Reset => 1,
