@@ -32,14 +32,13 @@ where
 
     {
         let mut pc = 0;
-        core.set_r(&Reg::PC, pc);
 
         while pc < (code.len() as u32) {
+            core.set_pc(pc);
             let thumb = core.fetch();
             let instruction = core.decode(&thumb);
             instruction_cache.push(instruction);
             pc += 2;
-            core.set_r(&Reg::PC, pc);
         }
     }
 
@@ -83,14 +82,13 @@ where
 
     {
         let mut pc = 0;
-        core.set_r(&Reg::PC, pc);
 
         while pc < (code.len() as u32) {
+            core.set_pc(pc);
             let thumb = core.fetch();
             let instruction = core.decode(&thumb);
             instruction_cache.push(instruction);
             pc += 2;
-            core.set_r(&Reg::PC, pc);
         }
     }
 

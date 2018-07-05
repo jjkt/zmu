@@ -116,7 +116,7 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     pub fn branch_write_pc(&mut self, address: u32) {
-        self.set_r(&Reg::PC, address & 0xffff_fffe);
+        self.set_pc(address & 0xffff_fffe);
     }
 
     //
@@ -165,7 +165,7 @@ impl<'a, T: Bus> Core<'a, T> {
                 self.msp
             },
             Reg::LR => self.lr,
-            Reg::PC => self.pc,
+            Reg::PC => self.pc + 4,
         }
     }
     //
@@ -195,7 +195,7 @@ impl<'a, T: Bus> Core<'a, T> {
                 self.msp = value
             },
             Reg::LR => self.lr = value,
-            Reg::PC => self.pc = value,
+            Reg::PC => panic!("use branch commands instead"),
         };
     }
 
@@ -213,6 +213,10 @@ impl<'a, T: Bus> Core<'a, T> {
 
     pub fn get_pc(&mut self) -> u32 {
         self.pc
+    }
+
+    pub fn set_pc(&mut self, value: u32) {
+        self.pc = value
     }
 
     //
@@ -295,17 +299,19 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     fn push_stack(&mut self, return_address: u32) {
-        const STACK_SIZE: u32 = 0x20;
+        const FRAME_SIZE: u32 = 0x20;
 
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
                 let align = bit_2(self.psp as u16) as u32;
                 println!("thread mode");
-                self.psp = (self.psp - STACK_SIZE) & (4 ^ 0xFFFF_FFFF);
+                // forces 8 byte alignment on the stack
+                self.psp = (self.psp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
                 (self.psp, align)
             } else {
                 let align = bit_2(self.msp as u16) as u32;
-                self.msp = (self.msp - STACK_SIZE) & (4 ^ 0xFFFF_FFFF);
+                // forces 8 byte alignment on the stack
+                self.msp = (self.msp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
                 println!("processor mode");
                 (self.msp, align)
             };
