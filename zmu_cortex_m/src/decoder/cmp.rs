@@ -1,5 +1,6 @@
-use core::instruction::Instruction;
 use core::bits::*;
+use core::instruction::Instruction;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -25,5 +26,13 @@ pub fn decode_CMP_reg_t2(command: u16) -> Instruction {
     Instruction::CMP_reg {
         rn: From::from((bit_7(command) << 4) + bits_0_3(command)),
         rm: From::from(bits_3_7(command)),
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_CMP_reg_t3(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
     }
 }

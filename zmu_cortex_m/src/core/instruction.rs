@@ -1,10 +1,11 @@
+use core::condition::Condition;
 use core::register::Reg;
 use core::register::SpecialReg;
-use core::condition::Condition;
 use core::ThumbCode;
 use enum_set::EnumSet;
 
 #[allow(non_camel_case_types)]
+#[derive(PartialEq, Debug)]
 pub enum Instruction {
     ADC_reg {
         rd: Reg,
@@ -93,6 +94,23 @@ pub enum Instruction {
         setflags: bool,
     },
     ISB,
+
+    // ARMv7-M
+    LDC_imm {
+        coproc: u8,
+        imm32: u32,
+        crd: u8,
+        rn: Reg,
+    },
+
+    // ARMv7-M
+    LDC2_imm {
+        coproc: u8,
+        imm32: u32,
+        crd: u8,
+        rn: Reg,
+    },
+
     LDM {
         rn: Reg,
         registers: EnumSet<Reg>,
@@ -165,6 +183,26 @@ pub enum Instruction {
         rn: Reg,
         setflags: bool,
     },
+
+    // ARMv7-M
+    MCR {
+        rt: Reg,
+        coproc: u8,
+        opc1: u8,
+        opc2: u8,
+        crn: u8,
+        crm: u8,
+    },
+    // ARMv7-M
+    MCR2 {
+        rt: Reg,
+        coproc: u8,
+        opc1: u8,
+        opc2: u8,
+        crn: u8,
+        crm: u8,
+    },
+
     MOV_imm {
         rd: Reg,
         imm32: u32,
@@ -303,6 +341,26 @@ pub enum Instruction {
         imm32: u32,
         opcode: ThumbCode,
     },
+    // ARMv7-M
+    UDIV {
+        rm: Reg,
+        rd: Reg,
+        rn: Reg,
+    },
+    // ARMv7-M
+    UMLAL {
+        rm: Reg,
+        rdlo: Reg,
+        rdhi: Reg,
+        rn: Reg,
+    },
+    // ARMv7-M
+    SMLAL {
+        rm: Reg,
+        rdlo: Reg,
+        rdhi: Reg,
+        rn: Reg,
+    },
     UXTB {
         rd: Reg,
         rm: Reg,
@@ -334,6 +392,7 @@ impl fmt::Display for CpsEffect {
 
 use std::fmt;
 
+#[allow(unused_variables)]
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -707,11 +766,56 @@ impl fmt::Display for Instruction {
             Instruction::UDF { imm32, ref opcode } => {
                 write!(f, "udf {} (opcode = {})", imm32, opcode)
             }
+            // ARMv7-M
+            Instruction::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
+            // ARMv7-M
+            Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
+                write!(f, "umlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
+            }
+            // ARMv7-M
+            Instruction::SMLAL { rdlo, rdhi, rn, rm } => {
+                write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
+            }
             Instruction::UXTB { rd, rm } => write!(f, "uxtb {}, {}", rd, rm),
             Instruction::UXTH { rd, rm } => write!(f, "uxth {}, {}", rd, rm),
             Instruction::WFE => write!(f, "wfe"),
             Instruction::WFI => write!(f, "wfi"),
             Instruction::YIELD => write!(f, "yield"),
+            // ARMv7-M
+            Instruction::MCR {
+                ref rt,
+                ref coproc,
+                ref opc1,
+                ref opc2,
+                ref crn,
+                ref crm,
+            } => write!(f, "mcr"),
+
+            // ARMv7-M
+            Instruction::MCR2 {
+                ref rt,
+                ref coproc,
+                ref opc1,
+                ref opc2,
+                ref crn,
+                ref crm,
+            } => write!(f, "mcr2"),
+
+            // ARMv7-M
+            Instruction::LDC_imm {
+                ref coproc,
+                ref imm32,
+                ref crd,
+                ref rn,
+            } => write!(f, "ldc"),
+
+            // ARMv7-M
+            Instruction::LDC2_imm {
+                ref coproc,
+                ref imm32,
+                ref crd,
+                ref rn,
+            } => write!(f, "ldc2"),
         }
     }
 }

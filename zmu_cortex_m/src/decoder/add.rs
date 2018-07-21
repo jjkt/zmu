@@ -1,6 +1,7 @@
 use core::bits::*;
-use core::register::Reg;
 use core::instruction::Instruction;
+use core::register::Reg;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -23,6 +24,14 @@ pub fn decode_ADD_reg_t2_ADD_SP_reg(command: u16) -> Instruction {
         rd: rdn,
         rn: rdn,
         setflags: false,
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
     }
 }
 

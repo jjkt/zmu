@@ -18,3 +18,13 @@ pub fn decode_SXTH_t1(command: u16) -> Instruction {
         rm: From::from(bits_3_6(command)),
     }
 }
+
+#[allow(non_snake_case)]
+pub fn decode_SXTB_t2(_opcode: u32) -> Instruction {
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+pub fn decode_SXTH_t2(_opcode: u32) -> Instruction {
+    unimplemented!()
+}

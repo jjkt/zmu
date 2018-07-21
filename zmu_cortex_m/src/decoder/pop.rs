@@ -1,8 +1,9 @@
-use enum_set::EnumSet;
 use core::bits::*;
+use enum_set::EnumSet;
 
-use core::register::Reg;
 use core::instruction::Instruction;
+use core::register::Reg;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -38,4 +39,20 @@ pub fn decode_POP_reg_t1(opcode: u16) -> Instruction {
     }
 
     Instruction::POP { registers: regs }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_POP_W_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_POP_W_t3(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }

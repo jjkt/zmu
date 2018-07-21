@@ -1,13 +1,14 @@
-use core::register::{Reg, SpecialReg};
-use core::instruction::Instruction;
 use core::bits::*;
+use core::instruction::Instruction;
+use core::register::{Reg, SpecialReg};
 
 #[allow(non_snake_case)]
-#[allow(unused_variables)]
 #[inline]
-pub fn decode_msr_reg(op1: u16, op2: u16) -> Instruction {
+pub fn decode_MSR_reg_t1(opcode: u32) -> Instruction {
+    let reg_rn: u8 = opcode.get_bits(16, 19);
+    let sysm: u8 = opcode.get_bits(0, 7);
     Instruction::MSR_reg {
-        rn: Reg::from(bits_0_4(op2)),
-        spec_reg: SpecialReg::from(bits_0_8(op2)),
+        rn: Reg::from(reg_rn),
+        spec_reg: SpecialReg::from(sysm),
     }
 }

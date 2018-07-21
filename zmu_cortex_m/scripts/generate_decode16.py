@@ -105,12 +105,4 @@ def main():
         number_high = int(numeric_high, 2)
         
         print "{} ... {} => decode_{}(opcode),".format(number_low, number_high, INSTRUCTIONS[key])
-
-# MRS_t1,        "1111001111101111", "1000ddddssssssss" # 32 bit
-# MSR_reg_t1,    "111100111000nnnn", "10001000ssssssss" # 32 bit
-# ISB,           "1111001110111111", "100011110110oooo" # 32 bit
-# BL,            "11110siiiiiiiiii", "11j1Jiiiiiiiiiii" #32 bit
-# DMB_t1,        "1111001110111111", "100011110101oooo" # 32 bit
-# DSB_t1,        "1111001110111111", "100011110100oooo" # 32 bit
-# ISB_t1,        "1111001110111111", "100011110110oooo" # 32 bit
-# UDF_t2,        "111101111111iiii", "1010iiiiiiiiiiii",
+main()

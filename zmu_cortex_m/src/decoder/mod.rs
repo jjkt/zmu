@@ -1,11 +1,14 @@
-use bit_field::BitField;
+use core::bits::*;
+//use bit_field::BitField;
 use core::instruction::Instruction;
 use core::ThumbCode;
 
 #[cfg(test)]
 use core::instruction::CpsEffect;
 #[cfg(test)]
-use core::register::{Reg, SpecialReg};
+use core::register::SpecialReg;
+
+use core::register::Reg;
 
 #[cfg(test)]
 use core::condition::Condition;
@@ -25,11 +28,11 @@ mod bx;
 
 mod cmn;
 mod cmp;
-mod control;
 mod cps;
 
 mod eor;
 
+mod ldc;
 mod ldm;
 mod ldr;
 mod ldrb;
@@ -38,6 +41,9 @@ mod ldrsb;
 mod ldrsh;
 mod lsl;
 mod lsr;
+
+mod mcr; // ARMv7-M
+
 mod mov;
 mod mrs;
 mod msr;
@@ -77,11 +83,11 @@ use decoder::bx::*;
 
 use decoder::cmn::*;
 use decoder::cmp::*;
-use decoder::control::*;
 use decoder::cps::*;
 
 use decoder::eor::*;
 
+use decoder::ldc::*;
 use decoder::ldm::*;
 use decoder::ldr::*;
 use decoder::ldrb::*;
@@ -91,6 +97,7 @@ use decoder::ldrsh::*;
 use decoder::lsl::*;
 use decoder::lsr::*;
 
+use decoder::mcr::*;
 use decoder::mov::*;
 use decoder::mrs::*;
 use decoder::msr::*;
@@ -115,7 +122,7 @@ use decoder::tst::*;
 use decoder::uxt::*;
 
 pub fn is_thumb32(word: u16) -> bool {
-    match word.get_bits(11..16) {
+    match word.get_bits(11, 15) {
         0b11101 | 0b11110 | 0b11111 => true,
         _ => false,
     }
@@ -123,6 +130,14 @@ pub fn is_thumb32(word: u16) -> bool {
 
 #[allow(non_snake_case)]
 fn decode_undefined(opcode: u16) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_undefined32(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: ThumbCode::from(opcode),
@@ -207,49 +222,488 @@ pub fn decode_16(opcode: u16) -> Instruction {
         _ => decode_undefined(opcode),
     }
 }
+/*
+#[allow(non_snake_case)]
+fn decode_CDP2_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
 
-//A 5.3.1 Branch and misc (thumb32)
-pub fn decode_branch_and_misc(t1: u16, t2: u16) -> Instruction {
-    let op2 = t2.get_bits(12..15);
-    let op1 = t1.get_bits(4..11);
+#[allow(non_snake_case)]
+fn decode_CDP_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_CLZ_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_CMN_reg_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_DMB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_DSB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_ISB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDMDB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDM_W_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRBT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRD_imm_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRD_lit_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDREXB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDREXH_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDREX_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRHT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRSBT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRSHT(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MCRR2_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MCRR_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MLA_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MLS_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MRC2_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_MRC_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_ORN_reg_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_PLD_imm_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_PLD_imm_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_PLI_lit_imm_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_PLI_lit_imm_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_PLI_lit_imm_t3(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_PLI_reg_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_RBIT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_RRX_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_RSB_reg_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_SBC_reg_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_SDIV_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_SMLAL_t1(opcode: u32) -> Instruction {
+    let reg_rm: u8 = opcode.get_bits(0, 3);
+    let reg_rd_hi: u8 = opcode.get_bits(8, 11);
+    let reg_rd_lo: u8 = opcode.get_bits(12, 15);
+    let reg_rn: u8 = opcode.get_bits(16, 19);
+    Instruction::SMLAL {
+        rm: Reg::from(reg_rm),
+        rdlo: Reg::from(reg_rd_hi),
+        rdhi: Reg::from(reg_rd_lo),
+        rn: Reg::from(reg_rn),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_SMULL_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STC2_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STC_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STMDB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STMX_W_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STRD_imm_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STREXB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STREXH_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STREX_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_TBB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_TBH_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_TEQ_reg_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_UDF_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_UDIV_t1(opcode: u32) -> Instruction {
+    let reg_rm: u8 = opcode.get_bits(0, 3);
+    let reg_rd: u8 = opcode.get_bits(8, 11);
+    let reg_rn: u8 = opcode.get_bits(16, 19);
+    Instruction::UDIV {
+        rm: Reg::from(reg_rm),
+        rd: Reg::from(reg_rd),
+        rn: Reg::from(reg_rn),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_UMLAL_t1(opcode: u32) -> Instruction {
+    let reg_rm: u8 = opcode.get_bits(0, 3);
+    let reg_rd_hi: u8 = opcode.get_bits(8, 11);
+    let reg_rd_lo: u8 = opcode.get_bits(12, 15);
+    let reg_rn: u8 = opcode.get_bits(16, 19);
+    Instruction::UMLAL {
+        rm: Reg::from(reg_rm),
+        rdlo: Reg::from(reg_rd_hi),
+        rdhi: Reg::from(reg_rd_lo),
+        rn: Reg::from(reg_rn),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_UMULL_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+*/
+
+fn decode_group2(opcode: u32) -> Instruction {
+    let op2: u8 = opcode.get_bits(12, 14);
+    let op1: u8 = opcode.get_bits(20, 26);
 
     match op2 {
-        0x7 | 0x5 => decode_bl(t1, t2),
+        0x7 | 0x5 => decode_BL_t1(opcode),
         0 => match op1 {
-            0b011_1000 | 0b011_1001 => decode_msr_reg(t1, t2),
-            0b011_1011 => decode_control(t1, t2),
-            0b011_1111 | 0b011_1110 => decode_mrs(t1, t2),
+            0b011_1000 | 0b011_1001 => decode_MSR_reg_t1(opcode),
+            //0b011_1011 => decode_control(t1, t2),
+            0b011_1111 | 0b011_1110 => decode_MRS_t1(opcode),
             _ => Instruction::UDF {
                 imm32: 0,
-                opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
+                opcode: ThumbCode::from(opcode),
             },
         },
         _ => Instruction::UDF {
             imm32: 0,
-            opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
+            opcode: ThumbCode::from(opcode),
         },
     }
 }
 
 // A5.3 check thumb32 encodings
-pub fn decode_32(t1: u16, t2: u16) -> Instruction {
-    let op1 = (t1 >> 11) & 0x03;
-    let op = (t2 >> 15) & 0x01;
+pub fn decode_32(opcode: u32) -> Instruction {
+    let op1: u8 = opcode.get_bits(27, 28);
 
-    if op1 != 0x2 {
-        return Instruction::UDF {
-            imm32: 0,
-            opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
-        };
+    match op1 {
+        0b01 => decode_undefined32(opcode),
+        0b10 => decode_group2(opcode),
+        0b11 => decode_undefined32(opcode),
+        _ => decode_undefined32(opcode),
     }
-    if op != 0x01 {
-        return Instruction::UDF {
-            imm32: 0,
-            opcode: ThumbCode::from(((t1 as u32) << 16) + t2 as u32),
-        };
-    }
-
-    decode_branch_and_misc(t1, t2)
 }
 
 #[cfg(test)]
@@ -1309,49 +1763,42 @@ mod tests {
     #[test]
     fn test_decode_mrs() {
         // MRS R0, ipsr
-        match decode_32(0xf3ef, 0x8005) {
-            Instruction::MRS { rd, spec_reg } => {
-                assert_eq!(rd, Reg::R0);
-                assert_eq!(spec_reg, SpecialReg::IPSR);
+        assert_eq!(
+            decode_32(0xf3ef8005),
+            Instruction::MRS {
+                rd: Reg::R0,
+                spec_reg: SpecialReg::IPSR
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
     fn test_decode_cpsid() {
         // CPSID i
-        match decode_16(0xB672) {
-            Instruction::CPS { im } => {
-                assert_eq!(im, CpsEffect::ID);
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        assert_eq!(decode_16(0xB672), Instruction::CPS { im: CpsEffect::ID });
     }
 
     #[test]
     fn test_decode_lsl_2() {
         // LSL r1, r1, #31
-        match decode_16(0x07c9) {
+        assert_eq!(
+            decode_16(0x07c9),
             Instruction::LSL_imm {
-                rd,
-                rm,
-                imm5,
-                setflags,
-            } => {
-                assert_eq!(rd, Reg::R1);
-                assert_eq!(rm, Reg::R1);
-                assert_eq!(imm5, 31);
-                assert_eq!(setflags, true);
+                rd: Reg::R1,
+                rm: Reg::R1,
+                imm5: 31,
+                setflags: true
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
+    }
+
+    #[test]
+    fn test_decode_bl_t1() {
+        // BL -130
+        assert_eq!(decode_32(0xf7ffffbf), Instruction::BL { imm32: -130 });
+
+        // BL -5694
+        assert_eq!(decode_32(0xf7fefce1), Instruction::BL { imm32: -5694 });
     }
 
 }

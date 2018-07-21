@@ -24,8 +24,9 @@ pub enum ProcessorMode {
     HandlerMode,
 }
 
+#[derive(PartialEq, Debug)]
 pub enum ThumbCode {
-    Thumb32 { half_word: u16, half_word2: u16 },
+    Thumb32 { opcode: u32 },
     Thumb16 { half_word: u16 },
 }
 
@@ -37,20 +38,14 @@ impl From<u16> for ThumbCode {
 
 impl From<u32> for ThumbCode {
     fn from(value: u32) -> Self {
-        ThumbCode::Thumb32 {
-            half_word: (value & 0xffff) as u16,
-            half_word2: ((value >> 16) & 0xffff) as u16,
-        }
+        ThumbCode::Thumb32 { opcode: value }
     }
 }
 impl fmt::Display for ThumbCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ThumbCode::Thumb16 { half_word } => write!(f, "0x{:x}", half_word),
-            ThumbCode::Thumb32 {
-                half_word,
-                half_word2,
-            } => write!(f, "0x{:x}{:x}", half_word2, half_word),
+            ThumbCode::Thumb32 { opcode } => write!(f, "0x{:x}", opcode),
         }
     }
 }
@@ -363,6 +358,7 @@ impl<'a, T: Bus> Core<'a, T> {
         self.exception_taken(exception_number);
     }
 
+    #[allow(unused_variables)]
     pub fn exception_return(&mut self, exc_return: u32) {
         unimplemented!();
     }
@@ -376,8 +372,7 @@ impl<'a, T: Bus> Core<'a, T> {
         if is_thumb32(hw) {
             let hw2 = self.bus.read16(self.pc + 2);
             ThumbCode::Thumb32 {
-                half_word: hw,
-                half_word2: hw2,
+                opcode: ((hw as u32) << 16) + hw2 as u32,
             }
         } else {
             ThumbCode::Thumb16 { half_word: hw }
@@ -387,10 +382,7 @@ impl<'a, T: Bus> Core<'a, T> {
     // Decode ThumbCode into Instruction
     pub fn decode(&self, code: &ThumbCode) -> Instruction {
         match *code {
-            ThumbCode::Thumb32 {
-                half_word,
-                half_word2,
-            } => decode_32(half_word, half_word2),
+            ThumbCode::Thumb32 { opcode } => decode_32(opcode),
             ThumbCode::Thumb16 { half_word } => decode_16(half_word),
         }
     }

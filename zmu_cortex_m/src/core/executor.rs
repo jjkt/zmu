@@ -11,6 +11,7 @@ use semihosting::semihost_return;
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
 
+#[allow(unused_variables)]
 pub fn execute<T: Bus, F>(
     mut core: &mut Core<T>,
     instruction: &Instruction,
@@ -542,8 +543,7 @@ where
         }
 
         Instruction::CMN_reg { ref rn, ref rm } => {
-            let (result, carry, overflow) =
-                add_with_carry(core.get_r(rn), core.get_r(rm), false);
+            let (result, carry, overflow) = add_with_carry(core.get_r(rn), core.get_r(rm), false);
             core.psr.set_n(result);
             core.psr.set_z(result);
             core.psr.set_c(carry);
@@ -839,8 +839,7 @@ where
             ref rm,
             ref setflags,
         } => {
-            let (result, carry, overflow) =
-                add_with_carry(core.get_r(rn), core.get_r(rm), false);
+            let (result, carry, overflow) = add_with_carry(core.get_r(rn), core.get_r(rm), false);
 
             if rd == &Reg::PC {
                 core.branch_write_pc(result);
@@ -1085,12 +1084,73 @@ where
             core.cycle_count += 1;
             None
         }
+
+        // ARMv7-M
+        Instruction::MCR {
+            ref rt,
+            ref coproc,
+            ref opc1,
+            ref opc2,
+            ref crn,
+            ref crm,
+        } => unimplemented!(),
+
+        // ARMv7-M
+        Instruction::MCR2 {
+            ref rt,
+            ref coproc,
+            ref opc1,
+            ref opc2,
+            ref crn,
+            ref crm,
+        } => unimplemented!(),
+
+        // ARMv7-M
+        Instruction::LDC_imm {
+            ref coproc,
+            ref imm32,
+            ref crd,
+            ref rn,
+        } => unimplemented!(),
+
+        // ARMv7-M
+        Instruction::LDC2_imm {
+            ref coproc,
+            ref imm32,
+            ref crd,
+            ref rn,
+        } => unimplemented!(),
+
+        // ARMv7-M
+        Instruction::UDIV {
+            ref rd,
+            ref rn,
+            ref rm,
+        } => unimplemented!(),
+
+        // ARMv7-M
+        Instruction::UMLAL {
+            ref rdlo,
+            ref rdhi,
+            ref rn,
+            ref rm,
+        } => unimplemented!(),
+
+        // ARMv7-M
+        Instruction::SMLAL {
+            ref rdlo,
+            ref rdhi,
+            ref rn,
+            ref rm,
+        } => unimplemented!(),
+
         Instruction::UDF {
             ref imm32,
             ref opcode,
         } => {
             println!("UDF {}, {}", imm32, opcode);
-            Some(Fault::UndefinedInstruction)
+            panic!("undefined");
+            //Some(Fault::UndefinedInstruction)
         }
     }
 }

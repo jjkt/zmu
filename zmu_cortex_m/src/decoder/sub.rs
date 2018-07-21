@@ -45,3 +45,8 @@ pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
         setflags: true,
     }
 }
+
+#[allow(non_snake_case)]
+pub fn decode_SUB_reg_t2(_opcode: u32) -> Instruction {
+    unimplemented!()
+}

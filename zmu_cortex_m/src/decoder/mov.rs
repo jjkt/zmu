@@ -1,6 +1,7 @@
 use core::bits::*;
-use core::register::Reg;
 use core::instruction::Instruction;
+use core::register::Reg;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -19,6 +20,14 @@ pub fn decode_MOV_reg_t1(command: u16) -> Instruction {
         rd: Reg::from((bit_7(command) << 3) + bits_0_3(command)),
         rm: Reg::from(bits_3_7(command)),
         setflags: false,
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_MOV_reg_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
     }
 }
 

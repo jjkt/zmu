@@ -1,15 +1,13 @@
-use bit_field::BitField;
-
+use core::bits::*;
 use core::condition::Condition;
 use core::instruction::Instruction;
 use core::operation::sign_extend;
 use core::ThumbCode;
-use core::bits::*;
 
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_B_t1_SVC_t1(command: u16) -> Instruction {
-    let cond = command.get_bits(8..12);
+    let cond = command.get_bits(8, 11);
     if cond == 0b1111 {
         return Instruction::SVC {
             imm32: bits_0_8(command) as u32,
@@ -33,6 +31,6 @@ pub fn decode_B_t1_SVC_t1(command: u16) -> Instruction {
 pub fn decode_B_t2(command: u16) -> Instruction {
     Instruction::B {
         cond: Condition::AL,
-        imm32: sign_extend((command.get_bits(0..11) as u32) << 1, 11, 32) as i32,
+        imm32: sign_extend((command.get_bits(0, 10) as u32) << 1, 11, 32) as i32,
     }
 }

@@ -104,6 +104,11 @@ pub fn bits_8_11(n: u16) -> u8 {
 }
 
 #[inline]
+pub fn bits32_8_11(n: u32) -> u8 {
+    ((n & 0b111_0000_0000) >> 8) as u8
+}
+
+#[inline]
 pub fn bits_8_12(n: u16) -> u8 {
     ((n & 0b1111_0000_0000) >> 8) as u8
 }
@@ -111,4 +116,81 @@ pub fn bits_8_12(n: u16) -> u8 {
 #[inline]
 pub fn bits_6_11(n: u16) -> u8 {
     ((n & 0b111_1100_0000) >> 6) as u8
+}
+
+pub trait Bits<O> {
+    fn get_bits(&self, low: u8, high: u8) -> O;
+}
+
+impl Bits<u32> for u32 {
+    #[inline]
+    fn get_bits(&self, low: u8, high: u8) -> u32 {
+        assert!(high >= low);
+        let mask: u32 = ((1_u64 << (high + 1)) - 1) as u32;
+        ((*self & mask) >> low) as u32
+    }
+}
+
+impl Bits<u8> for u32 {
+    #[inline]
+    fn get_bits(&self, low: u8, high: u8) -> u8 {
+        assert!(high >= low);
+        let mask: u32 = ((1_u64 << (high + 1)) - 1) as u32;
+        ((*self & mask) >> low) as u8
+    }
+}
+
+impl Bits<u16> for u16 {
+    #[inline]
+    fn get_bits(&self, low: u8, high: u8) -> u16 {
+        assert!(high >= low);
+        let mask: u16 = ((1_u32 << (high + 1)) - 1) as u16;
+        ((*self & mask) >> low) as u16
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_get_bits_u32_to_u32() {
+        {
+            // arrange
+            let input: u32 = 0b0000_0000_0000_0000_0000_0000_1111_1111_u32;
+
+            // act
+            let O1: u32 = input.get_bits(0, 7);
+            let O2: u32 = input.get_bits(0, 3);
+            let O3: u32 = input.get_bits(0, 0);
+
+            // assert
+            assert_eq!(O1, 0b1111_1111_u32);
+            assert_eq!(O2, 0b1111_u32);
+            assert_eq!(O3, 0b1_u32);
+        }
+        {
+            // arrange
+            let input: u32 = 0b0000_0000_0000_0000_1100_0000_0000_0000_u32;
+
+            // act
+            let O1: u32 = input.get_bits(14, 15);
+
+            // assert
+            assert_eq!(O1, 0b11_u32);
+        }
+        {
+            // arrange
+            let input: u32 = 0b1111_1111_1111_1111_1111_1111_1111_1111_u32;
+
+            // act
+            let O1: u32 = input.get_bits(0, 31);
+
+            // assert
+            assert_eq!(O1, 0b1111_1111_1111_1111_1111_1111_1111_1111_u32);
+        }
+    }
+
 }

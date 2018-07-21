@@ -1,14 +1,13 @@
+use bus::ahblite::AHBLite;
 use bus::busmatrix::BusMatrix;
 use bus::internal::InternalBus;
-use bus::ahblite::AHBLite;
+use core::instruction::Instruction;
 use core::Core;
 use core::ThumbCode;
-use core::instruction::Instruction;
-use core::register::Reg;
 use memory::flash::FlashMemory;
 use memory::ram::RAM;
-use semihosting::SemihostingResponse;
 use semihosting::SemihostingCommand;
+use semihosting::SemihostingResponse;
 
 pub fn cortex_m0_simulate<F>(code: &[u8], mut semihost_func: F) -> u64
 where

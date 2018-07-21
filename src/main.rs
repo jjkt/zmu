@@ -11,18 +11,18 @@ extern crate tabwriter;
 extern crate zmu_cortex_m;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
-use std::io::prelude::*;
-use std::io;
-use std::time::Instant;
-use std::fs::File;
-use std::collections::HashMap;
-use tabwriter::TabWriter;
 use goblin::Object;
 use pad::PadStr;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::time::Instant;
+use tabwriter::TabWriter;
 
-use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 use zmu_cortex_m::core::instruction::Instruction;
 use zmu_cortex_m::core::ThumbCode;
+use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 
 use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate;
 use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate_trace;
@@ -71,9 +71,7 @@ fn run_bin(
                 let mut stop = false;
                 if reason == &SysExceptionReason::ADPStoppedApplicationExit {
                     stop = true;
-                }
-                else
-                {
+                } else {
                     println!("semihosting exception!");
                 }
 
@@ -92,10 +90,7 @@ fn run_bin(
         let tracefunc = |opcode: &ThumbCode, count: u64, pc: u32, instruction: &Instruction| {
             if trace && count >= trace_start {
                 let opcode_str = match *opcode {
-                    ThumbCode::Thumb32 {
-                        half_word,
-                        half_word2,
-                    } => format!("{:04X}{:04X}", half_word, half_word2).with_exact_width(8),
+                    ThumbCode::Thumb32 { opcode } => format!("{:08X}", opcode).with_exact_width(8),
                     ThumbCode::Thumb16 { half_word } => {
                         format!("{:04X}", half_word).with_exact_width(8)
                     }
