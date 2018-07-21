@@ -130,3 +130,35 @@ pub fn decode_STR_reg_t2(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
+
+#[allow(non_snake_case)]
+fn decode_STRD_imm_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STREXB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STREXH_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_STREX_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}

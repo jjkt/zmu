@@ -3,6 +3,7 @@ use enum_set::EnumSet;
 use core::register::Reg;
 use core::instruction::Instruction;
 use core::bits::*;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -37,5 +38,21 @@ pub fn decode_LDM_t1(opcode: u16) -> Instruction {
     Instruction::LDM {
         registers: regs,
         rn: From::from(bits_8_11(opcode)),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDMDB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDM_W_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
     }
 }

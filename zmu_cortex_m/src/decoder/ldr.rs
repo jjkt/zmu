@@ -79,3 +79,83 @@ pub fn decode_LDR_reg_t2(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
+
+#[allow(non_snake_case)]
+fn decode_LDRBT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRD_imm_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRD_lit_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDREXB_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDREXH_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDREX_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRHT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRSBT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRSHT(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+fn decode_LDRT_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
