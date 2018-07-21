@@ -2,177 +2,166 @@
 
 
 INSTRUCTIONS = {
-    #
-    # ARM v6m
-    #
-    '1111001111101111 1000xxxxxxxxxxxx':  'MRS_t1',
-    '111100111000xxxx 10001000xxxxxxxx':  'MSR_reg_t1',
-    '1111001110111111 100011110110xxxx':  'ISB_t1',
-    '1111001110111111 100011110101xxxx':  'DMB_t1',
-    '1111001110111111 100011110100xxxx':  'DSB_t1',
-    '111101111111xxxx 1010xxxxxxxxxxxx':  'UDF_t2',
 
-    # Data processing, modified immediate
-    '11110x00000xxxxx 0xxxxxxxxxxxxxxx': 'AND_imm_t1',
-    '11110x000001xxxx 0xxx1111xxxxxxxx': 'TST_imm_t1',
-    # Data processing, (plain binary immediate)
-    # Branches and misc control
-    '11110xxxxxxxxxxx 11x1xxxxxxxxxxxx': 'BL_t1',
-    # Hint instructions
-    # Misc control instructions
-
-
-    #
-    # load store multiple
-    #
-    '1110100010x0xxxx 0x0xxxxxxxxxxxxx': 'STMX_W_t2',
-    '1110100010x1xxxx xx0xxxxxxxxxxxxx': 'LDM_W_t2',
-    '1110100010111101 xx0xxxxxxxxxxxxx': 'POP_W_t2',
-    '1111100001011101 xxxx101100000100': 'POP_W_t3',
-    '1110100100x0xxxx 0x0xxxxxxxxxxxxx': 'STMDB_t1',
-    '1110100100101101 0x0xxxxxxxxxxxxx': 'PUSH_t2',
-    '1111100001001101 xxxx110100000100': 'PUSH_t3',
-    '1110100100x1xxxx xx0xxxxxxxxxxxxx': 'LDMDB_t1',
-
-    #
-    # load store dual or exclusive, table branch
-    #
-    '111010000100xxxx xxxxxxxxxxxxxxxx': 'STREX_t1',
-    '111010000101xxxx xxxx1111xxxxxxxx': 'LDREX_t1',
-    '1110100xx1x0xxxx xxxxxxxxxxxxxxxx': 'STRD_imm_t1',
-    '1110100xx1x1xxxx xxxxxxxxxxxxxxxx': 'LDRD_imm_t1',
-    '1110100xx1x11111 xxxxxxxxxxxxxxxx': 'LDRD_lit_t1',
-    '111010001100xxxx xxxx11110100xxxx': 'STREXB_t1',
-    '111010001100xxxx xxxx11110101xxxx': 'STREXH_t1',
-    '111010001101xxxx 111100000000xxxx': 'TBB_t1',
-    '111010001101xxxx 111100000001xxxx': 'TBH_t1',
-    '111010001101xxxx xxxx111101001111': 'LDREXB_t1',
-    '111010001101xxxx xxxx111101011111': 'LDREXH_t1',
-
-    #
-    # load word
-    #
-    '111110001101xxxx xxxxxxxxxxxxxxxx': 'LDR_imm_t3',
-    '111110000101xxxx xxxx1xxxxxxxxxxx': 'LDR_imm_t4',
-    '111110000101xxxx xxxx1110xxxxxxxx': 'LDRT_t1',
-    '111110000101xxxx xxxx000000xxxxxx': 'LDR_reg_t2',
-    '11111000x1011111 xxxxxxxxxxxxxxxx': 'LDR_lit_t2',
-
-    #
-    # load halfword
-    #
-    '111110001011xxxx xxxxxxxxxxxxxxxx': 'LDRH_imm_t2',
-    '111110000011xxxx xxxx1xxxxxxxxxxx': 'LDRH_imm_t3',
-    '111110000011xxxx xxxx1110xxxxxxxx': 'LDRHT_t1',
-    '11111000x0111111 xxxxxxxxxxxxxxxx': 'LDRH_lit_t1',
-    '111110000011xxxx xxxx000000xxxxxx': 'LDRH_reg_t2',
-    '111110011011xxxx xxxxxxxxxxxxxxxx': 'LDRSH_imm_t1',
-    '111110010011xxxx xxxx1xxxxxxxxxxx': 'LDRSH_imm_t2',
-    '111110010011xxxx xxxx1110xxxxxxxx': 'LDRSHT',
-    '11111001x0111111 xxxxxxxxxxxxxxxx': 'LDRSH_lit_t1',
-    '111110010011xxxx xxxx000000xxxxxx': 'LDRSH_reg_t2',
-
-    #
-    # load byte, memory hints
-    #
-    '11111000x0011111 xxxxxxxxxxxxxxxx': 'LDRB_lit_t1',  # tttt != 1111 (PLD)
-    '111110001001xxxx xxxxxxxxxxxxxxxx': 'LDRB_imm_t2',  # nnnn != 1111, tttt != 1111
-    '111110000001xxxx xxxx1xxxxxxxxxxx': 'LDRB_imm_t3',
-    '111110000001xxxx xxxx1110xxxxxxxx': 'LDRBT_t1',    # nnnn != 1111
-    '111110000001xxxx xxxx00000xxxxxxx': 'LDRB_reg_t2',
-    '111110011001xxxx xxxxxxxxxxxxxxxx': 'LDRSB_imm_t1',
-    '111110010001xxxx xxxx1xxxxxxxxxxx': 'LDRSB_imm_t2',
-    '111110010001xxxx xxxx1110xxxxxxxx': 'LDRSBT_t1',
-    '11111001x0011111 xxxxxxxxxxxxxxxx': 'LDRSB_lit_t1',  # tttt != 1111 (PLI)
-    '111110010000xxxx xxxx000000xxxxxx': 'LDRSB_reg_t2',
-
-    '111110001001xxxx 1111xxxxxxxxxxxx': 'PLD_imm_t1',  # nnnn!= 1111 (PLD_lit)
-    '111110000001xxxx 11111100xxxxxxxx': 'PLD_imm_t2',  # nnnn!= 1111 (PLD_lit)
-
-    '111110011001xxxx 1111xxxxxxxxxxxx': 'PLI_lit_imm_t1',
-    '111110010001xxxx 11111100xxxxxxxx': 'PLI_lit_imm_t2',
-    '11111001x0011111 1111xxxxxxxxxxxx': 'PLI_lit_imm_t3',
-    '111110010001xxxx 1111000000xxxxxx': 'PLI_reg_t1',  # nnnn != 1111
-
-    # store single data item
-    '111110001000xxxx xxxxxxxxxxxxxxxx': 'STRB_imm_t2',  # nnnn != 1111
-    '111110000000xxxx xxxx1xxxxxxxxxxx': 'STRB_imm_t3',  # nnnn != 1111
-    '111110000000xxxx xxxx000000xxxxxx': 'STRB_reg_t2',  # nnnn != 1111
-    '111110001010xxxx xxxxxxxxxxxxxxxx': 'STRH_imm_t2',  # nnnn != 1111
-    '111110000010xxxx xxxx1xxxxxxxxxxx': 'STRH_imm_t3',
-    '111110001100xxxx xxxxxxxxxxxxxxxx': 'STR_imm_t3',  # nnnn != 1111
-    '111110000100xxxx xxxx1xxxxxxxxxxx': 'STR_imm_t4',
-    '111110000100xxxx xxxx000000xxxxxx': 'STR_reg_t2',  # nnnn != 1111
-
-    # data processing, (shifted register)
-    '11101010000xxxxx 0xxxxxxxxxxxxxxx': "AND_reg_t2",  # ddd == 1111, S == 1 -> TST
-    '111010100001xxxx 0xxx1111xxxxxxxx': "TST_reg_t2",  # ddd == 1111,
-    '11101010001xxxxx 0xxxxxxxxxxxxxxx': "BIC_reg_t2",
-    '11101010010xxxxx 0xxxxxxxxxxxxxxx': "ORR_reg_t2",  # nnnn == 1111 => MOV
-    '11101010011xxxxx 0xxxxxxxxxxxxxxx': "ORN_reg_t2",  # nnnn == 1111 => MVN
-    '11101010011x1111 0xxxxxxxxxxxxxxx': "MVN_reg_t2",
-    '11101010100xxxxx 0xxxxxxxxxxxxxxx': "EOR_reg_t2",  # dddd = 1111 & S = 1 => TEQ
-    '111010101001xxxx 0xxx1111xxxxxxxx': "TEQ_reg_t1",  #
-    '11101011000xxxxx 0xxxxxxxxxxxxxxx': "ADD_reg_t3",  #
-    '111010110001xxxx 0xxx1111xxxxxxxx': "CMN_reg_t2",  #
-    '11101011010xxxxx 0xxxxxxxxxxxxxxx': "ADC_reg_t2",  #
-    '11101011011xxxxx 0xxxxxxxxxxxxxxx': "SBC_reg_t2",  #
-    '11101011101xxxxx 0xxxxxxxxxxxxxxx': "SUB_reg_t2",  #
-    '111010111011xxxx 0xxxxxxxxxxxxxxx': "CMP_reg_t3",  #
-    '11101011110xxxxx 0xxxxxxxxxxxxxxx': "RSB_reg_t2",  #
-
-    '11101010010x1111 0000xxxx0000xxxx': "MOV_reg_t2",  #
-    '11101010010x1111 0xxxxxxxxx00xxxx': "LSL_imm_t2",  # iiiii = 00000 => MOV_reg
-    '11101010010x1111 0xxxxxxxxx01xxxx': "LSR_imm_t2",  #
-    '11101010010x1111 0xxxxxxxxx10xxxx': "ASR_imm_t2",  #
-    '11101010010x1111 0000xxxx0011xxxx': "RRX_t1",  #
-    '11101010010x1111 0xxxxxxxxx11xxxx': "ROR_imm_t1",  #
-
-    # data processing, register
-    '11111010000xxxxx 1111xxxx0000xxxx': "LSL_reg_t2",
-    '11111010001xxxxx 1111xxxx0000xxxx': "LSR_reg_t2",
-    '11111010010xxxxx 1111xxxx0000xxxx': "ASR_reg_t2",
-    '11111010011xxxxx 1111xxxx0000xxxx': "ROR_reg_t2",
-    '1111101000001111 1111xxxx10xxxxxx': "SXTH_t2",
-    '1111101000011111 1111xxxx10xxxxxx': "UXTH_t2",
-    '1111101001001111 1111xxxx10xxxxxx': "SXTB_t2",
-    '1111101001011111 1111xxxx10xxxxxx': "UXTB_t2",
-
-    # miscellaneous operations
-    '111110101001xxxx 1111xxxx1000xxxx': "REV_t2",
-    '111110101001xxxx 1111xxxx1001xxxx': "REV16_t2",
-    '111110101001xxxx 1111xxxx1010xxxx': "RBIT_t1",
-    '111110101001xxxx 1111xxxx1011xxxx': "REVSH_t2",
-    '111110101011xxxx 1111xxxx1000xxxx': "CLZ_t1",
-
-    # multiply, and multiply accumulate
-    '111110110000xxxx xxxxxxxx0000xxxx': "MLA_t1",
-    '111110110000xxxx 1111xxxx0000xxxx': "MUL_t2",
-    '111110110000xxxx xxxxxxxx0001xxxx': "MLS_t1",
-
-    # long multiply, long multiply accumulate, and divide
-    '111110111000xxxx xxxxxxxx0000xxxx': "SMULL_t1",
-    '111110111001xxxx 1111xxxx1111xxxx': "SDIV_t1",
-    '111110111010xxxx xxxxxxxx0000xxxx': "UMULL_t1",
-    '111110111011xxxx 1111xxxx1111xxxx': "UDIV_t1",
-    '111110111100xxxx xxxxxxxx0000xxxx': "SMLAL_t1",
-    '111110111110xxxx xxxxxxxx0000xxxx': "UMLAL_t1",
-
-    # coprocessor instructions
-    '1110110xxxx0xxxx xxxxxxxxxxxxxxxx': "STC_t1",
-    '1111110xxxx0xxxx xxxxxxxxxxxxxxxx': "STC2_t2",
-    '1110110xxxx1xxxx xxxxxxxxxxxxxxxx': "LDC_imm_t1",
-    '1111110xxxx1xxxx xxxxxxxxxxxxxxxx': "LDC2_imm_t2",
-    '1110110xxxx11111 xxxxxxxxxxxxxxxx': "LDC_lit_t1",
-    '1111110xxxx11111 xxxxxxxxxxxxxxxx': "LDC2_lit_t2",
-    '111011000100xxxx xxxxxxxxxxxxxxxx': "MCRR_t1",
-    '111111000100xxxx xxxxxxxxxxxxxxxx': "MCRR2_t2",
-    '11101110xxxxxxxx xxxxxxxxxxx0xxxx': "CDP_t1",
-    '11111110xxxxxxxx xxxxxxxxxxx0xxxx': "CDP2_t2",
-    '11101110xxx0xxxx xxxxxxxxxxx0xxxx': "MCR_t1",
-    '11111110xxx0xxxx xxxxxxxxxxx0xxxx': "MCR2_t2",
-    '11101110xxx1xxxx xxxxxxxxxxx1xxxx': "MRC_t1",
-    '11111110xxx1xxxx xxxxxxxxxxx1xxxx': "MRC2_t2",
+    '11111110...1.... ...........1....': 'MRC2_t2',
+    '11111110...0.... ...........0....': 'MCR2_t2',
+    '11111110........ ...........0....': 'CDP2_t2',
+    '111111000100.... ................': 'MCRR2_t2',
+    '1111110....11111 ................': 'LDC2_lit_t2',
+    '1111110....1.... ................': 'LDC2_imm_t2',
+    '1111110....0.... ................': 'STC2_t2',
+    '111110111110.... ........0000....': 'UMLAL_t1',
+    '111110111100.... ........0000....': 'SMLAL_t1',
+    '111110111011.... 1111....1111....': 'UDIV_t1',
+    '111110111010.... ........0000....': 'UMULL_t1',
+    '111110111001.... 1111....1111....': 'SDIV_t1',
+    '111110111000.... ........0000....': 'SMULL_t1',
+    '111110110000.... 1111....0000....': 'MUL_t2',
+    '111110110000.... ........0001....': 'MLS_t1',
+    '111110110000.... ........0000....': 'MLA_t1',
+    '111110101011.... 1111....1000....': 'CLZ_t1',
+    '111110101001.... 1111....1011....': 'REVSH_t2',
+    '111110101001.... 1111....1010....': 'RBIT_t1',
+    '111110101001.... 1111....1001....': 'REV16_t2',
+    '111110101001.... 1111....1000....': 'REV_t2',
+    '11111010011..... 1111....0000....': 'ROR_reg_t2',
+    '1111101001011111 1111....10......': 'UXTB_t2',
+    '1111101001001111 1111....10......': 'SXTB_t2',
+    '11111010010..... 1111....0000....': 'ASR_reg_t2',
+    '11111010001..... 1111....0000....': 'LSR_reg_t2',
+    '1111101000011111 1111....10......': 'UXTH_t2',
+    '1111101000001111 1111....10......': 'SXTH_t2',
+    '11111010000..... 1111....0000....': 'LSL_reg_t2',
+    '111110011011.... ................': 'LDRSH_imm_t1',
+    '111110011001.... 1111............': 'PLI_lit_imm_t1',
+    '111110011001.... ................': 'LDRSB_imm_t1',
+    '111110010011.... ....1110........': 'LDRSHT',
+    '111110010011.... ....1...........': 'LDRSH_imm_t2',
+    '111110010011.... ....000000......': 'LDRSH_reg_t2',
+    '111110010001.... 11111100........': 'PLI_lit_imm_t2',
+    '111110010001.... 1111000000......': 'PLI_reg_t1',
+    '111110010001.... ....1110........': 'LDRSBT_t1',
+    '111110010001.... ....1...........': 'LDRSB_imm_t2',
+    '111110010000.... ....000000......': 'LDRSB_reg_t2',
+    '11111001.0111111 ................': 'LDRSH_lit_t1',
+    '11111001.0011111 1111............': 'PLI_lit_imm_t3',
+    '11111001.0011111 ................': 'LDRSB_lit_t1',
+    '111110001101.... ................': 'LDR_imm_t3',
+    '111110001100.... ................': 'STR_imm_t3',
+    '111110001011.... ................': 'LDRH_imm_t2',
+    '111110001010.... ................': 'STRH_imm_t2',
+    '111110001001.... 1111............': 'PLD_imm_t1',
+    '111110001001.... ................': 'LDRB_imm_t2',
+    '111110001000.... ................': 'STRB_imm_t2',
+    '1111100001011101 ....101100000100': 'POP_t3',
+    '111110000101.... ....1110........': 'LDRT_t1',
+    '111110000101.... ....1...........': 'LDR_imm_t4',
+    '111110000101.... ....000000......': 'LDR_reg_t2',
+    '1111100001001101 ....110100000100': 'PUSH_t3',
+    '111110000100.... ....1...........': 'STR_imm_t4',
+    '111110000100.... ....000000......': 'STR_reg_t2',
+    '111110000011.... ....1110........': 'LDRHT_t1',
+    '111110000011.... ....1...........': 'LDRH_imm_t3',
+    '111110000011.... ....000000......': 'LDRH_reg_t2',
+    '111110000010.... ....1...........': 'STRH_imm_t3',
+    '111110000001.... 11111100........': 'PLD_imm_t2',
+    '111110000001.... ....1110........': 'LDRBT_t1',
+    '111110000001.... ....1...........': 'LDRB_imm_t3',
+    '111110000001.... ....00000.......': 'LDRB_reg_t2',
+    '111110000000.... ....1...........': 'STRB_imm_t3',
+    '111110000000.... ....000000......': 'STRB_reg_t2',
+    '11111000.1011111 ................': 'LDR_lit_t2',
+    '11111000.0111111 ................': 'LDRH_lit_t1',
+    '11111000.0011111 ................': 'LDRB_lit_t1',
+    '111101111111.... 1010............': 'UDF_t2',
+    '1111001111101111 1000............': 'MRS_t1',
+    '111100111100.... 0.........0.....': 'UBFX_t1',
+    '1111001110111111 100011110110....': 'ISB_t1',
+    '1111001110111111 100011110101....': 'DMB_t1',
+    '1111001110111111 100011110100....': 'DSB_t1',
+    '1111001110111111 100011110010....': 'CLREX_t1',
+    '1111001110101111 1000000011110000': 'DBG_t1',
+    '1111001110101111 1000000000000100': 'SEV_t2',
+    '1111001110101111 1000000000000011': 'WFI_t2',
+    '1111001110101111 1000000000000010': 'WFE_t2',
+    '1111001110101111 1000000000000001': 'YIELD_t2',
+    '1111001110101111 1000000000000000': 'NOP_t2',
+    '111100111000.... 10001000........': 'MSR_reg_t1',
+    '1111001110.0.... 0.........0.....': 'USAT_t1',
+    '1111001101101111 0.........0.....': 'BFC_t1',
+    '111100110110.... 0.........0.....': 'BFI_t1',
+    '111100110100.... 0.........0.....': 'SBFX_t1',
+    '1111001100.0.... 0.........0.....': 'SSAT_t1',
+    '11110.101100.... 0...............': 'MOVT_t1',
+    '11110.1010101111 0...............': 'ADR_t2',
+    '11110.101010.... 0...............': 'SUB_imm_t4',
+    '11110.100100.... 0...............': 'MOV_imm_t3',
+    '11110.1000001111 0...............': 'ADR_t3',
+    '11110.100000.... 0...............': 'ADD_imm_t4',
+    '11110.01110..... 0...1111........': 'RSB_imm_t2',
+    '11110.011011.... 0...1111........': 'CMP_imm_t2',
+    '11110.01101..... 0...............': 'SUB_imm_t3',
+    '11110.01011..... 0...............': 'SBC_imm_t1',
+    '11110.01010..... 0...............': 'ADC_imm_t1',
+    '11110.010001.... 0...1111........': 'CMN_imm_t1',
+    '11110.010000.... 0...............': 'ADD_imm_t3',
+    '11110.001001.... 0...1111........': 'TEQ_imm_t1',
+    '11110.00100..... 0...............': 'EOR_imm_t1',
+    '11110.00011.1111 0...............': 'MVN_imm_t1',
+    '11110.00011..... 0...............': 'ORN_imm_t1',
+    '11110.000010.... 0...............': 'ORR_imm_t1',
+    '11110.00001.1111 0...............': 'MOV_imm_t2',
+    '11110.000001.... 0...1111........': 'TST_imm_t1',
+    '11110.000001.... 0...............': 'BIC_imm_t1',
+    '11110.00000..... 0...............': 'AND_imm_t1',
+    '11110........... 11.1............': 'BL_t1',
+    '11110........... 10.1............': 'B_t4',
+    '11110........... 10.0............': 'B_t3',
+    '11101110...1.... ...........1....': 'MRC_t1',
+    '11101110...0.... ...........0....': 'MCR_t1',
+    '11101110........ ...........0....': 'CDP_t1',
+    '111011000100.... ................': 'MCRR_t1',
+    '1110110....11111 ................': 'LDC_lit_t1',
+    '1110110....1.... ................': 'LDC_imm_t1',
+    '1110110....0.... ................': 'STC_t1',
+    '11101011110..... 0...............': 'RSB_reg_t2',
+    '111010111011.... 0...............': 'CMP_reg_t3',
+    '11101011101..... 0...............': 'SUB_reg_t2',
+    '11101011011..... 0...............': 'SBC_reg_t2',
+    '11101011010..... 0...............': 'ADC_reg_t2',
+    '111010110001.... 0...1111........': 'CMN_reg_t2',
+    '11101011000..... 0...............': 'ADD_reg_t3',
+    '111010101001.... 0...1111........': 'TEQ_reg_t1',
+    '11101010100..... 0...............': 'EOR_reg_t2',
+    '11101010011.1111 0...............': 'MVN_reg_t2',
+    '11101010011..... 0...............': 'ORN_reg_t2',
+    '11101010010.1111 0000....0011....': 'RRX_t1',
+    '11101010010.1111 0000....0000....': 'MOV_reg_t2',
+    '11101010010.1111 0.........11....': 'ROR_imm_t1',
+    '11101010010.1111 0.........10....': 'ASR_imm_t2',
+    '11101010010.1111 0.........01....': 'LSR_imm_t2',
+    '11101010010.1111 0.........00....': 'LSL_imm_t2',
+    '11101010010..... 0...............': 'ORR_reg_t2',
+    '11101010001..... 0...............': 'BIC_reg_t2',
+    '111010100001.... 0...1111........': 'TST_reg_t2',
+    '11101010000..... 0...............': 'AND_reg_t2',
+    '1110100100101101 0.0.............': 'PUSH_t2',
+    '1110100100.1.... ..0.............': 'LDMDB_t1',
+    '1110100100.0.... 0.0.............': 'STMDB_t1',
+    '111010001101.... 111100000001....': 'TBH_t1',
+    '111010001101.... 111100000000....': 'TBB_t1',
+    '111010001101.... ....111101011111': 'LDREXH_t1',
+    '111010001101.... ....111101001111': 'LDREXB_t1',
+    '111010001100.... ....11110101....': 'STREXH_t1',
+    '111010001100.... ....11110100....': 'STREXB_t1',
+    '1110100010111101 ..0.............': 'POP_t2',
+    '1110100010.1.... ..0.............': 'LDM_t2',
+    '1110100010.0.... 0.0.............': 'STM_t2',
+    '111010000101.... ....1111........': 'LDREX_t1',
+    '111010000100.... ................': 'STREX_t1',
+    '1110100..1.11111 ................': 'LDRD_lit_t1',
+    '1110100..1.1.... ................': 'LDRD_imm_t1',
+    '1110100..1.0.... ................': 'STRD_imm_t1',
 
 }
 
@@ -180,18 +169,18 @@ INSTRUCTIONS = {
 def main():
     """ My main function"""
     for key in reversed(sorted(INSTRUCTIONS.iterkeys())):
-        numeric_low = key.replace('x', '0')
+        numeric_low = key.replace('.', '0')
         numeric_low = numeric_low.replace(' ', '')
 
-        numeric_high = key.replace('x', '1')
+        numeric_high = key.replace('.', '1')
         numeric_high = numeric_high.replace(' ', '')
         #number_low = int(numeric_low, 2)
         #number_high = int(numeric_high, 2)
 
-        print "0b{} ... 0b{} => decode_{}(opcode),".format(numeric_low, numeric_high, INSTRUCTIONS[key])
+        print '0b{} ... 0b{} => decode_{}(opcode),'.format(numeric_low, numeric_high, INSTRUCTIONS[key])
 #    for value in sorted(INSTRUCTIONS.values()):
-#        print "#[allow(non_snake_case)]\n\
-# fn decode_{}(opcode: u32) -> Instruction {{ println!(\"{}\");\nInstruction::UDF {{imm32: 0,opcode: ThumbCode::from(opcode),}}}}\n".format(value,value)
+#        print '#[allow(non_snake_case)]\n\
+# fn decode_{}(opcode: u32) -> Instruction {{ println!(\'{}\');\nInstruction::UDF {{imm32: 0,opcode: ThumbCode::from(opcode),}}}}\n'.format(value,value)
 
 
 main()
