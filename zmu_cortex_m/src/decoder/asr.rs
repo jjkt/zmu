@@ -23,6 +23,7 @@ pub fn decode_ASR_reg_t1(command: u16) -> Instruction {
         setflags: true,
     }
 }
+
 #[allow(non_snake_case)]
 pub fn decode_ASR_imm_t2(opcode: u32) -> Instruction {
     Instruction::UDF {

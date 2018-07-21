@@ -1,8 +1,9 @@
 use core::bits::*;
 use core::instruction::Instruction;
+use core::register::Reg;
 
 #[allow(non_snake_case)]
-fn decode_UMLAL_t1(opcode: u32) -> Instruction {
+pub fn decode_UMLAL_t1(opcode: u32) -> Instruction {
     let reg_rm: u8 = opcode.get_bits(0, 3);
     let reg_rd_hi: u8 = opcode.get_bits(8, 11);
     let reg_rd_lo: u8 = opcode.get_bits(12, 15);

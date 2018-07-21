@@ -5,19 +5,19 @@ INSTRUCTIONS = {
     #
     # ARM v6m
     #
-    '1111001111101111 1000ddddssssssss':  'MRS_t1',
-    '111100111000nnnn 10001000ssssssss':  'MSR_reg_t1',
-    '1111001110111111 100011110110oooo':  'ISB_t1',
-    '1111001110111111 100011110101oooo':  'DMB_t1',
-    '1111001110111111 100011110100oooo':  'DSB_t1',
-    '111101111111iiii 1010iiiiiiiiiiii':  'UDF_t2',
+    '1111001111101111 1000xxxxxxxxxxxx':  'MRS_t1',
+    '111100111000xxxx 10001000xxxxxxxx':  'MSR_reg_t1',
+    '1111001110111111 100011110110xxxx':  'ISB_t1',
+    '1111001110111111 100011110101xxxx':  'DMB_t1',
+    '1111001110111111 100011110100xxxx':  'DSB_t1',
+    '111101111111xxxx 1010xxxxxxxxxxxx':  'UDF_t2',
 
     # Data processing, modified immediate
-    '11110x00000xnnnn 0xxxddddxxxxxxxx': 'AND_imm_t1',
-    '11110x000001nnnn 0xxx1111xxxxxxxx': 'TST_imm_t1',
+    '11110x00000xxxxx 0xxxxxxxxxxxxxxx': 'AND_imm_t1',
+    '11110x000001xxxx 0xxx1111xxxxxxxx': 'TST_imm_t1',
     # Data processing, (plain binary immediate)
     # Branches and misc control
-    '11110Siiiiiiiiii 11j1Jiiiiiiiiiii': 'BL_t1',
+    '11110xxxxxxxxxxx 11x1xxxxxxxxxxxx': 'BL_t1',
     # Hint instructions
     # Misc control instructions
 
@@ -25,228 +25,173 @@ INSTRUCTIONS = {
     #
     # load store multiple
     #
-    '1110100010W0rrrr 0M0rrrrrrrrrrrrr': 'STMX_W_t2',
-    '1110100010W1rrrr PM0rrrrrrrrrrrrr': 'LDM_W_t2',
-    '1110100010111101 PM0rrrrrrrrrrrrr': 'POP_W_t2',
-    '1111100001011101 tttt101100000100': 'POP_W_t3',
-    '1110100100W0nnnn 0M0rrrrrrrrrrrrr': 'STMDB_t1',
-    '1110100100101101 0M0rrrrrrrrrrrrr': 'PUSH_t2',
-    '1111100001001101 tttt110100000100': 'PUSH_t3',
-    '1110100100W1nnnn PM0rrrrrrrrrrrrr': 'LDMDB_t1',
+    '1110100010x0xxxx 0x0xxxxxxxxxxxxx': 'STMX_W_t2',
+    '1110100010x1xxxx xx0xxxxxxxxxxxxx': 'LDM_W_t2',
+    '1110100010111101 xx0xxxxxxxxxxxxx': 'POP_W_t2',
+    '1111100001011101 xxxx101100000100': 'POP_W_t3',
+    '1110100100x0xxxx 0x0xxxxxxxxxxxxx': 'STMDB_t1',
+    '1110100100101101 0x0xxxxxxxxxxxxx': 'PUSH_t2',
+    '1111100001001101 xxxx110100000100': 'PUSH_t3',
+    '1110100100x1xxxx xx0xxxxxxxxxxxxx': 'LDMDB_t1',
 
     #
     # load store dual or exclusive, table branch
     #
-    '111010000100nnnn ttttddddiiiiiiii': 'STREX_t1',
-    '111010000101nnnn tttt1111iiiiiiii': 'LDREX_t1',
-    '1110100PU1W0nnnn ttttTTTTiiiiiiii': 'STRD_imm_t1',
-    '1110100PU1W1nnnn ttttTTTTiiiiiiii': 'LDRD_imm_t1',
-    '1110100PU1W11111 ttttTTTTiiiiiiii': 'LDRD_lit_t1',
-    '111010001100nnnn tttt11110100dddd': 'STREXB_t1',
-    '111010001100nnnn tttt11110101dddd': 'STREXH_t1',
-    '111010001101nnnn 111100000000mmmm': 'TBB_t1',
-    '111010001101nnnn 111100000001mmmm': 'TBH_t1',
-    '111010001101nnnn tttt111101001111': 'LDREXB_t1',
-    '111010001101nnnn tttt111101011111': 'LDREXH_t1',
+    '111010000100xxxx xxxxxxxxxxxxxxxx': 'STREX_t1',
+    '111010000101xxxx xxxx1111xxxxxxxx': 'LDREX_t1',
+    '1110100xx1x0xxxx xxxxxxxxxxxxxxxx': 'STRD_imm_t1',
+    '1110100xx1x1xxxx xxxxxxxxxxxxxxxx': 'LDRD_imm_t1',
+    '1110100xx1x11111 xxxxxxxxxxxxxxxx': 'LDRD_lit_t1',
+    '111010001100xxxx xxxx11110100xxxx': 'STREXB_t1',
+    '111010001100xxxx xxxx11110101xxxx': 'STREXH_t1',
+    '111010001101xxxx 111100000000xxxx': 'TBB_t1',
+    '111010001101xxxx 111100000001xxxx': 'TBH_t1',
+    '111010001101xxxx xxxx111101001111': 'LDREXB_t1',
+    '111010001101xxxx xxxx111101011111': 'LDREXH_t1',
 
     #
     # load word
     #
-    '111110001101nnnn ttttiiiiiiiiiiii': 'LDR_imm_t3',
-    '111110000101nnnn tttt1PUWiiiiiiii': 'LDR_imm_t4',
-    '111110000101nnnn tttt1110iiiiiiii': 'LDRT_t1',
-    '111110000101nnnn tttt000000iimmmm': 'LDR_reg_t2',
-    '11111000U1011111 ttttiiiiiiiiiiii': 'LDR_lit_t2',
+    '111110001101xxxx xxxxxxxxxxxxxxxx': 'LDR_imm_t3',
+    '111110000101xxxx xxxx1xxxxxxxxxxx': 'LDR_imm_t4',
+    '111110000101xxxx xxxx1110xxxxxxxx': 'LDRT_t1',
+    '111110000101xxxx xxxx000000xxxxxx': 'LDR_reg_t2',
+    '11111000x1011111 xxxxxxxxxxxxxxxx': 'LDR_lit_t2',
 
     #
     # load halfword
     #
-    '111110001011nnnn ttttiiiiiiiiiiii': 'LDRH_imm_t2',
-    '111110000011nnnn tttt1PUWiiiiiiii': 'LDRH_imm_t3',
-    '111110000011nnnn tttt1110iiiiiiii': 'LDRHT_t1',
-    '11111000U0111111 ttttiiiiiiiiiiii': 'LDRH_lit_t1',
-    '111110000011nnnn tttt000000iimmmm': 'LDRH_reg_t2',
-    '111110011011nnnn ttttiiiiiiiiiiii': 'LDRSH_imm_t1',
-    '111110010011nnnn tttt1PUWiiiiiiii': 'LDRSH_imm_t2',
-    '111110010011nnnn tttt1110iiiiiiii': 'LDRSHT',
-    '11111001U0111111 ttttiiiiiiiiiiii': 'LDRSH_lit_t1',
-    '111110010011nnnn tttt000000iimmmm': 'LDRSH_reg_t2',
+    '111110001011xxxx xxxxxxxxxxxxxxxx': 'LDRH_imm_t2',
+    '111110000011xxxx xxxx1xxxxxxxxxxx': 'LDRH_imm_t3',
+    '111110000011xxxx xxxx1110xxxxxxxx': 'LDRHT_t1',
+    '11111000x0111111 xxxxxxxxxxxxxxxx': 'LDRH_lit_t1',
+    '111110000011xxxx xxxx000000xxxxxx': 'LDRH_reg_t2',
+    '111110011011xxxx xxxxxxxxxxxxxxxx': 'LDRSH_imm_t1',
+    '111110010011xxxx xxxx1xxxxxxxxxxx': 'LDRSH_imm_t2',
+    '111110010011xxxx xxxx1110xxxxxxxx': 'LDRSHT',
+    '11111001x0111111 xxxxxxxxxxxxxxxx': 'LDRSH_lit_t1',
+    '111110010011xxxx xxxx000000xxxxxx': 'LDRSH_reg_t2',
 
     #
     # load byte, memory hints
     #
-    '11111000U0011111 ttttiiiiiiiiiiii': 'LDRB_lit_t1',  # tttt != 1111 (PLD)
-    '111110001001nnnn ttttiiiiiiiiiiii': 'LDRB_imm_t2',  # nnnn != 1111, tttt != 1111
-    # nnnn != 1111 (LDRB_lit), !(tttt == 1111, P = 1, U = 0, W = 0) (PLD)
-    '111110000001nnnn tttt1PUWiiiiiiii': 'LDRB_imm_t3',
-    '111110000001nnnn tttt1110iiiiiiii': 'LDRBT_t1',    # nnnn != 1111
-    # nnnn != 1111 (LDRB_lit), tttt != 1111 (PLD)
-    '111110000001nnnn tttt00000iimmmmm': 'LDRB_reg_t2',
-    # nnnn != 1111 (PLI), tttt != 1111 (PLD)
-    # tttt != 1111 (PLI), nnnn != 1111,
-    '111110011001nnnn ttttiiiiiiiiiiii': 'LDRSB_imm_t1',
-    # nnnn != 1111 (LDRSB_lit), !(tttt == 1111, P = 1, U = 0, W = 0) (PLI)
-    '111110010001nnnn tttt1PUWiiiiiiii': 'LDRSB_imm_t2',
-    # nnnn != 1111 (LDRSB_lit)
-    '111110010001nnnn tttt1110iiiiiiii': 'LDRSBT_t1',
-    '11111001U0011111 ttttiiiiiiiiiiii': 'LDRSB_lit_t1',  # tttt != 1111 (PLI)
-    # tttt != 1111 (PLI), nnnn!= 1111 (LDRSB_lit)
-    '111110010000nnnn tttt000000iimmmm': 'LDRSB_reg_t2',
+    '11111000x0011111 xxxxxxxxxxxxxxxx': 'LDRB_lit_t1',  # tttt != 1111 (PLD)
+    '111110001001xxxx xxxxxxxxxxxxxxxx': 'LDRB_imm_t2',  # nnnn != 1111, tttt != 1111
+    '111110000001xxxx xxxx1xxxxxxxxxxx': 'LDRB_imm_t3',
+    '111110000001xxxx xxxx1110xxxxxxxx': 'LDRBT_t1',    # nnnn != 1111
+    '111110000001xxxx xxxx00000xxxxxxx': 'LDRB_reg_t2',
+    '111110011001xxxx xxxxxxxxxxxxxxxx': 'LDRSB_imm_t1',
+    '111110010001xxxx xxxx1xxxxxxxxxxx': 'LDRSB_imm_t2',
+    '111110010001xxxx xxxx1110xxxxxxxx': 'LDRSBT_t1',
+    '11111001x0011111 xxxxxxxxxxxxxxxx': 'LDRSB_lit_t1',  # tttt != 1111 (PLI)
+    '111110010000xxxx xxxx000000xxxxxx': 'LDRSB_reg_t2',
 
-    '111110001001nnnn 1111iiiiiiiiiiii': 'PLD_imm_t1',  # nnnn!= 1111 (PLD_lit)
-    '111110000001nnnn 11111100iiiiiiii': 'PLD_imm_t2',  # nnnn!= 1111 (PLD_lit)
+    '111110001001xxxx 1111xxxxxxxxxxxx': 'PLD_imm_t1',  # nnnn!= 1111 (PLD_lit)
+    '111110000001xxxx 11111100xxxxxxxx': 'PLD_imm_t2',  # nnnn!= 1111 (PLD_lit)
 
-    # nnnn!= 1111 (PLD_lit)
-    '111110011001nnnn 1111iiiiiiiiiiii': 'PLI_lit_imm_t1',
-    # nnnn!= 1111 (PLD_lit)
-    '111110010001nnnn 11111100iiiiiiii': 'PLI_lit_imm_t2',
-    '11111001U0011111 1111iiiiiiiiiiii': 'PLI_lit_imm_t3',
-    '111110010001nnnn 1111000000ssmmmm': 'PLI_reg_t1',  # nnnn != 1111
+    '111110011001xxxx 1111xxxxxxxxxxxx': 'PLI_lit_imm_t1',
+    '111110010001xxxx 11111100xxxxxxxx': 'PLI_lit_imm_t2',
+    '11111001x0011111 1111xxxxxxxxxxxx': 'PLI_lit_imm_t3',
+    '111110010001xxxx 1111000000xxxxxx': 'PLI_reg_t1',  # nnnn != 1111
 
     # store single data item
-    '111110001000nnnn ttttiiiiiiiiiiii': 'STRB_imm_t2',  # nnnn != 1111
-    '111110000000nnnn tttt1PUWiiiiiiii': 'STRB_imm_t3',  # nnnn != 1111
-    '111110000000nnnn tttt000000iimmmm': 'STRB_reg_t2',  # nnnn != 1111
-    '111110001010nnnn ttttiiiiiiiiiiii': 'STRH_imm_t2',  # nnnn != 1111
-    # nnnn != 1111 ||(P=0 &&W = 0) -> UDF, PUW != 110 STRHT
-    '111110000010nnnn tttt1PUWiiiiiiii': 'STRH_imm_t3',
-    '111110001100nnnn ttttiiiiiiiiiiii': 'STR_imm_t3',  # nnnn != 1111
-    # nnnn != 1111 || (P = 0 && W = 0) UDF, (special rules) PUSH, (special rules)STRT
-    '111110000100nnnn tttt1PUWiiiiiiii': 'STR_imm_t4',
-    '111110000100nnnn tttt000000iimmmm': 'STR_reg_t2',  # nnnn != 1111
+    '111110001000xxxx xxxxxxxxxxxxxxxx': 'STRB_imm_t2',  # nnnn != 1111
+    '111110000000xxxx xxxx1xxxxxxxxxxx': 'STRB_imm_t3',  # nnnn != 1111
+    '111110000000xxxx xxxx000000xxxxxx': 'STRB_reg_t2',  # nnnn != 1111
+    '111110001010xxxx xxxxxxxxxxxxxxxx': 'STRH_imm_t2',  # nnnn != 1111
+    '111110000010xxxx xxxx1xxxxxxxxxxx': 'STRH_imm_t3',
+    '111110001100xxxx xxxxxxxxxxxxxxxx': 'STR_imm_t3',  # nnnn != 1111
+    '111110000100xxxx xxxx1xxxxxxxxxxx': 'STR_imm_t4',
+    '111110000100xxxx xxxx000000xxxxxx': 'STR_reg_t2',  # nnnn != 1111
 
     # data processing, (shifted register)
-    '11101010000Snnnn 0iiiddddiittmmmm': "AND_reg_t2",  # ddd == 1111, S == 1 -> TST
-    '111010100001nnnn 0iii1111iittmmmm': "TST_reg_t2",  # ddd == 1111,
-    '11101010001Snnnn 0iiiddddiittmmmm': "BIC_reg_t2",
-    '11101010010Snnnn 0iiiddddiittmmmm': "ORR_reg_t2",  # nnnn == 1111 => MOV
-    '11101010011Snnnn 0iiiddddiittmmmm': "ORN_reg_t2",  # nnnn == 1111 => MVN
-    '11101010011S1111 0iiiddddiittmmmm': "MVN_reg_t2",
-    '11101010100Snnnn 0iiiddddiittmmmm': "EOR_reg_t2",  # dddd = 1111 & S = 1 => TEQ
-    '111010101001nnnn 0iii1111iittmmmm': "TEQ_reg_t1",  #
-    '11101011000Snnnn 0iiiddddiittmmmm': "ADD_reg_t3",  #
-    '111010110001nnnn 0iii1111iittmmmm': "CMN_reg_t2",  #
-    '11101011010Snnnn 0iiiddddiittmmmm': "ADC_reg_t2",  #
-    '11101011011Snnnn 0iiiddddiittmmmm': "SBC_reg_t2",  #
-    '11101011101Snnnn 0iiiddddiittmmmm': "SUB_reg_t2",  #
-    '111010111011nnnn 0iiiddddiittmmmm': "CMP_reg_t3",  #
-    '11101011110Snnnn 0iiiddddiittmmmm': "RSB_reg_t2",  #
+    '11101010000xxxxx 0xxxxxxxxxxxxxxx': "AND_reg_t2",  # ddd == 1111, S == 1 -> TST
+    '111010100001xxxx 0xxx1111xxxxxxxx': "TST_reg_t2",  # ddd == 1111,
+    '11101010001xxxxx 0xxxxxxxxxxxxxxx': "BIC_reg_t2",
+    '11101010010xxxxx 0xxxxxxxxxxxxxxx': "ORR_reg_t2",  # nnnn == 1111 => MOV
+    '11101010011xxxxx 0xxxxxxxxxxxxxxx': "ORN_reg_t2",  # nnnn == 1111 => MVN
+    '11101010011x1111 0xxxxxxxxxxxxxxx': "MVN_reg_t2",
+    '11101010100xxxxx 0xxxxxxxxxxxxxxx': "EOR_reg_t2",  # dddd = 1111 & S = 1 => TEQ
+    '111010101001xxxx 0xxx1111xxxxxxxx': "TEQ_reg_t1",  #
+    '11101011000xxxxx 0xxxxxxxxxxxxxxx': "ADD_reg_t3",  #
+    '111010110001xxxx 0xxx1111xxxxxxxx': "CMN_reg_t2",  #
+    '11101011010xxxxx 0xxxxxxxxxxxxxxx': "ADC_reg_t2",  #
+    '11101011011xxxxx 0xxxxxxxxxxxxxxx': "SBC_reg_t2",  #
+    '11101011101xxxxx 0xxxxxxxxxxxxxxx': "SUB_reg_t2",  #
+    '111010111011xxxx 0xxxxxxxxxxxxxxx': "CMP_reg_t3",  #
+    '11101011110xxxxx 0xxxxxxxxxxxxxxx': "RSB_reg_t2",  #
 
-    '11101010010S1111 0000dddd0000mmmm': "MOV_reg_t2",  #
-    '11101010010S1111 0iiiddddii00mmmm': "LSL_imm_t2",  # iiiii = 00000 => MOV_reg
-    '11101010010S1111 0iiiddddii01mmmm': "LSR_imm_t2",  #
-    '11101010010S1111 0iiiddddii10mmmm': "ASR_imm_t2",  #
-    '11101010010S1111 0000dddd0011mmmm': "RRX_t1",  #
-    '11101010010S1111 0iiiddddii11mmmm': "ROR_imm_t1",  #
+    '11101010010x1111 0000xxxx0000xxxx': "MOV_reg_t2",  #
+    '11101010010x1111 0xxxxxxxxx00xxxx': "LSL_imm_t2",  # iiiii = 00000 => MOV_reg
+    '11101010010x1111 0xxxxxxxxx01xxxx': "LSR_imm_t2",  #
+    '11101010010x1111 0xxxxxxxxx10xxxx': "ASR_imm_t2",  #
+    '11101010010x1111 0000xxxx0011xxxx': "RRX_t1",  #
+    '11101010010x1111 0xxxxxxxxx11xxxx': "ROR_imm_t1",  #
 
     # data processing, register
-    '11111010000Snnnn 1111dddd0000mmmm': "LSL_reg_t2",
-    '11111010001Snnnn 1111dddd0000mmmm': "LSR_reg_t2",
-    '11111010010Snnnn 1111dddd0000mmmm': "ASR_reg_t2",
-    '11111010011Snnnn 1111dddd0000mmmm': "ROR_reg_t2",
-    '1111101000001111 1111dddd10rrmmmm': "SXTH_t2",
-    '1111101000011111 1111dddd10rrmmmm': "UXTH_t2",
-    '1111101001001111 1111dddd10rrmmmm': "SXTB_t2",
-    '1111101001011111 1111dddd10rrmmmm': "UXTB_t2",
+    '11111010000xxxxx 1111xxxx0000xxxx': "LSL_reg_t2",
+    '11111010001xxxxx 1111xxxx0000xxxx': "LSR_reg_t2",
+    '11111010010xxxxx 1111xxxx0000xxxx': "ASR_reg_t2",
+    '11111010011xxxxx 1111xxxx0000xxxx': "ROR_reg_t2",
+    '1111101000001111 1111xxxx10xxxxxx': "SXTH_t2",
+    '1111101000011111 1111xxxx10xxxxxx': "UXTH_t2",
+    '1111101001001111 1111xxxx10xxxxxx': "SXTB_t2",
+    '1111101001011111 1111xxxx10xxxxxx': "UXTB_t2",
 
     # miscellaneous operations
-    '111110101001mmmm 1111dddd1000mmmm': "REV_t2",
-    '111110101001mmmm 1111dddd1001mmmm': "REV16_t2",
-    '111110101001mmmm 1111dddd1010mmmm': "RBIT_t1",
-    '111110101001mmmm 1111dddd1011mmmm': "REVSH_t2",
-    '111110101011mmmm 1111dddd1000mmmm': "CLZ_t1",
+    '111110101001xxxx 1111xxxx1000xxxx': "REV_t2",
+    '111110101001xxxx 1111xxxx1001xxxx': "REV16_t2",
+    '111110101001xxxx 1111xxxx1010xxxx': "RBIT_t1",
+    '111110101001xxxx 1111xxxx1011xxxx': "REVSH_t2",
+    '111110101011xxxx 1111xxxx1000xxxx': "CLZ_t1",
 
     # multiply, and multiply accumulate
-    '111110110000nnnn aaaadddd0000mmmm': "MLA_t1",
-    '111110110000nnnn 1111dddd0000mmmm': "MUL_t2",
-    '111110110000nnnn aaaadddd0001mmmm': "MLS_t1",
+    '111110110000xxxx xxxxxxxx0000xxxx': "MLA_t1",
+    '111110110000xxxx 1111xxxx0000xxxx': "MUL_t2",
+    '111110110000xxxx xxxxxxxx0001xxxx': "MLS_t1",
 
     # long multiply, long multiply accumulate, and divide
-    '111110111000nnnn llllhhhh0000mmmm': "SMULL_t1",
-    '111110111001nnnn 1111dddd1111mmmm': "SDIV_t1",
-    '111110111010nnnn llllhhhh0000mmmm': "UMULL_t1",
-    '111110111011nnnn 1111dddd1111mmmm': "UDIV_t1",
-    '111110111100nnnn llllhhhh0000mmmm': "SMLAL_t1",
-    '111110111110nnnn llllhhhh0000mmmm': "UMLAL_t1",
+    '111110111000xxxx xxxxxxxx0000xxxx': "SMULL_t1",
+    '111110111001xxxx 1111xxxx1111xxxx': "SDIV_t1",
+    '111110111010xxxx xxxxxxxx0000xxxx': "UMULL_t1",
+    '111110111011xxxx 1111xxxx1111xxxx': "UDIV_t1",
+    '111110111100xxxx xxxxxxxx0000xxxx': "SMLAL_t1",
+    '111110111110xxxx xxxxxxxx0000xxxx': "UMLAL_t1",
 
     # coprocessor instructions
-    '1110110PUNW0nnnn ccccppppiiiiiiii': "STC_t1",
-    '1111110PUNW0nnnn ccccppppiiiiiiii': "STC2_t2",
-    '1110110PUDW1nnnn ccccppppiiiiiiii': "LDC_imm_t1",
-    '1111110PUDW1nnnn ccccppppiiiiiiii': "LDC2_imm_t2",
-    '1110110PUDW11111 ccccppppiiiiiiii': "LDC_lit_t1",
-    '1111110PUDW11111 ccccppppiiiiiiii': "LDC2_lit_t2",
-    '111011000100TTTT ttttccccoooommmm': "MCRR_t1",
-    '111111000100TTTT ttttccccoooommmm': "MCRR2_t2",
-    '11101110oooonnnn ddddccccooo0mmmm': "CDP_t1",
-    '11111110oooonnnn ddddccccooo0mmmm': "CDP2_t2",
-    '11101110ooo0nnnn ttttccccooo0mmmm': "MCR_t1",
-    '11111110ooo0nnnn ttttccccooo0mmmm': "MCR2_t2",
-    '11101110ooo1nnnn ttttccccooo1mmmm': "MRC_t1",
-    '11111110ooo1nnnn ttttccccooo1mmmm': "MRC2_t2",
+    '1110110xxxx0xxxx xxxxxxxxxxxxxxxx': "STC_t1",
+    '1111110xxxx0xxxx xxxxxxxxxxxxxxxx': "STC2_t2",
+    '1110110xxxx1xxxx xxxxxxxxxxxxxxxx': "LDC_imm_t1",
+    '1111110xxxx1xxxx xxxxxxxxxxxxxxxx': "LDC2_imm_t2",
+    '1110110xxxx11111 xxxxxxxxxxxxxxxx': "LDC_lit_t1",
+    '1111110xxxx11111 xxxxxxxxxxxxxxxx': "LDC2_lit_t2",
+    '111011000100xxxx xxxxxxxxxxxxxxxx': "MCRR_t1",
+    '111111000100xxxx xxxxxxxxxxxxxxxx': "MCRR2_t2",
+    '11101110xxxxxxxx xxxxxxxxxxx0xxxx': "CDP_t1",
+    '11111110xxxxxxxx xxxxxxxxxxx0xxxx': "CDP2_t2",
+    '11101110xxx0xxxx xxxxxxxxxxx0xxxx': "MCR_t1",
+    '11111110xxx0xxxx xxxxxxxxxxx0xxxx': "MCR2_t2",
+    '11101110xxx1xxxx xxxxxxxxxxx1xxxx': "MRC_t1",
+    '11111110xxx1xxxx xxxxxxxxxxx1xxxx': "MRC2_t2",
 
 }
 
 
 def main():
     """ My main function"""
-    for key in sorted(INSTRUCTIONS.iterkeys()):
-        numeric_low = key.replace('m', '0')
-        numeric_low = numeric_low.replace('M', '0')
-        numeric_low = numeric_low.replace('W', '0')
-        numeric_low = numeric_low.replace('U', '0')
-        numeric_low = numeric_low.replace('t', '0')
-        numeric_low = numeric_low.replace('T', '0')
-        numeric_low = numeric_low.replace('i', '0')
-        numeric_low = numeric_low.replace('r', '0')
-        numeric_low = numeric_low.replace('d', '0')
-        numeric_low = numeric_low.replace('c', '0')
-        numeric_low = numeric_low.replace('n', '0')
-        numeric_low = numeric_low.replace('D', '0')
-        numeric_low = numeric_low.replace('N', '0')
-        numeric_low = numeric_low.replace('P', '0')
-        numeric_low = numeric_low.replace('p', '0')
-        numeric_low = numeric_low.replace('s', '0')
-        numeric_low = numeric_low.replace('S', '0')
-        numeric_low = numeric_low.replace('o', '0')
-        numeric_low = numeric_low.replace('j', '0')
-        numeric_low = numeric_low.replace('J', '0')
-        numeric_low = numeric_low.replace('a', '0')
-        numeric_low = numeric_low.replace('l', '0')
-        numeric_low = numeric_low.replace('h', '0')
+    for key in reversed(sorted(INSTRUCTIONS.iterkeys())):
+        numeric_low = key.replace('x', '0')
         numeric_low = numeric_low.replace(' ', '')
 
-        numeric_high = key.replace('m', '1')
-        numeric_high = numeric_high.replace('M', '1')
-        numeric_high = numeric_high.replace('W', '1')
-        numeric_high = numeric_high.replace('U', '1')
-        numeric_high = numeric_high.replace('t', '1')
-        numeric_high = numeric_high.replace('T', '1')
-        numeric_high = numeric_high.replace('i', '1')
-        numeric_high = numeric_high.replace('r', '1')
-        numeric_high = numeric_high.replace('d', '1')
-        numeric_high = numeric_high.replace('c', '1')
-        numeric_high = numeric_high.replace('n', '1')
-        numeric_high = numeric_high.replace('D', '1')
-        numeric_high = numeric_high.replace('N', '1')
-        numeric_high = numeric_high.replace('p', '1')
-        numeric_high = numeric_high.replace('P', '1')
-        numeric_high = numeric_high.replace('s', '1')
-        numeric_high = numeric_high.replace('S', '1')
-        numeric_high = numeric_high.replace('o', '1')
-        numeric_high = numeric_high.replace('j', '1')
-        numeric_high = numeric_high.replace('J', '1')
-        numeric_high = numeric_high.replace('a', '1')
-        numeric_high = numeric_high.replace('l', '1')
-        numeric_high = numeric_high.replace('h', '1')
+        numeric_high = key.replace('x', '1')
         numeric_high = numeric_high.replace(' ', '')
-        number_low = int(numeric_low, 2)
-        number_high = int(numeric_high, 2)
+        #number_low = int(numeric_low, 2)
+        #number_high = int(numeric_high, 2)
 
-        print "{} ... {} => decode_{}(opcode),".format(number_low, number_high, INSTRUCTIONS[key])
-    for value in sorted(INSTRUCTIONS.values()):
-        print "#[allow(non_snake_case)]\n\
-fn decode_{}(opcode: u32) -> Instruction {{ println!(\"{}\");\nInstruction::UDF {{imm32: 0,opcode: ThumbCode::from(opcode),}}}}\n".format(value,value)
-    
+        print "0b{} ... 0b{} => decode_{}(opcode),".format(numeric_low, numeric_high, INSTRUCTIONS[key])
+#    for value in sorted(INSTRUCTIONS.values()):
+#        print "#[allow(non_snake_case)]\n\
+# fn decode_{}(opcode: u32) -> Instruction {{ println!(\"{}\");\nInstruction::UDF {{imm32: 0,opcode: ThumbCode::from(opcode),}}}}\n".format(value,value)
+
 
 main()

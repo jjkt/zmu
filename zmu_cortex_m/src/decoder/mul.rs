@@ -20,19 +20,3 @@ pub fn decode_MUL_t2(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
-
-#[allow(non_snake_case)]
-fn decode_MLA_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}
-
-#[allow(non_snake_case)]
-fn decode_MLS_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
-}

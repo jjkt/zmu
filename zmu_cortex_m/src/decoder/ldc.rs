@@ -1,6 +1,7 @@
 use core::bits::*;
 use core::instruction::Instruction;
 use core::register::Reg;
+use core::ThumbCode;
 
 #[allow(non_snake_case)]
 pub fn decode_LDC_imm_t1(opcode: u32) -> Instruction {
@@ -21,5 +22,29 @@ pub fn decode_LDC2_imm_t2(opcode: u32) -> Instruction {
         imm32: opcode.get_bits(0, 7),
         crd: opcode.get_bits(12, 15),
         rn: Reg::from(reg_rn),
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_LDC_lit_t1(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_LDC_lit_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_LDC2_lit_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
     }
 }

@@ -162,34 +162,33 @@ mod tests {
             let input: u32 = 0b0000_0000_0000_0000_0000_0000_1111_1111_u32;
 
             // act
-            let O1: u32 = input.get_bits(0, 7);
-            let O2: u32 = input.get_bits(0, 3);
-            let O3: u32 = input.get_bits(0, 0);
+            let o1: u32 = input.get_bits(0, 7);
+            let o2: u32 = input.get_bits(0, 3);
+            let o3: u32 = input.get_bits(0, 0);
 
             // assert
-            assert_eq!(O1, 0b1111_1111_u32);
-            assert_eq!(O2, 0b1111_u32);
-            assert_eq!(O3, 0b1_u32);
+            assert_eq!(o1, 0b1111_1111_u32);
+            assert_eq!(o2, 0b1111_u32);
+            assert_eq!(o3, 0b1_u32);
         }
         {
             // arrange
             let input: u32 = 0b0000_0000_0000_0000_1100_0000_0000_0000_u32;
 
             // act
-            let O1: u32 = input.get_bits(14, 15);
+            let o1: u32 = input.get_bits(14, 15);
 
             // assert
-            assert_eq!(O1, 0b11_u32);
+            assert_eq!(o1, 0b11_u32);
         }
         {
             // arrange
             let input: u32 = 0b1111_1111_1111_1111_1111_1111_1111_1111_u32;
-
             // act
-            let O1: u32 = input.get_bits(0, 31);
+            let o1: u32 = input.get_bits(0, 31);
 
             // assert
-            assert_eq!(O1, 0b1111_1111_1111_1111_1111_1111_1111_1111_u32);
+            assert_eq!(o1, 0b1111_1111_1111_1111_1111_1111_1111_1111_u32);
         }
     }
 
