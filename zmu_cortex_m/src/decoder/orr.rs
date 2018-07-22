@@ -20,3 +20,9 @@ pub fn decode_ORR_reg_t2(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
+
+#[allow(non_snake_case)]
+#[inline]
+pub fn decode_ORR_imm_t1(opcode: u32) -> Instruction {
+    unimplemented!()
+}

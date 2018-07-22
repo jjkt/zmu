@@ -18,3 +18,9 @@ pub fn decode_CMN_reg_t2(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
+
+#[allow(non_snake_case)]
+#[inline]
+pub fn decode_CMN_imm_t1(opcode: u32) -> Instruction {
+    unimplemented!()
+}

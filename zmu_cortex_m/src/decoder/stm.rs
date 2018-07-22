@@ -51,7 +51,7 @@ pub fn decode_STMDB_t1(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_STMX_W_t2(opcode: u32) -> Instruction {
+pub fn decode_STM_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: ThumbCode::from(opcode),

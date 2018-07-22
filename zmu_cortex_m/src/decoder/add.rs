@@ -78,3 +78,16 @@ pub fn decode_ADD_SP_imm_t2(command: u16) -> Instruction {
         setflags: false,
     }
 }
+
+#[allow(non_snake_case)]
+#[inline]
+pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[inline]
+pub fn decode_ADD_imm_t4(opcode: u32) -> Instruction {
+    unimplemented!()
+}
+

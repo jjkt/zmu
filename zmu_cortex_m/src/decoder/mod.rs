@@ -12,6 +12,18 @@ use core::register::Reg;
 #[cfg(test)]
 use core::condition::Condition;
 
+mod bfc;
+mod bfi;
+mod clrex;
+mod dbg;
+mod sbfx;
+mod ssat;
+mod ubfx;
+mod usat;
+mod wfe;
+mod wfi;
+mod yield_;
+
 mod adc;
 mod add;
 mod adr;
@@ -28,11 +40,11 @@ mod bx;
 mod clz;
 mod cmn;
 mod cmp;
+mod cpd;
 mod cps;
-mod cpd; 
 
-mod dmb; 
-mod dsb; 
+mod dmb;
+mod dsb;
 
 mod eor;
 
@@ -48,10 +60,10 @@ mod ldrsh;
 mod lsl;
 mod lsr;
 
-mod mov;
+mod mcr;
 mod mla;
 mod mls;
-mod mcr;
+mod mov;
 mod mrs;
 mod msr;
 mod mul;
@@ -61,9 +73,9 @@ mod nop;
 mod orn;
 mod orr;
 
-mod pop;
 mod pld;
 mod pli;
+mod pop;
 mod push;
 
 mod rbit;
@@ -73,14 +85,15 @@ mod rrx;
 mod rsb;
 
 mod sbc;
-mod stc;
 mod sdiv;
+mod sev;
+mod smlal;
+mod smull;
+mod stc;
 mod stm;
 mod str;
 mod strex;
 mod sub;
-mod smlal;
-mod smull;
 mod sxt;
 
 mod tbb;
@@ -88,9 +101,10 @@ mod tbh;
 mod teq;
 mod tst;
 
+mod movt;
+mod udiv;
 mod umlal;
 mod umull;
-mod udiv;
 mod uxt;
 
 use decoder::adc::*;
@@ -115,7 +129,6 @@ use decoder::cps::*;
 use decoder::dmb::*;
 use decoder::dsb::*;
 
-
 use decoder::eor::*;
 
 use decoder::isb::*;
@@ -131,12 +144,12 @@ use decoder::lsl::*;
 use decoder::lsr::*;
 
 use decoder::mcr::*;
+use decoder::mla::*;
+use decoder::mls::*;
 use decoder::mov::*;
 use decoder::mrs::*;
 use decoder::msr::*;
 use decoder::mul::*;
-use decoder::mla::*;
-use decoder::mls::*;
 use decoder::mvn::*;
 
 use decoder::nop::*;
@@ -156,14 +169,14 @@ use decoder::rrx::*;
 use decoder::rsb::*;
 
 use decoder::sbc::*;
-use decoder::stm::*;
+use decoder::sdiv::*;
+use decoder::smlal::*;
+use decoder::smull::*;
 use decoder::stc::*;
+use decoder::stm::*;
 use decoder::str::*;
 use decoder::strex::*;
 use decoder::sub::*;
-use decoder::sdiv::*;
-use decoder::smull::*;
-use decoder::smlal::*;
 use decoder::sxt::*;
 
 use decoder::tbb::*;
@@ -171,10 +184,24 @@ use decoder::tbh::*;
 use decoder::teq::*;
 use decoder::tst::*;
 
+use decoder::udiv::*;
 use decoder::umlal::*;
 use decoder::umull::*;
-use decoder::udiv::*;
 use decoder::uxt::*;
+
+use decoder::bfc::*;
+use decoder::bfi::*;
+use decoder::clrex::*;
+use decoder::dbg::*;
+use decoder::movt::*;
+use decoder::sbfx::*;
+use decoder::sev::*;
+use decoder::ssat::*;
+use decoder::ubfx::*;
+use decoder::usat::*;
+use decoder::wfe::*;
+use decoder::wfi::*;
+use decoder::yield_::*;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11, 15) {
@@ -302,389 +329,327 @@ fn decode_group2(opcode: u32) -> Instruction {
 
 // A5.3 thumb32 encodings
 pub fn decode_32(opcode: u32) -> Instruction {
-    let op1: u8 = opcode.get_bits(27, 28);
-
-    match op1 {
-        0b01 => decode_UDF_t2(opcode),
-        0b10 => decode_group2(opcode),
-        0b11 => decode_UDF_t2(opcode),
-        _ => decode_UDF_t2(opcode),
+    if (opcode & 0xffffffff) == 0xf3af8000 {
+        decode_NOP_t2(opcode)
+    } else if (opcode & 0xffffffff) == 0xf3af80f0 {
+        decode_DBG_t1(opcode)
+    } else if (opcode & 0xffffffff) == 0xf3af8004 {
+        decode_SEV_t2(opcode)
+    } else if (opcode & 0xffffffff) == 0xf3af8001 {
+        decode_YIELD_t2(opcode)
+    } else if (opcode & 0xffffffff) == 0xf3af8002 {
+        decode_WFE_t2(opcode)
+    } else if (opcode & 0xffffffff) == 0xf3af8003 {
+        decode_WFI_t2(opcode)
+    } else if (opcode & 0xffff0fff) == 0xf84d0d04 {
+        decode_PUSH_t3(opcode)
+    } else if (opcode & 0xfffffff0) == 0xf3bf8f60 {
+        decode_ISB_t1(opcode)
+    } else if (opcode & 0xfffffff0) == 0xf3bf8f20 {
+        decode_CLREX_t1(opcode)
+    } else if (opcode & 0xffff0fff) == 0xf85d0b04 {
+        decode_POP_t3(opcode)
+    } else if (opcode & 0xfffffff0) == 0xf3bf8f40 {
+        decode_DSB_t1(opcode)
+    } else if (opcode & 0xfffffff0) == 0xf3bf8f50 {
+        decode_DMB_t1(opcode)
+    } else if (opcode & 0xfff00fff) == 0xe8d00f4f {
+        decode_LDREXB_t1(opcode)
+    } else if (opcode & 0xfff0fff0) == 0xe8d0f000 {
+        decode_TBB_t1(opcode)
+    } else if (opcode & 0xfff00fff) == 0xe8d00f5f {
+        decode_LDREXH_t1(opcode)
+    } else if (opcode & 0xfff0fff0) == 0xe8d0f010 {
+        decode_TBH_t1(opcode)
+    } else if (opcode & 0xffeff0f0) == 0xea4f0030 {
+        decode_RRX_t1(opcode)
+    } else if (opcode & 0xffeff0f0) == 0xea4f0000 {
+        decode_MOV_reg_t2(opcode)
+    } else if (opcode & 0xfffff0c0) == 0xfa0ff080 {
+        decode_SXTH_t2(opcode)
+    } else if (opcode & 0xfff0ffc0) == 0xf910f000 {
+        decode_PLI_reg_t1(opcode)
+    } else if (opcode & 0xfffff0c0) == 0xfa1ff080 {
+        decode_UXTH_t2(opcode)
+    } else if (opcode & 0xfffff0c0) == 0xfa5ff080 {
+        decode_UXTB_t2(opcode)
+    } else if (opcode & 0xfffff0c0) == 0xfa4ff080 {
+        decode_SXTB_t2(opcode)
+    } else if (opcode & 0xfff0ff00) == 0xf910fc00 {
+        decode_PLI_lit_imm_t2(opcode)
+    } else if (opcode & 0xfff0ff00) == 0xf810fc00 {
+        decode_PLD_imm_t2(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfa90f0a0 {
+        decode_RBIT_t1(opcode)
+    } else if (opcode & 0xfff0ff00) == 0xf3808800 {
+        decode_MSR_reg_t1(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfa90f0b0 {
+        decode_REVSH_t2(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfbb0f0f0 {
+        decode_UDIV_t1(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfb90f0f0 {
+        decode_SDIV_t1(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfab0f080 {
+        decode_CLZ_t1(opcode)
+    } else if (opcode & 0xfff00ff0) == 0xe8c00f40 {
+        decode_STREXB_t1(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfa90f080 {
+        decode_REV_t2(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfa90f090 {
+        decode_REV16_t2(opcode)
+    } else if (opcode & 0xfff00ff0) == 0xe8c00f50 {
+        decode_STREXH_t1(opcode)
+    } else if (opcode & 0xfffff000) == 0xf3ef8000 {
+        decode_MRS_t1(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfb00f000 {
+        decode_MUL_t2(opcode)
+    } else if (opcode & 0xffe0f0f0) == 0xfa00f000 {
+        decode_LSL_reg_t2(opcode)
+    } else if (opcode & 0xffe0f0f0) == 0xfa60f000 {
+        decode_ROR_reg_t2(opcode)
+    } else if (opcode & 0xff7ff000) == 0xf91ff000 {
+        decode_PLI_lit_imm_t3(opcode)
+    } else if (opcode & 0xffe0f0f0) == 0xfa40f000 {
+        decode_ASR_reg_t2(opcode)
+    } else if (opcode & 0xffe0f0f0) == 0xfa20f000 {
+        decode_LSR_reg_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf9000000 {
+        decode_LDRSB_reg_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf9300000 {
+        decode_LDRSH_reg_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf8000000 {
+        decode_STRB_reg_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf8500000 {
+        decode_LDR_reg_t2(opcode)
+    } else if (opcode & 0xffffa000) == 0xe92d0000 {
+        decode_PUSH_t2(opcode)
+    } else if (opcode & 0xffef8030) == 0xea4f0010 {
+        decode_LSR_imm_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf8400000 {
+        decode_STR_reg_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf8300000 {
+        decode_LDRH_reg_t2(opcode)
+    } else if (opcode & 0xffef8030) == 0xea4f0030 {
+        decode_ROR_imm_t1(opcode)
+    } else if (opcode & 0xffff8020) == 0xf36f0000 {
+        decode_BFC_t1(opcode)
+    } else if (opcode & 0xffef8030) == 0xea4f0020 {
+        decode_ASR_imm_t2(opcode)
+    } else if (opcode & 0xffef8030) == 0xea4f0000 {
+        decode_LSL_imm_t2(opcode)
+    } else if (opcode & 0xffff2000) == 0xe8bd0000 {
+        decode_POP_t2(opcode)
+    } else if (opcode & 0xfff00f80) == 0xf8100000 {
+        decode_LDRB_reg_t2(opcode)
+    } else if (opcode & 0xfff08f00) == 0xea100f00 {
+        decode_TST_reg_t2(opcode)
+    } else if (opcode & 0xfff08f00) == 0xeb100f00 {
+        decode_CMN_reg_t2(opcode)
+    } else if (opcode & 0xfff08f00) == 0xea900f00 {
+        decode_TEQ_reg_t1(opcode)
+    } else if (opcode & 0xfbf08f00) == 0xf1100f00 {
+        decode_CMN_imm_t1(opcode)
+    } else if (opcode & 0xfbff8000) == 0xf20f0000 {
+        decode_ADR_t3(opcode)
+    } else if (opcode & 0xfbf08f00) == 0xf1b00f00 {
+        decode_CMP_imm_t2(opcode)
+    } else if (opcode & 0xfff000f0) == 0xfbe00000 {
+        decode_UMLAL_t1(opcode)
+    } else if (opcode & 0xfff000f0) == 0xfb000000 {
+        decode_MLA_t1(opcode)
+    } else if (opcode & 0xfff000f0) == 0xfb000010 {
+        decode_MLS_t1(opcode)
+    } else if (opcode & 0xfbf08f00) == 0xf0900f00 {
+        decode_TEQ_imm_t1(opcode)
+    } else if (opcode & 0xfff0f000) == 0xf890f000 {
+        decode_PLD_imm_t1(opcode)
+    } else if (opcode & 0xfbff8000) == 0xf2af0000 {
+        decode_ADR_t2(opcode)
+    } else if (opcode & 0xfff000f0) == 0xfbc00000 {
+        decode_SMLAL_t1(opcode)
+    } else if (opcode & 0xfbf08f00) == 0xf0100f00 {
+        decode_TST_imm_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xf9300e00 {
+        decode_LDRSHT(opcode)
+    } else if (opcode & 0xfff0f000) == 0xf990f000 {
+        decode_PLI_lit_imm_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xf8500e00 {
+        decode_LDRT_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xf8100e00 {
+        decode_LDRBT_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xf8300e00 {
+        decode_LDRHT_t1(opcode)
+    } else if (opcode & 0xffef8000) == 0xea6f0000 {
+        decode_MVN_reg_t2(opcode)
+    } else if (opcode & 0xfff000f0) == 0xfba00000 {
+        decode_UMULL_t1(opcode)
+    } else if (opcode & 0xfff0f000) == 0xf7f0a000 {
+        decode_UDF_t2(opcode)
+    } else if (opcode & 0xfff000f0) == 0xfb800000 {
+        decode_SMULL_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xe8500f00 {
+        decode_LDREX_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xf9100e00 {
+        decode_LDRSBT_t1(opcode)
+    } else if (opcode & 0xfbef8000) == 0xf02f0000 {
+        decode_MOV_imm_t2(opcode)
+    } else if (opcode & 0xfbe08f00) == 0xf1c00f00 {
+        decode_RSB_imm_t2(opcode)
+    } else if (opcode & 0xff7f0000) == 0xf85f0000 {
+        decode_LDR_lit_t2(opcode)
+    } else if (opcode & 0xfbef8000) == 0xf06f0000 {
+        decode_MVN_imm_t1(opcode)
+    } else if (opcode & 0xff7f0000) == 0xf83f0000 {
+        decode_LDRH_lit_t1(opcode)
+    } else if (opcode & 0xff7f0000) == 0xf81f0000 {
+        decode_LDRB_lit_t1(opcode)
+    } else if (opcode & 0xff7f0000) == 0xf91f0000 {
+        decode_LDRSB_lit_t1(opcode)
+    } else if (opcode & 0xff7f0000) == 0xf93f0000 {
+        decode_LDRSH_lit_t1(opcode)
+    } else if (opcode & 0xfff08020) == 0xf3600000 {
+        decode_BFI_t1(opcode)
+    } else if (opcode & 0xfff08020) == 0xf3c00000 {
+        decode_UBFX_t1(opcode)
+    } else if (opcode & 0xfff08020) == 0xf3400000 {
+        decode_SBFX_t1(opcode)
+    } else if (opcode & 0xfff00800) == 0xf8400800 {
+        decode_STR_imm_t4(opcode)
+    } else if (opcode & 0xffd08020) == 0xf3000000 {
+        decode_SSAT_t1(opcode)
+    } else if (opcode & 0xfff00800) == 0xf8200800 {
+        decode_STRH_imm_t3(opcode)
+    } else if (opcode & 0xfff00800) == 0xf9100800 {
+        decode_LDRSB_imm_t2(opcode)
+    } else if (opcode & 0xfff08000) == 0xebb00000 {
+        decode_CMP_reg_t3(opcode)
+    } else if (opcode & 0xfff00800) == 0xf8000800 {
+        decode_STRB_imm_t3(opcode)
+    } else if (opcode & 0xfe5f0000) == 0xe85f0000 {
+        decode_LDRD_lit_t1(opcode)
+    } else if (opcode & 0xffd0a000) == 0xe8800000 {
+        decode_STM_t2(opcode)
+    } else if (opcode & 0xfff00800) == 0xf9300800 {
+        decode_LDRSH_imm_t2(opcode)
+    } else if (opcode & 0xfff00800) == 0xf8500800 {
+        decode_LDR_imm_t4(opcode)
+    } else if (opcode & 0xfff00800) == 0xf8100800 {
+        decode_LDRB_imm_t3(opcode)
+    } else if (opcode & 0xffd08020) == 0xf3800000 {
+        decode_USAT_t1(opcode)
+    } else if (opcode & 0xfff00800) == 0xf8300800 {
+        decode_LDRH_imm_t3(opcode)
+    } else if (opcode & 0xffd0a000) == 0xe9000000 {
+        decode_STMDB_t1(opcode)
+    } else if (opcode & 0xffe08000) == 0xea800000 {
+        decode_EOR_reg_t2(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf2c00000 {
+        decode_MOVT_t1(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf1000000 {
+        decode_ADD_imm_t3(opcode)
+    } else if (opcode & 0xffd02000) == 0xe9100000 {
+        decode_LDMDB_t1(opcode)
+    } else if (opcode & 0xffe08000) == 0xea600000 {
+        decode_ORN_reg_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xeba00000 {
+        decode_SUB_reg_t2(opcode)
+    } else if (opcode & 0xfff00000) == 0xf8900000 {
+        decode_LDRB_imm_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xea400000 {
+        decode_ORR_reg_t2(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf0100000 {
+        decode_BIC_imm_t1(opcode)
+    } else if (opcode & 0xfff00000) == 0xe8400000 {
+        decode_STREX_t1(opcode)
+    } else if (opcode & 0xffe08000) == 0xebc00000 {
+        decode_RSB_reg_t2(opcode)
+    } else if (opcode & 0xfff00000) == 0xf9900000 {
+        decode_LDRSB_imm_t1(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf2400000 {
+        decode_MOV_imm_t3(opcode)
+    } else if (opcode & 0xffe08000) == 0xeb600000 {
+        decode_SBC_reg_t2(opcode)
+    } else if (opcode & 0xfff00000) == 0xf8c00000 {
+        decode_STR_imm_t3(opcode)
+    } else if (opcode & 0xfff00000) == 0xfc400000 {
+        decode_MCRR2_t2(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf2000000 {
+        decode_ADD_imm_t4(opcode)
+    } else if (opcode & 0xfe1f0000) == 0xec1f0000 {
+        decode_LDC_lit_t1(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf0200000 {
+        decode_ORR_imm_t1(opcode)
+    } else if (opcode & 0xfe1f0000) == 0xfc1f0000 {
+        decode_LDC2_lit_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xeb000000 {
+        decode_ADD_reg_t3(opcode)
+    } else if (opcode & 0xfff00000) == 0xf8d00000 {
+        decode_LDR_imm_t3(opcode)
+    } else if (opcode & 0xfff00000) == 0xec400000 {
+        decode_MCRR_t1(opcode)
+    } else if (opcode & 0xfff00000) == 0xf9b00000 {
+        decode_LDRSH_imm_t1(opcode)
+    } else if (opcode & 0xffe08000) == 0xea000000 {
+        decode_AND_reg_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xeb400000 {
+        decode_ADC_reg_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xea200000 {
+        decode_BIC_reg_t2(opcode)
+    } else if (opcode & 0xffd02000) == 0xe8900000 {
+        decode_LDM_t2(opcode)
+    } else if (opcode & 0xfff00000) == 0xf8800000 {
+        decode_STRB_imm_t2(opcode)
+    } else if (opcode & 0xfff00000) == 0xf8b00000 {
+        decode_LDRH_imm_t2(opcode)
+    } else if (opcode & 0xfff00000) == 0xf8a00000 {
+        decode_STRH_imm_t2(opcode)
+    } else if (opcode & 0xfbf08000) == 0xf2a00000 {
+        decode_SUB_imm_t4(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf0600000 {
+        decode_ORN_imm_t1(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf1a00000 {
+        decode_SUB_imm_t3(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf0800000 {
+        decode_EOR_imm_t1(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf0000000 {
+        decode_AND_imm_t1(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf1400000 {
+        decode_ADC_imm_t1(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf1600000 {
+        decode_SBC_imm_t1(opcode)
+    } else if (opcode & 0xff100010) == 0xfe000000 {
+        decode_MCR2_t2(opcode)
+    } else if (opcode & 0xff100010) == 0xfe100010 {
+        decode_MRC2_t2(opcode)
+    } else if (opcode & 0xff100010) == 0xee000000 {
+        decode_MCR_t1(opcode)
+    } else if (opcode & 0xff100010) == 0xee100010 {
+        decode_MRC_t1(opcode)
+    } else if (opcode & 0xfe500000) == 0xe8500000 {
+        decode_LDRD_imm_t1(opcode)
+    } else if (opcode & 0xff000010) == 0xfe000000 {
+        decode_CDP2_t2(opcode)
+    } else if (opcode & 0xff000010) == 0xee000000 {
+        decode_CDP_t1(opcode)
+    } else if (opcode & 0xfe500000) == 0xe8400000 {
+        decode_STRD_imm_t1(opcode)
+    } else if (opcode & 0xf800d000) == 0xf000d000 {
+        decode_BL_t1(opcode)
+    } else if (opcode & 0xfe100000) == 0xfc100000 {
+        decode_LDC2_imm_t2(opcode)
+    } else if (opcode & 0xfe100000) == 0xec000000 {
+        decode_STC_t1(opcode)
+    } else if (opcode & 0xf800d000) == 0xf0009000 {
+        decode_B_t4(opcode)
+    } else if (opcode & 0xf800d000) == 0xf0008000 {
+        decode_B_t3(opcode)
+    } else if (opcode & 0xfe100000) == 0xfc000000 {
+        decode_STC2_t2(opcode)
+    } else if (opcode & 0xfe100000) == 0xec100000 {
+        decode_LDC_imm_t1(opcode)
+    } else {
+        decode_UDF_t2(opcode)
     }
-
-/*    match opcode {
-        0b11111110000000000000000000000000...0b11111110111111111111111111101111 => {
-            decode_CDP2_t2(opcode)
-        }
-        0b11111110000100000000000000010000...0b11111110111111111111111111111111 => {
-            decode_MRC2_t2(opcode)
-        }
-        0b11111110000000000000000000000000...0b11111110111011111111111111101111 => {
-            decode_MCR2_t2(opcode)
-        }
-        0b11111100000100000000000000000000...0b11111101111111111111111111111111 => {
-            decode_LDC2_imm_t2(opcode)
-        }
-        0b11111100000111110000000000000000...0b11111101111111111111111111111111 => {
-            decode_LDC2_lit_t2(opcode)
-        }
-        0b11111100000000000000000000000000...0b11111101111011111111111111111111 => {
-            decode_STC2_t2(opcode)
-        }
-        0b11111100010000000000000000000000...0b11111100010011111111111111111111 => {
-            decode_MCRR2_t2(opcode)
-        }
-        0b11111011111000000000000000000000...0b11111011111011111111111100001111 => {
-            decode_UMLAL_t1(opcode)
-        }
-        0b11111011110000000000000000000000...0b11111011110011111111111100001111 => {
-            decode_SMLAL_t1(opcode)
-        }
-        0b11111011101100001111000011110000...0b11111011101111111111111111111111 => {
-            decode_UDIV_t1(opcode)
-        }
-        0b11111011101000000000000000000000...0b11111011101011111111111100001111 => {
-            decode_UMULL_t1(opcode)
-        }
-        0b11111011100100001111000011110000...0b11111011100111111111111111111111 => {
-            decode_SDIV_t1(opcode)
-        }
-        0b11111011100000000000000000000000...0b11111011100011111111111100001111 => {
-            decode_SMULL_t1(opcode)
-        }
-        0b11111011000000000000000000010000...0b11111011000011111111111100011111 => {
-            decode_MLS_t1(opcode)
-        }
-        0b11111011000000000000000000000000...0b11111011000011111111111100001111 => {
-            decode_MLA_t1(opcode)
-        }
-        0b11111011000000001111000000000000...0b11111011000011111111111100001111 => {
-            decode_MUL_t2(opcode)
-        }
-        0b11111010101100001111000010000000...0b11111010101111111111111110001111 => {
-            decode_CLZ_t1(opcode)
-        }
-        0b11111010100100001111000010110000...0b11111010100111111111111110111111 => {
-            decode_REVSH_t2(opcode)
-        }
-        0b11111010100100001111000010100000...0b11111010100111111111111110101111 => {
-            decode_RBIT_t1(opcode)
-        }
-        0b11111010100100001111000010010000...0b11111010100111111111111110011111 => {
-            decode_REV16_t2(opcode)
-        }
-        0b11111010100100001111000010000000...0b11111010100111111111111110001111 => {
-            decode_REV_t2(opcode)
-        }
-        0b11111010011000001111000000000000...0b11111010011111111111111100001111 => {
-            decode_ROR_reg_t2(opcode)
-        }
-        0b11111010010000001111000000000000...0b11111010010111111111111100001111 => {
-            decode_ASR_reg_t2(opcode)
-        }
-        0b11111010010111111111000010000000...0b11111010010111111111111110111111 => {
-            decode_UXTB_t2(opcode)
-        }
-        0b11111010010011111111000010000000...0b11111010010011111111111110111111 => {
-            decode_SXTB_t2(opcode)
-        }
-        0b11111010001000001111000000000000...0b11111010001111111111111100001111 => {
-            decode_LSR_reg_t2(opcode)
-        }
-        0b11111010000000001111000000000000...0b11111010000111111111111100001111 => {
-            decode_LSL_reg_t2(opcode)
-        }
-        0b11111010000111111111000010000000...0b11111010000111111111111110111111 => {
-            decode_UXTH_t2(opcode)
-        }
-        0b11111010000011111111000010000000...0b11111010000011111111111110111111 => {
-            decode_SXTH_t2(opcode)
-        }
-        0b11111001001111110000000000000000...0b11111001101111111111111111111111 => {
-            decode_LDRSH_lit_t1(opcode)
-        }
-        0b11111001000111110000000000000000...0b11111001100111111111111111111111 => {
-            decode_LDRSB_lit_t1(opcode)
-        }
-        0b11111001000111111111000000000000...0b11111001100111111111111111111111 => {
-            decode_PLI_lit_imm_t3(opcode)
-        }
-        0b11111001101100000000000000000000...0b11111001101111111111111111111111 => {
-            decode_LDRSH_imm_t1(opcode)
-        }
-        0b11111001100100000000000000000000...0b11111001100111111111111111111111 => {
-            decode_LDRSB_imm_t1(opcode)
-        }
-        0b11111001100100001111000000000000...0b11111001100111111111111111111111 => {
-            decode_PLI_lit_imm_t1(opcode)
-        }
-        0b11111001001100000000100000000000...0b11111001001111111111111111111111 => {
-            decode_LDRSH_imm_t2(opcode)
-        }
-        0b11111001001100000000111000000000...0b11111001001111111111111011111111 => {
-            decode_LDRSHT(opcode)
-        }
-        0b11111001001100000000000000000000...0b11111001001111111111000000111111 => {
-            decode_LDRSH_reg_t2(opcode)
-        }
-        0b11111001000100000000100000000000...0b11111001000111111111111111111111 => {
-            decode_LDRSB_imm_t2(opcode)
-        }
-        0b11111001000100000000111000000000...0b11111001000111111111111011111111 => {
-            decode_LDRSBT_t1(opcode)
-        }
-        0b11111001000100001111110000000000...0b11111001000111111111110011111111 => {
-            decode_PLI_lit_imm_t2(opcode)
-        }
-        0b11111001000100001111000000000000...0b11111001000111111111000000111111 => {
-            decode_PLI_reg_t1(opcode)
-        }
-        0b11111001000000000000000000000000...0b11111001000011111111000000111111 => {
-            decode_LDRSB_reg_t2(opcode)
-        }
-        0b11111000010111110000000000000000...0b11111000110111111111111111111111 => {
-            decode_LDR_lit_t2(opcode)
-        }
-        0b11111000001111110000000000000000...0b11111000101111111111111111111111 => {
-            decode_LDRH_lit_t1(opcode)
-        }
-        0b11111000000111110000000000000000...0b11111000100111111111111111111111 => {
-            decode_LDRB_lit_t1(opcode)
-        }
-        0b11111000110100000000000000000000...0b11111000110111111111111111111111 => {
-            decode_LDR_imm_t3(opcode)
-        }
-        0b11111000110000000000000000000000...0b11111000110011111111111111111111 => {
-            decode_STR_imm_t3(opcode)
-        }
-        0b11111000101100000000000000000000...0b11111000101111111111111111111111 => {
-            decode_LDRH_imm_t2(opcode)
-        }
-        0b11111000101000000000000000000000...0b11111000101011111111111111111111 => {
-            decode_STRH_imm_t2(opcode)
-        }
-        0b11111000100100000000000000000000...0b11111000100111111111111111111111 => {
-            decode_LDRB_imm_t2(opcode)
-        }
-        0b11111000100100001111000000000000...0b11111000100111111111111111111111 => {
-            decode_PLD_imm_t1(opcode)
-        }
-        0b11111000100000000000000000000000...0b11111000100011111111111111111111 => {
-            decode_STRB_imm_t2(opcode)
-        }
-        0b11111000010100000000100000000000...0b11111000010111111111111111111111 => {
-            decode_LDR_imm_t4(opcode)
-        }
-        0b11111000010100000000111000000000...0b11111000010111111111111011111111 => {
-            decode_LDRT_t1(opcode)
-        }
-        0b11111000010100000000000000000000...0b11111000010111111111000000111111 => {
-            decode_LDR_reg_t2(opcode)
-        }
-        0b11111000010111010000101100000100...0b11111000010111011111101100000100 => {
-            decode_POP_W_t3(opcode)
-        }
-        0b11111000010000000000100000000000...0b11111000010011111111111111111111 => {
-            decode_STR_imm_t4(opcode)
-        }
-        0b11111000010000000000000000000000...0b11111000010011111111000000111111 => {
-            decode_STR_reg_t2(opcode)
-        }
-        0b11111000010011010000110100000100...0b11111000010011011111110100000100 => {
-            decode_PUSH_t3(opcode)
-        }
-        0b11111000001100000000100000000000...0b11111000001111111111111111111111 => {
-            decode_LDRH_imm_t3(opcode)
-        }
-        0b11111000001100000000111000000000...0b11111000001111111111111011111111 => {
-            decode_LDRHT_t1(opcode)
-        }
-        0b11111000001100000000000000000000...0b11111000001111111111000000111111 => {
-            decode_LDRH_reg_t2(opcode)
-        }
-        0b11111000001000000000100000000000...0b11111000001011111111111111111111 => {
-            decode_STRH_imm_t3(opcode)
-        }
-        0b11111000000100000000100000000000...0b11111000000111111111111111111111 => {
-            decode_LDRB_imm_t3(opcode)
-        }
-        0b11111000000100000000111000000000...0b11111000000111111111111011111111 => {
-            decode_LDRBT_t1(opcode)
-        }
-        0b11111000000100000000000000000000...0b11111000000111111111000001111111 => {
-            decode_LDRB_reg_t2(opcode)
-        }
-        0b11111000000100001111110000000000...0b11111000000111111111110011111111 => {
-            decode_PLD_imm_t2(opcode)
-        }
-        0b11111000000000000000100000000000...0b11111000000011111111111111111111 => {
-            decode_STRB_imm_t3(opcode)
-        }
-        0b11111000000000000000000000000000...0b11111000000011111111000000111111 => {
-            decode_STRB_reg_t2(opcode)
-        }
-        0b11110000000000001101000000000000...0b11110111111111111111111111111111 => {
-            decode_BL_t1(opcode)
-        }
-        0b11110000000000000000000000000000...0b11110100000111110111111111111111 => {
-            decode_AND_imm_t1(opcode)
-        }
-        0b11110000000100000000111100000000...0b11110100000111110111111111111111 => {
-            decode_TST_imm_t1(opcode)
-        }
-        0b11110111111100001010000000000000...0b11110111111111111010111111111111 => {
-            decode_UDF_t2(opcode)
-        }
-        0b11110011111011111000000000000000...0b11110011111011111000111111111111 => {
-            decode_MRS_t1(opcode)
-        }
-        0b11110011101111111000111101100000...0b11110011101111111000111101101111 => {
-            decode_ISB_t1(opcode)
-        }
-        0b11110011101111111000111101010000...0b11110011101111111000111101011111 => {
-            decode_DMB_t1(opcode)
-        }
-        0b11110011101111111000111101000000...0b11110011101111111000111101001111 => {
-            decode_DSB_t1(opcode)
-        }
-        0b11110011100000001000100000000000...0b11110011100011111000100011111111 => {
-            decode_MSR_reg_t1(opcode)
-        }
-        0b11101110000000000000000000000000...0b11101110111111111111111111101111 => {
-            decode_CDP_t1(opcode)
-        }
-        0b11101110000100000000000000010000...0b11101110111111111111111111111111 => {
-            decode_MRC_t1(opcode)
-        }
-        0b11101110000000000000000000000000...0b11101110111011111111111111101111 => {
-            decode_MCR_t1(opcode)
-        }
-        0b11101100000100000000000000000000...0b11101101111111111111111111111111 => {
-            decode_LDC_imm_t1(opcode)
-        }
-        0b11101100000111110000000000000000...0b11101101111111111111111111111111 => {
-            decode_LDC_lit_t1(opcode)
-        }
-        0b11101100000000000000000000000000...0b11101101111011111111111111111111 => {
-            decode_STC_t1(opcode)
-        }
-        0b11101100010000000000000000000000...0b11101100010011111111111111111111 => {
-            decode_MCRR_t1(opcode)
-        }
-        0b11101011110000000000000000000000...0b11101011110111110111111111111111 => {
-            decode_RSB_reg_t2(opcode)
-        }
-        0b11101011101000000000000000000000...0b11101011101111110111111111111111 => {
-            decode_SUB_reg_t2(opcode)
-        }
-        0b11101011101100000000000000000000...0b11101011101111110111111111111111 => {
-            decode_CMP_reg_t3(opcode)
-        }
-        0b11101011011000000000000000000000...0b11101011011111110111111111111111 => {
-            decode_SBC_reg_t2(opcode)
-        }
-        0b11101011010000000000000000000000...0b11101011010111110111111111111111 => {
-            decode_ADC_reg_t2(opcode)
-        }
-        0b11101011000000000000000000000000...0b11101011000111110111111111111111 => {
-            decode_ADD_reg_t3(opcode)
-        }
-        0b11101011000100000000111100000000...0b11101011000111110111111111111111 => {
-            decode_CMN_reg_t2(opcode)
-        }
-        0b11101010100000000000000000000000...0b11101010100111110111111111111111 => {
-            decode_EOR_reg_t2(opcode)
-        }
-        0b11101010100100000000111100000000...0b11101010100111110111111111111111 => {
-            decode_TEQ_reg_t1(opcode)
-        }
-        0b11101010011000000000000000000000...0b11101010011111110111111111111111 => {
-            decode_ORN_reg_t2(opcode)
-        }
-        0b11101010011011110000000000000000...0b11101010011111110111111111111111 => {
-            decode_MVN_reg_t2(opcode)
-        }
-        0b11101010010000000000000000000000...0b11101010010111110111111111111111 => {
-            decode_ORR_reg_t2(opcode)
-        }
-        0b11101010010011110000000000110000...0b11101010010111110111111111111111 => {
-            decode_ROR_imm_t1(opcode)
-        }
-        0b11101010010011110000000000100000...0b11101010010111110111111111101111 => {
-            decode_ASR_imm_t2(opcode)
-        }
-        0b11101010010011110000000000010000...0b11101010010111110111111111011111 => {
-            decode_LSR_imm_t2(opcode)
-        }
-        0b11101010010011110000000000000000...0b11101010010111110111111111001111 => {
-            decode_LSL_imm_t2(opcode)
-        }
-        0b11101010010011110000000000110000...0b11101010010111110000111100111111 => {
-            decode_RRX_t1(opcode)
-        }
-        0b11101010010011110000000000000000...0b11101010010111110000111100001111 => {
-            decode_MOV_reg_t2(opcode)
-        }
-        0b11101010001000000000000000000000...0b11101010001111110111111111111111 => {
-            decode_BIC_reg_t2(opcode)
-        }
-        0b11101010000000000000000000000000...0b11101010000111110111111111111111 => {
-            decode_AND_reg_t2(opcode)
-        }
-        0b11101010000100000000111100000000...0b11101010000111110111111111111111 => {
-            decode_TST_reg_t2(opcode)
-        }
-        0b11101000010100000000000000000000...0b11101001111111111111111111111111 => {
-            decode_LDRD_imm_t1(opcode)
-        }
-        0b11101000010111110000000000000000...0b11101001111111111111111111111111 => {
-            decode_LDRD_lit_t1(opcode)
-        }
-        0b11101000010000000000000000000000...0b11101001111011111111111111111111 => {
-            decode_STRD_imm_t1(opcode)
-        }
-        0b11101001000100000000000000000000...0b11101001001111111101111111111111 => {
-            decode_LDMDB_t1(opcode)
-        }
-        0b11101001000000000000000000000000...0b11101001001011110101111111111111 => {
-            decode_STMDB_t1(opcode)
-        }
-        0b11101001001011010000000000000000...0b11101001001011010101111111111111 => {
-            decode_PUSH_t2(opcode)
-        }
-        0b11101000110100000000111101011111...0b11101000110111111111111101011111 => {
-            decode_LDREXH_t1(opcode)
-        }
-        0b11101000110100000000111101001111...0b11101000110111111111111101001111 => {
-            decode_LDREXB_t1(opcode)
-        }
-        0b11101000110100001111000000010000...0b11101000110111111111000000011111 => {
-            decode_TBH_t1(opcode)
-        }
-        0b11101000110100001111000000000000...0b11101000110111111111000000001111 => {
-            decode_TBB_t1(opcode)
-        }
-        0b11101000110000000000111101010000...0b11101000110011111111111101011111 => {
-            decode_STREXH_t1(opcode)
-        }
-        0b11101000110000000000111101000000...0b11101000110011111111111101001111 => {
-            decode_STREXB_t1(opcode)
-        }
-        0b11101000100100000000000000000000...0b11101000101111111101111111111111 => {
-            decode_LDM_W_t2(opcode)
-        }
-        0b11101000100000000000000000000000...0b11101000101011110101111111111111 => {
-            decode_STMX_W_t2(opcode)
-        }
-        0b11101000101111010000000000000000...0b11101000101111011101111111111111 => {
-            decode_POP_W_t2(opcode)
-        }
-        0b11101000010100000000111100000000...0b11101000010111111111111111111111 => {
-            decode_LDREX_t1(opcode)
-        }
-        0b11101000010000000000000000000000...0b11101000010011111111111111111111 => {
-            decode_STREX_t1(opcode)
-        }
-    }*/
 }
 
 #[cfg(test)]
