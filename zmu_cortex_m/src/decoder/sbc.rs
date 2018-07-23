@@ -23,6 +23,6 @@ pub fn decode_SBC_reg_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_SBC_imm_t1(opcode: u32) -> Instruction {
+pub fn decode_SBC_imm_t1(_opcode: u32) -> Instruction {
     unimplemented!()
 }

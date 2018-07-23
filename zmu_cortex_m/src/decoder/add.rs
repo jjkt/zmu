@@ -1,5 +1,8 @@
-use core::bits::*;
+use core::bits::{
+    bit_7, bits_0_3, bits_0_7, bits_0_8, bits_3_6, bits_3_7, bits_6_9, bits_8_11, Bits,
+};
 use core::instruction::Instruction;
+use core::operation::thumb_expand_imm;
 use core::register::Reg;
 use core::ThumbCode;
 
@@ -82,12 +85,19 @@ pub fn decode_ADD_SP_imm_t2(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
-    unimplemented!()
+    let rd: u8 = opcode.get_bits(8, 11);
+    let rn: u8 = opcode.get_bits(16, 19);
+    let s: u8 = opcode.get_bits(20, 20);
+    Instruction::ADD_imm {
+        rd: Reg::from(rd),
+        rn: Reg::from(rn),
+        imm32: thumb_expand_imm(),
+        setflags: s == 1,
+    }
 }
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_ADD_imm_t4(opcode: u32) -> Instruction {
+pub fn decode_ADD_imm_t4(_opcode: u32) -> Instruction {
     unimplemented!()
 }
-

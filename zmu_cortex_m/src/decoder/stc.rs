@@ -1,6 +1,4 @@
-use core::bits::*;
 use core::instruction::Instruction;
-use core::register::Reg;
 use core::ThumbCode;
 
 #[allow(non_snake_case)]

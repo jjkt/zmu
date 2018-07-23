@@ -7,8 +7,6 @@ use core::instruction::CpsEffect;
 #[cfg(test)]
 use core::register::SpecialReg;
 
-use core::register::Reg;
-
 #[cfg(test)]
 use core::condition::Condition;
 
@@ -305,29 +303,7 @@ pub fn decode_16(opcode: u16) -> Instruction {
     }
 }
 
-fn decode_group2(opcode: u32) -> Instruction {
-    let op2: u8 = opcode.get_bits(12, 14);
-    let op1: u8 = opcode.get_bits(20, 26);
 
-    match op2 {
-        0x7 | 0x5 => decode_BL_t1(opcode),
-        0 => match op1 {
-            0b011_1000 | 0b011_1001 => decode_MSR_reg_t1(opcode),
-            //0b011_1011 => decode_control(t1, t2),
-            0b011_1111 | 0b011_1110 => decode_MRS_t1(opcode),
-            _ => Instruction::UDF {
-                imm32: 0,
-                opcode: ThumbCode::from(opcode),
-            },
-        },
-        _ => Instruction::UDF {
-            imm32: 0,
-            opcode: ThumbCode::from(opcode),
-        },
-    }
-}
-
-// A5.3 thumb32 encodings
 pub fn decode_32(opcode: u32) -> Instruction {
     if (opcode & 0xffffffff) == 0xf3af8000 {
         decode_NOP_t2(opcode)
@@ -654,6 +630,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
 
 #[cfg(test)]
 mod tests {
+
+    use core::register::Reg;
 
     use super::*;
 

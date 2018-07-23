@@ -1,8 +1,8 @@
+use bit_field::BitField;
+use core::bits::bit_31;
 use core::condition::Condition;
 use core::register::Apsr;
 use core::PSR;
-use bit_field::BitField;
-use core::bits::bit_31;
 
 pub fn sign_extend(word: u32, topbit: u8, size: u8) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
@@ -28,62 +28,6 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     let overflow = (result as i32) != signed_sum;
 
     (result, carry_out, overflow)
-}
-
-#[test]
-fn test_add_with_carry() {
-    let (result, carry, overflow) = add_with_carry(0x410, 4, false);
-    assert_eq!(result, 0x414);
-    assert_eq!(carry, false);
-    assert_eq!(overflow, false);
-}
-
-#[test]
-fn test_add_with_carry_basic() {
-    let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, false);
-    assert_eq!(result, 0xffff_ffff);
-    assert_eq!(carry, false);
-    assert_eq!(overflow, false);
-}
-
-#[test]
-fn test_add_with_carry_basic2() {
-    let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, true);
-    assert_eq!(result, 0);
-    assert_eq!(carry, true);
-    assert_eq!(overflow, false);
-}
-
-#[test]
-fn test_add_with_carry_basic3() {
-    let (result, carry, overflow) = add_with_carry(0x0, 0, true);
-    assert_eq!(result, 1);
-    assert_eq!(carry, false);
-    assert_eq!(overflow, false);
-}
-
-#[test]
-fn test_add_with_carry_basic4() {
-    let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0, true);
-    assert_eq!(result, 0);
-    assert_eq!(carry, true);
-    assert_eq!(overflow, false);
-}
-
-#[test]
-fn test_add_with_carry_basic5() {
-    let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, true);
-    assert_eq!(result, 0xffff_ffff);
-    assert_eq!(carry, true);
-    assert_eq!(overflow, false);
-}
-
-#[test]
-fn test_add_with_carry_basic6() {
-    let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, false);
-    assert_eq!(result, 0xffff_fffe);
-    assert_eq!(carry, true);
-    assert_eq!(overflow, false);
 }
 
 //
@@ -228,37 +172,104 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32
     }
 }
 
-#[test]
-fn test_shift_c() {
-    {
-        let (result, carry) = shift_c(0xFFFFFFF8, SRType::ASR, 8, false);
-        assert!(result == 0xFFFFFFFF);
-        assert!(carry == true);
-    }
-    {
-        let (result, carry) = shift_c(0xef, SRType::ASR, 9, false);
-        assert!(result == 0);
-        assert!(carry == false);
-    }
-    {
-        let (result, carry) = shift_c(0xFFFFFFC0, SRType::ASR, 1, false);
-        assert!(result == 0xFFFFFFE0);
-        assert!(carry == false);
+pub fn thumb_expand_imm() -> u32 {
+    0
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_shift_c() {
+        {
+            let (result, carry) = shift_c(0xFFFFFFF8, SRType::ASR, 8, false);
+            assert!(result == 0xFFFFFFFF);
+            assert!(carry == true);
+        }
+        {
+            let (result, carry) = shift_c(0xef, SRType::ASR, 9, false);
+            assert!(result == 0);
+            assert!(carry == false);
+        }
+        {
+            let (result, carry) = shift_c(0xFFFFFFC0, SRType::ASR, 1, false);
+            assert!(result == 0xFFFFFFE0);
+            assert!(carry == false);
+        }
+
+        {
+            let (result, carry) = shift_c(0, SRType::ROR, 0, false);
+            assert!(result == 0x0);
+            assert!(carry == false);
+        }
+        {
+            let (result, carry) = shift_c(2, SRType::ROR, 1, false);
+            assert!(result == 0x1);
+            assert!(carry == false);
+        }
+        {
+            let (result, carry) = shift_c(1, SRType::ROR, 1, false);
+            assert!(result == 0x8000_0000);
+            assert!(carry == false);
+        }
     }
 
-    {
-        let (result, carry) = shift_c(0, SRType::ROR, 0, false);
-        assert!(result == 0x0);
-        assert!(carry == false);
+    #[test]
+    fn test_add_with_carry() {
+        let (result, carry, overflow) = add_with_carry(0x410, 4, false);
+        assert_eq!(result, 0x414);
+        assert_eq!(carry, false);
+        assert_eq!(overflow, false);
     }
-    {
-        let (result, carry) = shift_c(2, SRType::ROR, 1, false);
-        assert!(result == 0x1);
-        assert!(carry == false);
+
+    #[test]
+    fn test_add_with_carry_basic() {
+        let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, false);
+        assert_eq!(result, 0xffff_ffff);
+        assert_eq!(carry, false);
+        assert_eq!(overflow, false);
     }
-    {
-        let (result, carry) = shift_c(1, SRType::ROR, 1, false);
-        assert!(result == 0x8000_0000);
-        assert!(carry == false);
+
+    #[test]
+    fn test_add_with_carry_basic2() {
+        let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, true);
+        assert_eq!(result, 0);
+        assert_eq!(carry, true);
+        assert_eq!(overflow, false);
     }
+
+    #[test]
+    fn test_add_with_carry_basic3() {
+        let (result, carry, overflow) = add_with_carry(0x0, 0, true);
+        assert_eq!(result, 1);
+        assert_eq!(carry, false);
+        assert_eq!(overflow, false);
+    }
+
+    #[test]
+    fn test_add_with_carry_basic4() {
+        let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0, true);
+        assert_eq!(result, 0);
+        assert_eq!(carry, true);
+        assert_eq!(overflow, false);
+    }
+
+    #[test]
+    fn test_add_with_carry_basic5() {
+        let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, true);
+        assert_eq!(result, 0xffff_ffff);
+        assert_eq!(carry, true);
+        assert_eq!(overflow, false);
+    }
+
+    #[test]
+    fn test_add_with_carry_basic6() {
+        let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, false);
+        assert_eq!(result, 0xffff_fffe);
+        assert_eq!(carry, true);
+        assert_eq!(overflow, false);
+    }
+
 }

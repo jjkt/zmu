@@ -1,4 +1,3 @@
-use core::bits::*;
 use core::instruction::Instruction;
 use core::ThumbCode;
 

@@ -53,13 +53,13 @@ pub fn decode_SUB_reg_t2(_opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
+pub fn decode_SUB_imm_t3(_opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_SUB_imm_t4(opcode: u32) -> Instruction {
+pub fn decode_SUB_imm_t4(_opcode: u32) -> Instruction {
     unimplemented!()
 }

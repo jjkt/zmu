@@ -226,6 +226,30 @@ impl From<u8> for Reg {
     }
 }
 
+impl From<u32> for Reg {
+    fn from(value: u32) -> Self {
+        match value & 0xf {
+            0 => Reg::R0,
+            1 => Reg::R1,
+            2 => Reg::R2,
+            3 => Reg::R3,
+            4 => Reg::R4,
+            5 => Reg::R5,
+            6 => Reg::R6,
+            7 => Reg::R7,
+            8 => Reg::R8,
+            9 => Reg::R9,
+            10 => Reg::R10,
+            11 => Reg::R11,
+            12 => Reg::R12,
+            13 => Reg::SP,
+            14 => Reg::LR,
+            15 => Reg::PC,
+            _ => Reg::R0,
+        }
+    }
+}
+
 impl From<Reg> for u8 {
     fn from(value: Reg) -> Self {
         match value {

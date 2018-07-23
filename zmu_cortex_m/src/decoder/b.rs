@@ -37,12 +37,12 @@ pub fn decode_B_t2(opcode: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_B_t3(opcode: u32) -> Instruction {
+pub fn decode_B_t3(_opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_B_t4(opcode: u32) -> Instruction {
+pub fn decode_B_t4(_opcode: u32) -> Instruction {
     unimplemented!()
 }

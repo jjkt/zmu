@@ -12,12 +12,12 @@ pub fn decode_ADR_t1(command: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_ADR_t2(opcode: u32) -> Instruction {
+pub fn decode_ADR_t2(_opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_ADR_t3(opcode: u32) -> Instruction {
+pub fn decode_ADR_t3(_opcode: u32) -> Instruction {
     unimplemented!()
 }
