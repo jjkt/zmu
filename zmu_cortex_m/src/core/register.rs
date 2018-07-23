@@ -110,6 +110,7 @@ impl Ipsr for PSR {
     }
 }
 
+/// TODO: remove Copy to improve performance
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
 pub enum Reg {

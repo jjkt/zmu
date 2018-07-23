@@ -149,6 +149,24 @@ impl Bits<u16> for u16 {
     }
 }
 
+impl Bits<u16> for u32 {
+    #[inline]
+    fn get_bits(&self, low: u8, high: u8) -> u16 {
+        assert!(high >= low);
+        let mask: u32 = ((1_u64 << (high + 1)) - 1) as u32;
+        ((*self & mask) >> low) as u16
+    }
+}
+
+impl Bits<u8> for u8 {
+    #[inline]
+    fn get_bits(&self, low: u8, high: u8) -> u8 {
+        assert!(high >= low);
+        let mask: u8 = ((1_u16 << (high + 1)) - 1) as u8;
+        ((*self & mask) >> low) as u8
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -1,8 +1,7 @@
 use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
-use core::instruction::{CpsEffect, Instruction};
-use core::operation::SRType;
+use core::instruction::{SRType, CpsEffect, Instruction};
 use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
@@ -505,6 +504,11 @@ where
             core.cycle_count += 1;
             None
         }
+        Instruction::MVN_imm {
+            ref rd,
+            ref imm32,
+            ref setflags,
+        } => unimplemented!(),
 
         Instruction::B { ref cond, imm32 } => if condition_passed(cond, &core.psr) {
             let pc = core.get_r(&Reg::PC);
@@ -937,6 +941,8 @@ where
             ref rd,
             ref rm,
             ref setflags,
+            ref shift_t,
+            ref shift_n
         } => {
             let r_n = core.get_r(rn);
             let r_m = core.get_r(rm);

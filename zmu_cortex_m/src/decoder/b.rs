@@ -1,6 +1,8 @@
 use core::bits::*;
 use core::condition::Condition;
 use core::instruction::Instruction;
+use core::operation::build_imm_10_11;
+use core::operation::build_imm_6_11;
 use core::operation::sign_extend;
 use core::ThumbCode;
 
@@ -37,12 +39,30 @@ pub fn decode_B_t2(opcode: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_B_t3(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_B_t3(opcode: u32) -> Instruction {
+    let cond: u16 = opcode.get_bits(22, 25);
+
+    let imm = build_imm_6_11(opcode);
+
+    match Condition::from_u16(cond) {
+        Some(c) => Instruction::B {
+            cond: c,
+            imm32: imm as i32,
+        },
+        None => Instruction::B {
+            cond: Condition::AL,
+            imm32: imm as i32,
+        },
+    }
 }
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_B_t4(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_B_t4(opcode: u32) -> Instruction {
+    let imm = build_imm_10_11(opcode);
+
+    Instruction::B {
+        cond: Condition::AL,
+        imm32: imm as i32,
+    }
 }

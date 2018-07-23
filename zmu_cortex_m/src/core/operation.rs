@@ -3,6 +3,7 @@ use core::bits::bit_31;
 use core::condition::Condition;
 use core::register::Apsr;
 use core::PSR;
+use core::instruction::SRType;
 
 pub fn sign_extend(word: u32, topbit: u8, size: u8) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
@@ -60,14 +61,6 @@ pub fn condition_passed(condition: &Condition, psr: &PSR) -> bool {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum SRType {
-    LSL,
-    LSR,
-    ASR,
-    RRX,
-    ROR,
-}
 
 // Decode immedate shift type
 // input: bits[2], immedate
@@ -174,6 +167,56 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32
 
 pub fn thumb_expand_imm() -> u32 {
     0
+}
+
+pub fn thumb_expand_imm_c() -> u32 {
+    0
+}
+
+pub fn zero_extend() -> u32 {
+    0
+}
+
+pub fn build_imm_10_11(opcode: u32) -> i32 {
+    let t1 = opcode >> 16;
+    let t2 = opcode & 0xffff;
+
+    let s = ((t1 >> 10) & 1) as u32;
+    let imm10 = (t1 & 0x3ff) as u32;
+
+    let j1 = ((t2 >> 13) & 1) as u32;
+    let j2 = ((t2 >> 11) & 1) as u32;
+    let imm11 = (t2 & 0x7ff) as u32;
+
+    let i1 = ((j1 ^ s) ^ 1) as u32;
+    let i2 = ((j2 ^ s) ^ 1) as u32;
+
+    sign_extend(
+        (imm11 << 1) + (imm10 << 12) + (i2 << 22) + (i1 << 23) + (s << 24),
+        24,
+        32,
+    ) as i32
+}
+
+pub fn build_imm_6_11(opcode: u32) -> i32 {
+    let t1 = opcode >> 16;
+    let t2 = opcode & 0xffff;
+
+    let s = ((t1 >> 10) & 1) as u32;
+    let imm6 = (t1 & 0x3f) as u32;
+
+    let j1 = ((t2 >> 13) & 1) as u32;
+    let j2 = ((t2 >> 11) & 1) as u32;
+    let imm11 = (t2 & 0x7ff) as u32;
+
+    let i1 = ((j1 ^ s) ^ 1) as u32;
+    let i2 = ((j2 ^ s) ^ 1) as u32;
+
+    sign_extend(
+        (imm11 << 1) + (imm6 << 12) + (i2 << 17) + (i1 << 18) + (s << 19),
+        19,
+        32,
+    ) as i32
 }
 
 #[cfg(test)]

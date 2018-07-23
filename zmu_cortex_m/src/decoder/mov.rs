@@ -1,5 +1,6 @@
 use core::bits::*;
 use core::instruction::Instruction;
+use core::operation::zero_extend;
 use core::register::Reg;
 use core::ThumbCode;
 
@@ -60,6 +61,16 @@ pub fn decode_MOV_imm_t2(_opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_MOV_imm_t3(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_MOV_imm_t3(opcode: u32) -> Instruction {
+    let rd: u8 = opcode.get_bits(8, 11);
+    let _imm4: u8 = opcode.get_bits(16, 19);
+    let _imm3: u8 = opcode.get_bits(12, 14);
+    let _imm8: u8 = opcode.get_bits(0, 7);
+    let _i: u8 = opcode.get_bits(26, 26);
+
+    Instruction::MOV_imm {
+        rd: Reg::from(rd),
+        imm32: zero_extend(/*{imm4,4}, {i, 1}, {imm3, 3}, imm8,8, 32 */),
+        setflags: false,
+    }
 }

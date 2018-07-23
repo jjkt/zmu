@@ -4,6 +4,15 @@ use core::register::SpecialReg;
 use core::ThumbCode;
 use enum_set::EnumSet;
 
+#[derive(Debug, PartialEq)]
+pub enum SRType {
+    LSL,
+    LSR,
+    ASR,
+    RRX,
+    ROR,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug)]
 pub enum Instruction {
@@ -232,6 +241,11 @@ pub enum Instruction {
         rm: Reg,
         setflags: bool,
     },
+    MVN_imm {
+        rd: Reg,
+        imm32: u32,
+        setflags: bool,
+    },
     NOP,
     ORR {
         rd: Reg,
@@ -321,6 +335,8 @@ pub enum Instruction {
         rn: Reg,
         rd: Reg,
         setflags: bool,
+        shift_t: SRType,
+        shift_n: u8,
     },
     SVC {
         imm32: u32,
@@ -637,6 +653,17 @@ impl fmt::Display for Instruction {
             Instruction::MVN_reg { rd, rm, setflags } => {
                 write!(f, "mvn{} {}, {}", if setflags { "s" } else { "" }, rd, rm)
             }
+            Instruction::MVN_imm {
+                rd,
+                imm32,
+                setflags,
+            } => write!(
+                f,
+                "mvn{} {}, #{}",
+                if setflags { "s" } else { "" },
+                rd,
+                imm32
+            ),
             Instruction::NOP => write!(f, "nop"),
             Instruction::ORR {
                 rd,
@@ -751,6 +778,8 @@ impl fmt::Display for Instruction {
                 rn,
                 rd,
                 setflags,
+                ref shift_t,
+                shift_n,
             } => write!(
                 f,
                 "sub{} {}, {}, {}",

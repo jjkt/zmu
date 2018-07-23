@@ -1,5 +1,7 @@
 use core::bits::*;
 use core::instruction::Instruction;
+use core::operation::thumb_expand_imm_c;
+use core::register::Reg;
 use core::ThumbCode;
 
 #[allow(non_snake_case)]
@@ -22,7 +24,11 @@ pub fn decode_MVN_reg_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_MVN_imm_t1(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_MVN_imm_t1(opcode: u32) -> Instruction {
+    let rd: u8 = opcode.get_bits(8, 11);
+    Instruction::MVN_imm {
+        rd: Reg::from(rd),
+        imm32: thumb_expand_imm_c(),
+        setflags: true,
+    }
 }
-
