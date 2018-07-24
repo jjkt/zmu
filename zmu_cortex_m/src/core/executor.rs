@@ -53,7 +53,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rm),
                 SRType::ASR,
-                u32::from(shift_n),
+                usize::from(shift_n),
                 core.psr.get_c(),
             );
 
@@ -78,7 +78,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rn),
                 SRType::ASR,
-                u32::from(shift_n),
+                shift_n as usize,
                 core.psr.get_c(),
             );
             core.set_r(rd, result);
@@ -219,7 +219,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rm),
                 SRType::LSL,
-                u32::from(shift_n),
+                shift_n as usize,
                 core.psr.get_c(),
             );
             core.set_r(rd, result);
@@ -245,7 +245,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rn),
                 SRType::LSL,
-                u32::from(shift_n),
+                shift_n as usize,
                 core.psr.get_c(),
             );
             core.set_r(rd, result);
@@ -271,7 +271,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rm),
                 SRType::LSR,
-                u32::from(shift_n),
+                usize::from(shift_n),
                 core.psr.get_c(),
             );
             core.set_r(rd, result);
@@ -297,7 +297,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rn),
                 SRType::LSR,
-                u32::from(shift_n),
+                shift_n as usize,
                 core.psr.get_c(),
             );
             core.set_r(rd, result);
@@ -1057,7 +1057,7 @@ where
             let (result, carry) = shift_c(
                 core.get_r(rn),
                 SRType::ROR,
-                u32::from(shift_n),
+                shift_n as usize,
                 core.psr.get_c(),
             );
             core.set_r(rd, result);

@@ -1,11 +1,11 @@
 use bit_field::BitField;
 use core::bits::bit_31;
 use core::condition::Condition;
+use core::instruction::SRType;
 use core::register::Apsr;
 use core::PSR;
-use core::instruction::SRType;
 
-pub fn sign_extend(word: u32, topbit: u8, size: u8) -> u64 {
+pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
         return u64::from(word) | u64::from(((1_u64 << (size - topbit)) - 1) << topbit);
     }
@@ -61,7 +61,6 @@ pub fn condition_passed(condition: &Condition, psr: &PSR) -> bool {
     }
 }
 
-
 // Decode immedate shift type
 // input: bits[2], immedate
 // output: (shitft type, immedate to use)
@@ -79,14 +78,14 @@ pub fn decode_imm_shift(typebits: u8, imm5: u8) -> (SRType, u8) {
     }
 }
 
-fn lsl_c(value: u32, shift: u32) -> (u32, bool) {
+fn lsl_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
     let extended = u64::from(value) << shift;
 
     (extended.get_bits(0..32) as u32, extended.get_bit(32))
 }
 
-fn lsl(value: u32, shift: u32) -> u32 {
+fn lsl(value: u32, shift: usize) -> u32 {
     assert!(shift > 0);
 
     if shift == 0 {
@@ -97,7 +96,7 @@ fn lsl(value: u32, shift: u32) -> u32 {
     }
 }
 
-fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
+fn lsr_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
 
     let extended = u64::from(value);
@@ -108,7 +107,7 @@ fn lsr_c(value: u32, shift: u8) -> (u32, bool) {
     )
 }
 
-fn lsr(value: u32, shift: u8) -> u32 {
+fn lsr(value: u32, shift: usize) -> u32 {
     assert!(shift > 0);
 
     if shift == 0 {
@@ -119,7 +118,7 @@ fn lsr(value: u32, shift: u8) -> u32 {
     }
 }
 
-fn asr_c(value: u32, shift: u8) -> (u32, bool) {
+fn asr_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
 
     let extended = sign_extend(value, 31, 32 + shift);
@@ -130,10 +129,10 @@ fn asr_c(value: u32, shift: u8) -> (u32, bool) {
     )
 }
 
-fn ror_c(value: u32, shift: u8) -> (u32, bool) {
+fn ror_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
     let m = shift % 32;
-    let result = lsr(value, m) | lsl(value, 32 - m as u32);
+    let result = lsr(value, m) | lsl(value, 32 - m);
     let carry_out = bit_31(result) == 1;
     (result, carry_out)
 }
@@ -150,16 +149,16 @@ fn ror_c(value: u32, shift: u8) -> (u32, bool) {
 /// Returns:
 /// - shifted value
 /// - carry out
-pub fn shift_c(value: u32, shift_t: SRType, amount: u32, carry_in: bool) -> (u32, bool) {
+pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u32, bool) {
     assert!(!((shift_t == SRType::RRX) && (amount != 1)));
     if amount == 0 {
         (value, carry_in)
     } else {
         match shift_t {
             SRType::LSL => lsl_c(value, amount),
-            SRType::LSR => lsr_c(value, amount as u8),
-            SRType::ASR => asr_c(value, amount as u8),
-            SRType::ROR => ror_c(value, amount as u8),
+            SRType::LSR => lsr_c(value, amount),
+            SRType::ASR => asr_c(value, amount),
+            SRType::ROR => ror_c(value, amount),
             _ => panic!("not implemented"),
         }
     }
