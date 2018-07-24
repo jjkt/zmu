@@ -120,6 +120,7 @@ pub fn bits_6_11(n: u16) -> u8 {
 
 pub trait Bits<O> {
     fn get_bits(&self, low: u8, high: u8) -> O;
+
 }
 
 impl Bits<u32> for u32 {
@@ -166,7 +167,6 @@ impl Bits<u8> for u8 {
         ((*self & mask) >> low) as u8
     }
 }
-
 
 #[cfg(test)]
 mod tests {

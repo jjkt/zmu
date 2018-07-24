@@ -253,6 +253,12 @@ pub enum Instruction {
         rm: Reg,
         setflags: bool,
     },
+    ORR_imm {
+        rd: Reg,
+        rn: Reg,
+        imm32: u32, // i:imm3:imm8, carry not accounted for
+        setflags: bool,
+    },
     POP {
         registers: EnumSet<Reg>,
     },
@@ -677,6 +683,19 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm
+            ),
+            Instruction::ORR_imm {
+                rd,
+                rn,
+                imm32,
+                setflags,
+            } => write!(
+                f,
+                "orr{} {}, {}, #{}",
+                if setflags { "s" } else { "" },
+                rd,
+                rn,
+                imm32
             ),
             Instruction::POP { registers } => write!(f, "pop {:?}", registers),
             Instruction::PUSH { registers } => write!(f, "push {:?}", registers),

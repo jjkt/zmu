@@ -387,6 +387,14 @@ where
             core.cycle_count += 1;
             None
         }
+        Instruction::ORR_imm {
+            ref rd,
+            ref rn,
+            ref imm32,
+            ref setflags,
+        } => {
+            unimplemented!()
+        }
 
         Instruction::EOR_reg {
             ref rd,
