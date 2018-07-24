@@ -365,7 +365,7 @@ where
             None
         }
 
-        Instruction::ORR {
+        Instruction::ORR_reg {
             ref rd,
             ref rn,
             ref rm,

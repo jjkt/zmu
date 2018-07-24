@@ -1264,7 +1264,7 @@ mod tests {
     fn test_decode_orr() {
         // ORRS R3, R3, R1
         match decode_16(0x430b) {
-            Instruction::ORR {
+            Instruction::ORR_reg {
                 rd,
                 rn,
                 rm,

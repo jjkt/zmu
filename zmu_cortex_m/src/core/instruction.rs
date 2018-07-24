@@ -247,7 +247,7 @@ pub enum Instruction {
         setflags: bool,
     },
     NOP,
-    ORR {
+    ORR_reg {
         rd: Reg,
         rn: Reg,
         rm: Reg,
@@ -665,7 +665,7 @@ impl fmt::Display for Instruction {
                 imm32
             ),
             Instruction::NOP => write!(f, "nop"),
-            Instruction::ORR {
+            Instruction::ORR_reg {
                 rd,
                 rn,
                 rm,
