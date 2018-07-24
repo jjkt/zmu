@@ -39,6 +39,9 @@ pub fn decode_CMP_reg_t3(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_CMP_imm_t2(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }

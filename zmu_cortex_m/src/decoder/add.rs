@@ -98,6 +98,9 @@ pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_ADD_imm_t4(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_ADD_imm_t4(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
