@@ -34,3 +34,4 @@
 Exe/
 Obj/
 tests/
+zmu_cortex_m/Cargo.lock
