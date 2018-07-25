@@ -120,6 +120,20 @@ where
             core.cycle_count += 1;
             None
         }
+        Instruction::CBZ {
+            ref rn,
+            ref nonzero,
+            ref imm32,
+        } => {
+            if nonzero ^ (core.get_r(rn) == 0) {
+                let pc = core.get_r(&Reg::PC);
+                core.branch_write_pc(pc + imm32);
+            } else {
+                core.add_pc(2);
+            }
+            core.cycle_count += 1;
+            None
+        }
         Instruction::DMB => {
             core.add_pc(2);
             core.cycle_count += 4;

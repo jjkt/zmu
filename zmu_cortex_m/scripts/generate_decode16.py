@@ -1,108 +1,109 @@
 """ Module for autogenerating ARMv6-m decoder trees"""
 
+
 INSTRUCTIONS = {
-    '00000nnnnnmmmddd': 'MOV_reg_t2_LSL_imm_t1',
-    '00001iiiiimmmddd': 'LSR_imm_t1',
-    '00010iiiiimmmddd': 'ASR_imm_t1',
-    '0001100mmmnnnddd': 'ADD_reg_t1',
-    '0001101mmmnnnddd': 'SUB_reg_t1',
-    '0001110iiinnnddd': 'ADD_imm_t1',
-    '0001111iiinnnddd': 'SUB_imm_t1',
-    '00100dddiiiiiiii': 'MOV_imm_t1',
-    '00101nnniiiiiiii': 'CMP_imm_t1',
-    '00110dddiiiiiiii': 'ADD_imm_t2',
-    '00111dddiiiiiiii': 'SUB_imm_t2',
-    '0100000000mmmddd': 'AND_reg_t1',
-    '0100000001mmmddd': 'EOR_reg_t1',
-    '0100000010mmmddd': 'LSL_reg_t1',
-    '0100000011mmmddd': 'LSR_reg_t1',
-    '0100000100mmmddd': 'ASR_reg_t1',
-    '0100000101mmmddd': 'ADC_reg_t1',
-    '0100000110mmmddd': 'SBC_reg_t1',
-    '0100000111mmmddd': 'ROR_reg_t1',
-    '0100001000mmmnnn': 'TST_reg_t1',
-    '0100001001nnnddd': 'RSB_imm_t1',
-    '0100001010mmmnnn': 'CMP_reg_t1',
-    '0100001011mmmnnn': 'CMN_reg_t1',
-    '0100001100mmmddd': 'ORR_reg_t1',
-    '0100001101nnnddd': 'MUL_t1',
-    '0100001110mmmddd': 'BIC_reg_t1',
-    '0100001111mmmddd': 'MVN_reg_t1',
-    '01000100dmmmmddd': 'ADD_reg_t2_ADD_SP_reg',
-    '01000101Nmmmmnnn': 'CMP_reg_t2',
-    '01000110Dmmmmddd': 'MOV_reg_t1',
-    '010001110mmmm000': 'BX_t1',
-    '010001111mmmm000': 'BLX_t1',
-    '01001tttiiiiiiii': 'LDR_lit_t1',
-    '0101000mmmnnnttt': 'STR_reg_t1',
-    '0101001mmmnnnttt': 'STRH_reg_t1',
-    '0101010mmmnnnttt': 'STRB_reg_t1',
-    '0101011mmmnnnttt': 'LDRSB_reg_t1',
-    '0101100mmmnnnttt': 'LDR_reg_t1',
-    '0101101mmmnnnttt': 'LDRH_reg_t1',
-    '0101110mmmnnnttt': 'LDRB_reg_t1',
-    '0101111mmmnnnttt': 'LDRSH_reg_t1',
-    '01100iiiiinnnttt': 'STR_imm_t1',
-    '01101iiiiinnnttt': 'LDR_imm_t1',
-    '01110iiiiinnnttt': 'STRB_imm_t1',
-    '01111iiiiinnnttt': 'LDRB_imm_t1',
-    '10000iiiiinnnttt': 'STRH_imm_t1',
-    '10001iiiiinnnttt': 'LDRH_imm_t1',
-    '10010tttiiiiiiii': 'STR_imm_t2',
-    '10011tttiiiiiiii': 'LDR_imm_t2',
-    '10100dddiiiiiiii': 'ADR_t1',
-    '10101dddiiiiiiii': 'ADD_SP_imm_t1',
-    '101100000iiiiiii': 'ADD_SP_imm_t2',
-    '101100001iiiiiii': 'SUB_SP_imm_t1',
-    '1011001000mmmddd': 'SXTH_t1',
-    '1011001001mmmddd': 'SXTB_t1',
-    '1011001010mmmddd': 'UXTH_t1',
-    '1011001011mmmddd': 'UXTB_t1',
-    '1011010mrrrrrrrr': 'PUSH_t1',
-    '10110110011i0010': 'CPS_t1',
-    '1011101000mmmddd': 'REV_t1',
-    '1011101001mmmddd': 'REV16_t1',
-    '1011101011mmmddd': 'REVSH_t1',
-    '1011110prrrrrrrr': 'POP_reg_t1',
-    '10111110iiiiiiii': 'BKPT_t1',
+
+    '00000...........': 'MOV_reg_t2_LSL_imm_t1',
+    '00001...........': 'LSR_imm_t1',
+    '00010...........': 'ASR_imm_t1',
+    '0001100.........': 'ADD_reg_t1',
+    '0001101.........': 'SUB_reg_t1',
+    '0001110.........': 'ADD_imm_t1',
+    '0001111.........': 'SUB_imm_t1',
+    '00100...........': 'MOV_imm_t1',
+    '00101...........': 'CMP_imm_t1',
+    '00110...........': 'ADD_imm_t2',
+    '00111...........': 'SUB_imm_t2',
+    '0100000000......': 'AND_reg_t1',
+    '0100000001......': 'EOR_reg_t1',
+    '0100000010......': 'LSL_reg_t1',
+    '0100000011......': 'LSR_reg_t1',
+    '0100000100......': 'ASR_reg_t1',
+    '0100000101......': 'ADC_reg_t1',
+    '0100000110......': 'SBC_reg_t1',
+    '0100000111......': 'ROR_reg_t1',
+    '0100001000......': 'TST_reg_t1',
+    '0100001001......': 'RSB_imm_t1',
+    '0100001010......': 'CMP_reg_t1',
+    '0100001011......': 'CMN_reg_t1',
+    '0100001100......': 'ORR_reg_t1',
+    '0100001101......': 'MUL_t1',
+    '0100001110......': 'BIC_reg_t1',
+    '0100001111......': 'MVN_reg_t1',
+    '01000100........': 'ADD_reg_t2_ADD_SP_reg',
+    '01000101........': 'CMP_reg_t2',
+    '01000110........': 'MOV_reg_t1',
+    '010001110....000': 'BX_t1',
+    '010001111....000': 'BLX_t1',
+    '01001...........': 'LDR_lit_t1',
+    '0101000.........': 'STR_reg_t1',
+    '0101001.........': 'STRH_reg_t1',
+    '0101010.........': 'STRB_reg_t1',
+    '0101011.........': 'LDRSB_reg_t1',
+    '0101100.........': 'LDR_reg_t1',
+    '0101101.........': 'LDRH_reg_t1',
+    '0101110.........': 'LDRB_reg_t1',
+    '0101111.........': 'LDRSH_reg_t1',
+    '01100...........': 'STR_imm_t1',
+    '01101...........': 'LDR_imm_t1',
+    '01110...........': 'STRB_imm_t1',
+    '01111...........': 'LDRB_imm_t1',
+    '10000...........': 'STRH_imm_t1',
+    '10001...........': 'LDRH_imm_t1',
+    '10010...........': 'STR_imm_t2',
+    '10011...........': 'LDR_imm_t2',
+    '10100...........': 'ADR_t1',
+    '10101...........': 'ADD_SP_imm_t1',
+    '101100000.......': 'ADD_SP_imm_t2',
+    '101100001.......': 'SUB_SP_imm_t1',
+    '1011001000......': 'SXTH_t1',
+    '1011001001......': 'SXTB_t1',
+    '1011001010......': 'UXTH_t1',
+    '1011001011......': 'UXTB_t1',
+    '1011010.........': 'PUSH_t1',
+    '10110110011.0010': 'CPS_t1',
+    '1011.0.1........': 'CBZ_t1',
+    '1011101000......': 'REV_t1',
+    '1011101001......': 'REV16_t1',
+    '1011101011......': 'REVSH_t1',
+    '1011110.........': 'POP_reg_t1',
+    '10111110........': 'BKPT_t1',
     '1011111100000000': 'NOP_t1',
     '1011111100010000': 'YIELD_t1',
     '1011111100100000': 'WFE_t1',
     '1011111100110000': 'WFI_t1',
     '1011111101000000': 'SEV_t1',
-    '11000nnnrrrrrrrr': 'STM_t1',
-    '11001nnnrrrrrrrr': 'LDM_t1',
-    '1101cccciiiiiiii': 'B_t1_SVC_t1',
-    '11100iiiiiiiiiii': 'B_t2',
+    '11000...........': 'STM_t1',
+    '11001...........': 'LDM_t1',
+    '1101............': 'B_t1_SVC_t1',
+    '11100...........': 'B_t2',
+
 }
 
 
 def main():
     """ My main function"""
-    for key in sorted(INSTRUCTIONS.iterkeys()):
-        numeric_low = key.replace('m', '0')
-        numeric_low = numeric_low.replace('t', '0')
-        numeric_low = numeric_low.replace('i', '0')
-        numeric_low = numeric_low.replace('r', '0')
-        numeric_low = numeric_low.replace('d', '0')
-        numeric_low = numeric_low.replace('c', '0')
-        numeric_low = numeric_low.replace('n', '0')
-        numeric_low = numeric_low.replace('D', '0')
-        numeric_low = numeric_low.replace('N', '0')
-        numeric_low = numeric_low.replace('p', '0')
 
-        numeric_high = key.replace('m', '1')
-        numeric_high = numeric_high.replace('t', '1')
-        numeric_high = numeric_high.replace('i', '1')
-        numeric_high = numeric_high.replace('r', '1')
-        numeric_high = numeric_high.replace('d', '1')
-        numeric_high = numeric_high.replace('c', '1')
-        numeric_high = numeric_high.replace('n', '1')
-        numeric_high = numeric_high.replace('D', '1')
-        numeric_high = numeric_high.replace('N', '1')
-        numeric_high = numeric_high.replace('p', '1')
-        number_low = int(numeric_low, 2)
-        number_high = int(numeric_high, 2)
-        
-        print "{} ... {} => decode_{}(opcode),".format(number_low, number_high, INSTRUCTIONS[key])
+    #
+    # finding a decoder match:
+    # - go through the list of bitmasks in the order of specificity
+    #   - test first the ones that have most bits set
+    #   - first one to match is the one
+    #
+    maskstrings = sorted(INSTRUCTIONS.iterkeys(),
+                         key=lambda string: string.count('.'))
+    onemasks = [key.replace('0', '1')
+                for key in maskstrings]
+    onemasks = [int(key.replace('.', '0'), 2)
+                for key in onemasks]
+    resultmasks = [int(key.replace('.', '0'), 2)
+                   for key in maskstrings]
+
+    for i in range(len(onemasks)):
+        onemask = onemasks[i]
+        result = resultmasks[i]
+        instr = INSTRUCTIONS[maskstrings[i]]
+        print '{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr)
+
+
 main()

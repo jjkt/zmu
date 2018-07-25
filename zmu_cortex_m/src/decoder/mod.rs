@@ -13,6 +13,7 @@ use core::condition::Condition;
 mod bfc;
 mod bfi;
 mod clrex;
+mod cbz;
 mod dbg;
 mod sbfx;
 mod ssat;
@@ -118,6 +119,7 @@ use decoder::bl::*;
 use decoder::blx::*;
 use decoder::bx::*;
 
+use decoder::cbz::*;
 use decoder::clz::*;
 use decoder::cmn::*;
 use decoder::cmp::*;
@@ -225,81 +227,156 @@ fn decode_UDF_t2(opcode: u32) -> Instruction {
 }
 
 pub fn decode_16(opcode: u16) -> Instruction {
-    match opcode {
-        0...2047 => decode_MOV_reg_t2_LSL_imm_t1(opcode),
-        2048...4095 => decode_LSR_imm_t1(opcode),
-        4096...6143 => decode_ASR_imm_t1(opcode),
-        6144...6655 => decode_ADD_reg_t1(opcode),
-        6656...7167 => decode_SUB_reg_t1(opcode),
-        7168...7679 => decode_ADD_imm_t1(opcode),
-        7680...8191 => decode_SUB_imm_t1(opcode),
-        8192...10239 => decode_MOV_imm_t1(opcode),
-        10240...12287 => decode_CMP_imm_t1(opcode),
-        12288...14335 => decode_ADD_imm_t2(opcode),
-        14336...16383 => decode_SUB_imm_t2(opcode),
-        16384...16447 => decode_AND_reg_t1(opcode),
-        16448...16511 => decode_EOR_reg_t1(opcode),
-        16512...16575 => decode_LSL_reg_t1(opcode),
-        16576...16639 => decode_LSR_reg_t1(opcode),
-        16640...16703 => decode_ASR_reg_t1(opcode),
-        16704...16767 => decode_ADC_reg_t1(opcode),
-        16768...16831 => decode_SBC_reg_t1(opcode),
-        16832...16895 => decode_ROR_reg_t1(opcode),
-        16896...16959 => decode_TST_reg_t1(opcode),
-        16960...17023 => decode_RSB_imm_t1(opcode),
-        17024...17087 => decode_CMP_reg_t1(opcode),
-        17088...17151 => decode_CMN_reg_t1(opcode),
-        17152...17215 => decode_ORR_reg_t1(opcode),
-        17216...17279 => decode_MUL_t1(opcode),
-        17280...17343 => decode_BIC_reg_t1(opcode),
-        17344...17407 => decode_MVN_reg_t1(opcode),
-        17408...17663 => decode_ADD_reg_t2_ADD_SP_reg(opcode),
-        17664...17919 => decode_CMP_reg_t2(opcode),
-        17920...18175 => decode_MOV_reg_t1(opcode),
-        18176...18296 => decode_BX_t1(opcode),
-        18304...18424 => decode_BLX_t1(opcode),
-        18432...20479 => decode_LDR_lit_t1(opcode),
-        20480...20991 => decode_STR_reg_t1(opcode),
-        20992...21503 => decode_STRH_reg_t1(opcode),
-        21504...22015 => decode_STRB_reg_t1(opcode),
-        22016...22527 => decode_LDRSB_reg_t1(opcode),
-        22528...23039 => decode_LDR_reg_t1(opcode),
-        23040...23551 => decode_LDRH_reg_t1(opcode),
-        23552...24063 => decode_LDRB_reg_t1(opcode),
-        24064...24575 => decode_LDRSH_reg_t1(opcode),
-        24576...26623 => decode_STR_imm_t1(opcode),
-        26624...28671 => decode_LDR_imm_t1(opcode),
-        28672...30719 => decode_STRB_imm_t1(opcode),
-        30720...32767 => decode_LDRB_imm_t1(opcode),
-        32768...34815 => decode_STRH_imm_t1(opcode),
-        34816...36863 => decode_LDRH_imm_t1(opcode),
-        36864...38911 => decode_STR_imm_t2(opcode),
-        38912...40959 => decode_LDR_imm_t2(opcode),
-        40960...43007 => decode_ADR_t1(opcode),
-        43008...45055 => decode_ADD_SP_imm_t1(opcode),
-        45056...45183 => decode_ADD_SP_imm_t2(opcode),
-        45184...45311 => decode_SUB_SP_imm_t1(opcode),
-        45568...45631 => decode_SXTH_t1(opcode),
-        45632...45695 => decode_SXTB_t1(opcode),
-        45696...45759 => decode_UXTH_t1(opcode),
-        45760...45823 => decode_UXTB_t1(opcode),
-        46080...46591 => decode_PUSH_t1(opcode),
-        46690...46706 => decode_CPS_t1(opcode),
-        47616...47679 => decode_REV_t1(opcode),
-        47680...47743 => decode_REV16_t1(opcode),
-        47808...47871 => decode_REVSH_t1(opcode),
-        48128...48639 => decode_POP_reg_t1(opcode),
-        48640...48895 => decode_BKPT_t1(opcode),
-        48896...48896 => decode_NOP_t1(opcode),
-        48912...48912 => Instruction::YIELD,
-        48928...48928 => Instruction::WFE,
-        48944...48944 => Instruction::WFI,
-        48960...48960 => Instruction::SEV,
-        49152...51199 => decode_STM_t1(opcode),
-        51200...53247 => decode_LDM_t1(opcode),
-        53248...57343 => decode_B_t1_SVC_t1(opcode),
-        57344...59391 => decode_B_t2(opcode),
-        _ => decode_undefined(opcode),
+    if (opcode & 0xffff) == 0xbf30 {
+        decode_WFI_t1(opcode)
+    } else if (opcode & 0xffff) == 0xbf20 {
+        decode_WFE_t1(opcode)
+    } else if (opcode & 0xffff) == 0xbf40 {
+        decode_SEV_t1(opcode)
+    } else if (opcode & 0xffff) == 0xbf00 {
+        decode_NOP_t1(opcode)
+    } else if (opcode & 0xffff) == 0xbf10 {
+        decode_YIELD_t1(opcode)
+    } else if (opcode & 0xffef) == 0xb662 {
+        decode_CPS_t1(opcode)
+    } else if (opcode & 0xff87) == 0x4700 {
+        decode_BX_t1(opcode)
+    } else if (opcode & 0xff87) == 0x4780 {
+        decode_BLX_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4140 {
+        decode_ADC_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xb280 {
+        decode_UXTH_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4180 {
+        decode_SBC_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xbac0 {
+        decode_REVSH_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4300 {
+        decode_ORR_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xb200 {
+        decode_SXTH_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4100 {
+        decode_ASR_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4380 {
+        decode_BIC_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xb2c0 {
+        decode_UXTB_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4040 {
+        decode_EOR_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xba00 {
+        decode_REV_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4080 {
+        decode_LSL_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xba40 {
+        decode_REV16_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x43c0 {
+        decode_MVN_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0xb240 {
+        decode_SXTB_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x42c0 {
+        decode_CMN_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x41c0 {
+        decode_ROR_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4000 {
+        decode_AND_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4200 {
+        decode_TST_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4280 {
+        decode_CMP_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x40c0 {
+        decode_LSR_reg_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4340 {
+        decode_MUL_t1(opcode)
+    } else if (opcode & 0xffc0) == 0x4240 {
+        decode_RSB_imm_t1(opcode)
+    } else if (opcode & 0xff80) == 0xb000 {
+        decode_ADD_SP_imm_t2(opcode)
+    } else if (opcode & 0xff80) == 0xb080 {
+        decode_SUB_SP_imm_t1(opcode)
+    } else if (opcode & 0xff00) == 0x4500 {
+        decode_CMP_reg_t2(opcode)
+    } else if (opcode & 0xff00) == 0x4600 {
+        decode_MOV_reg_t1(opcode)
+    } else if (opcode & 0xff00) == 0x4400 {
+        decode_ADD_reg_t2_ADD_SP_reg(opcode)
+    } else if (opcode & 0xff00) == 0xbe00 {
+        decode_BKPT_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5800 {
+        decode_LDR_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x1c00 {
+        decode_ADD_imm_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5e00 {
+        decode_LDRSH_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5000 {
+        decode_STR_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x1a00 {
+        decode_SUB_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5400 {
+        decode_STRB_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5c00 {
+        decode_LDRB_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5200 {
+        decode_STRH_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5600 {
+        decode_LDRSB_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x1e00 {
+        decode_SUB_imm_t1(opcode)
+    } else if (opcode & 0xfe00) == 0xb400 {
+        decode_PUSH_t1(opcode)
+    } else if (opcode & 0xfe00) == 0xbc00 {
+        decode_POP_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x5a00 {
+        decode_LDRH_reg_t1(opcode)
+    } else if (opcode & 0xfe00) == 0x1800 {
+        decode_ADD_reg_t1(opcode)
+    } else if (opcode & 0xf500) == 0xb100 {
+        decode_CBZ_t1(opcode)
+    } else if (opcode & 0xf800) == 0x7800 {
+        decode_LDRB_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x7000 {
+        decode_STRB_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x4800 {
+        decode_LDR_lit_t1(opcode)
+    } else if (opcode & 0xf800) == 0x800 {
+        decode_LSR_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x2800 {
+        decode_CMP_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0xa800 {
+        decode_ADD_SP_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x3800 {
+        decode_SUB_imm_t2(opcode)
+    } else if (opcode & 0xf800) == 0xa000 {
+        decode_ADR_t1(opcode)
+    } else if (opcode & 0xf800) == 0x9800 {
+        decode_LDR_imm_t2(opcode)
+    } else if (opcode & 0xf800) == 0x1000 {
+        decode_ASR_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0xc000 {
+        decode_STM_t1(opcode)
+    } else if (opcode & 0xf800) == 0xe000 {
+        decode_B_t2(opcode)
+    } else if (opcode & 0xf800) == 0x6000 {
+        decode_STR_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x3000 {
+        decode_ADD_imm_t2(opcode)
+    } else if (opcode & 0xf800) == 0x0 {
+        decode_MOV_reg_t2_LSL_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x9000 {
+        decode_STR_imm_t2(opcode)
+    } else if (opcode & 0xf800) == 0x8000 {
+        decode_STRH_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x8800 {
+        decode_LDRH_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0xc800 {
+        decode_LDM_t1(opcode)
+    } else if (opcode & 0xf800) == 0x6800 {
+        decode_LDR_imm_t1(opcode)
+    } else if (opcode & 0xf800) == 0x2000 {
+        decode_MOV_imm_t1(opcode)
+    } else if (opcode & 0xf000) == 0xd000 {
+        decode_B_t1_SVC_t1(opcode)
+    } else {
+        decode_undefined(opcode)
     }
 }
 
@@ -990,7 +1067,7 @@ mod tests {
                 index,
                 add,
                 wback,
-                thumb32
+                thumb32,
             } => {
                 assert!(rn == Reg::R1);
                 assert!(rt == Reg::R2);
@@ -1735,9 +1812,23 @@ mod tests {
                 index: false,
                 add: true,
                 wback: true,
-                thumb32 : true
+                thumb32: true
             }
         );
     }
+
+    #[test]
+    fn test_decode_cbz() {
+        // CBZ R1, 0x3be4 (executed on addr 0x3bc2)
+        assert_eq!(
+            decode_16(0xb179),
+            Instruction::CBZ {
+                rn: Reg::R1,
+                imm32 : 30,
+                nonzero : false
+            }
+        );
+    }
+
 
 }

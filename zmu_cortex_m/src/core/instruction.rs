@@ -79,6 +79,11 @@ pub enum Instruction {
     BX {
         rm: Reg,
     },
+    CBZ {
+        rn: Reg,
+        nonzero: bool,
+        imm32: u32,
+    },
     CMN_reg {
         rn: Reg,
         rm: Reg,
@@ -131,12 +136,12 @@ pub enum Instruction {
         index: bool,
         add: bool,
         wback: bool,
-        thumb32: bool
+        thumb32: bool,
     },
     LDR_lit {
         rt: Reg,
         imm32: u32,
-        thumb32: bool
+        thumb32: bool,
     },
     LDR_reg {
         rt: Reg,
@@ -533,6 +538,13 @@ impl fmt::Display for Instruction {
             Instruction::BLX { rm } => write!(f, "blx {}", rm),
             Instruction::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
             Instruction::CMN_reg { rn, rm } => write!(f, "cmn {}, {}", rn, rm),
+            Instruction::CBZ { rn, nonzero, imm32 } => write!(
+                f,
+                "cb{}z {}, #{}",
+                if nonzero { "n" } else { "" },
+                rn,
+                imm32
+            ),
             Instruction::CMP_imm { rn, imm32 } => write!(f, "cmp {}, #{}", rn, imm32),
             Instruction::CMP_reg { rn, rm } => write!(f, "cmp {}, {}", rn, rm),
             Instruction::CPS { im } => write!(f, "cps{}", im),
@@ -561,7 +573,7 @@ impl fmt::Display for Instruction {
                 index,
                 add,
                 wback,
-                thumb32
+                thumb32,
             } => write!(f, "ldr {}, [{}, #{}]", rt, rn, imm32),
             Instruction::LDR_lit { rt, imm32, thumb32 } => {
                 if imm32 == 0 {
