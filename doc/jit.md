@@ -65,13 +65,12 @@ To do this, either something like LLVM could be used or just "x86asm" create to 
 
 Something like:
 
+        if (!*setflags)
         writer.write2(Mnemonic::PUSHF); 
         writer.write2(Mnemonic::ADD, Operand::Direct(Reg::EBX), Operand::Direc(Reg::EDX)); 
         writer.write2(Mnemonic::MOV, Operand::Direct(Reg::ECX), Operand::Direc(Reg::EBX)); 
+        if (!*setflags)
         writer.write2(Mnemonic::POPF); 
-
-
-
 
 HowTo Execute JIT'd code in rust:
 -------------------
