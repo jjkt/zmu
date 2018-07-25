@@ -303,7 +303,6 @@ pub fn decode_16(opcode: u16) -> Instruction {
     }
 }
 
-
 pub fn decode_32(opcode: u32) -> Instruction {
     if (opcode & 0xffffffff) == 0xf3af8000 {
         decode_NOP_t2(opcode)
@@ -973,9 +972,10 @@ mod tests {
     fn test_decode_ldr() {
         // LDR.N R1, [PC, 0x1c]
         match decode_16(0x4907) {
-            Instruction::LDR_lit { rt, imm32 } => {
+            Instruction::LDR_lit { rt, imm32, thumb32 } => {
                 assert!(rt == Reg::R1);
                 assert!(imm32 == (7 << 2));
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -983,10 +983,22 @@ mod tests {
         }
         // LDR R2, [R1]
         match decode_16(0x680a) {
-            Instruction::LDR_imm { rt, rn, imm32 } => {
+            Instruction::LDR_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32
+            } => {
                 assert!(rn == Reg::R1);
                 assert!(rt == Reg::R2);
                 assert!(imm32 == 0);
+                assert!(index == true);
+                assert!(add == true);
+                assert!(wback == false);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -1709,6 +1721,23 @@ mod tests {
 
         // BL -5694
         assert_eq!(decode_32(0xf7fefce1), Instruction::BL { imm32: -5694 });
+    }
+
+    #[test]
+    fn test_decode_ldrw_imm() {
+        // LDR.W R1, [R0], #0x4
+        assert_eq!(
+            decode_32(0xf8501b04),
+            Instruction::LDR_imm {
+                rt: Reg::R1,
+                rn: Reg::R0,
+                imm32: 0x4,
+                index: false,
+                add: true,
+                wback: true,
+                thumb32 : true
+            }
+        );
     }
 
 }

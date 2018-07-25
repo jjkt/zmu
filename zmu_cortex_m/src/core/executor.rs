@@ -1,7 +1,7 @@
 use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
-use core::instruction::{SRType, CpsEffect, Instruction};
+use core::instruction::{CpsEffect, Instruction, SRType};
 use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
@@ -392,9 +392,7 @@ where
             ref rn,
             ref imm32,
             ref setflags,
-        } => {
-            unimplemented!()
-        }
+        } => unimplemented!(),
 
         Instruction::EOR_reg {
             ref rd,
@@ -612,11 +610,40 @@ where
             ref rt,
             ref rn,
             imm32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
-            let address = core.get_r(rn) + imm32;
-            let value = core.bus.read32(address);
-            core.set_r(rt, value);
-            core.add_pc(2);
+            let offset_address = if add {
+                core.get_r(rn) + imm32
+            } else {
+                core.get_r(rn) - imm32
+            };
+
+            let address = if index {
+                offset_address
+            } else {
+                core.get_r(rn)
+            };
+
+            let data = core.bus.read32(address);
+            if wback {
+                core.set_r(rn, offset_address);
+            }
+
+            if rt == &Reg::PC {
+                core.load_write_pc(data);
+            } else {
+                core.set_r(rt, data);
+            }
+
+            if thumb32 {
+                core.add_pc(4);
+            } else {
+                core.add_pc(2);
+            }
+
             core.cycle_count += 2;
             None
         }
@@ -836,11 +863,20 @@ where
             None
         }
 
-        Instruction::LDR_lit { ref rt, imm32 } => {
+        Instruction::LDR_lit {
+            ref rt,
+            imm32,
+            thumb32,
+        } => {
             let base = core.get_r(&Reg::PC) & 0xffff_fffc;
             let value = core.bus.read32(base + imm32);
             core.set_r(rt, value);
-            core.add_pc(2);
+
+            if thumb32 {
+                core.add_pc(4);
+            } else {
+                core.add_pc(2);
+            }
             core.cycle_count += 2;
             None
         }
@@ -950,7 +986,7 @@ where
             ref rm,
             ref setflags,
             ref shift_t,
-            ref shift_n
+            ref shift_n,
         } => {
             let r_n = core.get_r(rn);
             let r_m = core.get_r(rm);

@@ -128,10 +128,15 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool
     },
     LDR_lit {
         rt: Reg,
         imm32: u32,
+        thumb32: bool
     },
     LDR_reg {
         rt: Reg,
@@ -549,8 +554,16 @@ impl fmt::Display for Instruction {
             Instruction::ISB => write!(f, "isb"),
             Instruction::LDM { rn, registers } => write!(f, "ldm {}, {{{:?}}}", rn, registers),
             Instruction::LDR_reg { rt, rn, rm } => write!(f, "ldr {}, [{}, {}]", rt, rn, rm),
-            Instruction::LDR_imm { rt, rn, imm32 } => write!(f, "ldr {}, [{}, #{}]", rt, rn, imm32),
-            Instruction::LDR_lit { rt, imm32 } => {
+            Instruction::LDR_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32
+            } => write!(f, "ldr {}, [{}, #{}]", rt, rn, imm32),
+            Instruction::LDR_lit { rt, imm32, thumb32 } => {
                 if imm32 == 0 {
                     write!(f, "ldr {}, [pc]", rt)
                 } else {

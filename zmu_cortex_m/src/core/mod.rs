@@ -134,6 +134,13 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     //
+    // alias for bx_write_pc
+    //
+    pub fn load_write_pc(&mut self, address: u32) {
+        self.bx_write_pc(address);
+    }
+
+    //
     // Getter for registers
     //
     pub fn get_r(&self, r: &Reg) -> u32 {
