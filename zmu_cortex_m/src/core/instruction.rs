@@ -358,6 +358,7 @@ pub enum Instruction {
         rn: Reg,
         imm32: u32,
         setflags: bool,
+        thumb32: bool,
     },
     SUB_reg {
         rm: Reg,
@@ -366,6 +367,7 @@ pub enum Instruction {
         setflags: bool,
         shift_t: SRType,
         shift_n: u8,
+        thumb32: bool,
     },
     SVC {
         imm32: u32,
@@ -609,12 +611,25 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
                 thumb32,
-            } => write!(f, "ldr {}, [{}, #{}]", rt, rn, imm32),
+            } => write!(
+                f,
+                "ldr{} {}, [{}, #{}]",
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rn,
+                imm32
+            ),
             Instruction::LDR_lit { rt, imm32, thumb32 } => {
                 if imm32 == 0 {
-                    write!(f, "ldr {}, [pc]", rt)
+                    write!(f, "ldr{} {}, [pc]", if thumb32 { ".W" } else { "" }, rt)
                 } else {
-                    write!(f, "ldr {}, [pc, #{}]", rt, imm32)
+                    write!(
+                        f,
+                        "ldr{} {}, [pc, #{}]",
+                        if thumb32 { ".W" } else { "" },
+                        rt,
+                        imm32
+                    )
                 }
             }
             Instruction::LDRB_imm { rt, rn, imm32 } => {
@@ -832,20 +847,23 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32,
                 setflags,
+                thumb32,
             } => {
                 if rd == rn {
                     write!(
                         f,
-                        "sub{} {}, #{}",
+                        "sub{}{} {}, #{}",
                         if setflags { "s" } else { "" },
+                        if thumb32 { ".W" } else { "" },
                         rd,
                         imm32
                     )
                 } else {
                     write!(
                         f,
-                        "sub{} {}, {}, #{}",
+                        "sub{}{} {}, {}, #{}",
                         if setflags { "s" } else { "" },
+                        if thumb32 { ".W" } else { "" },
                         rd,
                         rn,
                         imm32
@@ -859,10 +877,12 @@ impl fmt::Display for Instruction {
                 setflags,
                 ref shift_t,
                 shift_n,
+                thumb32,
             } => write!(
                 f,
-                "sub{} {}, {}, {}",
+                "sub{}{} {}, {}, {}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
                 rm

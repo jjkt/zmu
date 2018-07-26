@@ -1,4 +1,4 @@
-use core::bits::*;
+use core::bits::{Bits, bits_0_3, bits_0_7, bits_0_8, bits_3_6, bits_6_9, bits_8_11};
 use core::instruction::Instruction;
 use core::instruction::SRType;
 use core::operation::decode_imm_shift;
@@ -14,6 +14,7 @@ pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
         rn: From::from(bits_3_6(command)),
         setflags: true,
         imm32: bits_6_9(command) as u32,
+        thumb32: false
     }
 }
 
@@ -25,6 +26,7 @@ pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
         rn: From::from(bits_8_11(command)),
         setflags: true,
         imm32: bits_0_8(command) as u32,
+        thumb32: false
     }
 }
 
@@ -36,6 +38,7 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
         rd: Reg::SP,
         imm32: (bits_0_7(command) as u32) << 2,
         setflags: false,
+        thumb32: false
     }
 }
 
@@ -49,6 +52,7 @@ pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
         setflags: true,
         shift_t: SRType::LSL,
         shift_n: 0,
+        thumb32: false
     }
 }
 
@@ -72,6 +76,7 @@ pub fn decode_SUB_reg_t2(opcode: u32) -> Instruction {
         setflags: s == 1,
         shift_t: shift_t,
         shift_n: shift_n,
+        thumb32: true
     }
 }
 
@@ -91,6 +96,7 @@ pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
         rn: Reg::from(rn),
         imm32: thumb_expand_imm(/*i, 1, imm3, 3, imm8, 8*/),
         setflags: s == 1,
+        thumb32: true
     }
 }
 

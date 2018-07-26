@@ -1160,11 +1160,13 @@ mod tests {
                 rn,
                 imm32,
                 setflags,
+                thumb32
             } => {
                 assert!(rd == Reg::SP);
                 assert!(rn == Reg::SP);
                 assert!(imm32 == 0x8);
                 assert!(setflags == false);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);

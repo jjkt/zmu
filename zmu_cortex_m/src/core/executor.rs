@@ -990,6 +990,7 @@ where
             ref rd,
             imm32,
             ref setflags,
+            thumb32,
         } => {
             let r_n = core.get_r(rn);
             let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
@@ -1002,7 +1003,12 @@ where
             }
 
             core.set_r(rd, result);
-            core.add_pc(2);
+
+            if thumb32 {
+                core.add_pc(4);
+            } else {
+                core.add_pc(2);
+            }
             core.cycle_count += 1;
             None
         }
@@ -1014,6 +1020,7 @@ where
             ref setflags,
             ref shift_t,
             ref shift_n,
+            thumb32,
         } => {
             let r_n = core.get_r(rn);
             let r_m = core.get_r(rm);
@@ -1027,7 +1034,11 @@ where
                 core.psr.set_v(overflow);
             }
 
-            core.add_pc(2);
+            if thumb32 {
+                core.add_pc(4);
+            } else {
+                core.add_pc(2);
+            }
             core.cycle_count += 1;
             None
         }
