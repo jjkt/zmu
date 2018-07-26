@@ -149,6 +149,19 @@ where
             core.cycle_count += 4;
             None
         }
+        Instruction::IT {
+            ref x,
+            ref y,
+            ref z,
+            ref firstcond,
+            ref mask,
+        } => {
+            core.set_itstate((((firstcond.value() as u32) << 4) + *mask as u32) as u8);
+            core.add_pc(2);
+            core.cycle_count += 4;
+            None
+        }
+
         Instruction::MRS {
             ref rd,
             ref spec_reg,

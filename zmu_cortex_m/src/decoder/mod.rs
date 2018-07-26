@@ -9,11 +9,13 @@ use core::register::SpecialReg;
 
 #[cfg(test)]
 use core::condition::Condition;
+#[cfg(test)]
+use core::instruction::ITCondition;
 
 mod bfc;
 mod bfi;
-mod clrex;
 mod cbz;
+mod clrex;
 mod dbg;
 mod sbfx;
 mod ssat;
@@ -48,6 +50,7 @@ mod dsb;
 mod eor;
 
 mod isb;
+mod it;
 
 mod ldc;
 mod ldm;
@@ -132,6 +135,7 @@ use decoder::dsb::*;
 use decoder::eor::*;
 
 use decoder::isb::*;
+use decoder::it::*;
 
 use decoder::ldc::*;
 use decoder::ldm::*;
@@ -301,6 +305,8 @@ pub fn decode_16(opcode: u16) -> Instruction {
         decode_ADD_reg_t2_ADD_SP_reg(opcode)
     } else if (opcode & 0xff00) == 0xbe00 {
         decode_BKPT_t1(opcode)
+    } else if (opcode & 0xff00) == 0xbf00 {
+        decode_IT_t1(opcode)
     } else if (opcode & 0xfe00) == 0x5800 {
         decode_LDR_reg_t1(opcode)
     } else if (opcode & 0xfe00) == 0x1c00 {
@@ -1824,11 +1830,25 @@ mod tests {
             decode_16(0xb179),
             Instruction::CBZ {
                 rn: Reg::R1,
-                imm32 : 30,
-                nonzero : false
+                imm32: 30,
+                nonzero: false
             }
         );
     }
 
+    #[test]
+    fn test_decode_it() {
+        // ITT MI
+        assert_eq!(
+            decode_16(0xbf44),
+            Instruction::IT {
+                x: Some(ITCondition::Then),
+                y: None,
+                z: None,
+                firstcond: Condition::MI,
+                mask: 0x4
+            }
+        );
+    }
 
 }

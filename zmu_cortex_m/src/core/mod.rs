@@ -83,8 +83,11 @@ pub struct Core<'a, T: Bus + 'a> {
     /* Is the core simulation currently running or not.*/
     pub running: bool,
 
-    /* One bool per exception on the system: fixed priority system exceptions, configurable priority system exceptions and external exceptions. */
+    /* One boolean per exception on the system: fixed priority system exceptions, 
+       configurable priority system exceptions and external exceptions. */
     pub exception_active: [bool; 64],
+
+    itstate : u8
 }
 
 impl<'a, T: Bus> Core<'a, T> {
@@ -107,6 +110,7 @@ impl<'a, T: Bus> Core<'a, T> {
             running: true,
             cycle_count: 0,
             exception_active: [false; 64],
+            itstate : 0
         }
     }
 
@@ -295,9 +299,15 @@ impl<'a, T: Bus> Core<'a, T> {
 
         //self.event_reg.clear();
 
+        self.itstate = 0;
+
         let reset_vector = self.bus.read32(vtor + 4);
 
         self.blx_write_pc(reset_vector);
+    }
+
+    pub fn set_itstate(&mut self, state: u8) {
+        self.itstate = state;
     }
 
     fn push_stack(&mut self, return_address: u32) {
@@ -306,7 +316,6 @@ impl<'a, T: Bus> Core<'a, T> {
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
                 let align = bit_2(self.psp as u16) as u32;
-                println!("thread mode");
                 // forces 8 byte alignment on the stack
                 self.psp = (self.psp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
                 (self.psp, align)
@@ -314,7 +323,6 @@ impl<'a, T: Bus> Core<'a, T> {
                 let align = bit_2(self.msp as u16) as u32;
                 // forces 8 byte alignment on the stack
                 self.msp = (self.msp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
-                println!("processor mode");
                 (self.msp, align)
             };
 
@@ -470,7 +478,7 @@ mod tests {
             core.get_r(&Reg::LR)
         };
 
-        // values pushed on to stuck
+        // values pushed on to stack
         assert_eq!(bus.read32(0x100 - 0x20), 42);
         assert_eq!(bus.read32(0x100 - 0x20 + 4), 43);
         assert_eq!(bus.read32(0x100 - 0x20 + 8), 44);

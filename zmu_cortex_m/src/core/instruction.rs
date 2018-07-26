@@ -13,6 +13,12 @@ pub enum SRType {
     ROR,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ITCondition {
+    Then,
+    Else,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug)]
 pub enum Instruction {
@@ -108,6 +114,13 @@ pub enum Instruction {
         setflags: bool,
     },
     ISB,
+    IT {
+        x: Option<ITCondition>,
+        y: Option<ITCondition>,
+        z: Option<ITCondition>,
+        firstcond: Condition,
+        mask: u8,
+    },
 
     // ARMv7-M
     LDC_imm {
@@ -564,6 +577,28 @@ impl fmt::Display for Instruction {
                 rm
             ),
             Instruction::ISB => write!(f, "isb"),
+            Instruction::IT {
+                ref x,
+                ref y,
+                ref z,
+                ref firstcond,
+                ref mask,
+            } => {
+                let x_str = match x {
+                    Some(c) => format!("{}", c),
+                    None => String::new(),
+                };
+                let y_str = match y {
+                    Some(c) => format!("{}", c),
+                    None => String::new(),
+                };
+                let z_str = match z {
+                    Some(c) => format!("{}", c),
+                    None => String::new(),
+                };
+                write!(f, "it{}{}{} {}", x_str, y_str, z_str, firstcond)
+            }
+
             Instruction::LDM { rn, registers } => write!(f, "ldm {}, {{{:?}}}", rn, registers),
             Instruction::LDR_reg { rt, rn, rm } => write!(f, "ldr {}, [{}, {}]", rt, rn, rm),
             Instruction::LDR_imm {
@@ -889,6 +924,16 @@ impl fmt::Display for Instruction {
                 ref crd,
                 ref rn,
             } => write!(f, "ldc2"),
+        }
+    }
+}
+
+#[allow(unused_variables)]
+impl fmt::Display for ITCondition {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ITCondition::Then => write!(f, "t"),
+            ITCondition::Else => write!(f, "e"),
         }
     }
 }
