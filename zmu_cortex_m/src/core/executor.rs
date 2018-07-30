@@ -2,7 +2,7 @@ use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
 use core::instruction::{CpsEffect, Instruction, SRType};
-use core::operation::{add_with_carry, condition_passed, decode_imm_shift, shift_c, sign_extend};
+use core::operation::{add_with_carry, decode_imm_shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
 use semihosting::decode_semihostcmd;
@@ -26,18 +26,20 @@ where
             ref rm,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let r_m = core.get_r(rm);
-            let (result, carry, overflow) = add_with_carry(r_n, r_m, core.psr.get_c());
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
+                let (result, carry, overflow) = add_with_carry(r_n, r_m, core.psr.get_c());
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                core.set_r(rd, result);
             }
-
-            core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -48,21 +50,23 @@ where
             ref imm5,
             ref setflags,
         } => {
-            let (_, shift_n) = decode_imm_shift(0b10, *imm5);
+            if core.condition_passed() {
+                let (_, shift_n) = decode_imm_shift(0b10, *imm5);
 
-            let (result, carry) = shift_c(
-                core.get_r(rm),
-                SRType::ASR,
-                usize::from(shift_n),
-                core.psr.get_c(),
-            );
+                let (result, carry) = shift_c(
+                    core.get_r(rm),
+                    SRType::ASR,
+                    usize::from(shift_n),
+                    core.psr.get_c(),
+                );
 
-            core.set_r(rd, result);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
             core.add_pc(2);
             core.cycle_count += 1;
@@ -74,21 +78,22 @@ where
             ref rn,
             ref setflags,
         } => {
-            let shift_n = core.get_r(rm).get_bits(0..8);
-            let (result, carry) = shift_c(
-                core.get_r(rn),
-                SRType::ASR,
-                shift_n as usize,
-                core.psr.get_c(),
-            );
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let shift_n = core.get_r(rm).get_bits(0..8);
+                let (result, carry) = shift_c(
+                    core.get_r(rn),
+                    SRType::ASR,
+                    shift_n as usize,
+                    core.psr.get_c(),
+                );
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -99,12 +104,14 @@ where
             ref rm,
             ref setflags,
         } => {
-            let result = core.get_r(rn) & (core.get_r(rm) ^ 0xffff_ffff);
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let result = core.get_r(rn) & (core.get_r(rm) ^ 0xffff_ffff);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
             core.add_pc(2);
             core.cycle_count += 1;
@@ -135,16 +142,25 @@ where
             None
         }
         Instruction::DMB => {
+            if core.condition_passed() {
+                //TODO
+            }
             core.add_pc(2);
             core.cycle_count += 4;
             None
         }
         Instruction::DSB => {
+            if core.condition_passed() {
+                //TODO
+            }
             core.add_pc(2);
             core.cycle_count += 4;
             None
         }
         Instruction::ISB => {
+            if core.condition_passed() {
+                //TODO
+            }
             core.add_pc(2);
             core.cycle_count += 4;
             None
@@ -166,20 +182,23 @@ where
             ref rd,
             ref spec_reg,
         } => {
-            match spec_reg {
-                //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
-                &SpecialReg::IPSR => {
-                    let ipsr_val = core.psr.get_exception_number() as u32;
-                    core.set_r(rd, ipsr_val);
+            if core.condition_passed() {
+                match spec_reg {
+                    //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
+                    &SpecialReg::IPSR => {
+                        let ipsr_val = core.psr.get_exception_number() as u32;
+                        core.set_r(rd, ipsr_val);
+                    }
+                    //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
+                    //PSP => core.set_r(rd, core.get_r(Reg::PSP),
+                    &SpecialReg::PRIMASK => {
+                        let primask = core.primask as u32;
+                        core.set_r(rd, primask);
+                    }
+                    //CONTROL => core.set_r(rd,core.control as u32),
+                    _ => panic!("unsupported MRS operation"),
                 }
-                //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
-                //PSP => core.set_r(rd, core.get_r(Reg::PSP),
-                &SpecialReg::PRIMASK => {
-                    let primask = core.primask as u32;
-                    core.set_r(rd, primask);
-                }
-                //CONTROL => core.set_r(rd,core.control as u32),
-                _ => panic!("unsupported MRS operation"),
+                //TODO
             }
 
             core.add_pc(4);
@@ -190,29 +209,30 @@ where
             ref rn,
             ref spec_reg,
         } => {
-            match spec_reg {
-                //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
+            if core.condition_passed() {
+                match spec_reg {
+                    //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
                 /*&SpecialReg::IPSR => {
                     let ipsr_val = core.psr.get_exception_number() as u32;
                     core.set_r(rd, ipsr_val);
                 }*/
-                &SpecialReg::MSP => {
-                    let msp = core.get_r(rn);
-                    core.set_msp(msp);
+                    &SpecialReg::MSP => {
+                        let msp = core.get_r(rn);
+                        core.set_msp(msp);
+                    }
+                    &SpecialReg::PSP => {
+                        let psp = core.get_r(rn);
+                        core.set_psp(psp);
+                    }
+                    //PSP => core.set_r(rd, core.get_r(Reg::PSP),
+                    &SpecialReg::PRIMASK => {
+                        let primask = core.get_r(rn) & 1 == 1;
+                        core.primask = primask;
+                    }
+                    //CONTROL => core.set_r(rd,core.control as u32),
+                    _ => panic!("unsupported MSR operation"),
                 }
-                &SpecialReg::PSP => {
-                    let psp = core.get_r(rn);
-                    core.set_psp(psp);
-                }
-                //PSP => core.set_r(rd, core.get_r(Reg::PSP),
-                &SpecialReg::PRIMASK => {
-                    let primask = core.get_r(rn) & 1 == 1;
-                    core.primask = primask;
-                }
-                //CONTROL => core.set_r(rd,core.control as u32),
-                _ => panic!("unsupported MSR operation"),
             }
-
             core.add_pc(4);
             core.cycle_count += 4;
             None
@@ -222,14 +242,18 @@ where
             ref rm,
             ref setflags,
         } => {
-            let result = core.get_r(rm);
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let result = core.get_r(rm);
+                core.set_r(rd, result);
 
-            if *rd != Reg::PC {
-                if *setflags {
-                    core.psr.set_n(result);
-                    core.psr.set_z(result);
+                if *rd != Reg::PC {
+                    if *setflags {
+                        core.psr.set_n(result);
+                        core.psr.set_z(result);
+                    }
+                    core.add_pc(2);
                 }
+            } else {
                 core.add_pc(2);
             }
 
@@ -242,21 +266,22 @@ where
             ref imm5,
             ref setflags,
         } => {
-            let (_, shift_n) = decode_imm_shift(0b00, *imm5);
-            let (result, carry) = shift_c(
-                core.get_r(rm),
-                SRType::LSL,
-                shift_n as usize,
-                core.psr.get_c(),
-            );
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let (_, shift_n) = decode_imm_shift(0b00, *imm5);
+                let (result, carry) = shift_c(
+                    core.get_r(rm),
+                    SRType::LSL,
+                    shift_n as usize,
+                    core.psr.get_c(),
+                );
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -268,21 +293,22 @@ where
             ref rm,
             ref setflags,
         } => {
-            let shift_n = core.get_r(rm).get_bits(0..8);
-            let (result, carry) = shift_c(
-                core.get_r(rn),
-                SRType::LSL,
-                shift_n as usize,
-                core.psr.get_c(),
-            );
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let shift_n = core.get_r(rm).get_bits(0..8);
+                let (result, carry) = shift_c(
+                    core.get_r(rn),
+                    SRType::LSL,
+                    shift_n as usize,
+                    core.psr.get_c(),
+                );
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -294,21 +320,22 @@ where
             ref imm5,
             ref setflags,
         } => {
-            let (_, shift_n) = decode_imm_shift(0b01, *imm5);
-            let (result, carry) = shift_c(
-                core.get_r(rm),
-                SRType::LSR,
-                usize::from(shift_n),
-                core.psr.get_c(),
-            );
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let (_, shift_n) = decode_imm_shift(0b01, *imm5);
+                let (result, carry) = shift_c(
+                    core.get_r(rm),
+                    SRType::LSR,
+                    usize::from(shift_n),
+                    core.psr.get_c(),
+                );
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -320,19 +347,21 @@ where
             ref rm,
             ref setflags,
         } => {
-            let shift_n = core.get_r(rm).get_bits(0..8);
-            let (result, carry) = shift_c(
-                core.get_r(rn),
-                SRType::LSR,
-                shift_n as usize,
-                core.psr.get_c(),
-            );
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let shift_n = core.get_r(rm).get_bits(0..8);
+                let (result, carry) = shift_c(
+                    core.get_r(rn),
+                    SRType::LSR,
+                    shift_n as usize,
+                    core.psr.get_c(),
+                );
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
 
             core.add_pc(2);
@@ -341,11 +370,15 @@ where
         }
 
         Instruction::BL { imm32 } => {
-            let pc = core.get_r(&Reg::PC);
-            core.set_r(&Reg::LR, pc | 0x01);
-            let target = ((pc as i32) + imm32) as u32;
-            core.branch_write_pc(target);
-            core.cycle_count += 4;
+            if core.condition_passed() {
+                let pc = core.get_r(&Reg::PC);
+                core.set_r(&Reg::LR, pc | 0x01);
+                let target = ((pc as i32) + imm32) as u32;
+                core.branch_write_pc(target);
+                core.cycle_count += 4;
+            } else {
+                core.add_pc(4);
+            }
             None
         }
 
@@ -374,18 +407,19 @@ where
             ref rm,
             ref setflags,
         } => {
-            let operand1 = core.get_r(rn);
-            let operand2 = core.get_r(rm);
+            if core.condition_passed() {
+                let operand1 = core.get_r(rn);
+                let operand2 = core.get_r(rm);
 
-            let result = operand1.wrapping_mul(operand2);
+                let result = operand1.wrapping_mul(operand2);
 
-            core.set_r(rd, result);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             // TODO or 32 if multiplier implementation is the cheaper one
@@ -398,18 +432,19 @@ where
             ref rm,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let r_m = core.get_r(rm);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
 
-            let result = r_n | r_m;
+                let result = r_n | r_m;
 
-            core.set_r(rd, result);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -427,16 +462,18 @@ where
             ref rm,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let r_m = core.get_r(rm);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
 
-            let result = r_n ^ r_m;
+                let result = r_n ^ r_m;
 
-            core.set_r(rd, result);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
 
             core.add_pc(2);
@@ -450,35 +487,44 @@ where
             ref rm,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let r_m = core.get_r(rm);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
 
-            let result = r_n & r_m;
+                let result = r_n & r_m;
 
-            core.set_r(rd, result);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
-
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::BX { ref rm } => {
-            let r_m = core.get_r(rm);
-            core.bx_write_pc(r_m);
+            if core.condition_passed() {
+                let r_m = core.get_r(rm);
+                core.bx_write_pc(r_m);
+            } else {
+                core.add_pc(2);
+            }
             core.cycle_count += 3;
             None
         }
 
         Instruction::BLX { ref rm } => {
-            let pc = core.get_r(&Reg::PC);
-            let target = core.get_r(rm);
-            core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
-            core.blx_write_pc(target);
+            if core.condition_passed() {
+                let pc = core.get_r(&Reg::PC);
+                let target = core.get_r(rm);
+                core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
+                core.blx_write_pc(target);
+            } else {
+                core.add_pc(2);
+            }
             core.cycle_count += 3;
             None
         }
@@ -487,22 +533,34 @@ where
             ref registers,
             ref rn,
         } => {
-            let regs_size = 4 * (registers.len() as u32);
+            if core.condition_passed() {
+                let regs_size = 4 * (registers.len() as u32);
 
-            let mut address = core.get_r(rn);
+                let mut address = core.get_r(rn);
 
-            for reg in registers.iter() {
-                let value = core.bus.read32(address);
-                core.set_r(&reg, value);
-                address += 4;
+                let mut branched = false;
+                for reg in registers.iter() {
+                    let value = core.bus.read32(address);
+                    if &reg == &Reg::PC {
+                        core.load_write_pc(value);
+                        branched = true;
+                    } else {
+                        core.set_r(&reg, value);
+                    }
+                    address += 4;
+                }
+
+                if !registers.contains(rn) {
+                    core.add_r(rn, regs_size);
+                }
+                core.cycle_count += 1 + registers.len() as u64;
+                if !branched {
+                    core.add_pc(2);
+                }
+            } else {
+                core.cycle_count += 1;
+                core.add_pc(2);
             }
-
-            if !registers.contains(rn) {
-                core.add_r(rn, regs_size);
-            }
-
-            core.add_pc(2);
-            core.cycle_count += 1 + registers.len() as u64;
             None
         }
         Instruction::MOV_imm {
@@ -510,11 +568,13 @@ where
             imm32,
             setflags,
         } => {
-            let result = imm32 as u32;
-            core.set_r(rd, result);
-            if setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+            if core.condition_passed() {
+                let result = imm32 as u32;
+                core.set_r(rd, result);
+                if setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
             core.add_pc(2);
             core.cycle_count += 1;
@@ -526,12 +586,14 @@ where
             ref rm,
             ref setflags,
         } => {
-            let result = core.get_r(rm) ^ 0xFFFF_FFFF;
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let result = core.get_r(rm) ^ 0xFFFF_FFFF;
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                }
             }
             core.add_pc(2);
             core.cycle_count += 1;
@@ -543,7 +605,7 @@ where
             ref setflags,
         } => unimplemented!(),
 
-        Instruction::B { ref cond, imm32 } => if condition_passed(cond, &core.psr) {
+        Instruction::B { ref cond, imm32 } => if core.condition_passed_b(cond) {
             let pc = core.get_r(&Reg::PC);
             let target = ((pc as i32) + imm32) as u32;
             core.branch_write_pc(target);
@@ -556,78 +618,94 @@ where
         },
 
         Instruction::CMP_imm { ref rn, imm32 } => {
-            let (result, carry, overflow) =
-                add_with_carry(core.get_r(rn), imm32 ^ 0xFFFF_FFFF, true);
-            core.psr.set_n(result);
-            core.psr.set_z(result);
-            core.psr.set_c(carry);
-            core.psr.set_v(overflow);
+            if core.condition_passed() {
+                let (result, carry, overflow) =
+                    add_with_carry(core.get_r(rn), imm32 ^ 0xFFFF_FFFF, true);
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::CMP_reg { ref rn, ref rm } => {
-            let (result, carry, overflow) =
-                add_with_carry(core.get_r(rn), core.get_r(rm) ^ 0xFFFF_FFFF, true);
-            core.psr.set_n(result);
-            core.psr.set_z(result);
-            core.psr.set_c(carry);
-            core.psr.set_v(overflow);
+            if core.condition_passed() {
+                let (result, carry, overflow) =
+                    add_with_carry(core.get_r(rn), core.get_r(rm) ^ 0xFFFF_FFFF, true);
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::CMN_reg { ref rn, ref rm } => {
-            let (result, carry, overflow) = add_with_carry(core.get_r(rn), core.get_r(rm), false);
-            core.psr.set_n(result);
-            core.psr.set_z(result);
-            core.psr.set_c(carry);
-            core.psr.set_v(overflow);
+            if core.condition_passed() {
+                let (result, carry, overflow) =
+                    add_with_carry(core.get_r(rn), core.get_r(rm), false);
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::PUSH { ref registers } => {
-            let regs_size = 4 * (registers.len() as u32);
-            let sp = core.get_r(&Reg::SP);
-            let mut address = sp - regs_size;
+            if core.condition_passed() {
+                let regs_size = 4 * (registers.len() as u32);
+                let sp = core.get_r(&Reg::SP);
+                let mut address = sp - regs_size;
 
-            for reg in registers.iter() {
-                let value = core.get_r(&reg);
-                core.bus.write32(address, value);
-                address += 4;
+                for reg in registers.iter() {
+                    let value = core.get_r(&reg);
+                    core.bus.write32(address, value);
+                    address += 4;
+                }
+
+                core.set_r(&Reg::SP, sp - regs_size);
+                core.cycle_count += 1 + registers.len() as u64;
+            } else {
+                core.cycle_count += 1;
             }
-
-            core.set_r(&Reg::SP, sp - regs_size);
             core.add_pc(2);
-            core.cycle_count += 1 + registers.len() as u64;
             None
         }
 
         Instruction::POP { ref registers } => {
-            let regs_size = 4 * (registers.len() as u32);
-            let sp = core.get_r(&Reg::SP);
-            let mut address = sp;
+            if core.condition_passed() {
+                let regs_size = 4 * (registers.len() as u32);
+                let sp = core.get_r(&Reg::SP);
+                let mut address = sp;
 
-            for reg in registers.iter() {
-                if reg == Reg::PC {
-                    let target = core.bus.read32(address);
-                    core.bx_write_pc(target);
-                } else {
-                    let value = core.bus.read32(address);
-                    core.set_r(&reg, value);
+                for reg in registers.iter() {
+                    if reg == Reg::PC {
+                        let target = core.bus.read32(address);
+                        core.bx_write_pc(target);
+                    } else {
+                        let value = core.bus.read32(address);
+                        core.set_r(&reg, value);
+                    }
+                    address += 4;
                 }
-                address += 4;
-            }
 
-            core.set_r(&Reg::SP, sp + regs_size);
-            if registers.contains(&Reg::PC) {
-                core.cycle_count += 4 + registers.len() as u64;
+                core.set_r(&Reg::SP, sp + regs_size);
+                if registers.contains(&Reg::PC) {
+                    core.cycle_count += 4 + registers.len() as u64;
+                } else {
+                    core.cycle_count += 1 + registers.len() as u64;
+                    core.add_pc(2);
+                }
             } else {
-                core.cycle_count += 1 + registers.len() as u64;
+                core.cycle_count += 1;
                 core.add_pc(2);
             }
             None
@@ -642,33 +720,40 @@ where
             wback,
             thumb32,
         } => {
-            let offset_address = if add {
-                core.get_r(rn) + imm32
-            } else {
-                core.get_r(rn) - imm32
-            };
+            if core.condition_passed() {
+                let offset_address = if add {
+                    core.get_r(rn) + imm32
+                } else {
+                    core.get_r(rn) - imm32
+                };
 
-            let address = if index {
-                offset_address
-            } else {
-                core.get_r(rn)
-            };
+                let address = if index {
+                    offset_address
+                } else {
+                    core.get_r(rn)
+                };
 
-            let data = core.bus.read32(address);
-            if wback {
-                core.set_r(rn, offset_address);
-            }
+                let data = core.bus.read32(address);
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
 
-            if rt == &Reg::PC {
-                core.load_write_pc(data);
+                if rt == &Reg::PC {
+                    core.load_write_pc(data);
+                } else {
+                    core.set_r(rt, data);
+                    if thumb32 {
+                        core.add_pc(4);
+                    } else {
+                        core.add_pc(2);
+                    }
+                }
             } else {
-                core.set_r(rt, data);
-            }
-
-            if thumb32 {
-                core.add_pc(4);
-            } else {
-                core.add_pc(2);
+                if thumb32 {
+                    core.add_pc(4);
+                } else {
+                    core.add_pc(2);
+                }
             }
 
             core.cycle_count += 2;
@@ -680,10 +765,19 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let value = core.bus.read32(address);
-            core.set_r(rt, value);
-            core.add_pc(2);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let value = core.bus.read32(address);
+
+                if rt == &Reg::PC {
+                    core.load_write_pc(value);
+                } else {
+                    core.set_r(rt, value);
+                    core.add_pc(2);
+                }
+            } else {
+                core.add_pc(2);
+            }
             core.cycle_count += 2;
             None
         }
@@ -693,9 +787,11 @@ where
             ref rn,
             imm32,
         } => {
-            let address = core.get_r(rn) + imm32;
-            let value = u32::from(core.bus.read8(address));
-            core.set_r(rt, value);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + imm32;
+                let value = u32::from(core.bus.read8(address));
+                core.set_r(rt, value);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -706,9 +802,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let value = u32::from(core.bus.read8(address));
-            core.set_r(rt, value);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let value = u32::from(core.bus.read8(address));
+                core.set_r(rt, value);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -719,9 +817,11 @@ where
             ref rn,
             imm32,
         } => {
-            let address = core.get_r(rn) + imm32;
-            let value = u32::from(core.bus.read16(address));
-            core.set_r(rt, value);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + imm32;
+                let value = u32::from(core.bus.read16(address));
+                core.set_r(rt, value);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -732,9 +832,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let value = u32::from(core.bus.read16(address));
-            core.set_r(rt, value);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let value = u32::from(core.bus.read16(address));
+                core.set_r(rt, value);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -745,9 +847,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let data = u32::from(core.bus.read16(address));
-            core.set_r(rt, sign_extend(data, 15, 32) as u32);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let data = u32::from(core.bus.read16(address));
+                core.set_r(rt, sign_extend(data, 15, 32) as u32);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -758,9 +862,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let data = u32::from(core.bus.read8(address));
-            core.set_r(rt, sign_extend(data, 7, 32) as u32);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let data = u32::from(core.bus.read8(address));
+                core.set_r(rt, sign_extend(data, 7, 32) as u32);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -772,19 +878,21 @@ where
             ref rm,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let r_m = core.get_r(rm);
-            let (result, carry, overflow) =
-                add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
+                let (result, carry, overflow) =
+                    add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                core.set_r(rd, result);
             }
-
-            core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -793,22 +901,28 @@ where
         Instruction::STM {
             ref registers,
             ref rn,
+            wback,
         } => {
-            let regs_size = 4 * (registers.len() as u32);
+            if core.condition_passed() {
+                let regs_size = 4 * (registers.len() as u32);
 
-            let mut address = core.get_r(rn);
+                let mut address = core.get_r(rn);
 
-            for reg in registers.iter() {
-                let r = core.get_r(&reg);
-                core.bus.write32(address, r);
-                address += 4;
+                for reg in registers.iter() {
+                    let r = core.get_r(&reg);
+                    core.bus.write32(address, r);
+                    address += 4;
+                }
+
+                if wback {
+                    core.add_r(rn, regs_size);
+                }
+                core.cycle_count += 1 + registers.len() as u64;
+            } else {
+                core.cycle_count += 1;
             }
 
-            //wback always true
-            core.add_r(rn, regs_size);
-
             core.add_pc(2);
-            core.cycle_count += 1 + registers.len() as u64;
             None
         }
 
@@ -817,9 +931,11 @@ where
             ref rn,
             imm32,
         } => {
-            let address = core.get_r(rn) + imm32;
-            let value = core.get_r(rt);
-            core.bus.write32(address, value);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + imm32;
+                let value = core.get_r(rt);
+                core.bus.write32(address, value);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -830,9 +946,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let value = core.get_r(rt);
-            core.bus.write32(address, value);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let value = core.get_r(rt);
+                core.bus.write32(address, value);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -843,9 +961,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let value = core.get_r(rt);
-            core.bus.write8(address, value.get_bits(0..8) as u8);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let value = core.get_r(rt);
+                core.bus.write8(address, value.get_bits(0..8) as u8);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -856,9 +976,11 @@ where
             ref rn,
             imm32,
         } => {
-            let address = core.get_r(rn) + imm32;
-            let value = core.get_r(rt);
-            core.bus.write8(address, value.get_bits(0..8) as u8);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + imm32;
+                let value = core.get_r(rt);
+                core.bus.write8(address, value.get_bits(0..8) as u8);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -869,9 +991,11 @@ where
             ref rn,
             imm32,
         } => {
-            let address = core.get_r(rn) + imm32;
-            let value = core.get_r(rt);
-            core.bus.write16(address, value.get_bits(0..16) as u16);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + imm32;
+                let value = core.get_r(rt);
+                core.bus.write16(address, value.get_bits(0..16) as u16);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -882,9 +1006,11 @@ where
             ref rn,
             ref rm,
         } => {
-            let address = core.get_r(rn) + core.get_r(rm);
-            let value = core.get_r(rt);
-            core.bus.write16(address, value.get_bits(0..16) as u16);
+            if core.condition_passed() {
+                let address = core.get_r(rn) + core.get_r(rm);
+                let value = core.get_r(rt);
+                core.bus.write16(address, value.get_bits(0..16) as u16);
+            }
             core.add_pc(2);
             core.cycle_count += 2;
             None
@@ -895,10 +1021,11 @@ where
             imm32,
             thumb32,
         } => {
-            let base = core.get_r(&Reg::PC) & 0xffff_fffc;
-            let value = core.bus.read32(base + imm32);
-            core.set_r(rt, value);
-
+            if core.condition_passed() {
+                let base = core.get_r(&Reg::PC) & 0xffff_fffc;
+                let value = core.bus.read32(base + imm32);
+                core.set_r(rt, value);
+            }
             if thumb32 {
                 core.add_pc(4);
             } else {
@@ -914,22 +1041,27 @@ where
             ref rm,
             ref setflags,
         } => {
-            let (result, carry, overflow) = add_with_carry(core.get_r(rn), core.get_r(rm), false);
+            if core.condition_passed() {
+                let (result, carry, overflow) =
+                    add_with_carry(core.get_r(rn), core.get_r(rm), false);
 
-            if rd == &Reg::PC {
-                core.branch_write_pc(result);
-                core.cycle_count += 3;
-            } else {
-                if *setflags {
-                    core.psr.set_n(result);
-                    core.psr.set_z(result);
-                    core.psr.set_c(carry);
-                    core.psr.set_v(overflow);
+                if rd == &Reg::PC {
+                    core.branch_write_pc(result);
+                    core.cycle_count += 3;
+                } else {
+                    if *setflags {
+                        core.psr.set_n(result);
+                        core.psr.set_z(result);
+                        core.psr.set_c(carry);
+                        core.psr.set_v(overflow);
+                    }
+                    core.set_r(rd, result);
+                    core.add_pc(2);
                 }
-                core.set_r(rd, result);
+            } else {
                 core.add_pc(2);
-                core.cycle_count += 1;
             }
+            core.cycle_count += 1;
             None
         }
 
@@ -939,25 +1071,29 @@ where
             imm32,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let (result, carry, overflow) = add_with_carry(r_n, imm32, false);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (result, carry, overflow) = add_with_carry(r_n, imm32, false);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                core.set_r(rd, result);
             }
-
-            core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::ADR { ref rd, imm32 } => {
-            let result = (core.get_r(&Reg::PC) & 0xffff_fffc) + imm32;
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let result = (core.get_r(&Reg::PC) & 0xffff_fffc) + imm32;
+                core.set_r(rd, result);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -969,17 +1105,19 @@ where
             imm32,
             ref setflags,
         } => {
-            let r_n = core.get_r(rn);
-            let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32, true);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32, true);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                core.set_r(rd, result);
             }
-
-            core.set_r(rd, result);
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -992,18 +1130,19 @@ where
             ref setflags,
             thumb32,
         } => {
-            let r_n = core.get_r(rn);
-            let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                core.set_r(rd, result);
             }
-
-            core.set_r(rd, result);
-
             if thumb32 {
                 core.add_pc(4);
             } else {
@@ -1022,18 +1161,19 @@ where
             ref shift_n,
             thumb32,
         } => {
-            let r_n = core.get_r(rn);
-            let r_m = core.get_r(rm);
-            let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
-            core.set_r(rd, result);
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
+                let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
+                core.set_r(rd, result);
 
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
-                core.psr.set_v(overflow);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
             }
-
             if thumb32 {
                 core.add_pc(4);
             } else {
@@ -1044,79 +1184,95 @@ where
         }
 
         Instruction::TST_reg { ref rn, ref rm } => {
-            let result = core.get_r(rn) & core.get_r(rm);
+            if core.condition_passed() {
+                let result = core.get_r(rn) & core.get_r(rm);
 
-            core.psr.set_n(result);
-            core.psr.set_z(result);
-            //core.psr.set_c(carry); carry = shift_c()
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                //core.psr.set_c(carry); carry = shift_c()
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::UXTB { ref rd, ref rm } => {
-            let rotated = core.get_r(rm);
-            core.set_r(rd, rotated.get_bits(0..8));
+            if core.condition_passed() {
+                let rotated = core.get_r(rm);
+                core.set_r(rd, rotated.get_bits(0..8));
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::UXTH { ref rd, ref rm } => {
-            let rotated = core.get_r(rm);
-            core.set_r(rd, rotated.get_bits(0..16));
+            if core.condition_passed() {
+                let rotated = core.get_r(rm);
+                core.set_r(rd, rotated.get_bits(0..16));
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::SXTB { ref rd, ref rm } => {
-            let rotated = core.get_r(rm);
-            core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
+            if core.condition_passed() {
+                let rotated = core.get_r(rm);
+                core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
 
         Instruction::SXTH { ref rd, ref rm } => {
-            let rotated = core.get_r(rm);
-            core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
+            if core.condition_passed() {
+                let rotated = core.get_r(rm);
+                core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
         Instruction::REV { ref rd, ref rm } => {
-            let rm_ = core.get_r(rm);
-            core.set_r(
-                rd,
-                ((rm_ & 0xff) << 24)
-                    + ((rm_ & 0xff00) << 8)
-                    + ((rm_ & 0xff_0000) >> 8)
-                    + ((rm_ & 0xff00_0000) >> 24),
-            );
+            if core.condition_passed() {
+                let rm_ = core.get_r(rm);
+                core.set_r(
+                    rd,
+                    ((rm_ & 0xff) << 24)
+                        + ((rm_ & 0xff00) << 8)
+                        + ((rm_ & 0xff_0000) >> 8)
+                        + ((rm_ & 0xff00_0000) >> 24),
+                );
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
         Instruction::REV16 { ref rd, ref rm } => {
-            let rm_ = core.get_r(rm);
-            core.set_r(
-                rd,
-                ((rm_ & 0xff) << 8)
-                    + ((rm_ & 0xff00) >> 8)
-                    + ((rm_ & 0xff_0000) << 8)
-                    + ((rm_ & 0xff00_0000) >> 8),
-            );
+            if core.condition_passed() {
+                let rm_ = core.get_r(rm);
+                core.set_r(
+                    rd,
+                    ((rm_ & 0xff) << 8)
+                        + ((rm_ & 0xff00) >> 8)
+                        + ((rm_ & 0xff_0000) << 8)
+                        + ((rm_ & 0xff00_0000) >> 8),
+                );
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
         Instruction::REVSH { ref rd, ref rm } => {
-            let rm_ = core.get_r(rm);
-            core.set_r(
-                rd,
-                ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
-            );
+            if core.condition_passed() {
+                let rm_ = core.get_r(rm);
+                core.set_r(
+                    rd,
+                    ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
+                );
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
@@ -1127,47 +1283,61 @@ where
             ref rm,
             ref setflags,
         } => {
-            let shift_n = core.get_r(rm) & 0xff;
-            let (result, carry) = shift_c(
-                core.get_r(rn),
-                SRType::ROR,
-                shift_n as usize,
-                core.psr.get_c(),
-            );
-            core.set_r(rd, result);
-            if *setflags {
-                core.psr.set_n(result);
-                core.psr.set_z(result);
-                core.psr.set_c(carry);
+            if core.condition_passed() {
+                let shift_n = core.get_r(rm) & 0xff;
+                let (result, carry) = shift_c(
+                    core.get_r(rn),
+                    SRType::ROR,
+                    shift_n as usize,
+                    core.psr.get_c(),
+                );
+                core.set_r(rd, result);
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
             }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
         Instruction::SVC { ref imm32 } => {
-            println!("SVC {}", imm32);
+            if core.condition_passed() {
+                println!("SVC {}", imm32);
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
         Instruction::SEV => {
-            println!("SEV");
+            if core.condition_passed() {
+                println!("SEV");
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None
         }
         Instruction::WFE => {
+            if core.condition_passed() {
+                //TODO
+            }
             core.cycle_count += 1;
             core.add_pc(2);
             None
         }
         Instruction::WFI => {
+            if core.condition_passed() {
+                //TODO
+            }
             core.cycle_count += 1;
             core.add_pc(2);
             None
         }
         Instruction::YIELD => {
-            println!("YIELD");
+            if core.condition_passed() {
+                println!("YIELD");
+            }
             core.add_pc(2);
             core.cycle_count += 1;
             None

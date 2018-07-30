@@ -7,11 +7,13 @@ pub mod instruction;
 pub mod operation;
 pub mod register;
 
+use bit_field::BitField;
 use bus::Bus;
-use core::bits::*;
+use core::condition::Condition;
 use core::exception::Exception;
 use core::executor::execute;
 use core::instruction::Instruction;
+use core::operation::condition_test;
 use core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use decoder::{decode_16, decode_32, is_thumb32};
 use semihosting::SemihostingCommand;
@@ -87,7 +89,7 @@ pub struct Core<'a, T: Bus + 'a> {
        configurable priority system exceptions and external exceptions. */
     pub exception_active: [bool; 64],
 
-    itstate : u8
+    itstate: u8,
 }
 
 impl<'a, T: Bus> Core<'a, T> {
@@ -110,8 +112,26 @@ impl<'a, T: Bus> Core<'a, T> {
             running: true,
             cycle_count: 0,
             exception_active: [false; 64],
-            itstate : 0
+            itstate: 0,
         }
+    }
+
+    pub fn condition_passed(&mut self) -> bool {
+        let itstate = self.itstate;
+
+        if itstate != 0 {
+            let cond = itstate.get_bits(4..8) as u16;
+            condition_test(
+                &Condition::from_u16(cond).unwrap_or(Condition::AL),
+                &self.psr,
+            )
+        } else {
+            true
+        }
+    }
+
+    pub fn condition_passed_b(&mut self, cond: &Condition) -> bool {
+        condition_test(cond, &self.psr)
     }
 
     pub fn branch_write_pc(&mut self, address: u32) {
@@ -130,8 +150,8 @@ impl<'a, T: Bus> Core<'a, T> {
     // interworking branch
     //
     pub fn bx_write_pc(&mut self, address: u32) {
-        if self.mode == ProcessorMode::HandlerMode && (bits_31_28(address) == 0b1111) {
-            self.exception_return(bits_27_0(address));
+        if self.mode == ProcessorMode::HandlerMode && (address.get_bits(28..32) == 0b1111) {
+            self.exception_return(address.get_bits(0..28));
         } else {
             self.blx_write_pc(address);
         }
@@ -315,12 +335,12 @@ impl<'a, T: Bus> Core<'a, T> {
 
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
-                let align = bit_2(self.psp as u16) as u32;
+                let align = self.psp.get_bit(2) as u32;
                 // forces 8 byte alignment on the stack
                 self.psp = (self.psp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
                 (self.psp, align)
             } else {
-                let align = bit_2(self.msp as u16) as u32;
+                let align = self.msp.get_bit(2) as u32;
                 // forces 8 byte alignment on the stack
                 self.msp = (self.msp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
                 (self.msp, align)

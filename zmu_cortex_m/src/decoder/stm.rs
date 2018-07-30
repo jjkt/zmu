@@ -1,10 +1,9 @@
 use enum_set::EnumSet;
 
-use core::register::Reg;
-use core::instruction::Instruction;
 use core::bits::*;
+use core::instruction::Instruction;
+use core::register::Reg;
 use core::ThumbCode;
-
 
 #[allow(non_snake_case)]
 #[inline]
@@ -39,6 +38,7 @@ pub fn decode_STM_t1(opcode: u16) -> Instruction {
     Instruction::STM {
         registers: regs,
         rn: From::from(bits_8_11(opcode)),
+        wback: true,
     }
 }
 

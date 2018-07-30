@@ -322,6 +322,7 @@ pub enum Instruction {
     STM {
         rn: Reg,
         registers: EnumSet<Reg>,
+        wback : bool
     },
     STR_imm {
         rn: Reg,
@@ -817,7 +818,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::STM { rn, registers } => write!(f, "stm {}, {{{:?}}}", rn, registers),
+            Instruction::STM { rn, wback, registers } => write!(f, "stm {}{}, {{{:?}}}", rn, if wback {"!"} else {""}, registers),
             Instruction::STR_imm { rn, rt, imm32 } => {
                 if imm32 == 0 {
                     write!(f, "str {}, [{}]", rt, rn)

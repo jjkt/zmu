@@ -1160,7 +1160,7 @@ mod tests {
                 rn,
                 imm32,
                 setflags,
-                thumb32
+                thumb32,
             } => {
                 assert!(rd == Reg::SP);
                 assert!(rn == Reg::SP);
@@ -1183,11 +1183,13 @@ mod tests {
                 rn,
                 imm32,
                 setflags,
+                thumb32,
             } => {
                 assert!(rd == Reg::R2);
                 assert!(rn == Reg::R2);
                 assert!(imm32 == 48);
                 assert!(setflags == true);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -1561,10 +1563,11 @@ mod tests {
     fn test_decode_stm() {
         // STM R2!, {R0, R1}
         match decode_16(0xc203) {
-            Instruction::STM { rn, registers } => {
+            Instruction::STM { rn, registers, wback } => {
                 assert!(rn == Reg::R2);
                 let elems: Vec<_> = registers.iter().collect();
                 assert_eq!(vec![Reg::R0, Reg::R1], elems);
+                assert!(wback);
             }
             _ => {
                 assert!(false);
@@ -1576,10 +1579,11 @@ mod tests {
     fn test_decode_stm2() {
         // STM R3!, {R0-R2}
         match decode_16(0xc307) {
-            Instruction::STM { rn, registers } => {
+            Instruction::STM { rn, registers, wback } => {
                 assert!(rn == Reg::R3);
                 let elems: Vec<_> = registers.iter().collect();
                 assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
+                assert!(wback);
             }
             _ => {
                 assert!(false);
