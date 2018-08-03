@@ -330,6 +330,17 @@ impl<'a, T: Bus> Core<'a, T> {
         self.itstate = state;
     }
 
+    pub fn it_advance(&mut self) {
+        if self.itstate != 0 {
+            if self.itstate.get_bits(0..3) == 0 {
+                self.itstate = 0;
+            } else {
+                let it = self.itstate.get_bits(0..5);
+                self.itstate.set_bits(0..5, it << 1);
+            }
+        }
+    }
+
     fn push_stack(&mut self, return_address: u32) {
         const FRAME_SIZE: u32 = 0x20;
 
@@ -433,7 +444,9 @@ impl<'a, T: Bus> Core<'a, T> {
                 let pc = self.get_pc();
                 self.exception_entry(u8::from(Exception::HardFault), pc);
             }
-            None => {}
+            None => {
+                self.it_advance();
+            }
         }
     }
 }
