@@ -871,11 +871,31 @@ where
             ref rt,
             ref rn,
             imm32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + imm32;
+                let offset_address = if add {
+                    core.get_r(rn) + imm32
+                } else {
+                    core.get_r(rn) - imm32
+                };
+
+                let address = if index {
+                    offset_address
+                } else {
+                    core.get_r(rn)
+                };
+
                 let value = core.get_r(rt);
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
+
                 core.bus.write32(address, value);
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken

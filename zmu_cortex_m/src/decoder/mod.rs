@@ -1830,6 +1830,23 @@ mod tests {
     }
 
     #[test]
+    fn test_decode_strw_imm() {
+        // STR.W R4, [R3], #0x4
+        assert_eq!(
+            decode_32(0xf8434b04),
+            Instruction::STR_imm {
+                rt: Reg::R4,
+                rn: Reg::R3,
+                imm32 : 4,
+                index : false,
+                add : true,
+                wback : true,
+                thumb32: true
+            }
+        );
+    }
+
+    #[test]
     fn test_decode_cbz() {
         // CBZ R1, 0x3be4 (executed on addr 0x3bc2)
         assert_eq!(

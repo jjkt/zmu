@@ -328,6 +328,10 @@ pub enum Instruction {
         rn: Reg,
         rt: Reg,
         imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     STR_reg {
         rm: Reg,
@@ -829,7 +833,15 @@ impl fmt::Display for Instruction {
                 if wback { "!" } else { "" },
                 registers
             ),
-            Instruction::STR_imm { rn, rt, imm32 } => {
+            Instruction::STR_imm {
+                rn,
+                rt,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => {
                 if imm32 == 0 {
                     write!(f, "str {}, [{}]", rt, rn)
                 } else {
@@ -990,6 +1002,20 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::STR_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+
         Instruction::SUB_imm {
             rd,
             rn,
