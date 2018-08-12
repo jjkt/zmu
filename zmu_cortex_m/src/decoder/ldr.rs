@@ -59,7 +59,7 @@ pub fn decode_LDR_imm_t3(opcode: u32) -> Instruction {
     Instruction::LDR_imm {
         rt: From::from(opcode.get_bits(12..16) as u8),
         rn: From::from(opcode.get_bits(16..20) as u8),
-        imm32: opcode.get_bits(0..12) << 2,
+        imm32: opcode.get_bits(0..12),
         index: true,
         add: true,
         wback: false,
