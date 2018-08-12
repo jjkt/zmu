@@ -10,12 +10,23 @@ use semihosting::semihost_return;
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
 
+pub enum ExecuteResult {
+    // Instruction execution resulted in a fault.
+    Fault { fault: Fault },
+    // The instruction was taken normally
+    Taken { cycles: u64 },
+    // The instruction was not taken as the condition did not pass
+    NotTaken,
+    // The execution branched to a new address, pc was set accordingly
+    Branched { cycles: u64 },
+}
+
 #[allow(unused_variables)]
 pub fn execute<T: Bus, F>(
     mut core: &mut Core<T>,
     instruction: &Instruction,
     mut semihost_func: F,
-) -> Option<Fault>
+) -> ExecuteResult
 where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
@@ -39,10 +50,9 @@ where
                 }
 
                 core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::ASR_imm {
             ref rd,
@@ -67,10 +77,9 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::ASR_reg {
             ref rd,
@@ -93,10 +102,9 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::BIC_reg {
             ref rd,
@@ -112,10 +120,9 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::CPS { ref im } => {
             if im == &CpsEffect::IE {
@@ -123,9 +130,7 @@ where
             } else {
                 core.primask = true;
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            return ExecuteResult::Taken { cycles: 1 };
         }
         Instruction::CBZ {
             ref rn,
@@ -135,35 +140,28 @@ where
             if nonzero ^ (core.get_r(rn) == 0) {
                 let pc = core.get_r(&Reg::PC);
                 core.branch_write_pc(pc + imm32);
+                return ExecuteResult::Branched { cycles: 1 };
             } else {
-                core.add_pc(2);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.cycle_count += 1;
-            None
         }
         Instruction::DMB => {
             if core.condition_passed() {
-                //TODO
+                return ExecuteResult::Taken { cycles: 4 };
             }
-            core.add_pc(2);
-            core.cycle_count += 4;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::DSB => {
             if core.condition_passed() {
-                //TODO
+                return ExecuteResult::Taken { cycles: 4 };
             }
-            core.add_pc(2);
-            core.cycle_count += 4;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::ISB => {
             if core.condition_passed() {
-                //TODO
+                return ExecuteResult::Taken { cycles: 4 };
             }
-            core.add_pc(2);
-            core.cycle_count += 4;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::IT {
             ref x,
@@ -173,9 +171,7 @@ where
             ref mask,
         } => {
             core.set_itstate((((firstcond.value() as u32) << 4) + *mask as u32) as u8);
-            core.add_pc(2);
-            core.cycle_count += 4;
-            None
+            return ExecuteResult::Taken { cycles: 4 };
         }
 
         Instruction::MRS {
@@ -198,12 +194,10 @@ where
                     //CONTROL => core.set_r(rd,core.control as u32),
                     _ => panic!("unsupported MRS operation"),
                 }
-                //TODO
+                return ExecuteResult::Taken { cycles: 4 };
             }
 
-            core.add_pc(4);
-            core.cycle_count += 4;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::MSR_reg {
             ref rn,
@@ -232,10 +226,9 @@ where
                     //CONTROL => core.set_r(rd,core.control as u32),
                     _ => panic!("unsupported MSR operation"),
                 }
+                return ExecuteResult::Taken { cycles: 4 };
             }
-            core.add_pc(4);
-            core.cycle_count += 4;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::MOV_reg {
             ref rd,
@@ -251,14 +244,13 @@ where
                         core.psr.set_n(result);
                         core.psr.set_z(result);
                     }
-                    core.add_pc(2);
+                    return ExecuteResult::Taken { cycles: 1 };
+                } else {
+                    unimplemented!()
                 }
-            } else {
-                core.add_pc(2);
             }
 
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::LSL_imm {
             ref rd,
@@ -281,10 +273,9 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LSL_reg {
@@ -308,10 +299,9 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LSR_imm {
@@ -335,10 +325,9 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LSR_reg {
@@ -362,11 +351,10 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
 
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::BL { imm32 } => {
@@ -375,11 +363,10 @@ where
                 core.set_r(&Reg::LR, pc | 0x01);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
-                core.cycle_count += 4;
-            } else {
-                core.add_pc(4);
+                return ExecuteResult::Branched { cycles: 4 };
             }
-            None
+
+            ExecuteResult::NotTaken
         }
 
         Instruction::BKPT { imm32 } => {
@@ -390,15 +377,11 @@ where
                 let semihost_response = semihost_func(&semihost_cmd);
                 semihost_return(&mut core, &semihost_response);
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            return ExecuteResult::Taken { cycles: 1 };
         }
 
         Instruction::NOP => {
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            return ExecuteResult::Taken { cycles: 1 };
         }
 
         Instruction::MUL {
@@ -419,11 +402,9 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            // TODO or 32 if multiplier implementation is the cheaper one
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::ORR_reg {
@@ -444,10 +425,9 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::ORR_imm {
             ref rd,
@@ -474,11 +454,10 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
 
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::AND_reg {
@@ -499,21 +478,18 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::BX { ref rm } => {
             if core.condition_passed() {
                 let r_m = core.get_r(rm);
                 core.bx_write_pc(r_m);
-            } else {
-                core.add_pc(2);
+                return ExecuteResult::Branched { cycles: 3 };
             }
-            core.cycle_count += 3;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::BLX { ref rm } => {
@@ -522,11 +498,9 @@ where
                 let target = core.get_r(rm);
                 core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
                 core.blx_write_pc(target);
-            } else {
-                core.add_pc(2);
+                return ExecuteResult::Branched { cycles: 3 };
             }
-            core.cycle_count += 3;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDM {
@@ -553,15 +527,13 @@ where
                 if !registers.contains(rn) {
                     core.add_r(rn, regs_size);
                 }
-                core.cycle_count += 1 + registers.len() as u64;
-                if !branched {
-                    core.add_pc(2);
+                let cc = 1 + registers.len() as u64;
+                if branched {
+                    return ExecuteResult::Branched { cycles: cc };
                 }
-            } else {
-                core.cycle_count += 1;
-                core.add_pc(2);
+                return ExecuteResult::Taken { cycles: cc };
             }
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::MOV_imm {
             ref rd,
@@ -575,10 +547,9 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::MVN_reg {
@@ -594,10 +565,9 @@ where
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::MVN_imm {
             ref rd,
@@ -609,12 +579,9 @@ where
             let pc = core.get_r(&Reg::PC);
             let target = ((pc as i32) + imm32) as u32;
             core.branch_write_pc(target);
-            core.cycle_count += 3;
-            None
+            return ExecuteResult::Branched { cycles: 3 };
         } else {
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         },
 
         Instruction::CMP_imm { ref rn, imm32 } => {
@@ -625,10 +592,9 @@ where
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::CMP_reg { ref rn, ref rm } => {
@@ -639,10 +605,9 @@ where
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::CMN_reg { ref rn, ref rm } => {
@@ -653,10 +618,9 @@ where
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
                 core.psr.set_v(overflow);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::PUSH { ref registers } => {
@@ -672,12 +636,11 @@ where
                 }
 
                 core.set_r(&Reg::SP, sp - regs_size);
-                core.cycle_count += 1 + registers.len() as u64;
-            } else {
-                core.cycle_count += 1;
+                return ExecuteResult::Taken {
+                    cycles: 1 + registers.len() as u64,
+                };
             }
-            core.add_pc(2);
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::POP { ref registers } => {
@@ -699,16 +662,16 @@ where
 
                 core.set_r(&Reg::SP, sp + regs_size);
                 if registers.contains(&Reg::PC) {
-                    core.cycle_count += 4 + registers.len() as u64;
+                    return ExecuteResult::Branched {
+                        cycles: 4 + registers.len() as u64,
+                    };
                 } else {
-                    core.cycle_count += 1 + registers.len() as u64;
-                    core.add_pc(2);
+                    return ExecuteResult::Taken {
+                        cycles: 1 + registers.len() as u64,
+                    };
                 }
-            } else {
-                core.cycle_count += 1;
-                core.add_pc(2);
             }
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDR_imm {
@@ -740,24 +703,13 @@ where
 
                 if rt == &Reg::PC {
                     core.load_write_pc(data);
+                    return ExecuteResult::Branched { cycles: 1 };
                 } else {
                     core.set_r(rt, data);
-                    if thumb32 {
-                        core.add_pc(4);
-                    } else {
-                        core.add_pc(2);
-                    }
-                }
-            } else {
-                if thumb32 {
-                    core.add_pc(4);
-                } else {
-                    core.add_pc(2);
+                    return ExecuteResult::Taken { cycles: 1 };
                 }
             }
-
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDR_reg {
@@ -771,15 +723,13 @@ where
 
                 if rt == &Reg::PC {
                     core.load_write_pc(value);
+                    return ExecuteResult::Branched { cycles: 2 };
                 } else {
                     core.set_r(rt, value);
-                    core.add_pc(2);
+                    return ExecuteResult::Taken { cycles: 2 };
                 }
-            } else {
-                core.add_pc(2);
             }
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDRB_imm {
@@ -791,10 +741,9 @@ where
                 let address = core.get_r(rn) + imm32;
                 let value = u32::from(core.bus.read8(address));
                 core.set_r(rt, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDRB_reg {
@@ -806,10 +755,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = u32::from(core.bus.read8(address));
                 core.set_r(rt, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDRH_imm {
@@ -821,10 +769,9 @@ where
                 let address = core.get_r(rn) + imm32;
                 let value = u32::from(core.bus.read16(address));
                 core.set_r(rt, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDRH_reg {
@@ -836,10 +783,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = u32::from(core.bus.read16(address));
                 core.set_r(rt, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDRSH_reg {
@@ -851,10 +797,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let data = u32::from(core.bus.read16(address));
                 core.set_r(rt, sign_extend(data, 15, 32) as u32);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDRSB_reg {
@@ -866,10 +811,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let data = u32::from(core.bus.read8(address));
                 core.set_r(rt, sign_extend(data, 7, 32) as u32);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::SBC_reg {
@@ -892,10 +836,9 @@ where
                 }
 
                 core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STM {
@@ -917,13 +860,11 @@ where
                 if wback {
                     core.add_r(rn, regs_size);
                 }
-                core.cycle_count += 1 + registers.len() as u64;
-            } else {
-                core.cycle_count += 1;
+                return ExecuteResult::Taken {
+                    cycles: 1 + registers.len() as u64,
+                };
             }
-
-            core.add_pc(2);
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STR_imm {
@@ -935,10 +876,9 @@ where
                 let address = core.get_r(rn) + imm32;
                 let value = core.get_r(rt);
                 core.bus.write32(address, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STR_reg {
@@ -950,10 +890,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = core.get_r(rt);
                 core.bus.write32(address, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STRB_reg {
@@ -965,10 +904,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = core.get_r(rt);
                 core.bus.write8(address, value.get_bits(0..8) as u8);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STRB_imm {
@@ -980,10 +918,9 @@ where
                 let address = core.get_r(rn) + imm32;
                 let value = core.get_r(rt);
                 core.bus.write8(address, value.get_bits(0..8) as u8);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STRH_imm {
@@ -995,10 +932,9 @@ where
                 let address = core.get_r(rn) + imm32;
                 let value = core.get_r(rt);
                 core.bus.write16(address, value.get_bits(0..16) as u16);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::STRH_reg {
@@ -1010,10 +946,9 @@ where
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = core.get_r(rt);
                 core.bus.write16(address, value.get_bits(0..16) as u16);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            core.add_pc(2);
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::LDR_lit {
@@ -1025,14 +960,9 @@ where
                 let base = core.get_r(&Reg::PC) & 0xffff_fffc;
                 let value = core.bus.read32(base + imm32);
                 core.set_r(rt, value);
+                return ExecuteResult::Taken { cycles: 2 };
             }
-            if thumb32 {
-                core.add_pc(4);
-            } else {
-                core.add_pc(2);
-            }
-            core.cycle_count += 2;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::ADD_reg {
@@ -1047,7 +977,7 @@ where
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
-                    core.cycle_count += 3;
+                    return ExecuteResult::Branched { cycles: 3 };
                 } else {
                     if *setflags {
                         core.psr.set_n(result);
@@ -1056,13 +986,11 @@ where
                         core.psr.set_v(overflow);
                     }
                     core.set_r(rd, result);
-                    core.add_pc(2);
+                    return ExecuteResult::Taken { cycles: 1 };
                 }
             } else {
-                core.add_pc(2);
+                ExecuteResult::NotTaken
             }
-            core.cycle_count += 1;
-            None
         }
 
         Instruction::ADD_imm {
@@ -1083,20 +1011,18 @@ where
                 }
 
                 core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::ADR { ref rd, imm32 } => {
             if core.condition_passed() {
                 let result = (core.get_r(&Reg::PC) & 0xffff_fffc) + imm32;
                 core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::RSB_imm {
@@ -1117,10 +1043,9 @@ where
                 }
 
                 core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::SUB_imm {
@@ -1142,14 +1067,9 @@ where
                 }
 
                 core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            if thumb32 {
-                core.add_pc(4);
-            } else {
-                core.add_pc(2);
-            }
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::SUB_reg {
@@ -1173,14 +1093,9 @@ where
                     core.psr.set_c(carry);
                     core.psr.set_v(overflow);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            if thumb32 {
-                core.add_pc(4);
-            } else {
-                core.add_pc(2);
-            }
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::TST_reg { ref rn, ref rm } => {
@@ -1190,50 +1105,45 @@ where
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 //core.psr.set_c(carry); carry = shift_c()
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::UXTB { ref rd, ref rm } => {
             if core.condition_passed() {
                 let rotated = core.get_r(rm);
                 core.set_r(rd, rotated.get_bits(0..8));
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::UXTH { ref rd, ref rm } => {
             if core.condition_passed() {
                 let rotated = core.get_r(rm);
                 core.set_r(rd, rotated.get_bits(0..16));
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::SXTB { ref rd, ref rm } => {
             if core.condition_passed() {
                 let rotated = core.get_r(rm);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         Instruction::SXTH { ref rd, ref rm } => {
             if core.condition_passed() {
                 let rotated = core.get_r(rm);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::REV { ref rd, ref rm } => {
             if core.condition_passed() {
@@ -1245,10 +1155,9 @@ where
                         + ((rm_ & 0xff_0000) >> 8)
                         + ((rm_ & 0xff00_0000) >> 24),
                 );
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::REV16 { ref rd, ref rm } => {
             if core.condition_passed() {
@@ -1260,10 +1169,9 @@ where
                         + ((rm_ & 0xff_0000) << 8)
                         + ((rm_ & 0xff00_0000) >> 8),
                 );
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::REVSH { ref rd, ref rm } => {
             if core.condition_passed() {
@@ -1272,10 +1180,9 @@ where
                     rd,
                     ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
                 );
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::ROR_reg {
             ref rd,
@@ -1297,50 +1204,44 @@ where
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
                 }
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::SVC { ref imm32 } => {
             if core.condition_passed() {
                 println!("SVC {}", imm32);
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::SEV => {
             if core.condition_passed() {
                 println!("SEV");
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::WFE => {
             if core.condition_passed() {
                 //TODO
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.cycle_count += 1;
-            core.add_pc(2);
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::WFI => {
             if core.condition_passed() {
                 //TODO
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.cycle_count += 1;
-            core.add_pc(2);
-            None
+            ExecuteResult::NotTaken
         }
         Instruction::YIELD => {
             if core.condition_passed() {
                 println!("YIELD");
+                return ExecuteResult::Taken { cycles: 1 };
             }
-            core.add_pc(2);
-            core.cycle_count += 1;
-            None
+            ExecuteResult::NotTaken
         }
 
         // ARMv7-M

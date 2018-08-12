@@ -12,6 +12,8 @@ use bus::Bus;
 use core::condition::Condition;
 use core::exception::Exception;
 use core::executor::execute;
+use core::executor::ExecuteResult;
+use core::instruction::instruction_size;
 use core::instruction::Instruction;
 use core::operation::condition_test;
 use core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
@@ -439,12 +441,26 @@ impl<'a, T: Bus> Core<'a, T> {
         F: FnMut(&SemihostingCommand) -> SemihostingResponse,
     {
         match execute(self, instruction, semihost_func) {
-            Some(_fault) => {
+            ExecuteResult::Fault { fault : _ } => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
                 self.exception_entry(u8::from(Exception::HardFault), pc);
             }
-            None => {
+            ExecuteResult::NotTaken => {
+                let step = instruction_size(instruction);
+                self.add_pc(step as u32);
+                self.cycle_count += 1;
+                self.it_advance();
+            }
+            ExecuteResult::Branched { cycles } => {
+                self.cycle_count += cycles;
+                //TODO: check following?
+                self.it_advance();
+            }
+            ExecuteResult::Taken { cycles } => {
+                let step = instruction_size(instruction);
+                self.add_pc(step as u32);
+                self.cycle_count += cycles;
                 self.it_advance();
             }
         }

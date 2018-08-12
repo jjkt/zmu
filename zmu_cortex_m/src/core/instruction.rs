@@ -322,7 +322,7 @@ pub enum Instruction {
     STM {
         rn: Reg,
         registers: EnumSet<Reg>,
-        wback : bool
+        wback: bool,
     },
     STR_imm {
         rn: Reg,
@@ -818,7 +818,17 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::STM { rn, wback, registers } => write!(f, "stm {}{}, {{{:?}}}", rn, if wback {"!"} else {""}, registers),
+            Instruction::STM {
+                rn,
+                wback,
+                registers,
+            } => write!(
+                f,
+                "stm {}{}, {{{:?}}}",
+                rn,
+                if wback { "!" } else { "" },
+                registers
+            ),
             Instruction::STR_imm { rn, rt, imm32 } => {
                 if imm32 == 0 {
                     write!(f, "str {}, [{}]", rt, rn)
@@ -956,5 +966,57 @@ impl fmt::Display for ITCondition {
             ITCondition::Then => write!(f, "t"),
             ITCondition::Else => write!(f, "e"),
         }
+    }
+}
+
+#[allow(unused_variables)]
+pub fn instruction_size(instruction: &Instruction) -> usize {
+    match instruction {
+        Instruction::LDR_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::LDR_lit { rt, imm32, thumb32 } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::SUB_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::SUB_reg {
+            rm,
+            rn,
+            rd,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::MSR_reg { rn, spec_reg } => 4,
+        Instruction::MRS { rd, spec_reg } => 4,
+        Instruction::BL { imm32 } => 4,
+        _ => 2,
     }
 }
