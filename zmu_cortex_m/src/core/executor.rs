@@ -623,7 +623,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::PUSH { ref registers } => {
+        Instruction::PUSH { ref registers, thumb32 } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
                 let sp = core.get_r(&Reg::SP);

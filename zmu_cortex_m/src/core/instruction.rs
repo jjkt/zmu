@@ -287,6 +287,7 @@ pub enum Instruction {
     },
     PUSH {
         registers: EnumSet<Reg>,
+        thumb32: bool,
     },
     REV {
         rd: Reg,
@@ -778,7 +779,9 @@ impl fmt::Display for Instruction {
                 imm32
             ),
             Instruction::POP { registers } => write!(f, "pop {:?}", registers),
-            Instruction::PUSH { registers } => write!(f, "push {:?}", registers),
+            Instruction::PUSH { thumb32, registers } => {
+                write!(f, "push{} {:?}", if thumb32 { ".W" } else { "" }, registers)
+            }
             Instruction::REV { rd, rm } => write!(f, "rev {}, {}", rd, rm),
             Instruction::REV16 { rd, rm } => write!(f, "rev16 {}, {}", rd, rm),
             Instruction::REVSH { rd, rm } => write!(f, "revsh {}, {}", rd, rm),
@@ -998,6 +1001,11 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::LDR_lit { rt, imm32, thumb32 } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::PUSH { thumb32, registers } => if *thumb32 {
             4
         } else {
             2

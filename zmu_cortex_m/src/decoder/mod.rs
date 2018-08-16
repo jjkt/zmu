@@ -1027,9 +1027,10 @@ mod tests {
     fn test_decode_push() {
         // PUSH  {R4, LR}
         match decode_16(0xb510) {
-            Instruction::PUSH { registers } => {
+            Instruction::PUSH { registers, thumb32 } => {
                 let elems: Vec<_> = registers.iter().collect();
                 assert_eq!(vec![Reg::R4, Reg::LR], elems);
+                assert_eq!(thumb32, false);
             }
             _ => {
                 assert!(false);
@@ -1563,7 +1564,11 @@ mod tests {
     fn test_decode_stm() {
         // STM R2!, {R0, R1}
         match decode_16(0xc203) {
-            Instruction::STM { rn, registers, wback } => {
+            Instruction::STM {
+                rn,
+                registers,
+                wback,
+            } => {
                 assert!(rn == Reg::R2);
                 let elems: Vec<_> = registers.iter().collect();
                 assert_eq!(vec![Reg::R0, Reg::R1], elems);
@@ -1579,7 +1584,11 @@ mod tests {
     fn test_decode_stm2() {
         // STM R3!, {R0-R2}
         match decode_16(0xc307) {
-            Instruction::STM { rn, registers, wback } => {
+            Instruction::STM {
+                rn,
+                registers,
+                wback,
+            } => {
                 assert!(rn == Reg::R3);
                 let elems: Vec<_> = registers.iter().collect();
                 assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
@@ -1837,10 +1846,10 @@ mod tests {
             Instruction::STR_imm {
                 rt: Reg::R4,
                 rn: Reg::R3,
-                imm32 : 4,
-                index : false,
-                add : true,
-                wback : true,
+                imm32: 4,
+                index: false,
+                add: true,
+                wback: true,
                 thumb32: true
             }
         );
@@ -1872,6 +1881,36 @@ mod tests {
                 mask: 0x4
             }
         );
+    }
+
+    #[test]
+    fn test_decode_pushw() {
+        // PUSH.W {R4-R11, LR}
+        // PUSH  {R4, LR}
+        match decode_32(0xe92d4ff0) {
+            Instruction::PUSH { registers, thumb32 } => {
+                let elems: Vec<_> = registers.iter().collect();
+                assert_eq!(
+                    vec![
+                        Reg::R4,
+                        Reg::R5,
+                        Reg::R6,
+                        Reg::R7,
+                        Reg::R8,
+                        Reg::R9,
+                        Reg::R10,
+                        Reg::R11,
+                        Reg::LR,
+                    ],
+                    elems
+                );
+
+                assert_eq!(thumb32, true);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
     }
 
 }
