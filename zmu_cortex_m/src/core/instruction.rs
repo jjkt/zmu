@@ -996,6 +996,17 @@ impl fmt::Display for ITCondition {
 #[allow(unused_variables)]
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
+        Instruction::ADD_imm {
+            rn,
+            rd,
+            imm32,
+            setflags,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::LDR_imm {
             rt,
             rn,
