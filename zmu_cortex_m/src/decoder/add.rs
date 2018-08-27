@@ -46,6 +46,7 @@ pub fn decode_ADD_imm_t1(command: u16) -> Instruction {
         rn: From::from(bits_3_6(command)),
         imm32: bits_6_9(command) as u32,
         setflags: true,
+        thumb32: false
     }
 }
 
@@ -57,6 +58,7 @@ pub fn decode_ADD_imm_t2(command: u16) -> Instruction {
         rd: From::from(bits_8_11(command)),
         imm32: bits_0_8(command) as u32,
         setflags: true,
+        thumb32: false
     }
 }
 
@@ -68,6 +70,7 @@ pub fn decode_ADD_SP_imm_t1(command: u16) -> Instruction {
         rn: Reg::SP,
         imm32: (bits_0_8(command) as u32) << 2,
         setflags: false,
+        thumb32: false
     }
 }
 
@@ -79,6 +82,7 @@ pub fn decode_ADD_SP_imm_t2(command: u16) -> Instruction {
         rn: Reg::SP,
         imm32: (bits_0_7(command) as u32) << 2,
         setflags: false,
+        thumb32: false
     }
 }
 
@@ -93,6 +97,7 @@ pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
         rn: Reg::from(rn),
         imm32: thumb_expand_imm(),
         setflags: s == 1,
+        thumb32: true
     }
 }
 

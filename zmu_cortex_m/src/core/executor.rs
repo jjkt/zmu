@@ -1018,6 +1018,7 @@ where
             ref rd,
             imm32,
             ref setflags,
+            thumb32
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);

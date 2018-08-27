@@ -33,6 +33,7 @@ pub enum Instruction {
         rd: Reg,
         imm32: u32,
         setflags: bool,
+        thumb32: bool
     },
     ADD_reg {
         rd: Reg,
@@ -454,11 +455,13 @@ impl fmt::Display for Instruction {
                 rd,
                 imm32,
                 setflags,
+                thumb32
             } => {
                 if rn == rd {
                     write!(
                         f,
-                        "add{} {}, #{}",
+                        "add{}{} {}, #{}",
+                        if thumb32 { ".W" } else { "" },
                         if setflags { "s" } else { "" },
                         rd,
                         imm32
@@ -466,7 +469,8 @@ impl fmt::Display for Instruction {
                 } else {
                     write!(
                         f,
-                        "add{} {}, {}, #{}",
+                        "add{}{} {}, {}, #{}",
+                        if thumb32 { ".W" } else { "" },
                         if setflags { "s" } else { "" },
                         rd,
                         rn,

@@ -481,8 +481,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDR_reg_t2(opcode)
     } else if (opcode & 0xffffa000) == 0xe92d0000 {
         decode_PUSH_t2(opcode)
-    } else if (opcode & 0xffef8030) == 0xea4f0010 {
-        decode_LSR_imm_t2(opcode)
     } else if (opcode & 0xfff00fc0) == 0xf8400000 {
         decode_STR_reg_t2(opcode)
     } else if (opcode & 0xfff00fc0) == 0xf8300000 {
@@ -493,6 +491,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_BFC_t1(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0020 {
         decode_ASR_imm_t2(opcode)
+    } else if (opcode & 0xffef8030) == 0xea4f0010 {
+        decode_LSR_imm_t2(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0000 {
         decode_LSL_imm_t2(opcode)
     } else if (opcode & 0xffff2000) == 0xe8bd0000 {
@@ -509,6 +509,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_CMN_imm_t1(opcode)
     } else if (opcode & 0xfbff8000) == 0xf20f0000 {
         decode_ADR_t3(opcode)
+    } else if (opcode & 0xfbff8000) == 0xf2ad0000 {
+        decode_SUB_SP_imm_t3(opcode)
     } else if (opcode & 0xfbf08f00) == 0xf1b00f00 {
         decode_CMP_imm_t2(opcode)
     } else if (opcode & 0xfff000f0) == 0xfbe00000 {
@@ -555,14 +557,16 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_RSB_imm_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf85f0000 {
         decode_LDR_lit_t2(opcode)
-    } else if (opcode & 0xfbef8000) == 0xf06f0000 {
-        decode_MVN_imm_t1(opcode)
     } else if (opcode & 0xff7f0000) == 0xf83f0000 {
         decode_LDRH_lit_t1(opcode)
+    } else if (opcode & 0xfbef8000) == 0xf06f0000 {
+        decode_MVN_imm_t1(opcode)
     } else if (opcode & 0xff7f0000) == 0xf81f0000 {
         decode_LDRB_lit_t1(opcode)
     } else if (opcode & 0xff7f0000) == 0xf91f0000 {
         decode_LDRSB_lit_t1(opcode)
+    } else if (opcode & 0xfbef8000) == 0xf1ad0000 {
+        decode_SUB_SP_imm_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf93f0000 {
         decode_LDRSH_lit_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3600000 {
@@ -651,14 +655,14 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_AND_reg_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xeb400000 {
         decode_ADC_reg_t2(opcode)
-    } else if (opcode & 0xffe08000) == 0xea200000 {
-        decode_BIC_reg_t2(opcode)
     } else if (opcode & 0xffd02000) == 0xe8900000 {
         decode_LDM_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8800000 {
         decode_STRB_imm_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8b00000 {
         decode_LDRH_imm_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xea200000 {
+        decode_BIC_reg_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8a00000 {
         decode_STRH_imm_t2(opcode)
     } else if (opcode & 0xfbf08000) == 0xf2a00000 {
@@ -1119,11 +1123,13 @@ mod tests {
                 rd,
                 imm32,
                 setflags,
+                thumb32
             } => {
                 assert!(rn == Reg::R1);
                 assert!(rd == Reg::R1);
                 assert!(imm32 == 24);
                 assert!(setflags);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -1140,11 +1146,13 @@ mod tests {
                 rd,
                 imm32,
                 setflags,
+                thumb32
             } => {
                 assert!(rn == Reg::SP);
                 assert!(rd == Reg::R1);
                 assert!(imm32 == 0xc);
                 assert!(setflags == false);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -1911,6 +1919,21 @@ mod tests {
                 assert!(false);
             }
         }
+    }
+
+    #[test]
+    fn test_decode_subw_imm() {
+        // SUBW SP,SP,#2084
+        assert_eq!(
+            decode_32(0xf6ad0d24),
+            Instruction::SUB_imm {
+                rd: Reg::SP,
+                rn: Reg::SP,
+                imm32: 2084,
+                setflags: false,
+                thumb32: true
+            }
+        );
     }
 
 }

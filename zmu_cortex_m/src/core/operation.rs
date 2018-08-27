@@ -172,8 +172,17 @@ pub fn thumb_expand_imm_c() -> u32 {
     0
 }
 
-pub fn zero_extend() -> u32 {
-    0
+pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
+    assert_eq!(params.len(), lengths.len());
+
+    let mut result : u32 = 0;
+    let mut shift = 0;
+    for (param, length) in params.iter().rev().zip(lengths.iter().rev()) {
+        result += (*param as u32) << shift;
+        shift += length;
+    }
+
+    result
 }
 
 pub fn build_imm_10_11(opcode: u32) -> i32 {

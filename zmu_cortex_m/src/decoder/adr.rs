@@ -1,7 +1,7 @@
-use core::instruction::Instruction;
 use core::bits::*;
-use core::register::Reg;
+use core::instruction::Instruction;
 use core::operation::zero_extend;
+use core::register::Reg;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -21,14 +21,15 @@ pub fn decode_ADR_t2(_opcode: u32) -> Instruction {
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_ADR_t3(opcode: u32) -> Instruction {
+    let i: u8 = opcode.get_bits(26, 26);
+    let imm3: u8 = opcode.get_bits(12, 14);
+    let rd: u8 = opcode.get_bits(8, 11);
+    let imm8: u8 = opcode.get_bits(0, 7);
 
-    let _i : u8 =  opcode.get_bits(26,26);
-    let _imm3 : u8 =  opcode.get_bits(12,14);
-    let rd : u8 =  opcode.get_bits(8,11);
-    let _imm8 : u8 =  opcode.get_bits(0,7);
-
+    let params = [i, imm3, imm8];
+    let lengths = [1, 3, 8];
     Instruction::ADR {
         rd: Reg::from(rd),
-        imm32: zero_extend(/*{i, 1}, {imm3, 3}, {imm8, 8}, 32*/),
+        imm32: zero_extend(&params, &lengths),
     }
 }
