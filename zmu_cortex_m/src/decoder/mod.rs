@@ -1936,4 +1936,16 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_decode_tbb() {
+        // TBB [PC, R0]
+        assert_eq!(
+            decode_32(0xe8dff000),
+            Instruction::TBB {
+                rn: Reg::PC,
+                rm: Reg::R0,
+            }
+        );
+    }
+
 }

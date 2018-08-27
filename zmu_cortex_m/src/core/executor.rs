@@ -1118,6 +1118,19 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::TBB { ref rn, ref rm } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
+                let pc = core.get_r(&Reg::PC);
+                let halfwords = u32::from(core.bus.read8(r_n + r_m));
+
+                core.branch_write_pc(pc + 2*halfwords);
+
+                return ExecuteResult::Branched { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::TST_reg { ref rn, ref rm } => {
             if core.condition_passed() {

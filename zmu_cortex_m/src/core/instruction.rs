@@ -33,7 +33,7 @@ pub enum Instruction {
         rd: Reg,
         imm32: u32,
         setflags: bool,
-        thumb32: bool
+        thumb32: bool,
     },
     ADD_reg {
         rd: Reg,
@@ -391,6 +391,10 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
     },
+    TBB {
+        rn: Reg,
+        rm: Reg,
+    },
     UDF {
         imm32: u32,
         opcode: ThumbCode,
@@ -455,7 +459,7 @@ impl fmt::Display for Instruction {
                 rd,
                 imm32,
                 setflags,
-                thumb32
+                thumb32,
             } => {
                 if rn == rd {
                     write!(
@@ -920,6 +924,7 @@ impl fmt::Display for Instruction {
             Instruction::SVC { imm32 } => write!(f, "svc #{}", imm32),
             Instruction::SXTB { rd, rm } => write!(f, "sxtb {}, {}", rd, rm),
             Instruction::SXTH { rd, rm } => write!(f, "sxth {}, {}", rd, rm),
+            Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
             Instruction::TST_reg { rn, rm } => write!(f, "tst {}, {}", rn, rm),
             Instruction::UDF { imm32, ref opcode } => {
                 write!(f, "udf {} (opcode = {})", imm32, opcode)
@@ -1055,6 +1060,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::MSR_reg { rn, spec_reg } => 4,
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::BL { imm32 } => 4,
+        Instruction::TBB { rn, rm } => 4,
         _ => 2,
     }
 }
