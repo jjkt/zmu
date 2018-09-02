@@ -1123,7 +1123,7 @@ mod tests {
                 rd,
                 imm32,
                 setflags,
-                thumb32
+                thumb32,
             } => {
                 assert!(rn == Reg::R1);
                 assert!(rd == Reg::R1);
@@ -1146,7 +1146,7 @@ mod tests {
                 rd,
                 imm32,
                 setflags,
-                thumb32
+                thumb32,
             } => {
                 assert!(rn == Reg::SP);
                 assert!(rd == Reg::R1);
@@ -1476,16 +1476,18 @@ mod tests {
     #[test]
     fn test_decode_strh_imm() {
         // STRH R0, [R1, #0x38]
-        match decode_16(0x8708) {
-            Instruction::STRH_imm { rt, rn, imm32 } => {
-                assert!(rt == Reg::R0);
-                assert!(rn == Reg::R1);
-                assert!(imm32 == 0x38);
+        assert_eq!(
+            decode_16(0x8708),
+            Instruction::STRH_imm {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                imm32: 0x38,
+                thumb32: false,
+                index: true,
+                add: true,
+                wback: false,
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
@@ -1944,6 +1946,23 @@ mod tests {
             Instruction::TBB {
                 rn: Reg::PC,
                 rm: Reg::R0,
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_strh_w() {
+        // STRH.W R0, [SP, #0x10]
+        assert_eq!(
+            decode_32(0xf8ad0010),
+            Instruction::STRH_imm {
+                rt: Reg::R0,
+                rn: Reg::SP,
+                imm32: 0x10,
+                thumb32: true,
+                index: true,
+                add: true,
+                wback: false,
             }
         );
     }

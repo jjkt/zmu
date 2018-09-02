@@ -354,6 +354,10 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     STRH_reg {
         rm: Reg,
@@ -868,12 +872,52 @@ impl fmt::Display for Instruction {
                 }
             }
             Instruction::STRB_reg { rn, rm, rt } => write!(f, "strb {}, [{}, {}]", rt, rn, rm),
-            Instruction::STRH_imm { rt, rn, imm32 } => {
-                if imm32 == 0 {
-                    write!(f, "strh {}, [{}]", rt, rn)
+            Instruction::STRH_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => {
+                let result = if index {
+                    if !wback {
+                        // Offset
+                        write!(
+                            f,
+                            "strh{} {}, [{} {{, #{}{}}}]",
+                            if thumb32 { ".W" } else { "" },
+                            rt,
+                            rn,
+                            if add { "+" } else { "-" },
+                            imm32
+                        )
+                    } else {
+                        // Pre-indexed
+                        write!(
+                            f,
+                            "strh{} {}, [{} , #{}{}]!",
+                            if thumb32 { ".W" } else { "" },
+                            rt,
+                            rn,
+                            if add { "+" } else { "-" },
+                            imm32
+                        )
+                    }
                 } else {
-                    write!(f, "strh {}, [{}, #{}]", rt, rn, imm32)
-                }
+                    // Post-indexed
+                    write!(
+                        f,
+                        "strh{} {}, [{}], #{}{}",
+                        if thumb32 { ".W" } else { "" },
+                        rt,
+                        rn,
+                        if add { "+" } else { "-" },
+                        imm32
+                    )
+                };
+                result
             }
             Instruction::STRH_reg { rn, rm, rt } => write!(f, "strh {}, [{}, {}]", rt, rn, rm),
             Instruction::SUB_imm {
@@ -1062,6 +1106,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             setflags,
             shift_t,
             shift_n,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::STRH_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
             thumb32,
         } => if *thumb32 {
             4

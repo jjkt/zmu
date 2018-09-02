@@ -623,7 +623,10 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::PUSH { ref registers, thumb32 } => {
+        Instruction::PUSH {
+            ref registers,
+            thumb32,
+        } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
                 let sp = core.get_r(&Reg::SP);
@@ -947,11 +950,31 @@ where
             ref rt,
             ref rn,
             imm32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + imm32;
+                let offset_address = if add {
+                    core.get_r(rn) + imm32
+                } else {
+                    core.get_r(rn) - imm32
+                };
+
+                let address = if index {
+                    offset_address
+                } else {
+                    core.get_r(rn)
+                };
+
                 let value = core.get_r(rt);
                 core.bus.write16(address, value.get_bits(0..16) as u16);
+
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken
@@ -1018,7 +1041,7 @@ where
             ref rd,
             imm32,
             ref setflags,
-            thumb32
+            thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -1125,7 +1148,7 @@ where
                 let pc = core.get_r(&Reg::PC);
                 let halfwords = u32::from(core.bus.read8(r_n + r_m));
 
-                core.branch_write_pc(pc + 2*halfwords);
+                core.branch_write_pc(pc + 2 * halfwords);
 
                 return ExecuteResult::Branched { cycles: 1 };
             }
