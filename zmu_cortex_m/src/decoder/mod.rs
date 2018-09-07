@@ -551,10 +551,10 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDREX_t1(opcode)
     } else if (opcode & 0xfff00f00) == 0xf9100e00 {
         decode_LDRSBT_t1(opcode)
-    } else if (opcode & 0xfbef8000) == 0xf02f0000 {
-        decode_MOV_imm_t2(opcode)
     } else if (opcode & 0xfbe08f00) == 0xf1c00f00 {
         decode_RSB_imm_t2(opcode)
+    } else if (opcode & 0xfbef8000) == 0xf04f0000 {
+        decode_MOV_imm_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf85f0000 {
         decode_LDR_lit_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf83f0000 {
@@ -611,8 +611,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ADD_imm_t3(opcode)
     } else if (opcode & 0xffd02000) == 0xe9100000 {
         decode_LDMDB_t1(opcode)
-    } else if (opcode & 0xffe08000) == 0xea600000 {
-        decode_ORN_reg_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xeba00000 {
         decode_SUB_reg_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8900000 {
@@ -647,6 +645,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ADD_reg_t3(opcode)
     } else if (opcode & 0xfff00000) == 0xf8d00000 {
         decode_LDR_imm_t3(opcode)
+    } else if (opcode & 0xffd02000) == 0xe8900000 {
+        decode_LDM_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xec400000 {
         decode_MCRR_t1(opcode)
     } else if (opcode & 0xfff00000) == 0xf9b00000 {
@@ -655,8 +655,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_AND_reg_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xeb400000 {
         decode_ADC_reg_t2(opcode)
-    } else if (opcode & 0xffd02000) == 0xe8900000 {
-        decode_LDM_t2(opcode)
+    } else if (opcode & 0xffe08000) == 0xea600000 {
+        decode_ORN_reg_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8800000 {
         decode_STRB_imm_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8b00000 {
@@ -717,6 +717,7 @@ pub fn decode_32(opcode: u32) -> Instruction {
 #[cfg(test)]
 mod tests {
 
+    use core::instruction::Imm32Carry;
     use core::register::Reg;
 
     use super::*;
@@ -905,35 +906,25 @@ mod tests {
             }
         }
         //MOVS (mov immediate)
-        match decode_16(0x2001) {
+        assert_eq!(
+            decode_16(0x2001),
             Instruction::MOV_imm {
-                rd,
-                imm32,
-                setflags,
-            } => {
-                assert!(rd == Reg::R0);
-                assert!(imm32 == 1);
-                assert!(setflags);
+                rd: Reg::R0,
+                imm32: Imm32Carry::NoCarry { imm32: 1 },
+                thumb32: false,
+                setflags: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
-        //MOVS (mov immediate)
-        match decode_16(0x2101) {
+        );
+
+        assert_eq!(
+            decode_16(0x2101),
             Instruction::MOV_imm {
-                rd,
-                imm32,
-                setflags,
-            } => {
-                assert!(rd == Reg::R1);
-                assert!(imm32 == 1);
-                assert!(setflags);
+                rd: Reg::R1,
+                imm32: Imm32Carry::NoCarry { imm32: 1 },
+                thumb32: false,
+                setflags: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
@@ -1963,6 +1954,23 @@ mod tests {
                 index: true,
                 add: true,
                 wback: false,
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_mov_w() {
+        // MOV.W R8, #-1
+        assert_eq!(
+            decode_32(0xf04f38ff),
+            Instruction::MOV_imm {
+                rd: Reg::R8,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (0xffffffff, false),
+                    imm32_c1: (0xffffffff, true)
+                },
+                thumb32: true,
+                setflags: false
             }
         );
     }

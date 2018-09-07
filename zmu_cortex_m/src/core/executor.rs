@@ -1,7 +1,7 @@
 use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
-use core::instruction::{CpsEffect, Instruction, SRType};
+use core::instruction::{CpsEffect, Instruction, Imm32Carry, SRType};
 use core::operation::{add_with_carry, decode_imm_shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
@@ -537,15 +537,26 @@ where
         }
         Instruction::MOV_imm {
             ref rd,
-            imm32,
+            ref imm32,
             setflags,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let result = imm32 as u32;
+                let carry_before = core.psr.get_c();
+
+                let (result, carry) = match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => (imm32, carry_before),
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => if carry_before {
+                        imm32_c1
+                    } else {
+                        imm32_c0
+                    },
+                };
                 core.set_r(rd, result);
                 if setflags {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
+                    core.psr.set_c(carry);
                 }
                 return ExecuteResult::Taken { cycles: 1 };
             }

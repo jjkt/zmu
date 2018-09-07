@@ -19,6 +19,22 @@ pub enum ITCondition {
     Else,
 }
 
+#[derive(PartialEq, Debug)]
+pub enum Imm32Carry {
+    /// precalculated value carry value was not relevant
+    /// for the decoding
+    NoCarry {
+        imm32: u32,
+    },
+    /// precalculated values for cases ASPR.C == 0 and ASPR.C ==1
+    /// if carry was relevant for the decoding
+    /// tuple of (immediate value, carry)
+    Carry {
+        imm32_c0: (u32, bool),
+        imm32_c1: (u32, bool),
+    },
+}
+
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug)]
 pub enum Instruction {
@@ -238,8 +254,9 @@ pub enum Instruction {
 
     MOV_imm {
         rd: Reg,
-        imm32: u32,
+        imm32: Imm32Carry,
         setflags: bool,
+        thumb32: bool,
     },
     MOV_reg {
         rd: Reg,
@@ -267,7 +284,7 @@ pub enum Instruction {
     },
     MVN_imm {
         rd: Reg,
-        imm32: u32,
+        imm32: Imm32Carry,
         setflags: bool,
     },
     NOP,
@@ -280,7 +297,7 @@ pub enum Instruction {
     ORR_imm {
         rd: Reg,
         rn: Reg,
-        imm32: u32, // i:imm3:imm8, carry not accounted for
+        imm32: Imm32Carry,
         setflags: bool,
     },
     POP {
@@ -740,28 +757,36 @@ impl fmt::Display for Instruction {
             }
             Instruction::MOV_imm {
                 rd,
-                imm32,
+                ref imm32,
                 setflags,
+                thumb32,
             } => write!(
                 f,
-                "mov{} {}, #{}",
+                "mov{}{} {}, #{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
-                imm32
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
             ),
             Instruction::MVN_reg { rd, rm, setflags } => {
                 write!(f, "mvn{} {}, {}", if setflags { "s" } else { "" }, rd, rm)
             }
             Instruction::MVN_imm {
                 rd,
-                imm32,
+                ref imm32,
                 setflags,
             } => write!(
                 f,
                 "mvn{} {}, #{}",
                 if setflags { "s" } else { "" },
                 rd,
-                imm32
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
             ),
             Instruction::NOP => write!(f, "nop"),
             Instruction::ORR_reg {
@@ -780,7 +805,7 @@ impl fmt::Display for Instruction {
             Instruction::ORR_imm {
                 rd,
                 rn,
-                imm32,
+                ref imm32,
                 setflags,
             } => write!(
                 f,
@@ -788,7 +813,10 @@ impl fmt::Display for Instruction {
                 if setflags { "s" } else { "" },
                 rd,
                 rn,
-                imm32
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
             ),
             Instruction::POP { registers } => write!(f, "pop {:?}", registers),
             Instruction::PUSH { thumb32, registers } => {
@@ -1088,6 +1116,16 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
 
+        Instruction::MOV_imm {
+            rd,
+            imm32,
+            setflags,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::SUB_imm {
             rd,
             rn,

@@ -168,14 +168,37 @@ pub fn thumb_expand_imm() -> u32 {
     0
 }
 
-pub fn thumb_expand_imm_c() -> u32 {
-    0
+pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32, bool) {
+    let imm12 = zero_extend(params, lengths);
+
+    let (result, carry_out) = if imm12.get_bits(10..12) == 0 {
+        let low_word = imm12.get_bits(0..8) as u32;
+        let imm32 = match imm12.get_bits(8..10) {
+            0b00 => low_word as u32,
+            0b01 => low_word << 16 + low_word,
+            0b10 => low_word << 24 + low_word << 8,
+            0b11 => {
+                (low_word << 24) as u32
+                    + (low_word << 16) as u32
+                    + (low_word << 8) as u32
+                    + low_word
+            }
+            _ => unreachable!(),
+        };
+
+        (imm32, carry_in)
+    } else {
+        let unrotated_value = (1_u32 << 7) + imm12.get_bits(0..7);
+        ror_c(unrotated_value, imm12.get_bits(7..12) as usize)
+    };
+
+    (result, carry_out)
 }
 
 pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
     assert_eq!(params.len(), lengths.len());
 
-    let mut result : u32 = 0;
+    let mut result: u32 = 0;
     let mut shift = 0;
     for (param, length) in params.iter().rev().zip(lengths.iter().rev()) {
         result += (*param as u32) << shift;
