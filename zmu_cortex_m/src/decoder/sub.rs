@@ -46,17 +46,20 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_SUB_SP_imm_t2(opcode: u32) -> Instruction {
-    let _i: u8 = opcode.get_bits(26, 26);
+    let i: u8 = opcode.get_bits(26, 26);
     let s: u8 = opcode.get_bits(20, 20);
 
     let rd: u8 = opcode.get_bits(8, 11);
-    let _imm3: u8 = opcode.get_bits(12, 14);
-    let _imm8: u8 = opcode.get_bits(0, 7);
+    let imm3: u8 = opcode.get_bits(12, 14);
+    let imm8: u8 = opcode.get_bits(0, 7);
+
+    let params = [i, imm3, imm8];
+    let lengths = [1, 3, 8];
 
     Instruction::SUB_imm {
         rd: Reg::from(rd),
         rn: Reg::SP,
-        imm32: thumb_expand_imm(/*i, 1, imm3, 3, imm8, 8*/),
+        imm32: thumb_expand_imm(&params, &lengths),
         setflags: s == 1,
         thumb32: true,
     }
@@ -123,18 +126,21 @@ pub fn decode_SUB_reg_t2(opcode: u32) -> Instruction {
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
-    let _i: u8 = opcode.get_bits(26, 26);
+    let i: u8 = opcode.get_bits(26, 26);
     let s: u8 = opcode.get_bits(20, 20);
 
     let rn: u8 = opcode.get_bits(16, 19);
     let rd: u8 = opcode.get_bits(8, 11);
-    let _imm3: u8 = opcode.get_bits(12, 14);
-    let _imm8: u8 = opcode.get_bits(0, 7);
+    let imm3: u8 = opcode.get_bits(12, 14);
+    let imm8: u8 = opcode.get_bits(0, 7);
+
+    let params = [i, imm3, imm8];
+    let lengths = [1, 3, 8];
 
     Instruction::SUB_imm {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
-        imm32: thumb_expand_imm(/*i, 1, imm3, 3, imm8, 8*/),
+        imm32: thumb_expand_imm(&params, &lengths),
         setflags: s == 1,
         thumb32: true,
     }

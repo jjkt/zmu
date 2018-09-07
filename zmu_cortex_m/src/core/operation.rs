@@ -164,8 +164,10 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u
     }
 }
 
-pub fn thumb_expand_imm() -> u32 {
-    0
+pub fn thumb_expand_imm(params: &[u8], lengths: &[u8]) -> u32 {
+    let (result, _) = thumb_expand_imm_c(params, lengths, false);
+
+    result
 }
 
 pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32, bool) {
