@@ -1,8 +1,8 @@
 use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
-use core::instruction::{CpsEffect, Instruction, Imm32Carry, SRType};
-use core::operation::{add_with_carry, decode_imm_shift, shift_c, sign_extend};
+use core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType};
+use core::operation::{add_with_carry, decode_imm_shift, shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
 use semihosting::decode_semihostcmd;
@@ -65,7 +65,7 @@ where
 
                 let (result, carry) = shift_c(
                     core.get_r(rm),
-                    SRType::ASR,
+                    &SRType::ASR,
                     usize::from(shift_n),
                     core.psr.get_c(),
                 );
@@ -91,7 +91,7 @@ where
                 let shift_n = core.get_r(rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(rn),
-                    SRType::ASR,
+                    &SRType::ASR,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
@@ -262,7 +262,7 @@ where
                 let (_, shift_n) = decode_imm_shift(0b00, *imm5);
                 let (result, carry) = shift_c(
                     core.get_r(rm),
-                    SRType::LSL,
+                    &SRType::LSL,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
@@ -288,7 +288,7 @@ where
                 let shift_n = core.get_r(rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(rn),
-                    SRType::LSL,
+                    &SRType::LSL,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
@@ -314,7 +314,7 @@ where
                 let (_, shift_n) = decode_imm_shift(0b01, *imm5);
                 let (result, carry) = shift_c(
                     core.get_r(rm),
-                    SRType::LSR,
+                    &SRType::LSR,
                     usize::from(shift_n),
                     core.psr.get_c(),
                 );
@@ -340,7 +340,7 @@ where
                 let shift_n = core.get_r(rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(rn),
-                    SRType::LSR,
+                    &SRType::LSR,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
@@ -806,10 +806,34 @@ where
             ref rt,
             ref rn,
             ref rm,
+            ref shift_t,
+            ref shift_n,
+            ref index,
+            ref add,
+            ref wback,
+            ref thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
+                let rm_ = core.get_r(rm);
+                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+
+                let offset_address = if *add {
+                    core.get_r(rn) + offset
+                } else {
+                    core.get_r(rn) - offset
+                };
+
+                let address = if *index {
+                    offset_address
+                } else {
+                    core.get_r(rn)
+                };
+
                 let data = u32::from(core.bus.read16(address));
+                if *wback {
+                    core.set_r(rn, offset_address);
+                }
+
                 core.set_r(rt, sign_extend(data, 15, 32) as u32);
                 return ExecuteResult::Taken { cycles: 2 };
             }
@@ -1262,7 +1286,7 @@ where
                 let shift_n = core.get_r(rm) & 0xff;
                 let (result, carry) = shift_c(
                     core.get_r(rn),
-                    SRType::ROR,
+                    &SRType::ROR,
                     shift_n as usize,
                     core.psr.get_c(),
                 );

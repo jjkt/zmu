@@ -718,6 +718,7 @@ pub fn decode_32(opcode: u32) -> Instruction {
 mod tests {
 
     use core::instruction::Imm32Carry;
+    use core::instruction::SRType;
     use core::register::Reg;
 
     use super::*;
@@ -1690,16 +1691,20 @@ mod tests {
     #[test]
     fn test_decode_ldrsh() {
         // LDRSH R0, [R6, R0]
-        match decode_16(0x5e30) {
-            Instruction::LDRSH_reg { rt, rn, rm } => {
-                assert!(rt == Reg::R0);
-                assert!(rn == Reg::R6);
-                assert!(rm == Reg::R0);
+        assert_eq!(
+            decode_16(0x5e30),
+            Instruction::LDRSH_reg {
+                rt: Reg::R0,
+                rn: Reg::R6,
+                rm: Reg::R0,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+                thumb32: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
@@ -1971,6 +1976,25 @@ mod tests {
                 },
                 thumb32: true,
                 setflags: false
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_ldrsh_reg_w() {
+        // LDRSH.W R0, [R0, R0, LSL #0]
+        assert_eq!(
+            decode_32(0xf9300000),
+            Instruction::LDRSH_reg {
+                rt: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R0,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+                thumb32: true
             }
         );
     }

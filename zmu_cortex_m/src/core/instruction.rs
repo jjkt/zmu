@@ -23,9 +23,7 @@ pub enum ITCondition {
 pub enum Imm32Carry {
     /// precalculated value carry value was not relevant
     /// for the decoding
-    NoCarry {
-        imm32: u32,
-    },
+    NoCarry { imm32: u32 },
     /// precalculated values for cases ASPR.C == 0 and ASPR.C ==1
     /// if carry was relevant for the decoding
     /// tuple of (immediate value, carry)
@@ -207,6 +205,12 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     LSL_imm {
         rd: Reg,
@@ -684,7 +688,17 @@ impl fmt::Display for Instruction {
             }
             Instruction::LDRH_reg { rt, rn, rm } => write!(f, "ldrh {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRSB_reg { rt, rn, rm } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
-            Instruction::LDRSH_reg { rt, rn, rm } => write!(f, "ldrsh {}, [{}, {}]", rt, rn, rm),
+            Instruction::LDRSH_reg {
+                rt,
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => write!(f, "ldrsh {}, [{}, {}]", rt, rn, rm),
             Instruction::LSL_imm {
                 rd,
                 rm,
@@ -1115,7 +1129,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
-
+        Instruction::LDRSH_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::MOV_imm {
             rd,
             imm32,

@@ -149,8 +149,8 @@ fn ror_c(value: u32, shift: usize) -> (u32, bool) {
 /// Returns:
 /// - shifted value
 /// - carry out
-pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u32, bool) {
-    assert!(!((shift_t == SRType::RRX) && (amount != 1)));
+pub fn shift_c(value: u32, shift_t: &SRType, amount: usize, carry_in: bool) -> (u32, bool) {
+    assert!(!((shift_t == &SRType::RRX) && (amount != 1)));
     if amount == 0 {
         (value, carry_in)
     } else {
@@ -162,6 +162,12 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u
             _ => panic!("not implemented"),
         }
     }
+}
+
+pub fn shift(value: u32, shift_t: &SRType, amount: usize, carry_in: bool) -> u32 {
+    let (result, _) = shift_c(value, shift_t, amount, carry_in);
+
+    result
 }
 
 pub fn thumb_expand_imm(params: &[u8], lengths: &[u8]) -> u32 {
@@ -260,33 +266,33 @@ mod tests {
     #[test]
     fn test_shift_c() {
         {
-            let (result, carry) = shift_c(0xFFFFFFF8, SRType::ASR, 8, false);
+            let (result, carry) = shift_c(0xFFFFFFF8, &SRType::ASR, 8, false);
             assert!(result == 0xFFFFFFFF);
             assert!(carry == true);
         }
         {
-            let (result, carry) = shift_c(0xef, SRType::ASR, 9, false);
+            let (result, carry) = shift_c(0xef, &SRType::ASR, 9, false);
             assert!(result == 0);
             assert!(carry == false);
         }
         {
-            let (result, carry) = shift_c(0xFFFFFFC0, SRType::ASR, 1, false);
+            let (result, carry) = shift_c(0xFFFFFFC0, &SRType::ASR, 1, false);
             assert!(result == 0xFFFFFFE0);
             assert!(carry == false);
         }
 
         {
-            let (result, carry) = shift_c(0, SRType::ROR, 0, false);
+            let (result, carry) = shift_c(0, &SRType::ROR, 0, false);
             assert!(result == 0x0);
             assert!(carry == false);
         }
         {
-            let (result, carry) = shift_c(2, SRType::ROR, 1, false);
+            let (result, carry) = shift_c(2, &SRType::ROR, 1, false);
             assert!(result == 0x1);
             assert!(carry == false);
         }
         {
-            let (result, carry) = shift_c(1, SRType::ROR, 1, false);
+            let (result, carry) = shift_c(1, &SRType::ROR, 1, false);
             assert!(result == 0x8000_0000);
             assert!(carry == false);
         }
