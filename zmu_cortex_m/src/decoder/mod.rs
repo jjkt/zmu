@@ -1999,4 +1999,21 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_decode_ldrsh_imm_w() {
+        // LDRSH.W R0, [SP, #0x10]
+        assert_eq!(
+            decode_32(0xf9bd0010),
+            Instruction::LDRSH_imm {
+                rt: Reg::R0,
+                rn: Reg::SP,
+                imm32: 0x10,
+                index: true,
+                add: true,
+                wback: false,
+                thumb32: true
+            }
+        );
+    }
+
 }

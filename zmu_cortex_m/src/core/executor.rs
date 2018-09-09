@@ -21,6 +21,13 @@ pub enum ExecuteResult {
     Branched { cycles: u64 },
 }
 
+fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32) {
+    let offset_address = if add { rn + imm32 } else { rn - imm32 };
+
+    let address = if index { offset_address } else { rn };
+    (address, offset_address)
+}
+
 #[allow(unused_variables)]
 pub fn execute<T: Bus, F>(
     mut core: &mut Core<T>,
@@ -698,17 +705,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let offset_address = if add {
-                    core.get_r(rn) + imm32
-                } else {
-                    core.get_r(rn) - imm32
-                };
-
-                let address = if index {
-                    offset_address
-                } else {
-                    core.get_r(rn)
-                };
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
 
                 let data = core.bus.read32(address);
                 if wback {
@@ -722,6 +720,29 @@ where
                     core.set_r(rt, data);
                     return ExecuteResult::Taken { cycles: 1 };
                 }
+            }
+            ExecuteResult::NotTaken
+        }
+        Instruction::LDRSH_imm {
+            ref rt,
+            ref rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            if core.condition_passed() {
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
+
+                let data = core.bus.read16(address);
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
+
+                core.set_r(rt, sign_extend(data as u32, 15, 32) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
         }
@@ -817,17 +838,8 @@ where
                 let rm_ = core.get_r(rm);
                 let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
 
-                let offset_address = if *add {
-                    core.get_r(rn) + offset
-                } else {
-                    core.get_r(rn) - offset
-                };
-
-                let address = if *index {
-                    offset_address
-                } else {
-                    core.get_r(rn)
-                };
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), offset, *add, *index);
 
                 let data = u32::from(core.bus.read16(address));
                 if *wback {
@@ -915,17 +927,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let offset_address = if add {
-                    core.get_r(rn) + imm32
-                } else {
-                    core.get_r(rn) - imm32
-                };
-
-                let address = if index {
-                    offset_address
-                } else {
-                    core.get_r(rn)
-                };
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
 
                 let value = core.get_r(rt);
                 if wback {
@@ -991,17 +994,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let offset_address = if add {
-                    core.get_r(rn) + imm32
-                } else {
-                    core.get_r(rn) - imm32
-                };
-
-                let address = if index {
-                    offset_address
-                } else {
-                    core.get_r(rn)
-                };
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
 
                 let value = core.get_r(rt);
                 core.bus.write16(address, value.get_bits(0..16) as u16);

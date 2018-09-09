@@ -212,6 +212,17 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
+    LDRSH_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
+    },
+
     LSL_imm {
         rd: Reg,
         rm: Reg,
@@ -785,6 +796,54 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
+            Instruction::LDRSH_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => {
+                let result = if index {
+                    if !wback {
+                        // Offset
+                        write!(
+                            f,
+                            "ldrsh{} {}, [{} {{, #{}{}}}]",
+                            if thumb32 { ".W" } else { "" },
+                            rt,
+                            rn,
+                            if add { "+" } else { "-" },
+                            imm32
+                        )
+                    } else {
+                        // Pre-indexed
+                        write!(
+                            f,
+                            "ldrsh{} {}, [{} , #{}{}]!",
+                            if thumb32 { ".W" } else { "" },
+                            rt,
+                            rn,
+                            if add { "+" } else { "-" },
+                            imm32
+                        )
+                    }
+                } else {
+                    // Post-indexed
+                    write!(
+                        f,
+                        "ldrsh{} {}, [{}], #{}{}",
+                        if thumb32 { ".W" } else { "" },
+                        rt,
+                        rn,
+                        if add { "+" } else { "-" },
+                        imm32
+                    )
+                };
+                result
+            }
+
             Instruction::MVN_reg { rd, rm, setflags } => {
                 write!(f, "mvn{} {}, {}", if setflags { "s" } else { "" }, rd, rm)
             }
@@ -1135,6 +1194,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rm,
             shift_t,
             shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::LDRSH_imm {
+            rt,
+            rn,
+            imm32,
             index,
             add,
             wback,
