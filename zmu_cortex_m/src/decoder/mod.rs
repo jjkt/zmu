@@ -2030,4 +2030,17 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_decode_udiv() {
+        // UDIV R0, R0, R1
+        assert_eq!(
+            decode_32(0xfbb0f0f1),
+            Instruction::UDIV {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R1,
+            }
+        );
+    }
+
 }

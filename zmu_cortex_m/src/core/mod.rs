@@ -136,6 +136,10 @@ impl<'a, T: Bus> Core<'a, T> {
         condition_test(cond, &self.psr)
     }
 
+    pub fn integer_zero_divide_trapping_enabled(&mut self) -> bool {
+        true
+    }
+
     pub fn branch_write_pc(&mut self, address: u32) {
         self.set_pc(address & 0xffff_fffe);
     }

@@ -3,6 +3,7 @@
 //!
 //!
 
+#[derive(PartialEq, Debug)]
 pub enum Fault {
     ///
     /// Bus error happened while reading the vector table entry
@@ -56,4 +57,6 @@ pub enum Fault {
     /// PPB access is not permitted.
     ///
     PPBUnprivilegedAccess,
+
+    DivideByZero,
 }

@@ -444,9 +444,9 @@ pub enum Instruction {
     },
     // ARMv7-M
     UDIV {
-        rm: Reg,
         rd: Reg,
         rn: Reg,
+        rm: Reg,
     },
     // ARMv7-M
     UMLAL {
@@ -1273,6 +1273,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::BL { imm32 } => 4,
         Instruction::TBB { rn, rm } => 4,
+        Instruction::UDIV { rd, rn, rm } => 4,
         Instruction::UBFX {
             rd,
             rn,

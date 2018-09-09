@@ -10,6 +10,7 @@ use semihosting::semihost_return;
 use semihosting::SemihostingCommand;
 use semihosting::SemihostingResponse;
 
+#[derive(PartialEq, Debug)]
 pub enum ExecuteResult {
     // Instruction execution resulted in a fault.
     Fault { fault: Fault },
@@ -1230,7 +1231,7 @@ where
             ref rd,
             ref rm,
             rotation,
-            thumb32
+            thumb32,
         } => {
             if core.condition_passed() {
                 let rotated = ror(core.get_r(rm), rotation);
@@ -1397,8 +1398,25 @@ where
             ref rd,
             ref rn,
             ref rm,
-        } => unimplemented!(),
-
+        } => {
+            if core.condition_passed() {
+                let rm_ = core.get_r(rm);
+                let result = if rm_ == 0 {
+                    if core.integer_zero_divide_trapping_enabled() {
+                        return ExecuteResult::Fault {
+                            fault: Fault::DivideByZero,
+                        };
+                    }
+                    0
+                } else {
+                    let rn_ = core.get_r(rn);
+                    rn_ / rm_
+                };
+                core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         // ARMv7-M
         Instruction::UMLAL {
             ref rdlo,
@@ -1424,4 +1442,42 @@ where
             //Some(Fault::UndefinedInstruction)
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use memory::ram::*;
+
+    #[test]
+    fn test_udiv() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.set_r(&Reg::R0, 0x7d0);
+        core.set_r(&Reg::R1, 0x3);
+        core.psr.value = 0;
+
+        let instruction = Instruction::UDIV {
+            rd: Reg::R0,
+            rn: Reg::R0,
+            rm: Reg::R1,
+        };
+
+        // act
+        let result = execute(
+            &mut core,
+            &instruction,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(result, ExecuteResult::Taken { cycles: 1 });
+
+        assert_eq!(core.get_r(&Reg::R0), 0x29a);
+        assert_eq!(core.get_r(&Reg::R1), 0x3);
+    }
+
 }
