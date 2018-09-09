@@ -486,6 +486,59 @@ impl fmt::Display for CpsEffect {
 
 use std::fmt;
 
+fn format_adressing_mode(
+    name: &str,
+    f: &mut fmt::Formatter,
+    rn: Reg,
+    rt: Reg,
+    imm32: u32,
+    index: bool,
+    add: bool,
+    wback: bool,
+    thumb32: bool,
+) -> fmt::Result {
+    let result = if index {
+        if !wback {
+            // Offset
+            write!(
+                f,
+                "{}{} {}, [{} {{, #{}{}}}]",
+                name,
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rn,
+                if add { "+" } else { "-" },
+                imm32
+            )
+        } else {
+            // Pre-indexed
+            write!(
+                f,
+                "{}{} {}, [{} , #{}{}]!",
+                name,
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rn,
+                if add { "+" } else { "-" },
+                imm32
+            )
+        }
+    } else {
+        // Post-indexed
+        write!(
+            f,
+            "{}{} {}, [{}], #{}{}",
+            name,
+            if thumb32 { ".W" } else { "" },
+            rt,
+            rn,
+            if add { "+" } else { "-" },
+            imm32
+        )
+    };
+    result
+}
+
 #[allow(unused_variables)]
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -661,14 +714,7 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
                 thumb32,
-            } => write!(
-                f,
-                "ldr{} {}, [{}, #{}]",
-                if thumb32 { ".W" } else { "" },
-                rt,
-                rn,
-                imm32
-            ),
+            } => format_adressing_mode("ldr", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::LDR_lit { rt, imm32, thumb32 } => {
                 if imm32 == 0 {
                     write!(f, "ldr{} {}, [pc]", if thumb32 { ".W" } else { "" }, rt)
@@ -804,45 +850,7 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
                 thumb32,
-            } => {
-                let result = if index {
-                    if !wback {
-                        // Offset
-                        write!(
-                            f,
-                            "ldrsh{} {}, [{} {{, #{}{}}}]",
-                            if thumb32 { ".W" } else { "" },
-                            rt,
-                            rn,
-                            if add { "+" } else { "-" },
-                            imm32
-                        )
-                    } else {
-                        // Pre-indexed
-                        write!(
-                            f,
-                            "ldrsh{} {}, [{} , #{}{}]!",
-                            if thumb32 { ".W" } else { "" },
-                            rt,
-                            rn,
-                            if add { "+" } else { "-" },
-                            imm32
-                        )
-                    }
-                } else {
-                    // Post-indexed
-                    write!(
-                        f,
-                        "ldrsh{} {}, [{}], #{}{}",
-                        if thumb32 { ".W" } else { "" },
-                        rt,
-                        rn,
-                        if add { "+" } else { "-" },
-                        imm32
-                    )
-                };
-                result
-            }
+            } => format_adressing_mode("ldrsh", f, rn, rt, imm32, index, add, wback, thumb32),
 
             Instruction::MVN_reg { rd, rm, setflags } => {
                 write!(f, "mvn{} {}, {}", if setflags { "s" } else { "" }, rd, rm)
@@ -957,13 +965,7 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
                 thumb32,
-            } => {
-                if imm32 == 0 {
-                    write!(f, "str {}, [{}]", rt, rn)
-                } else {
-                    write!(f, "str {}, [{}, #{}]", rt, rn, imm32)
-                }
-            }
+            } => format_adressing_mode("str", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::STR_reg { rn, rm, rt } => write!(f, "str {}, [{}, {}]", rt, rn, rm),
             Instruction::STRB_imm { rn, rt, imm32 } => {
                 if imm32 == 0 {
@@ -981,45 +983,7 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
                 thumb32,
-            } => {
-                let result = if index {
-                    if !wback {
-                        // Offset
-                        write!(
-                            f,
-                            "strh{} {}, [{} {{, #{}{}}}]",
-                            if thumb32 { ".W" } else { "" },
-                            rt,
-                            rn,
-                            if add { "+" } else { "-" },
-                            imm32
-                        )
-                    } else {
-                        // Pre-indexed
-                        write!(
-                            f,
-                            "strh{} {}, [{} , #{}{}]!",
-                            if thumb32 { ".W" } else { "" },
-                            rt,
-                            rn,
-                            if add { "+" } else { "-" },
-                            imm32
-                        )
-                    }
-                } else {
-                    // Post-indexed
-                    write!(
-                        f,
-                        "strh{} {}, [{}], #{}{}",
-                        if thumb32 { ".W" } else { "" },
-                        rt,
-                        rn,
-                        if add { "+" } else { "-" },
-                        imm32
-                    )
-                };
-                result
-            }
+            } => format_adressing_mode("strh", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::STRH_reg { rn, rm, rt } => write!(f, "strh {}, [{}, {}]", rt, rn, rm),
             Instruction::SUB_imm {
                 rd,
