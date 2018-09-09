@@ -2016,4 +2016,18 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_decode_ubfx() {
+        // UBFX R1, R0, #1, #1
+        assert_eq!(
+            decode_32(0xf3c00140),
+            Instruction::UBFX {
+                rd: Reg::R1,
+                rn: Reg::R0,
+                lsb: 1,
+                widthminus1: 0
+            }
+        );
+    }
+
 }

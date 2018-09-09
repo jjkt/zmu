@@ -1196,6 +1196,27 @@ where
             ExecuteResult::NotTaken
         }
 
+        // ARMv7-M
+        Instruction::UBFX {
+            ref rd,
+            ref rn,
+            lsb,
+            widthminus1,
+        } => {
+            if core.condition_passed() {
+                let msbit = lsb + widthminus1;
+                if msbit <= 31 {
+                    let data = core.get_r(rn).get_bits(lsb..(msbit + 1));
+                    core.set_r(rd, data);
+                } else {
+                    panic!();
+                }
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+
         Instruction::UXTB { ref rd, ref rm } => {
             if core.condition_passed() {
                 let rotated = core.get_r(rm);

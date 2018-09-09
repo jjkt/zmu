@@ -436,6 +436,13 @@ pub enum Instruction {
         opcode: ThumbCode,
     },
     // ARMv7-M
+    UBFX {
+        rd: Reg,
+        rn: Reg,
+        lsb: usize,
+        widthminus1: usize,
+    },
+    // ARMv7-M
     UDIV {
         rm: Reg,
         rd: Reg,
@@ -1050,6 +1057,8 @@ impl fmt::Display for Instruction {
             }
             Instruction::UXTB { rd, rm } => write!(f, "uxtb {}, {}", rd, rm),
             Instruction::UXTH { rd, rm } => write!(f, "uxth {}, {}", rd, rm),
+            Instruction::UBFX { rd, rn, lsb, widthminus1 } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
+
             Instruction::WFE => write!(f, "wfe"),
             Instruction::WFI => write!(f, "wfi"),
             Instruction::YIELD => write!(f, "yield"),
@@ -1231,6 +1240,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::BL { imm32 } => 4,
         Instruction::TBB { rn, rm } => 4,
+        Instruction::UBFX {rd, rn, lsb, widthminus1} => 4,
         _ => 2,
     }
 }
