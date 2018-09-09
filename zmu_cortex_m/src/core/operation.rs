@@ -137,6 +137,15 @@ fn ror_c(value: u32, shift: usize) -> (u32, bool) {
     (result, carry_out)
 }
 
+pub fn ror(value: u32, shift: usize) -> u32 {
+    if shift == 0 {
+        return value;
+    } else {
+        let (result, _) = ror_c(value, shift);
+        result
+    }
+}
+
 ///
 /// Do the one of the different shifting operations, with carry in support
 ///

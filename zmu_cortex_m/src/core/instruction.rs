@@ -469,6 +469,8 @@ pub enum Instruction {
     UXTH {
         rd: Reg,
         rm: Reg,
+        rotation: usize,
+        thumb32: bool,
     },
     WFE,
     WFI,
@@ -1056,8 +1058,29 @@ impl fmt::Display for Instruction {
                 write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
             Instruction::UXTB { rd, rm } => write!(f, "uxtb {}, {}", rd, rm),
-            Instruction::UXTH { rd, rm } => write!(f, "uxth {}, {}", rd, rm),
-            Instruction::UBFX { rd, rn, lsb, widthminus1 } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
+            Instruction::UXTH {
+                rd,
+                rm,
+                rotation,
+                thumb32,
+            } => write!(
+                f,
+                "uxth{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rd,
+                rm,
+                if rotation > 0 {
+                    format!("{}", rotation)
+                } else {
+                    format!("")
+                }
+            ),
+            Instruction::UBFX {
+                rd,
+                rn,
+                lsb,
+                widthminus1,
+            } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
 
             Instruction::WFE => write!(f, "wfe"),
             Instruction::WFI => write!(f, "wfi"),
@@ -1236,11 +1259,26 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::UXTH {
+            rd,
+            rm,
+            rotation,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::MSR_reg { rn, spec_reg } => 4,
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::BL { imm32 } => 4,
         Instruction::TBB { rn, rm } => 4,
-        Instruction::UBFX {rd, rn, lsb, widthminus1} => 4,
+        Instruction::UBFX {
+            rd,
+            rn,
+            lsb,
+            widthminus1,
+        } => 4,
         _ => 2,
     }
 }

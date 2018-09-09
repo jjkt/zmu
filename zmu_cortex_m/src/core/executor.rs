@@ -2,7 +2,7 @@ use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
 use core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType};
-use core::operation::{add_with_carry, decode_imm_shift, shift, shift_c, sign_extend};
+use core::operation::{add_with_carry, decode_imm_shift, ror, shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
 use semihosting::decode_semihostcmd;
@@ -1226,9 +1226,14 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::UXTH { ref rd, ref rm } => {
+        Instruction::UXTH {
+            ref rd,
+            ref rm,
+            rotation,
+            thumb32
+        } => {
             if core.condition_passed() {
-                let rotated = core.get_r(rm);
+                let rotated = ror(core.get_r(rm), rotation);
                 core.set_r(rd, rotated.get_bits(0..16));
                 return ExecuteResult::Taken { cycles: 1 };
             }
