@@ -1418,6 +1418,24 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
+        Instruction::MLA {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref ra,
+        } => {
+            if core.condition_passed() {
+                let rn_ = core.get_r(rn);
+                let rm_ = core.get_r(rm);
+                let ra_ = core.get_r(ra);
+                let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
+
+                core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        // ARMv7-M
         Instruction::UMLAL {
             ref rdlo,
             ref rdhi,
@@ -1478,6 +1496,37 @@ mod tests {
 
         assert_eq!(core.get_r(&Reg::R0), 0x29a);
         assert_eq!(core.get_r(&Reg::R1), 0x3);
+    }
+
+    #[test]
+    fn test_mla() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.set_r(&Reg::R7, 0x2);
+        core.set_r(&Reg::R2, 0x29a);
+        core.set_r(&Reg::R1, 0x2000089C);
+        core.psr.value = 0;
+
+        let instruction = Instruction::MLA {
+            rd: Reg::R1,
+            rn: Reg::R7,
+            rm: Reg::R2,
+            ra: Reg::R1,
+        };
+
+        // act
+        let result = execute(
+            &mut core,
+            &instruction,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(result, ExecuteResult::Taken { cycles: 1 });
+
+        assert_eq!(core.get_r(&Reg::R1), 0x20000DD0);
     }
 
 }

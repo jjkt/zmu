@@ -2043,4 +2043,18 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_decode_mla() {
+        // MLA R1, R7, R2, R1
+        assert_eq!(
+            decode_32(0xfb071102),
+            Instruction::MLA {
+                rd: Reg::R1,
+                rn: Reg::R7,
+                rm: Reg::R2,
+                ra: Reg::R1
+            }
+        );
+    }
+
 }
