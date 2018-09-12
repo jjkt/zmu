@@ -772,6 +772,10 @@ where
             ref rt,
             ref rn,
             imm32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + imm32;

@@ -180,6 +180,10 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     LDRB_reg {
         rt: Reg,
@@ -744,13 +748,15 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
-            Instruction::LDRB_imm { rt, rn, imm32 } => {
-                if imm32 == 0 {
-                    write!(f, "ldrb {}, [{}]", rt, rn)
-                } else {
-                    write!(f, "ldrb {}, [{}, #{}]", rt, rn, imm32)
-                }
-            }
+            Instruction::LDRB_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => format_adressing_mode("ldrb", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::LDRB_reg { rt, rn, rm } => write!(f, "ldrb {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRH_imm { rt, rn, imm32 } => {
                 if imm32 == 0 {
@@ -1278,6 +1284,20 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::LDRB_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+
         Instruction::MSR_reg { rn, spec_reg } => 4,
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::MLA { rd, rn, rm, ra } => 4,

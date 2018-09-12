@@ -1213,33 +1213,37 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_ldrb() {
+    fn test_decode_ldrb_imm() {
         // LDRB R0, [R0m 0]
-        match decode_16(0x7800) {
-            Instruction::LDRB_imm { rt, rn, imm32 } => {
-                assert!(rt == Reg::R0);
-                assert!(rn == Reg::R0);
-                assert!(imm32 == 0);
+        assert_eq!(
+            decode_16(0x7800),
+            Instruction::LDRB_imm {
+                rt: Reg::R0,
+                rn: Reg::R0,
+                imm32: 0,
+                index: true,
+                add: true,
+                wback: false,
+                thumb32: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
-    fn test_decode_ldrb2() {
+    fn test_decode_ldrb_imm2() {
         // LDRB R2, [R0, 0x10]
-        match decode_16(0x7c02) {
-            Instruction::LDRB_imm { rt, rn, imm32 } => {
-                assert!(rt == Reg::R2);
-                assert!(rn == Reg::R0);
-                assert!(imm32 == 0x10);
+        assert_eq!(
+            decode_16(0x7c02),
+            Instruction::LDRB_imm {
+                rt: Reg::R2,
+                rn: Reg::R0,
+                imm32: 0x10,
+                index: true,
+                add: true,
+                wback: false,
+                thumb32: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
@@ -2053,6 +2057,23 @@ mod tests {
                 rn: Reg::R7,
                 rm: Reg::R2,
                 ra: Reg::R1
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_ldrb_w() {
+        // 0xf8960020 LDRB.W R0 [R6, #0x20]
+        assert_eq!(
+            decode_32(0xf8960020),
+            Instruction::LDRB_imm {
+                rt: Reg::R0,
+                rn: Reg::R6,
+                imm32: 0x20,
+                index: true,
+                add: true,
+                wback: false,
+                thumb32: true
             }
         );
     }
