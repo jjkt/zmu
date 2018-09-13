@@ -953,15 +953,14 @@ mod tests {
     #[test]
     fn test_decode_cmp() {
         //CMP R0, R0
-        match decode_16(0x2800) {
-            Instruction::CMP_imm { rn, imm32 } => {
-                assert!(rn == Reg::R0);
-                assert!(imm32 == 0);
+        assert_eq!(
+            decode_16(0x2800),
+            Instruction::CMP_imm {
+                rn: Reg::R0,
+                imm32: 0,
+                thumb32: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
         // CMP R1, R4
         match decode_16(0x42a1) {
             Instruction::CMP_reg { rn, rm } => {
@@ -973,15 +972,14 @@ mod tests {
             }
         }
         // CMP R2, #0
-        match decode_16(0x2a00) {
-            Instruction::CMP_imm { rn, imm32 } => {
-                assert!(rn == Reg::R2);
-                assert!(imm32 == 0);
+        assert_eq!(
+            decode_16(0x2a00),
+            Instruction::CMP_imm {
+                rn: Reg::R2,
+                imm32: 0,
+                thumb32: false
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
@@ -2085,6 +2083,18 @@ mod tests {
                 setflags: false,
                 shift_t: SRType::LSL,
                 shift_n: 3,
+                thumb32: true,
+            }
+        );
+    }
+    #[test]
+    fn test_decode_cmp_imm_w() {
+        // 0xf1ba0f00 CMP.W R10, #0
+        assert_eq!(
+            decode_32(0xf1ba0f00),
+            Instruction::CMP_imm {
+                rn: Reg::R10,
+                imm32: 0,
                 thumb32: true,
             }
         );

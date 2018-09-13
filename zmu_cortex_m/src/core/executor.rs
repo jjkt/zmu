@@ -603,7 +603,7 @@ where
             ExecuteResult::NotTaken
         },
 
-        Instruction::CMP_imm { ref rn, imm32 } => {
+        Instruction::CMP_imm { ref rn, imm32, thumb32 } => {
             if core.condition_passed() {
                 let (result, carry, overflow) =
                     add_with_carry(core.get_r(rn), imm32 ^ 0xFFFF_FFFF, true);

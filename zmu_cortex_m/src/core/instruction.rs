@@ -115,6 +115,7 @@ pub enum Instruction {
     CMP_imm {
         rn: Reg,
         imm32: u32,
+        thumb32: bool,
     },
     CMP_reg {
         rm: Reg,
@@ -695,7 +696,13 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32
             ),
-            Instruction::CMP_imm { rn, imm32 } => write!(f, "cmp {}, #{}", rn, imm32),
+            Instruction::CMP_imm { rn, imm32, thumb32 } => write!(
+                f,
+                "cmp{} {}, #{}",
+                if thumb32 { ".W" } else { "" },
+                rn,
+                imm32
+            ),
             Instruction::CMP_reg { rn, rm } => write!(f, "cmp {}, {}", rn, rm),
             Instruction::CPS { im } => write!(f, "cps{}", im),
             Instruction::DMB => write!(f, "dmb"),
@@ -1207,6 +1214,11 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::PUSH { thumb32, registers } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::CMP_imm { rn, imm32, thumb32 } => if *thumb32 {
             4
         } else {
             2
