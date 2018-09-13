@@ -1047,10 +1047,16 @@ where
             ref rn,
             ref rm,
             ref setflags,
+            ref shift_t,
+            ref shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
+
+                let c = core.psr.get_c();
+                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
                 let (result, carry, overflow) =
-                    add_with_carry(core.get_r(rn), core.get_r(rm), false);
+                    add_with_carry(core.get_r(rn), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);

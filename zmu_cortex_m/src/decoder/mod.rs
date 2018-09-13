@@ -1089,22 +1089,18 @@ mod tests {
     #[test]
     fn test_decode_add_reg_pc() {
         // ADD R1,R1, PC
-        match decode_16(0x4479) {
+        assert_eq!(
+            decode_16(0x4479),
             Instruction::ADD_reg {
-                rd,
-                rn,
-                rm,
-                setflags,
-            } => {
-                assert_eq!(rd, Reg::R1);
-                assert_eq!(rn, Reg::R1);
-                assert_eq!(rm, Reg::PC);
-                assert!(setflags == false);
+                rd: Reg::R1,
+                rn: Reg::R1,
+                rm: Reg::PC,
+                setflags: false,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                thumb32: false,
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
     #[test]
     fn test_decode_add_reg_imm() {
@@ -2074,6 +2070,22 @@ mod tests {
                 add: true,
                 wback: false,
                 thumb32: true
+            }
+        );
+    }
+    #[test]
+    fn test_decode_add_reg_w() {
+        // 0xeb0103ca ADD.W R3, R1, R10, LSL #3
+        assert_eq!(
+            decode_32(0xeb0103ca),
+            Instruction::ADD_reg {
+                rd: Reg::R3,
+                rn: Reg::R1,
+                rm: Reg::R10,
+                setflags: false,
+                shift_t: SRType::LSL,
+                shift_n: 3,
+                thumb32: true,
             }
         );
     }
