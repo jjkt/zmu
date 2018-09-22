@@ -25,6 +25,7 @@ pub fn decode_B_t1_SVC_t1(opcode: u16) -> Instruction {
     Instruction::B {
         cond: Condition::from_u16(cond).unwrap(),
         imm32: sign_extend((bits_0_8(opcode) as u32) << 1, 8, 32) as i32,
+        thumb32: false,
     }
 }
 
@@ -34,6 +35,7 @@ pub fn decode_B_t2(opcode: u16) -> Instruction {
     Instruction::B {
         cond: Condition::AL,
         imm32: sign_extend((opcode.get_bits(0, 10) as u32) << 1, 11, 32) as i32,
+        thumb32: false,
     }
 }
 
@@ -48,10 +50,12 @@ pub fn decode_B_t3(opcode: u32) -> Instruction {
         Some(c) => Instruction::B {
             cond: c,
             imm32: imm as i32,
+            thumb32: true,
         },
         None => Instruction::B {
             cond: Condition::AL,
             imm32: imm as i32,
+            thumb32: true,
         },
     }
 }
@@ -64,5 +68,6 @@ pub fn decode_B_t4(opcode: u32) -> Instruction {
     Instruction::B {
         cond: Condition::AL,
         imm32: imm as i32,
+        thumb32: true
     }
 }

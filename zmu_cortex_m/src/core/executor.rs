@@ -626,7 +626,7 @@ where
             ref setflags,
         } => unimplemented!(),
 
-        Instruction::B { ref cond, imm32 } => if core.condition_passed_b(cond) {
+        Instruction::B { ref cond, imm32, thumb32 } => if core.condition_passed_b(cond) {
             let pc = core.get_r(&Reg::PC);
             let target = ((pc as i32) + imm32) as u32;
             core.branch_write_pc(target);

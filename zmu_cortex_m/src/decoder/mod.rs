@@ -986,9 +986,10 @@ mod tests {
     fn test_decode_b() {
         // BEQ.N
         match decode_16(0xd001) {
-            Instruction::B { cond, imm32 } => {
+            Instruction::B { cond, imm32, thumb32 } => {
                 assert_eq!(cond, Condition::EQ);
                 assert_eq!(imm32, (1 << 1));
+                assert_eq!(thumb32, false);
             }
             _ => {
                 println!(" {}", decode_16(0xd001));
@@ -997,9 +998,10 @@ mod tests {
         }
         // BNE.N
         match decode_16(0xd1f8) {
-            Instruction::B { cond, imm32 } => {
+            Instruction::B { cond, imm32, thumb32 } => {
                 assert!(cond == Condition::NE);
                 assert!(imm32 == -16);
+                assert_eq!(thumb32, false);
             }
             _ => {
                 assert!(false);
@@ -1007,9 +1009,10 @@ mod tests {
         }
         // B.N (PC + 8)
         match decode_16(0xE004) {
-            Instruction::B { cond, imm32 } => {
+            Instruction::B { cond, imm32, thumb32 } => {
                 assert!(cond == Condition::AL);
                 assert!(imm32 == (4 << 1));
+                assert_eq!(thumb32, false);
             }
             _ => {
                 assert!(false);
