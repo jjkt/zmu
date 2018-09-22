@@ -615,10 +615,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_SUB_reg_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8900000 {
         decode_LDRB_imm_t2(opcode)
-    } else if (opcode & 0xffe08000) == 0xea400000 {
-        decode_ORR_reg_t2(opcode)
-    } else if (opcode & 0xfbf08000) == 0xf0100000 {
-        decode_BIC_imm_t1(opcode)
     } else if (opcode & 0xfff00000) == 0xe8400000 {
         decode_STREX_t1(opcode)
     } else if (opcode & 0xffe08000) == 0xebc00000 {
@@ -637,6 +633,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ADD_imm_t4(opcode)
     } else if (opcode & 0xfe1f0000) == 0xec1f0000 {
         decode_LDC_lit_t1(opcode)
+    } else if (opcode & 0xffe08000) == 0xea400000 {
+        decode_ORR_reg_t2(opcode)
     } else if (opcode & 0xfbf08000) == 0xf0200000 {
         decode_ORR_imm_t1(opcode)
     } else if (opcode & 0xfe1f0000) == 0xfc1f0000 {
@@ -673,6 +671,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_SUB_imm_t3(opcode)
     } else if (opcode & 0xfbe08000) == 0xf0800000 {
         decode_EOR_imm_t1(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf0200000 {
+        decode_BIC_imm_t1(opcode)
     } else if (opcode & 0xfbe08000) == 0xf0000000 {
         decode_AND_imm_t1(opcode)
     } else if (opcode & 0xfbe08000) == 0xf1400000 {
@@ -691,10 +691,10 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDRD_imm_t1(opcode)
     } else if (opcode & 0xff000010) == 0xfe000000 {
         decode_CDP2_t2(opcode)
-    } else if (opcode & 0xff000010) == 0xee000000 {
-        decode_CDP_t1(opcode)
     } else if (opcode & 0xfe500000) == 0xe8400000 {
         decode_STRD_imm_t1(opcode)
+    } else if (opcode & 0xff000010) == 0xee000000 {
+        decode_CDP_t1(opcode)
     } else if (opcode & 0xf800d000) == 0xf000d000 {
         decode_BL_t1(opcode)
     } else if (opcode & 0xfe100000) == 0xfc100000 {
@@ -2096,6 +2096,23 @@ mod tests {
                 rn: Reg::R10,
                 imm32: 0,
                 thumb32: true,
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_and_imm_w() {
+        // 0xf01a0c03 ANDS.W R12, R10, 3
+        assert_eq!(
+            decode_32(0xf01a0c03),
+            Instruction::AND_imm {
+                rd: Reg::R12,
+                rn: Reg::R10,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (3, false),
+                    imm32_c1: (3, true)
+                },
+                setflags: true
             }
         );
     }

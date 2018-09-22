@@ -68,6 +68,12 @@ pub enum Instruction {
         rn: Reg,
         setflags: bool,
     },
+    AND_imm {
+        rd: Reg,
+        rn: Reg,
+        imm32: Imm32Carry,
+        setflags: bool,
+    },
     ASR_imm {
         rd: Reg,
         rm: Reg,
@@ -644,6 +650,23 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
+            Instruction::AND_imm {
+                rd,
+                rn,
+                ref imm32,
+                setflags,
+            } => write!(
+                f,
+                "and{}.W {},{}, #{}",
+                if setflags { "s" } else { "" },
+                rd,
+                rn,
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
+            ),
+
             Instruction::ASR_imm {
                 rd,
                 rm,
@@ -1341,6 +1364,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::BL { imm32 } => 4,
         Instruction::TBB { rn, rm } => 4,
         Instruction::UDIV { rd, rn, rm } => 4,
+        Instruction::AND_imm { rd, rn, imm32, setflags } => 4,
         Instruction::UBFX {
             rd,
             rn,

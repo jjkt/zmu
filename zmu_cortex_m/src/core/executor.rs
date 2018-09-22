@@ -490,6 +490,38 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::AND_imm {
+            ref rd,
+            ref rn,
+            ref imm32,
+            ref setflags,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let carry_before = core.psr.get_c();
+
+                let (im, carry) = match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => (imm32, carry_before),
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => if carry_before {
+                        imm32_c1
+                    } else {
+                        imm32_c0
+                    },
+                };
+
+                let result = r_n & im;
+
+                core.set_r(rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::BX { ref rm } => {
             if core.condition_passed() {
