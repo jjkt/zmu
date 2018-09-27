@@ -137,7 +137,10 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
         setflags: bool,
+        thumb32: bool,
     },
     ISB,
     IT {
@@ -739,14 +742,24 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
+                ref shift_t,
+                shift_n,
                 setflags,
+                thumb32
             } => write!(
                 f,
-                "eor{} {}, {}, {}",
+                "eor{}{} {}, {}, {}{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
-                rm
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
+
             ),
             Instruction::ISB => write!(f, "isb"),
             Instruction::IT {
@@ -1390,6 +1403,20 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             lsb,
             widthminus1,
         } => 4,
+        Instruction::EOR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32,
+            shift_t,
+            shift_n
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+
         _ => 2,
     }
 }

@@ -1732,11 +1732,17 @@ mod tests {
                 rn,
                 rm,
                 setflags,
+                thumb32,
+                shift_t,
+                shift_n
             } => {
                 assert_eq!(rd, Reg::R0);
                 assert_eq!(rn, Reg::R0);
                 assert_eq!(rm, Reg::R4);
                 assert_eq!(setflags, true);
+                assert_eq!(thumb32, false);
+                assert_eq!(shift_t, SRType::LSL);
+                assert_eq!(shift_n, 0);
             }
             _ => {
                 assert!(false);
@@ -2116,6 +2122,23 @@ mod tests {
                     imm32_c1: (3, true)
                 },
                 setflags: true
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_eor_reg_w() {
+        // 0xea8e0402 EOR.W R4, LR, R2
+        assert_eq!(
+            decode_32(0xea8e0402),
+            Instruction::EOR_reg {
+                rd: Reg::R4,
+                rn: Reg::LR,
+                rm: Reg::R2,
+                setflags: false,
+                thumb32: true,
+                shift_t: SRType::LSL,
+                shift_n: 0,
             }
         );
     }

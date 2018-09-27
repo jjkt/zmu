@@ -449,18 +449,24 @@ where
             ref rn,
             ref rm,
             ref setflags,
+            ref shift_t,
+            ref shift_n,
+            ref thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
                 let r_m = core.get_r(rm);
 
-                let result = r_n ^ r_m;
+                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+
+                let result = r_n ^ shifted;
 
                 core.set_r(rd, result);
 
                 if *setflags {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
+                    core.psr.set_c(carry);
                 }
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -626,7 +632,11 @@ where
             ref setflags,
         } => unimplemented!(),
 
-        Instruction::B { ref cond, imm32, thumb32 } => if core.condition_passed_b(cond) {
+        Instruction::B {
+            ref cond,
+            imm32,
+            thumb32,
+        } => if core.condition_passed_b(cond) {
             let pc = core.get_r(&Reg::PC);
             let target = ((pc as i32) + imm32) as u32;
             core.branch_write_pc(target);
@@ -635,7 +645,11 @@ where
             ExecuteResult::NotTaken
         },
 
-        Instruction::CMP_imm { ref rn, imm32, thumb32 } => {
+        Instruction::CMP_imm {
+            ref rn,
+            imm32,
+            thumb32,
+        } => {
             if core.condition_passed() {
                 let (result, carry, overflow) =
                     add_with_carry(core.get_r(rn), imm32 ^ 0xFFFF_FFFF, true);
@@ -1084,11 +1098,9 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-
                 let c = core.psr.get_c();
                 let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let (result, carry, overflow) =
-                    add_with_carry(core.get_r(rn), shifted, false);
+                let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
