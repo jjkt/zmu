@@ -244,8 +244,9 @@ pub enum Instruction {
     LSL_imm {
         rd: Reg,
         rm: Reg,
-        imm5: u8,
+        shift_n: u8,
         setflags: bool,
+        thumb32: bool,
     },
     LSL_reg {
         rd: Reg,
@@ -256,8 +257,9 @@ pub enum Instruction {
     LSR_imm {
         rd: Reg,
         rm: Reg,
-        imm5: u8,
+        shift_n: u8,
         setflags: bool,
+        thumb32: bool,
     },
     LSR_reg {
         rd: Reg,
@@ -748,7 +750,7 @@ impl fmt::Display for Instruction {
                 ref shift_t,
                 shift_n,
                 setflags,
-                thumb32
+                thumb32,
             } => write!(
                 f,
                 "eor{}{} {}, {}, {}{}",
@@ -762,7 +764,6 @@ impl fmt::Display for Instruction {
                 } else {
                     format!("")
                 }
-
             ),
             Instruction::ISB => write!(f, "isb"),
             Instruction::IT {
@@ -844,15 +845,17 @@ impl fmt::Display for Instruction {
             Instruction::LSL_imm {
                 rd,
                 rm,
-                imm5,
+                shift_n,
                 setflags,
+                thumb32,
             } => write!(
                 f,
-                "lsl{} {}, {}, #{}",
+                "lsl{}{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rm,
-                imm5
+                shift_n
             ),
             Instruction::LSL_reg {
                 rd,
@@ -883,15 +886,16 @@ impl fmt::Display for Instruction {
             Instruction::LSR_imm {
                 rd,
                 rm,
-                imm5,
+                shift_n,
                 setflags,
+                thumb32,
             } => write!(
                 f,
                 "lsr{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
                 rd,
                 rm,
-                imm5
+                shift_n
             ),
             Instruction::MSR_reg { spec_reg, rn } => write!(f, "msr {}, {}", spec_reg, rn),
             Instruction::MRS { rd, spec_reg } => write!(f, "mrs {}, {}", rd, spec_reg),
@@ -962,7 +966,7 @@ impl fmt::Display for Instruction {
                 ref shift_t,
                 shift_n,
                 setflags,
-                thumb32
+                thumb32,
             } => write!(
                 f,
                 "orr{}{} {}, {}, {}{}",
@@ -1422,7 +1426,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             setflags,
             thumb32,
             shift_t,
-            shift_n
+            shift_n,
         } => if *thumb32 {
             4
         } else {
@@ -1435,13 +1439,34 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             setflags,
             thumb32,
             shift_t,
-            shift_n
+            shift_n,
         } => if *thumb32 {
             4
         } else {
             2
         },
-
+        Instruction::LSL_imm {
+            ref rd,
+            ref rm,
+            ref shift_n,
+            ref thumb32,
+            ref setflags,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::LSR_imm {
+            ref rd,
+            ref rm,
+            ref shift_n,
+            ref thumb32,
+            ref setflags,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
 
         _ => 2,
     }

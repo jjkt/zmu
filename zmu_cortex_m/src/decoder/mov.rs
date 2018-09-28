@@ -1,8 +1,9 @@
 use bit_field::BitField;
-use core::instruction::Instruction;
 use core::instruction::Imm32Carry;
-use core::operation::zero_extend;
+use core::instruction::Instruction;
+use core::operation::decode_imm_shift;
 use core::operation::thumb_expand_imm_c;
+use core::operation::zero_extend;
 use core::register::Reg;
 use core::ThumbCode;
 
@@ -49,11 +50,13 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(opcode: u16) -> Instruction {
             setflags: true,
         }
     } else {
+        let (_, shift_n) = decode_imm_shift(0b00, imm5);
         Instruction::LSL_imm {
             rd: Reg::from(opcode.get_bits(0..3) as u8),
             rm: Reg::from(opcode.get_bits(3..6) as u8),
-            imm5: imm5,
+            shift_n: shift_n,
             setflags: true,
+            thumb32: false,
         }
     }
 }

@@ -986,7 +986,11 @@ mod tests {
     fn test_decode_b() {
         // BEQ.N
         match decode_16(0xd001) {
-            Instruction::B { cond, imm32, thumb32 } => {
+            Instruction::B {
+                cond,
+                imm32,
+                thumb32,
+            } => {
                 assert_eq!(cond, Condition::EQ);
                 assert_eq!(imm32, (1 << 1));
                 assert_eq!(thumb32, false);
@@ -998,7 +1002,11 @@ mod tests {
         }
         // BNE.N
         match decode_16(0xd1f8) {
-            Instruction::B { cond, imm32, thumb32 } => {
+            Instruction::B {
+                cond,
+                imm32,
+                thumb32,
+            } => {
                 assert!(cond == Condition::NE);
                 assert!(imm32 == -16);
                 assert_eq!(thumb32, false);
@@ -1009,7 +1017,11 @@ mod tests {
         }
         // B.N (PC + 8)
         match decode_16(0xE004) {
-            Instruction::B { cond, imm32, thumb32 } => {
+            Instruction::B {
+                cond,
+                imm32,
+                thumb32,
+            } => {
                 assert!(cond == Condition::AL);
                 assert!(imm32 == (4 << 1));
                 assert_eq!(thumb32, false);
@@ -1265,13 +1277,15 @@ mod tests {
             Instruction::LSL_imm {
                 rd,
                 rm,
-                imm5,
+                shift_n,
                 setflags,
+                thumb32,
             } => {
                 assert!(rd == Reg::R1);
                 assert!(rm == Reg::R4);
-                assert!(imm5 == 2);
+                assert!(shift_n == 2);
                 assert!(setflags);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -1372,8 +1386,7 @@ mod tests {
                 setflags,
                 thumb32,
                 shift_t,
-                shift_n
-
+                shift_n,
             } => {
                 assert!(rd == Reg::R3);
                 assert!(rn == Reg::R3);
@@ -1382,7 +1395,6 @@ mod tests {
                 assert_eq!(thumb32, false);
                 assert_eq!(shift_t, SRType::LSL);
                 assert_eq!(shift_n, 0);
-
             }
             _ => {
                 assert!(false);
@@ -1397,13 +1409,15 @@ mod tests {
             Instruction::LSR_imm {
                 rd,
                 rm,
-                imm5,
+                shift_n,
                 setflags,
+                thumb32,
             } => {
                 assert!(rd == Reg::R3);
                 assert!(rm == Reg::R0);
-                assert!(imm5 == 8);
+                assert!(shift_n == 8);
                 assert!(setflags);
+                assert!(thumb32 == false);
             }
             _ => {
                 assert!(false);
@@ -1742,7 +1756,7 @@ mod tests {
                 setflags,
                 thumb32,
                 shift_t,
-                shift_n
+                shift_n,
             } => {
                 assert_eq!(rd, Reg::R0);
                 assert_eq!(rn, Reg::R0);
@@ -1827,8 +1841,9 @@ mod tests {
             Instruction::LSL_imm {
                 rd: Reg::R1,
                 rm: Reg::R1,
-                imm5: 31,
-                setflags: true
+                shift_n: 31,
+                setflags: true,
+                thumb32:false
             }
         );
     }
@@ -2163,6 +2178,36 @@ mod tests {
                 thumb32: true,
                 shift_t: SRType::LSL,
                 shift_n: 3,
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_lsl_w_imm() {
+        // LSL.W R8,R8,1
+        assert_eq!(
+            decode_32(0xea4f0848),
+            Instruction::LSL_imm {
+                rd: Reg::R8,
+                rm: Reg::R8,
+                shift_n: 1,
+                setflags: false,
+                thumb32: true
+            }
+        );
+    }
+
+    #[test]
+    fn test_decode_lsr_w_imm() {
+        // LSRS.W R12,R10,2
+        assert_eq!(
+            decode_32(0xea5f0c9a),
+            Instruction::LSR_imm {
+                rd: Reg::R12,
+                rm: Reg::R10,
+                shift_n: 2,
+                setflags: true,
+                thumb32: true
             }
         );
     }

@@ -263,15 +263,15 @@ where
         Instruction::LSL_imm {
             ref rd,
             ref rm,
-            ref imm5,
+            ref shift_n,
+            ref thumb32,
             ref setflags,
         } => {
             if core.condition_passed() {
-                let (_, shift_n) = decode_imm_shift(0b00, *imm5);
                 let (result, carry) = shift_c(
                     core.get_r(rm),
                     &SRType::LSL,
-                    shift_n as usize,
+                    *shift_n as usize,
                     core.psr.get_c(),
                 );
                 core.set_r(rd, result);
@@ -315,15 +315,15 @@ where
         Instruction::LSR_imm {
             ref rd,
             ref rm,
-            ref imm5,
+            ref shift_n,
             ref setflags,
+            ref thumb32
         } => {
             if core.condition_passed() {
-                let (_, shift_n) = decode_imm_shift(0b01, *imm5);
                 let (result, carry) = shift_c(
                     core.get_r(rm),
                     &SRType::LSR,
-                    usize::from(shift_n),
+                    usize::from(*shift_n),
                     core.psr.get_c(),
                 );
                 core.set_r(rd, result);
