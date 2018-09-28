@@ -1370,11 +1370,19 @@ mod tests {
                 rn,
                 rm,
                 setflags,
+                thumb32,
+                shift_t,
+                shift_n
+
             } => {
                 assert!(rd == Reg::R3);
                 assert!(rn == Reg::R3);
                 assert!(rm == Reg::R1);
                 assert!(setflags);
+                assert_eq!(thumb32, false);
+                assert_eq!(shift_t, SRType::LSL);
+                assert_eq!(shift_n, 0);
+
             }
             _ => {
                 assert!(false);
@@ -2139,6 +2147,22 @@ mod tests {
                 thumb32: true,
                 shift_t: SRType::LSL,
                 shift_n: 0,
+            }
+        );
+    }
+    #[test]
+    fn test_decode_orr_reg_w() {
+        // 0xea4404c8  ORR.W R4, R4, R8, LSL #3
+        assert_eq!(
+            decode_32(0xea4404c8),
+            Instruction::ORR_reg {
+                rd: Reg::R4,
+                rn: Reg::R4,
+                rm: Reg::R8,
+                setflags: false,
+                thumb32: true,
+                shift_t: SRType::LSL,
+                shift_n: 3,
             }
         );
     }

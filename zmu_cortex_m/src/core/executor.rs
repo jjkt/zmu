@@ -420,18 +420,23 @@ where
             ref rn,
             ref rm,
             ref setflags,
+            ref shift_t,
+            ref shift_n,
+            ref thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
                 let r_m = core.get_r(rm);
 
-                let result = r_n | r_m;
+                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let result = r_n | shifted;
 
                 core.set_r(rd, result);
 
                 if *setflags {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
+                    core.psr.set_c(carry);
                 }
                 return ExecuteResult::Taken { cycles: 1 };
             }
