@@ -110,7 +110,7 @@ impl<'a, T: Bus> Core<'a, T> {
             msp: 0,
             psp: 0,
             lr: 0,
-            bus: bus,
+            bus,
             running: true,
             cycle_count: 0,
             exception_active: [false; 64],

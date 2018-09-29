@@ -1,0 +1,1532 @@
+use core::instruction::Imm32Carry;
+use core::instruction::SRType;
+use core::register::Reg;
+
+use super::*;
+
+#[test]
+fn test_is_thumb32() {
+    assert!(is_thumb32(0b1110100000000000));
+    assert!(is_thumb32(0b1111000000000000));
+    assert!(is_thumb32(0b1111100000000000));
+    assert_eq!(is_thumb32(0b1110000000000000), false);
+    assert!(is_thumb32(0b1111111111111111));
+    assert_eq!(is_thumb32(0b0000000000000001), false);
+}
+
+#[test]
+fn test_decode_mov() {
+    match decode_16(0x4600) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R0);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4608) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R1);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4610) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R2);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4618) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R3);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4620) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R4);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4628) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R5);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4630) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R6);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4638) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R7);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4640) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R8);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4648) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R9);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4650) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R10);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4658) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R11);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4660) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::R12);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4668) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::SP);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4670) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::LR);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    match decode_16(0x4678) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R0);
+            assert!(rm == Reg::PC);
+            assert!(setflags == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+    match decode_16(0x0001) {
+        Instruction::MOV_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R1);
+            assert!(rm == Reg::R0);
+            assert!(setflags == true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    //MOVS (mov immediate)
+    assert_eq!(
+        decode_16(0x2001),
+        Instruction::MOV_imm {
+            rd: Reg::R0,
+            imm32: Imm32Carry::NoCarry { imm32: 1 },
+            thumb32: false,
+            setflags: false,
+        }
+    );
+
+    assert_eq!(
+        decode_16(0x2101),
+        Instruction::MOV_imm {
+            rd: Reg::R1,
+            imm32: Imm32Carry::NoCarry { imm32: 1 },
+            thumb32: false,
+            setflags: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_bx() {
+    //BX LR
+    match decode_16(0x4770) {
+        Instruction::BX { rm } => {
+            assert!(rm == Reg::LR);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    //BX R1
+    match decode_16(0x4708) {
+        Instruction::BX { rm } => {
+            assert!(rm == Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_cmp() {
+    //CMP R0, R0
+    assert_eq!(
+        decode_16(0x2800),
+        Instruction::CMP_imm {
+            rn: Reg::R0,
+            imm32: 0,
+            thumb32: false,
+        }
+    );
+    // CMP R1, R4
+    match decode_16(0x42a1) {
+        Instruction::CMP_reg { rn, rm } => {
+            assert!(rn == Reg::R1);
+            assert!(rm == Reg::R4);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // CMP R2, #0
+    assert_eq!(
+        decode_16(0x2a00),
+        Instruction::CMP_imm {
+            rn: Reg::R2,
+            imm32: 0,
+            thumb32: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_b() {
+    // BEQ.N
+    match decode_16(0xd001) {
+        Instruction::B {
+            cond,
+            imm32,
+            thumb32,
+        } => {
+            assert_eq!(cond, Condition::EQ);
+            assert_eq!(imm32, (1 << 1));
+            assert_eq!(thumb32, false);
+        }
+        _ => {
+            println!(" {}", decode_16(0xd001));
+            assert!(false);
+        }
+    }
+    // BNE.N
+    match decode_16(0xd1f8) {
+        Instruction::B {
+            cond,
+            imm32,
+            thumb32,
+        } => {
+            assert!(cond == Condition::NE);
+            assert!(imm32 == -16);
+            assert_eq!(thumb32, false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // B.N (PC + 8)
+    match decode_16(0xE004) {
+        Instruction::B {
+            cond,
+            imm32,
+            thumb32,
+        } => {
+            assert!(cond == Condition::AL);
+            assert!(imm32 == (4 << 1));
+            assert_eq!(thumb32, false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_push() {
+    // PUSH  {R4, LR}
+    match decode_16(0xb510) {
+        Instruction::PUSH { registers, thumb32 } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R4, Reg::LR], elems);
+            assert_eq!(thumb32, false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_pop() {
+    // POP  {R4, LR}
+    match decode_16(0xbd10) {
+        Instruction::POP { registers, thumb32 } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R4, Reg::PC], elems);
+            assert_eq!(thumb32, false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldr() {
+    // LDR.N R1, [PC, 0x1c]
+    match decode_16(0x4907) {
+        Instruction::LDR_lit { rt, imm32, thumb32 } => {
+            assert!(rt == Reg::R1);
+            assert!(imm32 == (7 << 2));
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+    // LDR R2, [R1]
+    match decode_16(0x680a) {
+        Instruction::LDR_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            assert!(rn == Reg::R1);
+            assert!(rt == Reg::R2);
+            assert!(imm32 == 0);
+            assert!(index == true);
+            assert!(add == true);
+            assert!(wback == false);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_add_reg_pc() {
+    // ADD R1,R1, PC
+    assert_eq!(
+        decode_16(0x4479),
+        Instruction::ADD_reg {
+            rd: Reg::R1,
+            rn: Reg::R1,
+            rm: Reg::PC,
+            setflags: false,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            thumb32: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_add_reg_imm() {
+    // ADDS R1, R1, 24
+    match decode_16(0x3118) {
+        Instruction::ADD_imm {
+            rn,
+            rd,
+            imm32,
+            setflags,
+            thumb32,
+        } => {
+            assert!(rn == Reg::R1);
+            assert!(rd == Reg::R1);
+            assert!(imm32 == 24);
+            assert!(setflags);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_add_reg_sp() {
+    // ADD R1, SP, #0xc
+    match decode_16(0xa903) {
+        Instruction::ADD_imm {
+            rn,
+            rd,
+            imm32,
+            setflags,
+            thumb32,
+        } => {
+            assert!(rn == Reg::SP);
+            assert!(rd == Reg::R1);
+            assert!(imm32 == 0xc);
+            assert!(setflags == false);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sub() {
+    // SUB SP,SP, #0x8
+    match decode_16(0xb082) {
+        Instruction::SUB_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+            thumb32,
+        } => {
+            assert!(rd == Reg::SP);
+            assert!(rn == Reg::SP);
+            assert!(imm32 == 0x8);
+            assert!(setflags == false);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sub2() {
+    // SUBS R2,R2,#48
+    match decode_16(0x3a30) {
+        Instruction::SUB_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+            thumb32,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rn == Reg::R2);
+            assert!(imm32 == 48);
+            assert!(setflags == true);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_tst() {
+    // TST R4, R1
+    match decode_16(0x420c) {
+        Instruction::TST_reg { rn, rm } => {
+            assert!(rn == Reg::R4);
+            assert!(rm == Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrb_imm() {
+    // LDRB R0, [R0m 0]
+    assert_eq!(
+        decode_16(0x7800),
+        Instruction::LDRB_imm {
+            rt: Reg::R0,
+            rn: Reg::R0,
+            imm32: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldrb_imm2() {
+    // LDRB R2, [R0, 0x10]
+    assert_eq!(
+        decode_16(0x7c02),
+        Instruction::LDRB_imm {
+            rt: Reg::R2,
+            rn: Reg::R0,
+            imm32: 0x10,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_mvns() {
+    // MVNS R5,R5
+    match decode_16(0x43ed) {
+        Instruction::MVN_reg { rd, rm, setflags } => {
+            assert!(rd == Reg::R5);
+            assert!(rm == Reg::R5);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_lsls() {
+    // LSLS R1, R4, #2
+    match decode_16(0x00a1) {
+        Instruction::LSL_imm {
+            rd,
+            rm,
+            shift_n,
+            setflags,
+            thumb32,
+        } => {
+            assert!(rd == Reg::R1);
+            assert!(rm == Reg::R4);
+            assert!(shift_n == 2);
+            assert!(setflags);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_adr() {
+    // ADR R0, PC, #(7<<2)
+    match decode_16(0xa007) {
+        Instruction::ADR { rd, imm32 } => {
+            assert!(rd == Reg::R0);
+            assert!(imm32 == 7 << 2);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_bkpt() {
+    // BKPT #0xab
+    assert_eq!(decode_16(0xbeab), Instruction::BKPT { imm32: 0xab });
+}
+
+#[test]
+fn test_decode_strb() {
+    // STRB R0, [R1]
+    match decode_16(0x7008) {
+        Instruction::STRB_imm { rt, rn, imm32 } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R1);
+            assert!(imm32 == 0x0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_str_reg() {
+    // STR R0, [R1, R2]
+    match decode_16(0x5088) {
+        Instruction::STR_reg { rt, rn, rm } => {
+            assert!(rt == Reg::R0);
+            assert!(rn == Reg::R1);
+            assert!(rm == Reg::R2);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_nop() {
+    // NOP
+    match decode_16(0xbf00) {
+        Instruction::NOP => {}
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_mul() {
+    // MULS R4, R0, R4
+    match decode_16(0x4344) {
+        Instruction::MUL {
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32
+        } => {
+            assert!(rd == Reg::R4);
+            assert!(rn == Reg::R0);
+            assert!(rm == Reg::R4);
+            assert!(setflags);
+            assert!(!thumb32);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_orr() {
+    // ORRS R3, R3, R1
+    match decode_16(0x430b) {
+        Instruction::ORR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32,
+            shift_t,
+            shift_n,
+        } => {
+            assert!(rd == Reg::R3);
+            assert!(rn == Reg::R3);
+            assert!(rm == Reg::R1);
+            assert!(setflags);
+            assert_eq!(thumb32, false);
+            assert_eq!(shift_t, SRType::LSL);
+            assert_eq!(shift_n, 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_lsr_imm() {
+    // LSRS R3, R0, #8
+    match decode_16(0x0a03) {
+        Instruction::LSR_imm {
+            rd,
+            rm,
+            shift_n,
+            setflags,
+            thumb32,
+        } => {
+            assert!(rd == Reg::R3);
+            assert!(rm == Reg::R0);
+            assert!(shift_n == 8);
+            assert!(setflags);
+            assert!(thumb32 == false);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_lsr_reg() {
+    // LSRS R1, R1, R4
+    match decode_16(0x40e1) {
+        Instruction::LSR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
+            assert_eq!(rd, Reg::R1);
+            assert_eq!(rn, Reg::R1);
+            assert_eq!(rm, Reg::R4);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_adc_reg() {
+    // ADCS R2,R2,R2
+    match decode_16(0x4152) {
+        Instruction::ADC_reg {
+            rd,
+            rm,
+            rn,
+            setflags,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rm == Reg::R2);
+            assert!(rn == Reg::R2);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_asr_imm() {
+    // ASR R2,R2,#8
+    match decode_16(0x1212) {
+        Instruction::ASR_imm {
+            rd,
+            rm,
+            imm5,
+            setflags,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rm == Reg::R2);
+            assert!(imm5 == 8);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_strh_imm() {
+    // STRH R0, [R1, #0x38]
+    assert_eq!(
+        decode_16(0x8708),
+        Instruction::STRH_imm {
+            rt: Reg::R0,
+            rn: Reg::R1,
+            imm32: 0x38,
+            thumb32: false,
+            index: true,
+            add: true,
+            wback: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_uxtb() {
+    // UXTB R1,R1
+    match decode_16(0xb2c9) {
+        Instruction::UXTB { rd, rm } => {
+            assert!(rd == Reg::R1);
+            assert!(rm == Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_bic() {
+    // BICS R2,R2,R0
+    match decode_16(0x4382) {
+        Instruction::BIC_reg {
+            rd,
+            rm,
+            rn,
+            setflags,
+        } => {
+            assert!(rd == Reg::R2);
+            assert!(rn == Reg::R2);
+            assert!(rm == Reg::R0);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldm() {
+    // LDM R2!, {R0, R1}
+    match decode_16(0xca03) {
+        Instruction::LDM { rn, registers } => {
+            assert!(rn == Reg::R2);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldm2() {
+    // LDM R1!, {R3}
+    match decode_16(0xc908) {
+        Instruction::LDM { rn, registers } => {
+            assert!(rn == Reg::R1);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R3], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldm3() {
+    // LDM R4!, {R0-R2}
+    match decode_16(0xcc07) {
+        Instruction::LDM { rn, registers } => {
+            assert!(rn == Reg::R4);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_stm() {
+    // STM R2!, {R0, R1}
+    match decode_16(0xc203) {
+        Instruction::STM {
+            rn,
+            registers,
+            wback,
+        } => {
+            assert!(rn == Reg::R2);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1], elems);
+            assert!(wback);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_stm2() {
+    // STM R3!, {R0-R2}
+    match decode_16(0xc307) {
+        Instruction::STM {
+            rn,
+            registers,
+            wback,
+        } => {
+            assert!(rn == Reg::R3);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
+            assert!(wback);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrh() {
+    // LDRH R0,[R0, #0x38]
+    match decode_16(0x8f00) {
+        Instruction::LDRH_imm { rn, rt, imm32 } => {
+            assert!(rn == Reg::R0);
+            assert!(rt == Reg::R0);
+            assert!(imm32 == 0x38);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_and() {
+    // ANDS R2,R2,R3
+    match decode_16(0x401a) {
+        Instruction::AND_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
+            assert_eq!(rd, Reg::R2);
+            assert_eq!(rn, Reg::R2);
+            assert_eq!(rm, Reg::R3);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_cmn() {
+    // CMN R4,R5
+    match decode_16(0x42ec) {
+        Instruction::CMN_reg { rn, rm } => {
+            assert!(rn == Reg::R4);
+            assert!(rm == Reg::R5);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sbc() {
+    // SBCS R5, R5, R3
+    match decode_16(0x419d) {
+        Instruction::SBC_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+        } => {
+            assert!(rd == Reg::R5);
+            assert!(rn == Reg::R5);
+            assert!(rm == Reg::R3);
+            assert!(setflags);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_strb2() {
+    // STRB R2, [R0, R5]
+    match decode_16(0x5542) {
+        Instruction::STRB_reg { rt, rn, rm } => {
+            assert!(rt == Reg::R2);
+            assert!(rn == Reg::R0);
+            assert!(rm == Reg::R5);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrsh() {
+    // LDRSH R0, [R6, R0]
+    assert_eq!(
+        decode_16(0x5e30),
+        Instruction::LDRSH_reg {
+            rt: Reg::R0,
+            rn: Reg::R6,
+            rm: Reg::R0,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_strh_reg() {
+    // STRH R4, [R6, R1]
+    match decode_16(0x5274) {
+        Instruction::STRH_reg { rt, rn, rm } => {
+            assert_eq!(rt, Reg::R4);
+            assert_eq!(rn, Reg::R6);
+            assert_eq!(rm, Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_eor_reg() {
+    // EOR R0, R0, R4
+    match decode_16(0x4060) {
+        Instruction::EOR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32,
+            shift_t,
+            shift_n,
+        } => {
+            assert_eq!(rd, Reg::R0);
+            assert_eq!(rn, Reg::R0);
+            assert_eq!(rm, Reg::R4);
+            assert_eq!(setflags, true);
+            assert_eq!(thumb32, false);
+            assert_eq!(shift_t, SRType::LSL);
+            assert_eq!(shift_n, 0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_ldrsb_reg() {
+    // LDRSB R4, [R4, R0]
+    match decode_16(0x5624) {
+        Instruction::LDRSB_reg { rt, rn, rm } => {
+            assert_eq!(rt, Reg::R4);
+            assert_eq!(rn, Reg::R4);
+            assert_eq!(rm, Reg::R0);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_sxth_reg() {
+    // SXTH R1,R1
+    match decode_16(0xb209) {
+        Instruction::SXTH { rd, rm } => {
+            assert_eq!(rd, Reg::R1);
+            assert_eq!(rm, Reg::R1);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_rsb_imm() {
+    // RSB R2, R0, #0
+    assert_eq!(
+        decode_16(0x4242),
+        Instruction::RSB_imm {
+            rd: Reg::R2,
+            rn: Reg::R0,
+            imm32: 0,
+            setflags: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_mrs() {
+    // MRS R0, ipsr
+    assert_eq!(
+        decode_32(0xf3ef8005),
+        Instruction::MRS {
+            rd: Reg::R0,
+            spec_reg: SpecialReg::IPSR,
+        }
+    );
+}
+
+#[test]
+fn test_decode_cpsid() {
+    // CPSID i
+    assert_eq!(decode_16(0xB672), Instruction::CPS { im: CpsEffect::ID });
+}
+
+#[test]
+fn test_decode_lsl_2() {
+    // LSL r1, r1, #31
+    assert_eq!(
+        decode_16(0x07c9),
+        Instruction::LSL_imm {
+            rd: Reg::R1,
+            rm: Reg::R1,
+            shift_n: 31,
+            setflags: true,
+            thumb32: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_bl_t1() {
+    // BL -130
+    assert_eq!(decode_32(0xf7ffffbf), Instruction::BL { imm32: -130 });
+
+    // BL -5694
+    assert_eq!(decode_32(0xf7fefce1), Instruction::BL { imm32: -5694 });
+}
+
+#[test]
+fn test_decode_ldrw_imm() {
+    // LDR.W R1, [R0], #0x4
+    assert_eq!(
+        decode_32(0xf8501b04),
+        Instruction::LDR_imm {
+            rt: Reg::R1,
+            rn: Reg::R0,
+            imm32: 0x4,
+            index: false,
+            add: true,
+            wback: true,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_strw_imm() {
+    // STR.W R4, [R3], #0x4
+    assert_eq!(
+        decode_32(0xf8434b04),
+        Instruction::STR_imm {
+            rt: Reg::R4,
+            rn: Reg::R3,
+            imm32: 4,
+            index: false,
+            add: true,
+            wback: true,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_cbz() {
+    // CBZ R1, 0x3be4 (executed on addr 0x3bc2)
+    assert_eq!(
+        decode_16(0xb179),
+        Instruction::CBZ {
+            rn: Reg::R1,
+            imm32: 30,
+            nonzero: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_it() {
+    // ITT MI
+    assert_eq!(
+        decode_16(0xbf44),
+        Instruction::IT {
+            x: Some(ITCondition::Then),
+            y: None,
+            z: None,
+            firstcond: Condition::MI,
+            mask: 0x4,
+        }
+    );
+}
+
+#[test]
+fn test_decode_pushw() {
+    // PUSH.W {R4-R11, LR}
+    // PUSH  {R4, LR}
+    match decode_32(0xe92d4ff0) {
+        Instruction::PUSH { registers, thumb32 } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(
+                vec![
+                    Reg::R4,
+                    Reg::R5,
+                    Reg::R6,
+                    Reg::R7,
+                    Reg::R8,
+                    Reg::R9,
+                    Reg::R10,
+                    Reg::R11,
+                    Reg::LR,
+                ],
+                elems
+            );
+
+            assert_eq!(thumb32, true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_subw_imm() {
+    // SUBW SP,SP,#2084
+    assert_eq!(
+        decode_32(0xf6ad0d24),
+        Instruction::SUB_imm {
+            rd: Reg::SP,
+            rn: Reg::SP,
+            imm32: 2084,
+            setflags: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_tbb() {
+    // TBB [PC, R0]
+    assert_eq!(
+        decode_32(0xe8dff000),
+        Instruction::TBB {
+            rn: Reg::PC,
+            rm: Reg::R0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_strh_w() {
+    // STRH.W R0, [SP, #0x10]
+    assert_eq!(
+        decode_32(0xf8ad0010),
+        Instruction::STRH_imm {
+            rt: Reg::R0,
+            rn: Reg::SP,
+            imm32: 0x10,
+            thumb32: true,
+            index: true,
+            add: true,
+            wback: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_mov_w() {
+    // MOV.W R8, #-1
+    assert_eq!(
+        decode_32(0xf04f38ff),
+        Instruction::MOV_imm {
+            rd: Reg::R8,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (0xffffffff, false),
+                imm32_c1: (0xffffffff, true),
+            },
+            thumb32: true,
+            setflags: false,
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldrsh_reg_w() {
+    // LDRSH.W R0, [R0, R0, LSL #0]
+    assert_eq!(
+        decode_32(0xf9300000),
+        Instruction::LDRSH_reg {
+            rt: Reg::R0,
+            rn: Reg::R0,
+            rm: Reg::R0,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldrsh_imm_w() {
+    // LDRSH.W R0, [SP, #0x10]
+    assert_eq!(
+        decode_32(0xf9bd0010),
+        Instruction::LDRSH_imm {
+            rt: Reg::R0,
+            rn: Reg::SP,
+            imm32: 0x10,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_ubfx() {
+    // UBFX R1, R0, #1, #1
+    assert_eq!(
+        decode_32(0xf3c00140),
+        Instruction::UBFX {
+            rd: Reg::R1,
+            rn: Reg::R0,
+            lsb: 1,
+            widthminus1: 0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_udiv() {
+    // UDIV R0, R0, R1
+    assert_eq!(
+        decode_32(0xfbb0f0f1),
+        Instruction::UDIV {
+            rd: Reg::R0,
+            rn: Reg::R0,
+            rm: Reg::R1,
+        }
+    );
+}
+
+#[test]
+fn test_decode_mla() {
+    // MLA R1, R7, R2, R1
+    assert_eq!(
+        decode_32(0xfb071102),
+        Instruction::MLA {
+            rd: Reg::R1,
+            rn: Reg::R7,
+            rm: Reg::R2,
+            ra: Reg::R1,
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldrb_w() {
+    // 0xf8960020 LDRB.W R0 [R6, #0x20]
+    assert_eq!(
+        decode_32(0xf8960020),
+        Instruction::LDRB_imm {
+            rt: Reg::R0,
+            rn: Reg::R6,
+            imm32: 0x20,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_add_reg_w() {
+    // 0xeb0103ca ADD.W R3, R1, R10, LSL #3
+    assert_eq!(
+        decode_32(0xeb0103ca),
+        Instruction::ADD_reg {
+            rd: Reg::R3,
+            rn: Reg::R1,
+            rm: Reg::R10,
+            setflags: false,
+            shift_t: SRType::LSL,
+            shift_n: 3,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_cmp_imm_w() {
+    // 0xf1ba0f00 CMP.W R10, #0
+    assert_eq!(
+        decode_32(0xf1ba0f00),
+        Instruction::CMP_imm {
+            rn: Reg::R10,
+            imm32: 0,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_and_imm_w() {
+    // 0xf01a0c03 ANDS.W R12, R10, 3
+    assert_eq!(
+        decode_32(0xf01a0c03),
+        Instruction::AND_imm {
+            rd: Reg::R12,
+            rn: Reg::R10,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (3, false),
+                imm32_c1: (3, true),
+            },
+            setflags: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_eor_reg_w() {
+    // 0xea8e0402 EOR.W R4, LR, R2
+    assert_eq!(
+        decode_32(0xea8e0402),
+        Instruction::EOR_reg {
+            rd: Reg::R4,
+            rn: Reg::LR,
+            rm: Reg::R2,
+            setflags: false,
+            thumb32: true,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_orr_reg_w() {
+    // 0xea4404c8  ORR.W R4, R4, R8, LSL #3
+    assert_eq!(
+        decode_32(0xea4404c8),
+        Instruction::ORR_reg {
+            rd: Reg::R4,
+            rn: Reg::R4,
+            rm: Reg::R8,
+            setflags: false,
+            thumb32: true,
+            shift_t: SRType::LSL,
+            shift_n: 3,
+        }
+    );
+}
+
+#[test]
+fn test_decode_lsl_w_imm() {
+    // LSL.W R8,R8,1
+    assert_eq!(
+        decode_32(0xea4f0848),
+        Instruction::LSL_imm {
+            rd: Reg::R8,
+            rm: Reg::R8,
+            shift_n: 1,
+            setflags: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_lsr_w_imm() {
+    // LSRS.W R12,R10,2
+    assert_eq!(
+        decode_32(0xea5f0c9a),
+        Instruction::LSR_imm {
+            rd: Reg::R12,
+            rm: Reg::R10,
+            shift_n: 2,
+            setflags: true,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_pop_w() {
+    //0xe8bd47f0 POP.W {R4-R10, LR}
+    match decode_32(0xe8bd47f0) {
+        Instruction::POP { registers, thumb32 } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R4, Reg::R5, Reg::R6, Reg::R7, Reg::R8, Reg::R9, Reg::R10, Reg::LR], elems);
+            assert_eq!(thumb32, true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_mul_w() {
+    //0xfb04f604 MUL R6, R4, R4
+    assert_eq!(
+        decode_32(0xfb04f604),
+        Instruction::MUL {
+            rd: Reg::R6,
+            rn: Reg::R4,
+            rm: Reg::R4,
+            setflags: false,
+            thumb32: true
+        }
+    );
+}
+

@@ -311,6 +311,7 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
         setflags: bool,
+        thumb32: bool
     },
     MVN_reg {
         rd: Reg,
@@ -340,6 +341,7 @@ pub enum Instruction {
     },
     POP {
         registers: EnumSet<Reg>,
+        thumb32: bool,
     },
     PUSH {
         registers: EnumSet<Reg>,
@@ -904,6 +906,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 setflags,
+                thumb32,
             } => write!(
                 f,
                 "mul{} {}, {}, {}",
@@ -997,7 +1000,9 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::POP { registers } => write!(f, "pop {:?}", registers),
+            Instruction::POP { registers, thumb32 } => {
+                write!(f, "pop{} {:?}", if thumb32 { ".W" } else { "" }, registers)
+            }
             Instruction::PUSH { thumb32, registers } => {
                 write!(f, "push{} {:?}", if thumb32 { ".W" } else { "" }, registers)
             }
@@ -1460,6 +1465,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             ref rd,
             ref rm,
             ref shift_n,
+            ref thumb32,
+            ref setflags,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::MUL {
+            ref rd,
+            ref rm,
+            ref rn,
             ref thumb32,
             ref setflags,
         } => if *thumb32 {

@@ -12,8 +12,8 @@ where
 {
     pub fn new(code: &'a mut T, sram: &'a mut R) -> AHBLite<'a, T, R> {
         AHBLite {
-            code: code,
-            sram: sram,
+            code,
+            sram,
         }
     }
 }
@@ -76,7 +76,7 @@ where
 
     fn write16(&mut self, addr: u32, value: u16) {
         if addr & 1 != 0 {
-            panic!("unaliged write16 addr 0x{:x}", addr);
+            panic!("unaligned write16 address 0x{:x}", addr);
         }
         if self.code.in_range(addr) {
             self.code.write16(addr, value);

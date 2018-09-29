@@ -352,6 +352,7 @@ where
                     shift_n as usize,
                     core.psr.get_c(),
                 );
+
                 core.set_r(rd, result);
 
                 if *setflags {
@@ -397,6 +398,7 @@ where
             ref rn,
             ref rm,
             ref setflags,
+            ref thumb32
         } => {
             if core.condition_passed() {
                 let operand1 = core.get_r(rn);
@@ -716,7 +718,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::POP { ref registers } => {
+        Instruction::POP { ref registers, thumb32 } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
                 let sp = core.get_r(&Reg::SP);
