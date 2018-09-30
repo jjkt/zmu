@@ -6,11 +6,11 @@ use core::instruction::Instruction;
 #[allow(non_snake_case)]
 pub fn decode_IT_t1(opcode: u16) -> Instruction {
     let firstcond = opcode.get_bits(4..8);
-    let mask = opcode.get_bits(0..5) as u8;
+    let mask = opcode.get_bits(0..4) as u8;
 
-    let lsb = firstcond & 1;
+    let lsb = opcode.get_bit(4);
 
-    let (x, y, z) = if lsb == 0 {
+    let (x, y, z) = if !lsb {
         match mask {
             0b1000 => (None, None, None),
             0b0100 => (Some(ITCondition::Then), None, None),
@@ -60,7 +60,7 @@ pub fn decode_IT_t1(opcode: u16) -> Instruction {
                 Some(ITCondition::Else),
                 Some(ITCondition::Else),
             ),
-            _ => (None, None, None),
+            _ =>(None, None, None),
         }
     } else {
         match mask {
@@ -117,10 +117,10 @@ pub fn decode_IT_t1(opcode: u16) -> Instruction {
     };
 
     Instruction::IT {
-        x: x,
-        y: y,
-        z: z,
+        x,
+        y,
+        z,
         firstcond: Condition::from_u16(firstcond).unwrap_or(Condition::AL),
-        mask: mask,
+        mask,
     }
 }

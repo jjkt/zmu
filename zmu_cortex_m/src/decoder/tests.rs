@@ -1205,6 +1205,37 @@ fn test_decode_it() {
 }
 
 #[test]
+fn test_decode_itttt_cc() {
+    // 0xbf3f ITTTT CC
+    assert_eq!(
+        decode_16(0xbf3f),
+        Instruction::IT {
+            x: Some(ITCondition::Then),
+            y: Some(ITCondition::Then),
+            z: Some(ITCondition::Then),
+            firstcond: Condition::CC,
+            mask: 0b1111,
+        }
+    );
+}
+
+#[test]
+fn test_decode_itt_cc() {
+    // 0xbf3c ITTCC
+    assert_eq!(
+        decode_16(0xbf3c),
+        Instruction::IT {
+            x: Some(ITCondition::Then),
+            y: None,
+            z: None,
+            firstcond: Condition::CC,
+            mask: 0b1100,
+        }
+    );
+}
+
+
+#[test]
 fn test_decode_pushw() {
     // PUSH.W {R4-R11, LR}
     // PUSH  {R4, LR}

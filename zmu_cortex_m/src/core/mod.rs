@@ -342,7 +342,7 @@ impl<'a, T: Bus> Core<'a, T> {
                 self.itstate = 0;
             } else {
                 let it = self.itstate.get_bits(0..5);
-                self.itstate.set_bits(0..5, it << 1);
+                self.itstate.set_bits(0..5, (it << 1) & 0b11111);
             }
         }
     }
