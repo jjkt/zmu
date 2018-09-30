@@ -2,7 +2,7 @@ use bit_field::BitField;
 use bus::Bus;
 use core::fault::Fault;
 use core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType};
-use core::operation::{add_with_carry, decode_imm_shift, ror, shift, shift_c, sign_extend};
+use core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
 use core::register::{Apsr, Ipsr, Reg, SpecialReg};
 use core::Core;
 use semihosting::decode_semihostcmd;
@@ -65,16 +65,16 @@ where
         Instruction::ASR_imm {
             ref rd,
             ref rm,
-            ref imm5,
+            ref shift_n,
             ref setflags,
+            ref thumb32
         } => {
             if core.condition_passed() {
-                let (_, shift_n) = decode_imm_shift(0b10, *imm5);
 
                 let (result, carry) = shift_c(
                     core.get_r(rm),
                     &SRType::ASR,
-                    usize::from(shift_n),
+                    usize::from(*shift_n),
                     core.psr.get_c(),
                 );
 

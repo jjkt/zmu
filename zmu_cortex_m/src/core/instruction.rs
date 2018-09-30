@@ -77,8 +77,9 @@ pub enum Instruction {
     ASR_imm {
         rd: Reg,
         rm: Reg,
-        imm5: u8,
+        shift_n: u8,
         setflags: bool,
+        thumb32: bool
     },
     ASR_reg {
         rd: Reg,
@@ -681,15 +682,17 @@ impl fmt::Display for Instruction {
             Instruction::ASR_imm {
                 rd,
                 rm,
-                imm5,
+                shift_n,
                 setflags,
+                thumb32
             } => write!(
                 f,
-                "asr{} {}, {}, #{}",
+                "asr{}{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rm,
-                imm5
+                shift_n
             ),
             Instruction::ASR_reg {
                 rd,
@@ -1462,6 +1465,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::LSR_imm {
+            ref rd,
+            ref rm,
+            ref shift_n,
+            ref thumb32,
+            ref setflags,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::ASR_imm {
             ref rd,
             ref rm,
             ref shift_n,
