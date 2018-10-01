@@ -67,10 +67,9 @@ where
             ref rm,
             ref shift_n,
             ref setflags,
-            ref thumb32
+            ref thumb32,
         } => {
             if core.condition_passed() {
-
                 let (result, carry) = shift_c(
                     core.get_r(rm),
                     &SRType::ASR,
@@ -317,7 +316,7 @@ where
             ref rm,
             ref shift_n,
             ref setflags,
-            ref thumb32
+            ref thumb32,
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
@@ -398,7 +397,7 @@ where
             ref rn,
             ref rm,
             ref setflags,
-            ref thumb32
+            ref thumb32,
         } => {
             if core.condition_passed() {
                 let operand1 = core.get_r(rn);
@@ -718,7 +717,10 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::POP { ref registers, thumb32 } => {
+        Instruction::POP {
+            ref registers,
+            thumb32,
+        } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
                 let sp = core.get_r(&Reg::SP);
@@ -857,11 +859,21 @@ where
             ref rt,
             ref rn,
             imm32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + imm32;
-                let value = u32::from(core.bus.read16(address));
-                core.set_r(rt, value);
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
+
+                let data = core.bus.read16(address);
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
+                core.set_r(rt, data as u32);
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken

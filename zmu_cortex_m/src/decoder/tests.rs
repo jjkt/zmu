@@ -916,10 +916,14 @@ fn test_decode_stm2() {
 fn test_decode_ldrh() {
     // LDRH R0,[R0, #0x38]
     match decode_16(0x8f00) {
-        Instruction::LDRH_imm { rn, rt, imm32 } => {
+        Instruction::LDRH_imm { rn, rt, imm32, index, add, wback, thumb32 } => {
             assert!(rn == Reg::R0);
             assert!(rt == Reg::R0);
             assert!(imm32 == 0x38);
+            assert!(index);
+            assert!(add);
+            assert!(!wback);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -1585,6 +1589,23 @@ fn test_decode_asr_w() {
             shift_n: 15,
             setflags: false,
             thumb32: true
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldrh_w() {
+    //0xf8349b02 LDRH.W R9, [R4], #0x2
+    assert_eq!(
+        decode_32(0xf8349b02),
+        Instruction::LDRH_imm {
+            rt: Reg::R9,
+            rn: Reg::R4,
+            imm32: 2,
+            thumb32: true,
+            add : true,
+            index : false,
+            wback: true
         }
     );
 }

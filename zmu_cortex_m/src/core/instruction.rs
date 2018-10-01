@@ -79,7 +79,7 @@ pub enum Instruction {
         rm: Reg,
         shift_n: u8,
         setflags: bool,
-        thumb32: bool
+        thumb32: bool,
     },
     ASR_reg {
         rd: Reg,
@@ -209,6 +209,10 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     LDRH_reg {
         rt: Reg,
@@ -312,7 +316,7 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
         setflags: bool,
-        thumb32: bool
+        thumb32: bool,
     },
     MVN_reg {
         rd: Reg,
@@ -684,7 +688,7 @@ impl fmt::Display for Instruction {
                 rm,
                 shift_n,
                 setflags,
-                thumb32
+                thumb32,
             } => write!(
                 f,
                 "asr{}{} {}, {}, #{}",
@@ -827,13 +831,15 @@ impl fmt::Display for Instruction {
                 thumb32,
             } => format_adressing_mode("ldrb", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::LDRB_reg { rt, rn, rm } => write!(f, "ldrb {}, [{}, {}]", rt, rn, rm),
-            Instruction::LDRH_imm { rt, rn, imm32 } => {
-                if imm32 == 0 {
-                    write!(f, "ldrh {}, [{}]", rt, rn)
-                } else {
-                    write!(f, "ldrh {}, [{}, #{}]", rt, rn, imm32)
-                }
-            }
+            Instruction::LDRH_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => format_adressing_mode("ldrh", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::LDRH_reg { rt, rn, rm } => write!(f, "ldrh {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRSB_reg { rt, rn, rm } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRSH_reg {
@@ -1399,7 +1405,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
-
+        Instruction::LDRH_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::MSR_reg { rn, spec_reg } => 4,
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::MLA { rd, rn, rm, ra } => 4,
