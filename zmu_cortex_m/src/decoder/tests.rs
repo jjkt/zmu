@@ -796,9 +796,16 @@ fn test_decode_strh_imm() {
 fn test_decode_uxtb() {
     // UXTB R1,R1
     match decode_16(0xb2c9) {
-        Instruction::UXTB { rd, rm } => {
+        Instruction::UXTB {
+            rd,
+            rm,
+            thumb32,
+            rotation,
+        } => {
             assert!(rd == Reg::R1);
             assert!(rm == Reg::R1);
+            assert!(!thumb32);
+            assert!(rotation == 0);
         }
         _ => {
             assert!(false);
@@ -916,7 +923,15 @@ fn test_decode_stm2() {
 fn test_decode_ldrh() {
     // LDRH R0,[R0, #0x38]
     match decode_16(0x8f00) {
-        Instruction::LDRH_imm { rn, rt, imm32, index, add, wback, thumb32 } => {
+        Instruction::LDRH_imm {
+            rn,
+            rt,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
             assert!(rn == Reg::R0);
             assert!(rt == Reg::R0);
             assert!(imm32 == 0x38);
@@ -1573,7 +1588,7 @@ fn test_decode_mul_w() {
             rn: Reg::R4,
             rm: Reg::R4,
             setflags: false,
-            thumb32: true
+            thumb32: true,
         }
     );
 }
@@ -1588,7 +1603,7 @@ fn test_decode_asr_w() {
             rm: Reg::R2,
             shift_n: 15,
             setflags: false,
-            thumb32: true
+            thumb32: true,
         }
     );
 }
@@ -1603,9 +1618,23 @@ fn test_decode_ldrh_w() {
             rn: Reg::R4,
             imm32: 2,
             thumb32: true,
-            add : true,
-            index : false,
-            wback: true
+            add: true,
+            index: false,
+            wback: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_uxtb_w() {
+    //0xfa5ff989 UXTB.W R9, R9
+    assert_eq!(
+        decode_32(0xfa5ff989),
+        Instruction::UXTB {
+            rd: Reg::R9,
+            rm: Reg::R9,
+            thumb32: true,
+            rotation: 0
         }
     );
 }

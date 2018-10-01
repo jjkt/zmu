@@ -502,6 +502,8 @@ pub enum Instruction {
     UXTB {
         rd: Reg,
         rm: Reg,
+        thumb32: bool,
+        rotation: usize,
     },
     UXTH {
         rd: Reg,
@@ -517,7 +519,8 @@ pub enum Instruction {
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
 pub enum CpsEffect {
-    IE, // Interrupt enable
+    IE,
+    // Interrupt enable
     ID, // Interrupt disable
 }
 
@@ -1162,7 +1165,23 @@ impl fmt::Display for Instruction {
             Instruction::SMLAL { rdlo, rdhi, rn, rm } => {
                 write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
-            Instruction::UXTB { rd, rm } => write!(f, "uxtb {}, {}", rd, rm),
+            Instruction::UXTB {
+                rd,
+                rm,
+                thumb32,
+                rotation,
+            } => write!(
+                f,
+                "uxtb{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rd,
+                rm,
+                if rotation > 0 {
+                    format!("{}", rotation)
+                } else {
+                    format!("")
+                }
+            ),
             Instruction::UXTH {
                 rd,
                 rm,
@@ -1383,6 +1402,16 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::UXTH {
+            rd,
+            rm,
+            rotation,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::UXTB {
             rd,
             rm,
             rotation,

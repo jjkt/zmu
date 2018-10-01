@@ -1291,9 +1291,14 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::UXTB { ref rd, ref rm } => {
+        Instruction::UXTB {
+            ref rd,
+            ref rm,
+            ref thumb32,
+            rotation,
+        } => {
             if core.condition_passed() {
-                let rotated = core.get_r(rm);
+                let rotated = ror(core.get_r(rm), rotation);
                 core.set_r(rd, rotated.get_bits(0..8));
                 return ExecuteResult::Taken { cycles: 1 };
             }
