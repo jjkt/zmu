@@ -184,6 +184,7 @@ pub enum Instruction {
     LDR_lit {
         rt: Reg,
         imm32: u32,
+        add: bool,
         thumb32: bool,
     },
     LDR_reg {
@@ -811,15 +812,21 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldr", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::LDR_lit { rt, imm32, thumb32 } => {
+            Instruction::LDR_lit {
+                rt,
+                imm32,
+                thumb32,
+                add,
+            } => {
                 if imm32 == 0 {
                     write!(f, "ldr{} {}, [pc]", if thumb32 { ".W" } else { "" }, rt)
                 } else {
                     write!(
                         f,
-                        "ldr{} {}, [pc, #{}]",
+                        "ldr{} {}, [pc, #{}{}]",
                         if thumb32 { ".W" } else { "" },
                         rt,
+                        if add { "+" } else { "-" },
                         imm32
                     )
                 }
@@ -1298,7 +1305,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
-        Instruction::LDR_lit { rt, imm32, thumb32 } => if *thumb32 {
+        Instruction::LDR_lit {
+            rt,
+            imm32,
+            thumb32,
+            add,
+        } => if *thumb32 {
             4
         } else {
             2

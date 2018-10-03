@@ -213,10 +213,10 @@ where
             if core.condition_passed() {
                 match spec_reg {
                     //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
-                /*&SpecialReg::IPSR => {
-                    let ipsr_val = core.psr.get_exception_number() as u32;
-                    core.set_r(rd, ipsr_val);
-                }*/
+                    /*&SpecialReg::IPSR => {
+                        let ipsr_val = core.psr.get_exception_number() as u32;
+                        core.set_r(rd, ipsr_val);
+                    }*/
                     &SpecialReg::MSP => {
                         let msp = core.get_r(rn);
                         core.set_msp(msp);
@@ -1096,12 +1096,20 @@ where
         Instruction::LDR_lit {
             ref rt,
             imm32,
+            add,
             thumb32,
         } => {
             if core.condition_passed() {
                 let base = core.get_r(&Reg::PC) & 0xffff_fffc;
-                let value = core.bus.read32(base + imm32);
-                core.set_r(rt, value);
+                let address = if add { base + imm32 } else { base - imm32 };
+                let data = core.bus.read32(address);
+
+                if rt == &Reg::PC {
+                    core.load_write_pc(data);
+                } else {
+                    core.set_r(rt, data);
+                }
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken
@@ -1542,7 +1550,6 @@ where
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use memory::ram::*;
 
@@ -1606,5 +1613,4 @@ mod tests {
 
         assert_eq!(core.get_r(&Reg::R1), 0x20000DD0);
     }
-
 }

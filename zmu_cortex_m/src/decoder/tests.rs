@@ -347,10 +347,16 @@ fn test_decode_pop() {
 fn test_decode_ldr() {
     // LDR.N R1, [PC, 0x1c]
     match decode_16(0x4907) {
-        Instruction::LDR_lit { rt, imm32, thumb32 } => {
+        Instruction::LDR_lit {
+            rt,
+            imm32,
+            thumb32,
+            add,
+        } => {
             assert!(rt == Reg::R1);
             assert!(imm32 == (7 << 2));
             assert!(thumb32 == false);
+            assert!(add);
         }
         _ => {
             assert!(false);
@@ -1635,6 +1641,20 @@ fn test_decode_uxtb_w() {
             rm: Reg::R9,
             thumb32: true,
             rotation: 0
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldr_lit_w() {
+    //0xf8df90cc LDR.W R9, [PC, #0xcc]
+    assert_eq!(
+        decode_32(0xf8df90cc),
+        Instruction::LDR_lit {
+            rt: Reg::R9,
+            imm32: 0xcc,
+            add: true,
+            thumb32: true
         }
     );
 }
