@@ -32,7 +32,7 @@ use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate_trace;
 // `error_chain!` creates.
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain!{}
+    error_chain! {}
 }
 
 use errors::*;
@@ -55,8 +55,7 @@ fn run_bin(
                 if handle == 1 {
                     let text = &**data;
                     print!("{}", String::from_utf8_lossy(text));
-                } else {
-                }
+                } else {}
                 SemihostingResponse::SysWrite { result: Ok(0) }
             }
             &SemihostingCommand::SysClock { .. } => {
@@ -87,7 +86,7 @@ fn run_bin(
     let trace_start = option_trace_start.unwrap_or(0);
     //    4803        ldr r0, =0x20010000 <__stack_end__>             0x000001A2    Reset_Handler    1
     let instruction_count = if trace {
-        let tracefunc = |opcode: &ThumbCode, count: u64, pc: u32, instruction: &Instruction| {
+        let tracefunc = |opcode: &ThumbCode, count: u64, pc: u32, instruction: &Instruction, r0_12: [u32; 13]| {
             if trace && count >= trace_start {
                 let opcode_str = match *opcode {
                     ThumbCode::Thumb32 { opcode } => format!("{:08X}", opcode).with_exact_width(8),
@@ -100,8 +99,8 @@ fn run_bin(
                 let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(32);
                 writeln!(
                     &mut trace_stdout,
-                    "    {0:}    {1:} 0x{2:08X}    {3:}    {4:}",
-                    opcode_str, instruction_str, pc, symbol, count
+                    "    {0:}    {1:} 0x{2:08X}    {3:}    {4:} r0:{5:08x} r1:{6:08x} r2:{7:08x} r3:{8:08x} r4:{9:08x} r5:{10:08x} r6:{11:08x} r7:{12:08x} r8:{13:08x} r9:{14:08x}",
+                    opcode_str, instruction_str, pc, symbol, count, r0_12[0], r0_12[1], r0_12[2], r0_12[3], r0_12[4], r0_12[5], r0_12[6], r0_12[7], r0_12[8], r0_12[9],
                 ).unwrap();
                 let _ = trace_stdout.flush();
             }
