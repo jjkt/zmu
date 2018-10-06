@@ -609,7 +609,7 @@ fn test_decode_strb() {
         decode_16(0x7008),
         Instruction::STRB_imm {
             rt: Reg::R0,
-            rn: Reg::R1,            
+            rn: Reg::R1,
             imm32: 0,
             index: true,
             add: true,
@@ -617,7 +617,6 @@ fn test_decode_strb() {
             thumb32: false,
         }
     );
-
 }
 
 #[test]
@@ -1014,16 +1013,20 @@ fn test_decode_sbc() {
 #[test]
 fn test_decode_strb2() {
     // STRB R2, [R0, R5]
-    match decode_16(0x5542) {
-        Instruction::STRB_reg { rt, rn, rm } => {
-            assert!(rt == Reg::R2);
-            assert!(rn == Reg::R0);
-            assert!(rm == Reg::R5);
+    assert_eq!(
+        decode_16(0x5542),
+        Instruction::STRB_reg {
+            rt: Reg::R2,
+            rn: Reg::R0,
+            rm: Reg::R5,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
+            shift_n: 0,
+            shift_t: SRType::LSL,
         }
-        _ => {
-            assert!(false);
-        }
-    }
+    );
 }
 
 #[test]
@@ -1682,18 +1685,37 @@ fn test_decode_ldr_reg_w() {
 }
 
 #[test]
-fn test_decode_strb_reg_w() {
+fn test_decode_strb_imm_w() {
     //0xf80eab01 STRB.W R10, [LR], #1
     assert_eq!(
         decode_32(0xf80eab01),
         Instruction::STRB_imm {
             rt: Reg::R10,
-            rn: Reg::LR,            
+            rn: Reg::LR,
             imm32: 1,
             index: false,
             add: true,
             wback: true,
             thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_strb_reg_w() {
+    //0xf80ce007 STRB.W LR, [R12, R7]
+    assert_eq!(
+        decode_32(0xf80ce007),
+        Instruction::STRB_reg {
+            rt: Reg::LR,
+            rn: Reg::R12,
+            rm: Reg::R7,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+            shift_n: 0,
+            shift_t: SRType::LSL,
         }
     );
 }
