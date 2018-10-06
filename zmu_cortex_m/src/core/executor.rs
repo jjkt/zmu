@@ -807,17 +807,29 @@ where
             ref rt,
             ref rn,
             ref rm,
+            ref shift_t,
+            ref shift_n,
+            ref index,
+            ref add,
+            ref wback,
+            ref thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
-                let value = core.bus.read32(address);
+                let rm_ = core.get_r(rm);
+                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), offset, *add, *index);
+
+                let data = core.bus.read32(address);
+                if *wback {
+                    core.set_r(rn, offset_address);
+                }
 
                 if rt == &Reg::PC {
-                    core.load_write_pc(value);
-                    return ExecuteResult::Branched { cycles: 2 };
+                    core.load_write_pc(data);
                 } else {
-                    core.set_r(rt, value);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    core.set_r(rt, data);
                 }
             }
             ExecuteResult::NotTaken

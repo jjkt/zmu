@@ -445,7 +445,7 @@ impl<'a, T: Bus> Core<'a, T> {
         F: FnMut(&SemihostingCommand) -> SemihostingResponse,
     {
         match execute(self, instruction, semihost_func) {
-            ExecuteResult::Fault { fault : _ } => {
+            ExecuteResult::Fault { fault: _ } => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
                 self.exception_entry(u8::from(Exception::HardFault), pc);

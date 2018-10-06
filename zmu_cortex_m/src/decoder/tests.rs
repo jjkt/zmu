@@ -1658,3 +1658,22 @@ fn test_decode_ldr_lit_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_ldr_reg_w() {
+    //0xf8594024 LDR.W R4, [R9,R4, LSL #2]
+    assert_eq!(
+        decode_32(0xf8594024),
+        Instruction::LDR_reg {
+            rt: Reg::R4,
+            rn: Reg::R9,
+            rm: Reg::R4,
+            shift_t: SRType::LSL,
+            shift_n: 2,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
