@@ -1211,9 +1211,16 @@ fn test_decode_ldrsb_reg() {
 fn test_decode_sxth_reg() {
     // SXTH R1,R1
     match decode_16(0xb209) {
-        Instruction::SXTH { rd, rm } => {
+        Instruction::SXTH {
+            rd,
+            rm,
+            thumb32,
+            rotation,
+        } => {
             assert_eq!(rd, Reg::R1);
             assert_eq!(rm, Reg::R1);
+            assert_eq!(thumb32, false);
+            assert_eq!(rotation, 0);
         }
         _ => {
             assert!(false);
@@ -1748,7 +1755,7 @@ fn test_decode_uxtb_w() {
             rd: Reg::R9,
             rm: Reg::R9,
             thumb32: true,
-            rotation: 0
+            rotation: 0,
         }
     );
 }
@@ -1762,7 +1769,7 @@ fn test_decode_ldr_lit_w() {
             rt: Reg::R9,
             imm32: 0xcc,
             add: true,
-            thumb32: true
+            thumb32: true,
         }
     );
 }
@@ -1832,6 +1839,20 @@ fn test_decode_mov_reg_w() {
             rm: Reg::R3,
             setflags: false,
             thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_sxth_w() {
+    // SXTH.W R10, R10
+    assert_eq!(
+        decode_32(0xfa0ffa8a),
+        Instruction::SXTH {
+            rd: Reg::R10,
+            rm: Reg::R10,
+            thumb32: true,
+            rotation: 0
         }
     );
 }

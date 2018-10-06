@@ -241,7 +241,7 @@ where
             ref rd,
             ref rm,
             ref setflags,
-            ref thumb32
+            ref thumb32,
         } => {
             if core.condition_passed() {
                 let result = core.get_r(rm);
@@ -1366,18 +1366,28 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::SXTB { ref rd, ref rm } => {
+        Instruction::SXTB {
+            ref rd,
+            ref rm,
+            rotation,
+            ref thumb32,
+        } => {
             if core.condition_passed() {
-                let rotated = core.get_r(rm);
+                let rotated = ror(core.get_r(rm), rotation);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
         }
 
-        Instruction::SXTH { ref rd, ref rm } => {
+        Instruction::SXTH {
+            ref rd,
+            ref rm,
+            rotation,
+            ref thumb32,
+        } => {
             if core.condition_passed() {
-                let rotated = core.get_r(rm);
+                let rotated = ror(core.get_r(rm), rotation);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }

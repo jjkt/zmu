@@ -309,7 +309,7 @@ pub enum Instruction {
         rd: Reg,
         rm: Reg,
         setflags: bool,
-        thumb32: bool
+        thumb32: bool,
     },
     MRS {
         rd: Reg,
@@ -466,10 +466,14 @@ pub enum Instruction {
     SXTB {
         rd: Reg,
         rm: Reg,
+        rotation: usize,
+        thumb32: bool,
     },
     SXTH {
         rd: Reg,
         rm: Reg,
+        rotation: usize,
+        thumb32: bool,
     },
     TST_reg {
         rn: Reg,
@@ -968,12 +972,19 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::MOV_reg { rd, rm, setflags, thumb32 } => {
-                write!(f, "mov{}{} {}, {}", if setflags { "s" } else { "" },
-                       if thumb32 { ".W" } else { "" },
-
-                       rd, rm)
-            }
+            Instruction::MOV_reg {
+                rd,
+                rm,
+                setflags,
+                thumb32,
+            } => write!(
+                f,
+                "mov{}{} {}, {}",
+                if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
+                rd,
+                rm
+            ),
             Instruction::MOV_imm {
                 rd,
                 ref imm32,
@@ -1202,8 +1213,41 @@ impl fmt::Display for Instruction {
                 rm
             ),
             Instruction::SVC { imm32 } => write!(f, "svc #{}", imm32),
-            Instruction::SXTB { rd, rm } => write!(f, "sxtb {}, {}", rd, rm),
-            Instruction::SXTH { rd, rm } => write!(f, "sxth {}, {}", rd, rm),
+            Instruction::SXTH {
+                rd,
+                rm,
+                thumb32,
+                rotation,
+            } => write!(
+                f,
+                "sxth{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rd,
+                rm,
+                if rotation > 0 {
+                    format!("{}", rotation)
+                } else {
+                    format!("")
+                }
+            ),
+
+            Instruction::SXTB {
+                rd,
+                rm,
+                thumb32,
+                rotation,
+            } => write!(
+                f,
+                "sxtb{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rd,
+                rm,
+                if rotation > 0 {
+                    format!("{}", rotation)
+                } else {
+                    format!("")
+                }
+            ),
             Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
             Instruction::TST_reg { rn, rm } => write!(f, "tst {}, {}", rn, rm),
             Instruction::UDF { imm32, ref opcode } => {
@@ -1513,6 +1557,26 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::SXTH {
+            rd,
+            rm,
+            rotation,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::SXTB {
+            rd,
+            rm,
+            rotation,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::LDRB_imm {
             rt,
             rn,
@@ -1649,7 +1713,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
-        Instruction::MOV_reg { rd, rm, setflags, ref thumb32 } => if *thumb32 {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            ref thumb32,
+        } => if *thumb32 {
             4
         } else {
             2
