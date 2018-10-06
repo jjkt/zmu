@@ -48,7 +48,7 @@ pub fn decode_STRB_imm_t1(opcode: u16) -> Instruction {
         index : true,
         add : true,
         wback : false,
-        thumb32 : true
+        thumb32 : false
     }
 }
 

@@ -605,16 +605,19 @@ fn test_decode_bkpt() {
 #[test]
 fn test_decode_strb() {
     // STRB R0, [R1]
-    match decode_16(0x7008) {
-        Instruction::STRB_imm { rt, rn, imm32 } => {
-            assert!(rt == Reg::R0);
-            assert!(rn == Reg::R1);
-            assert!(imm32 == 0x0);
+    assert_eq!(
+        decode_16(0x7008),
+        Instruction::STRB_imm {
+            rt: Reg::R0,
+            rn: Reg::R1,            
+            imm32: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
         }
-        _ => {
-            assert!(false);
-        }
-    }
+    );
+
 }
 
 #[test]
