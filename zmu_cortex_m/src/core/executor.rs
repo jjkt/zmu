@@ -845,9 +845,17 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + imm32;
-                let value = u32::from(core.bus.read8(address));
-                core.set_r(rt, value);
+
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
+
+                let data = core.bus.read8(address);
+                core.set_r(rt, data as u32);
+
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken
@@ -1056,11 +1064,22 @@ where
             ref rt,
             ref rn,
             imm32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + imm32;
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), imm32, add, index);
+
                 let value = core.get_r(rt);
+                if wback {
+                    core.set_r(rn, offset_address);
+                }
+
                 core.bus.write8(address, value.get_bits(0..8) as u8);
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken

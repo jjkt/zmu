@@ -1677,3 +1677,20 @@ fn test_decode_ldr_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_strb_reg_w() {
+    //0xf80eab01 STRB.W R10, [LR], #1
+    assert_eq!(
+        decode_32(0xf80eab01),
+        Instruction::STRB_imm {
+            rt: Reg::R10,
+            rn: Reg::LR,            
+            imm32: 1,
+            index: false,
+            add: true,
+            wback: true,
+            thumb32: true,
+        }
+    );
+}

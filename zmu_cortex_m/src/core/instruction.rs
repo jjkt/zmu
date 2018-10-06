@@ -410,9 +410,13 @@ pub enum Instruction {
         rt: Reg,
     },
     STRB_imm {
-        rn: Reg,
         rt: Reg,
+        rn: Reg,
         imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     STRB_reg {
         rm: Reg,
@@ -1103,13 +1107,15 @@ impl fmt::Display for Instruction {
                 thumb32,
             } => format_adressing_mode("str", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::STR_reg { rn, rm, rt } => write!(f, "str {}, [{}, {}]", rt, rn, rm),
-            Instruction::STRB_imm { rn, rt, imm32 } => {
-                if imm32 == 0 {
-                    write!(f, "strb {}, [{}]", rt, rn)
-                } else {
-                    write!(f, "strb {}, [{}, #{}]", rt, rn, imm32)
-                }
-            }
+            Instruction::STRB_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => format_adressing_mode("strb", f, rn, rt, imm32, index, add, wback, thumb32),
             Instruction::STRB_reg { rn, rm, rt } => write!(f, "strb {}, [{}, {}]", rt, rn, rm),
             Instruction::STRH_imm {
                 rt,
@@ -1463,6 +1469,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::LDRB_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::STRB_imm {
             rt,
             rn,
             imm32,
