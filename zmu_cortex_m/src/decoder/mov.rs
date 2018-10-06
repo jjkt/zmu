@@ -5,7 +5,6 @@ use core::operation::decode_imm_shift;
 use core::operation::thumb_expand_imm_c;
 use core::operation::zero_extend;
 use core::register::Reg;
-use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -27,14 +26,17 @@ pub fn decode_MOV_reg_t1(opcode: u16) -> Instruction {
         rd: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..7) as u8),
         setflags: false,
+        thumb32: false,
     }
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MOV_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
+pub fn decode_MOV_reg_t3(opcode: u32) -> Instruction {
+    Instruction::MOV_reg {
+        rd: Reg::from(opcode.get_bits(8..12) as u8),
+        rm: Reg::from(opcode.get_bits(0..4) as u8),
+        setflags: opcode.get_bit(20),
+        thumb32: true,
     }
 }
 
@@ -48,6 +50,7 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(opcode: u16) -> Instruction {
             rd: Reg::from(opcode.get_bits(0..3) as u8),
             rm: Reg::from(opcode.get_bits(3..6) as u8),
             setflags: true,
+            thumb32: false,
         }
     } else {
         let (_, shift_n) = decode_imm_shift(0b00, imm5);

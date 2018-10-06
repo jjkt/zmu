@@ -422,7 +422,7 @@ pub fn decode_32(opcode: u32) -> Instruction {
     } else if (opcode & 0xffeff0f0) == 0xea4f0030 {
         decode_RRX_t1(opcode)
     } else if (opcode & 0xffeff0f0) == 0xea4f0000 {
-        decode_MOV_reg_t2(opcode)
+        decode_MOV_reg_t3(opcode)
     } else if (opcode & 0xfffff0c0) == 0xfa0ff080 {
         decode_SXTH_t2(opcode)
     } else if (opcode & 0xfff0ffc0) == 0xf910f000 {

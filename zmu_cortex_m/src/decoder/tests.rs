@@ -17,160 +17,256 @@ fn test_is_thumb32() {
 #[test]
 fn test_decode_mov() {
     match decode_16(0x4600) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R0);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4608) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R1);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4610) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R2);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4618) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R3);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4620) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R4);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4628) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R5);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4630) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R6);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4638) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R7);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4640) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R8);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4648) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R9);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4650) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R10);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4658) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R11);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4660) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::R12);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4668) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::SP);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4670) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::LR);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
         }
     }
     match decode_16(0x4678) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R0);
             assert!(rm == Reg::PC);
             assert!(setflags == false);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
@@ -178,10 +274,16 @@ fn test_decode_mov() {
     }
 
     match decode_16(0x0001) {
-        Instruction::MOV_reg { rd, rm, setflags } => {
+        Instruction::MOV_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+        } => {
             assert!(rd == Reg::R1);
             assert!(rm == Reg::R0);
             assert!(setflags == true);
+            assert!(thumb32 == false);
         }
         _ => {
             assert!(false);
@@ -1716,6 +1818,20 @@ fn test_decode_strb_reg_w() {
             thumb32: true,
             shift_n: 0,
             shift_t: SRType::LSL,
+        }
+    );
+}
+
+#[test]
+fn test_decode_mov_reg_w() {
+    // MOV.W R8, R3
+    assert_eq!(
+        decode_32(0xea4f0803),
+        Instruction::MOV_reg {
+            rd: Reg::R8,
+            rm: Reg::R3,
+            setflags: false,
+            thumb32: true,
         }
     );
 }

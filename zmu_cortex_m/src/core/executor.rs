@@ -241,6 +241,7 @@ where
             ref rd,
             ref rm,
             ref setflags,
+            ref thumb32
         } => {
             if core.condition_passed() {
                 let result = core.get_r(rm);

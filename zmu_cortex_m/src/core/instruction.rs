@@ -309,6 +309,7 @@ pub enum Instruction {
         rd: Reg,
         rm: Reg,
         setflags: bool,
+        thumb32: bool
     },
     MRS {
         rd: Reg,
@@ -967,8 +968,11 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::MOV_reg { rd, rm, setflags } => {
-                write!(f, "mov{} {}, {}", if setflags { "s" } else { "" }, rd, rm)
+            Instruction::MOV_reg { rd, rm, setflags, thumb32 } => {
+                write!(f, "mov{}{} {}, {}", if setflags { "s" } else { "" },
+                       if thumb32 { ".W" } else { "" },
+
+                       rd, rm)
             }
             Instruction::MOV_imm {
                 rd,
@@ -1641,6 +1645,11 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             ref thumb32,
             ref setflags,
         } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::MOV_reg { rd, rm, setflags, ref thumb32 } => if *thumb32 {
             4
         } else {
             2
