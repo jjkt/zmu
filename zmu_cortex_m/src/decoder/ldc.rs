@@ -26,11 +26,11 @@ pub fn decode_LDC2_imm_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDC_lit_t1(opcode: u32) -> Instruction {
+pub fn decode_LDC_lit_t1(_opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDC2_lit_t2(opcode: u32) -> Instruction {
+pub fn decode_LDC2_lit_t2(_opcode: u32) -> Instruction {
     unimplemented!()
 }

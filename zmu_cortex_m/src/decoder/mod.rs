@@ -215,12 +215,12 @@ pub fn is_thumb32(word: u16) -> bool {
 }
 
 #[allow(non_snake_case)]
-fn decode_undefined(opcode: u16) -> Instruction {
+fn decode_undefined(_opcode: u16) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-fn decode_UDF_t2(opcode: u32) -> Instruction {
+fn decode_UDF_t2(_opcode: u32) -> Instruction {
     unimplemented!()
 }
 

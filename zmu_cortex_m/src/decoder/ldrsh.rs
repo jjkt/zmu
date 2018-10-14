@@ -47,7 +47,7 @@ pub fn decode_LDRSH_imm_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRSH_lit_t1(opcode: u32) -> Instruction {
+pub fn decode_LDRSH_lit_t1(_opcode: u32) -> Instruction {
     unimplemented!()
 }
 

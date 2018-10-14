@@ -103,6 +103,6 @@ pub fn decode_POP_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_POP_t3(opcode: u32) -> Instruction {
+pub fn decode_POP_t3(_opcode: u32) -> Instruction {
     unimplemented!()
 }

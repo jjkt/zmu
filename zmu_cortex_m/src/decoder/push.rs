@@ -99,6 +99,6 @@ pub fn decode_PUSH_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_PUSH_t3(opcode: u32) -> Instruction {
+pub fn decode_PUSH_t3(_opcode: u32) -> Instruction {
     unimplemented!()
 }

@@ -36,6 +36,6 @@ pub fn decode_LSL_imm_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LSL_reg_t2(opcode: u32) -> Instruction {
+pub fn decode_LSL_reg_t2(_opcode: u32) -> Instruction {
     unimplemented!()
 }

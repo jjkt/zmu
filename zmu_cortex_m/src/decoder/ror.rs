@@ -14,13 +14,13 @@ pub fn decode_ROR_reg_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_ROR_imm_t1(opcode: u32) -> Instruction {
+pub fn decode_ROR_imm_t1(_opcode: u32) -> Instruction {
        unimplemented!()
 
 }
 
 #[allow(non_snake_case)]
-pub fn decode_ROR_reg_t2(opcode: u32) -> Instruction {
+pub fn decode_ROR_reg_t2(_opcode: u32) -> Instruction {
         unimplemented!()
 
 }
