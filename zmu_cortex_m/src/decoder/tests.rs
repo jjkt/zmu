@@ -1379,6 +1379,7 @@ fn test_decode_itt_cc() {
 #[test]
 fn test_decode_pushw() {
     // PUSH.W {R4-R11, LR}
+    // PUSH  {R4, LR}
     match decode_32(0xe92d4ff0) {
         Instruction::PUSH { registers, thumb32 } => {
             let elems: Vec<_> = registers.iter().collect();
@@ -1699,33 +1700,6 @@ fn test_decode_pop_w() {
 }
 
 #[test]
-fn test_decode_pop_w2() {
-    //0xe8bd87f0 POP.W {R4-R10, PC}
-    match decode_32(0xe8bd87f0) {
-        Instruction::POP { registers, thumb32 } => {
-            let elems: Vec<_> = registers.iter().collect();
-            assert_eq!(
-                vec![
-                    Reg::R4,
-                    Reg::R5,
-                    Reg::R6,
-                    Reg::R7,
-                    Reg::R8,
-                    Reg::R9,
-                    Reg::R10,
-                    Reg::PC
-                ],
-                elems
-            );
-            assert_eq!(thumb32, true);
-        }
-        _ => {
-            assert!(false);
-        }
-    }
-}
-
-#[test]
 fn test_decode_mul_w() {
     //0xfb04f604 MUL R6, R4, R4
     assert_eq!(
@@ -1879,21 +1853,6 @@ fn test_decode_sxth_w() {
             rm: Reg::R10,
             thumb32: true,
             rotation: 0
-        }
-    );
-}
-
-#[test]
-fn test_decode_adds_w() {
-    // 0xf1180801 ADDS.W R8, R8, #1
-    assert_eq!(
-        decode_32(0xf1180801),
-        Instruction::ADD_imm {
-            rn: Reg::R8,
-            rd: Reg::R8,
-            thumb32: true,
-            imm32: 1,
-            setflags: true
         }
     );
 }

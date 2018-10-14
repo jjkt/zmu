@@ -15,11 +15,17 @@ pub fn decode_SBC_reg_t1(command: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_SBC_reg_t2(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_SBC_imm_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }

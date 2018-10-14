@@ -1,6 +1,6 @@
 use bit_field::BitField;
-use core::instruction::Imm32Carry;
 use core::instruction::Instruction;
+use core::instruction::Imm32Carry;
 use core::operation::thumb_expand_imm_c;
 use core::register::Reg;
 use core::ThumbCode;
@@ -17,7 +17,10 @@ pub fn decode_MVN_reg_t1(opcode: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_MVN_reg_t2(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]

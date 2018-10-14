@@ -3,5 +3,8 @@ use core::ThumbCode;
 
 #[allow(non_snake_case)]
 pub fn decode_DSB_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }

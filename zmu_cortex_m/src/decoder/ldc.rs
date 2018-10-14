@@ -27,10 +27,16 @@ pub fn decode_LDC2_imm_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_LDC_lit_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDC2_lit_t2(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }

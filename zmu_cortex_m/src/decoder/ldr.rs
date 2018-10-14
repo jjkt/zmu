@@ -50,12 +50,12 @@ pub fn decode_LDR_reg_t1(opcode: u16) -> Instruction {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
         rm: Reg::from(opcode.get_bits(6..9) as u8),
-        index: true,
-        add: true,
-        wback: false,
-        shift_t: SRType::LSL,
-        shift_n: 0,
-        thumb32: false,
+        index : true,
+        add : true,
+        wback : false,
+        shift_t : SRType::LSL,
+        shift_n : 0,
+        thumb32 : false
     }
 }
 
@@ -115,50 +115,80 @@ pub fn decode_LDR_reg_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_LDRBT_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRD_imm_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRD_lit_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDREXB_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDREXH_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDREX_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRHT_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRSBT_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRSHT(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRT_t1(opcode: u32) -> Instruction {
-    unimplemented!()
+    Instruction::UDF {
+        imm32: 0,
+        opcode: ThumbCode::from(opcode),
+    }
 }
