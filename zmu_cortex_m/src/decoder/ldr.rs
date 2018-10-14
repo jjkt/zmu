@@ -114,51 +114,51 @@ pub fn decode_LDR_reg_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRBT_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDRBT_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRD_imm_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDRD_imm_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRD_lit_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDRD_lit_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDREXB_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDREXB_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDREXH_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDREXH_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDREX_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDREX_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRHT_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDRHT_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRSBT_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDRSBT_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRSHT(_opcode: u32) -> Instruction {
+pub fn decode_LDRSHT(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_LDRT_t1(_opcode: u32) -> Instruction {
+pub fn decode_LDRT_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }

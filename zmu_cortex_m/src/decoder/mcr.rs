@@ -30,22 +30,22 @@ pub fn decode_MCR_t1(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MCRR2_t2(_opcode: u32) -> Instruction {
+pub fn decode_MCRR2_t2(opcode: u32) -> Instruction {
         unimplemented!()
 
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MCRR_t1(_opcode: u32) -> Instruction {
+pub fn decode_MCRR_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MRC2_t2(_opcode: u32) -> Instruction {
+pub fn decode_MRC2_t2(opcode: u32) -> Instruction {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
-pub fn decode_MRC_t1(_opcode: u32) -> Instruction {
+pub fn decode_MRC_t1(opcode: u32) -> Instruction {
     unimplemented!()
 }
