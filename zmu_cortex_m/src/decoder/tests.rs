@@ -1856,3 +1856,18 @@ fn test_decode_sxth_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_adds_w() {
+    // 0xf1180801 ADDS.W R8, R8, #1
+    assert_eq!(
+        decode_32(0xf1180801),
+        Instruction::ADD_imm {
+            rn: Reg::R8,
+            rd: Reg::R8,
+            thumb32: true,
+            imm32: 1,
+            setflags: true
+        }
+    );
+}
