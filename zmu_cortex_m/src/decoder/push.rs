@@ -1,9 +1,9 @@
 use enum_set::EnumSet;
 
+use bit_field::BitField;
 use core::instruction::Instruction;
 use core::register::Reg;
 use core::ThumbCode;
-use bit_field::BitField;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -96,13 +96,9 @@ pub fn decode_PUSH_t2(opcode: u32) -> Instruction {
         registers: regs,
         thumb32: true,
     }
-
 }
 
 #[allow(non_snake_case)]
 pub fn decode_PUSH_t3(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }

@@ -55,16 +55,10 @@ pub fn decode_LDRH_imm_t3(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_LDRH_lit_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDRH_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }

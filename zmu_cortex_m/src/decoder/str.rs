@@ -188,16 +188,10 @@ pub fn decode_STR_imm_t4(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_STR_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }
 
 #[allow(non_snake_case)]
 pub fn decode_STRD_imm_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }

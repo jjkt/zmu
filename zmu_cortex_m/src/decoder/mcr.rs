@@ -3,7 +3,6 @@ use core::instruction::Instruction;
 use core::register::Reg;
 use core::ThumbCode;
 
-
 #[allow(non_snake_case)]
 pub fn decode_MCR2_t2(opcode: u32) -> Instruction {
     let reg: u8 = opcode.get_bits(12, 15);
@@ -32,32 +31,21 @@ pub fn decode_MCR_t1(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_MCRR2_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+        unimplemented!()
+
 }
 
 #[allow(non_snake_case)]
 pub fn decode_MCRR_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }
 
 #[allow(non_snake_case)]
 pub fn decode_MRC2_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }
 
 #[allow(non_snake_case)]
 pub fn decode_MRC_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }

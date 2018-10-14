@@ -53,8 +53,6 @@ pub fn decode_ASR_imm_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_ASR_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+        unimplemented!()
+
 }

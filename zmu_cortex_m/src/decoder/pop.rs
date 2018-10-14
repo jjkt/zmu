@@ -38,13 +38,15 @@ pub fn decode_POP_reg_t1(opcode: u16) -> Instruction {
         regs.insert(Reg::PC);
     }
 
-    Instruction::POP { registers: regs, thumb32:false }
+    Instruction::POP {
+        registers: regs,
+        thumb32: false,
+    }
 }
-
 
 #[allow(non_snake_case)]
 pub fn decode_POP_t2(opcode: u32) -> Instruction {
-        let mut regs: EnumSet<Reg> = EnumSet::new();
+    let mut regs: EnumSet<Reg> = EnumSet::new();
 
     if opcode.get_bit(0) {
         regs.insert(Reg::R0);
@@ -98,13 +100,9 @@ pub fn decode_POP_t2(opcode: u32) -> Instruction {
         registers: regs,
         thumb32: true,
     }
-
 }
 
 #[allow(non_snake_case)]
 pub fn decode_POP_t3(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
-    }
+    unimplemented!()
 }
