@@ -46,7 +46,7 @@ pub fn decode_CMP_reg_t1(opcode: u16) -> Instruction {
 #[inline]
 pub fn decode_CMP_reg_t2(opcode: u16) -> Instruction {
     Instruction::CMP_reg {
-        rn: Reg::from(((opcode.get_bit(7) as u8) << 4) + opcode.get_bits(0..3) as u8),
+        rn: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..7) as u8),
     }
 }
