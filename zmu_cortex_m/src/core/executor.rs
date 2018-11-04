@@ -131,6 +131,23 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::BFI {
+            ref rn,
+            ref rd,
+            ref lsbit,
+            ref msbit,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_d = core.get_r(rd);
+
+                let result = r_n.get_bits(0..((msbit - lsbit) + 1));
+
+                core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         Instruction::CPS { ref im } => {
             if im == &CpsEffect::IE {
                 core.primask = false;

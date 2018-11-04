@@ -111,6 +111,12 @@ pub enum Instruction {
     BX {
         rm: Reg,
     },
+    BFI {
+        rd: Reg,
+        rn: Reg,
+        lsbit: usize,
+        msbit: usize,
+    },
     CBZ {
         rn: Reg,
         nonzero: bool,
@@ -758,6 +764,14 @@ impl fmt::Display for Instruction {
             Instruction::BX { rm } => write!(f, "bx {}", rm),
             Instruction::BLX { rm } => write!(f, "blx {}", rm),
             Instruction::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
+
+            Instruction::BFI {
+                ref rn,
+                ref rd,
+                ref lsbit,
+                ref msbit,
+            } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, msbit - lsbit + 1),
+
             Instruction::CMN_reg { rn, rm } => write!(f, "cmn {}, {}", rn, rm),
             Instruction::CBZ { rn, nonzero, imm32 } => write!(
                 f,
@@ -1629,6 +1643,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::BFI {
+            rn,
+            rd,
+            lsbit,
+            msbit,
+        } => 4,
+
         Instruction::TBB { rn, rm } => 4,
         Instruction::UDIV { rd, rn, rm } => 4,
         Instruction::AND_imm {

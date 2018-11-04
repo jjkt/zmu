@@ -1871,3 +1871,17 @@ fn test_decode_adds_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_bfi_w() {
+    // 0xf3630407 BFI R4, R3, #0, #8
+    assert_eq!(
+        decode_32(0xf3630407),
+        Instruction::BFI {
+            rd: Reg::R4,
+            rn: Reg::R3,
+            lsbit: 0,
+            msbit: 0 + 8 - 1,
+        }
+    );
+}
