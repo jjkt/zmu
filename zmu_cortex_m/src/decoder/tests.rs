@@ -363,6 +363,15 @@ fn test_decode_cmp() {
             thumb32: false,
         }
     );
+    // CMP LR, R4
+    assert_eq!(
+        decode_16(0x45A6),
+        Instruction::CMP_reg {
+            rn: Reg::LR,
+            rn: Reg::R4,
+            thumb32: false,
+        }
+    );
 }
 
 #[test]
