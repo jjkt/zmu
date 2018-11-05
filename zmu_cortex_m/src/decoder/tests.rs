@@ -368,8 +368,7 @@ fn test_decode_cmp() {
         decode_16(0x45A6),
         Instruction::CMP_reg {
             rn: Reg::LR,
-            rn: Reg::R4,
-            thumb32: false,
+            rm: Reg::R4,
         }
     );
 }
@@ -1894,3 +1893,19 @@ fn test_decode_bfi_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_sdiv() {
+    // 0xfb99f2fa SDIV, R2, R9, R10
+    assert_eq!(
+        decode_32(0xfb99f2fa),
+        Instruction::SDIV {
+            rd: Reg::R2,
+            rn: Reg::R9,
+            rm: Reg::R10,
+        }
+    );
+}
+
+
+

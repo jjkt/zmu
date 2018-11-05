@@ -507,6 +507,12 @@ pub enum Instruction {
         rm: Reg,
     },
     // ARMv7-M
+    SDIV {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    // ARMv7-M
     MLA {
         rd: Reg,
         rn: Reg,
@@ -1269,6 +1275,7 @@ impl fmt::Display for Instruction {
             }
             // ARMv7-M
             Instruction::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
+            Instruction::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
             // ARMv7-M
             Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
                 write!(f, "umlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
@@ -1652,6 +1659,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
 
         Instruction::TBB { rn, rm } => 4,
         Instruction::UDIV { rd, rn, rm } => 4,
+        Instruction::SDIV { rd, rn, rm } => 4,
         Instruction::AND_imm {
             rd,
             rn,

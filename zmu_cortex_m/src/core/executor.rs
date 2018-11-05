@@ -1570,6 +1570,30 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
+        Instruction::SDIV {
+            ref rd,
+            ref rn,
+            ref rm,
+        } => {
+            if core.condition_passed() {
+                let rm_ = core.get_r(rm);
+                let result = if rm_ == 0 {
+                    if core.integer_zero_divide_trapping_enabled() {
+                        return ExecuteResult::Fault {
+                            fault: Fault::DivideByZero,
+                        };
+                    }
+                    0
+                } else {
+                    let rn_ = core.get_r(rn);
+                    (rn_ as i32) / (rm_ as i32)
+                };
+                core.set_r(rd, result as u32);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        // ARMv7-M
         Instruction::MLA {
             ref rd,
             ref rn,
