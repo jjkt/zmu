@@ -1139,11 +1139,19 @@ where
             ref rt,
             ref rn,
             ref rm,
+            ref shift_t,
+            shift_n,
+            ref index,
+            ref add,
+            ref wback,
+            ref thumb32,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
-                let value = core.get_r(rt);
-                core.bus.write16(address, value.get_bits(0..16) as u16);
+                let c = core.psr.get_c();
+                let offset = shift(core.get_r(rm), shift_t, shift_n as usize, c);
+                let address = core.get_r(rn) + offset;
+                let value = core.get_r(rt).get_bits(0..16) as u16;
+                core.bus.write16(address, value);
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken

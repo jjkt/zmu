@@ -449,6 +449,12 @@ pub enum Instruction {
         rm: Reg,
         rn: Reg,
         rt: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     SUB_imm {
         rd: Reg,
@@ -1193,7 +1199,17 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("strh", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::STRH_reg { rn, rm, rt } => write!(f, "strh {}, [{}, {}]", rt, rn, rm),
+            Instruction::STRH_reg {
+                rn,
+                rm,
+                rt,
+                ref shift_t,
+                shift_n,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => write!(f, "strh {}, [{}, {}]", rt, rn, rm),
             Instruction::SUB_imm {
                 rd,
                 rn,
@@ -1492,6 +1508,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::STRB_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::STRH_reg {
             rt,
             rn,
             rm,

@@ -1161,16 +1161,20 @@ fn test_decode_ldrsh() {
 #[test]
 fn test_decode_strh_reg() {
     // STRH R4, [R6, R1]
-    match decode_16(0x5274) {
-        Instruction::STRH_reg { rt, rn, rm } => {
-            assert_eq!(rt, Reg::R4);
-            assert_eq!(rn, Reg::R6);
-            assert_eq!(rm, Reg::R1);
+    assert_eq!(
+        decode_16(0x5274),
+        Instruction::STRH_reg {
+            rt: Reg::R4,
+            rn: Reg::R6,
+            rm: Reg::R1,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
+            shift_n: 0,
+            shift_t: SRType::LSL,
         }
-        _ => {
-            assert!(false);
-        }
-    }
+    );
 }
 
 #[test]
@@ -1921,6 +1925,25 @@ fn test_decode_mls() {
     );
 }
 
+
+#[test]
+fn test_decode_strh_reg_w() {
+    //  STRH.W  R12, [R6, R9, LSL #1]
+    assert_eq!(
+        decode_32(0xf826c019),
+        Instruction::STRH_reg {
+            rt: Reg::R12,
+            rn: Reg::R6,
+            rm: Reg::R9,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+            shift_n: 1,
+            shift_t: SRType::LSL,
+        }
+    );
+}
 
 
 

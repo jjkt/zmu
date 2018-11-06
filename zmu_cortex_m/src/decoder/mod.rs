@@ -489,6 +489,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ROR_imm_t1(opcode)
     } else if (opcode & 0xffff8020) == 0xf36f0000 {
         decode_BFC_t1(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf8200000 {
+        decode_STRH_reg_t2(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0020 {
         decode_ASR_imm_t2(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0010 {
