@@ -520,6 +520,13 @@ pub enum Instruction {
         ra: Reg,
     },
     // ARMv7-M
+    MLS {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        ra: Reg,
+    },
+    // ARMv7-M
     UMLAL {
         rm: Reg,
         rdlo: Reg,
@@ -1283,6 +1290,8 @@ impl fmt::Display for Instruction {
             // ARMv7-M
             Instruction::MLA { rd, rn, rm, ra } => write!(f, "mla {}, {}, {}, {}", rd, rn, rm, ra),
             // ARMv7-M
+            Instruction::MLS { rd, rn, rm, ra } => write!(f, "mls {}, {}, {}, {}", rd, rn, rm, ra),
+            // ARMv7-M
             Instruction::SMLAL { rdlo, rdhi, rn, rm } => {
                 write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
@@ -1640,6 +1649,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::MSR_reg { rn, spec_reg } => 4,
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::MLA { rd, rn, rm, ra } => 4,
+        Instruction::MLS { rd, rn, rm, ra } => 4,
         Instruction::BL { imm32 } => 4,
         Instruction::B {
             cond,

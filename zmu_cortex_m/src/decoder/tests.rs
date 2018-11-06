@@ -1907,5 +1907,20 @@ fn test_decode_sdiv() {
     );
 }
 
+#[test]
+fn test_decode_mls() {
+    // 0xfb02921a MLS R2, R2, R10, R9
+    assert_eq!(
+        decode_32(0xfb02921a),
+        Instruction::MLS {
+            rd: Reg::R2,
+            rn: Reg::R2,
+            rm: Reg::R10,
+            ra: Reg::R9,
+        }
+    );
+}
+
+
 
 

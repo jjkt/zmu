@@ -1612,6 +1612,24 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
+        Instruction::MLS {
+            ref rd,
+            ref rn,
+            ref rm,
+            ref ra,
+        } => {
+            if core.condition_passed() {
+                let rn_ = core.get_r(rn);
+                let rm_ = core.get_r(rm);
+                let ra_ = core.get_r(ra);
+                let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
+
+                core.set_r(rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        // ARMv7-M
         Instruction::UMLAL {
             ref rdlo,
             ref rdhi,
