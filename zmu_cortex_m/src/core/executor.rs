@@ -699,10 +699,16 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::CMN_reg { ref rn, ref rm } => {
+        Instruction::CMN_reg {
+            ref rn,
+            ref rm,
+            ref shift_t,
+            ref shift_n,
+            ref thumb32,
+        } => {
             if core.condition_passed() {
-                let (result, carry, overflow) =
-                    add_with_carry(core.get_r(rn), core.get_r(rm), false);
+                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, core.psr.get_c());
+                let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, false);
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);

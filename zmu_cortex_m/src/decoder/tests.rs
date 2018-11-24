@@ -1089,9 +1089,18 @@ fn test_decode_and() {
 fn test_decode_cmn() {
     // CMN R4,R5
     match decode_16(0x42ec) {
-        Instruction::CMN_reg { rn, rm } => {
+        Instruction::CMN_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
             assert!(rn == Reg::R4);
             assert!(rm == Reg::R5);
+            assert!(shift_t == SRType::LSL);
+            assert!(shift_n == 0);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -1925,7 +1934,6 @@ fn test_decode_mls() {
     );
 }
 
-
 #[test]
 fn test_decode_strh_reg_w() {
     //  STRH.W  R12, [R6, R9, LSL #1]
@@ -1945,5 +1953,17 @@ fn test_decode_strh_reg_w() {
     );
 }
 
-
-
+#[test]
+fn test_decode_cmn_w_reg() {
+    // CMN.W R12, R1, LSL #1
+    assert_eq!(
+        decode_32(0xeb1c0f41),
+        Instruction::CMN_reg {
+            rn: Reg::R12,
+            rm: Reg::R1,
+            thumb32: true,
+            shift_n: 1,
+            shift_t: SRType::LSL,
+        }
+    );
+}

@@ -125,6 +125,9 @@ pub enum Instruction {
     CMN_reg {
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     CMP_imm {
         rn: Reg,
@@ -791,13 +794,30 @@ impl fmt::Display for Instruction {
                 ref msbit,
             } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, msbit - lsbit + 1),
 
-            Instruction::CMN_reg { rn, rm } => write!(f, "cmn {}, {}", rn, rm),
+            Instruction::CMN_reg {
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                thumb32,
+            } => write!(
+                f,
+                "cmn{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
+            ),
             Instruction::CBZ { rn, nonzero, imm32 } => write!(
                 f,
                 "cb{}z {}, #{}",
                 if nonzero { "n" } else { "" },
                 rn,
-                imm32
+                imm32,
             ),
             Instruction::CMP_imm { rn, imm32, thumb32 } => write!(
                 f,
@@ -1787,6 +1807,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rd,
             rm,
             setflags,
+            ref thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::CMN_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
             ref thumb32,
         } => if *thumb32 {
             4
