@@ -1967,3 +1967,21 @@ fn test_decode_cmn_w_reg() {
         }
     );
 }
+
+#[test]
+fn test_decode_subw_reg() {
+    // 0xebb00b09
+    // SUBS.W R11, R0, R9
+    assert_eq!(
+        decode_32(0xebb00b09),
+        Instruction::SUB_reg {
+            rd: Reg::R11,
+            rn: Reg::R0,
+            rm: Reg::R9,
+            setflags: true,
+            thumb32: true,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        }
+    );
+}
