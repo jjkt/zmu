@@ -418,6 +418,12 @@ pub enum Instruction {
         rm: Reg,
         rn: Reg,
         rt: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     STRB_imm {
         rt: Reg,
@@ -641,6 +647,8 @@ fn format_adressing_mode(
 #[allow(unused_variables)]
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO: shift_t, shift_n formattings missing.
+        // TODO: some of the wide instruction formattings missing.
         match *self {
             Instruction::ADD_imm {
                 rn,
@@ -1189,7 +1197,17 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("str", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::STR_reg { rn, rm, rt } => write!(f, "str {}, [{}, {}]", rt, rn, rm),
+            Instruction::STR_reg {
+                rn,
+                rm,
+                rt,
+                index,
+                add,
+                wback,
+                thumb32,
+                ref shift_t,
+                shift_n,
+            } => write!(f, "str {}, [{}, {}]", rt, rn, rm),
             Instruction::STRB_imm {
                 rt,
                 rn,
@@ -1557,7 +1575,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
-
+        Instruction::STR_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
         Instruction::LDRSH_imm {
             rt,
             rn,

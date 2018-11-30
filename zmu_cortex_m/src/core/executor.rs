@@ -1059,11 +1059,20 @@ where
             ref rt,
             ref rn,
             ref rm,
+            ref shift_t,
+            shift_n,
+            ref thumb32,
+            ref index,
+            ref add,
+            ref wback,
         } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
+                let c = core.psr.get_c();
+                let offset = shift(core.get_r(rm), shift_t, shift_n as usize, c);
+                let address = core.get_r(rn) + offset;
                 let value = core.get_r(rt);
                 core.bus.write32(address, value);
+
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken

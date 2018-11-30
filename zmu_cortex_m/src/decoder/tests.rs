@@ -732,16 +732,20 @@ fn test_decode_strb() {
 #[test]
 fn test_decode_str_reg() {
     // STR R0, [R1, R2]
-    match decode_16(0x5088) {
-        Instruction::STR_reg { rt, rn, rm } => {
-            assert!(rt == Reg::R0);
-            assert!(rn == Reg::R1);
-            assert!(rm == Reg::R2);
+    assert_eq!(
+        decode_16(0x5088),
+        Instruction::STR_reg {
+            rt: Reg::R0,
+            rn: Reg::R1,
+            rm: Reg::R2,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
         }
-        _ => {
-            assert!(false);
-        }
-    }
+    );
 }
 
 #[test]
@@ -1982,6 +1986,26 @@ fn test_decode_subw_reg() {
             thumb32: true,
             shift_t: SRType::LSL,
             shift_n: 0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_str_reg_w() {
+    // 0xf841002a
+    // STR.W R0, [R1, R10, LSL #2]
+    assert_eq!(
+        decode_32(0xf841002a),
+        Instruction::STR_reg {
+            rt: Reg::R0,
+            rn: Reg::R1,
+            rm: Reg::R10,
+            thumb32: true,
+            shift_t: SRType::LSL,
+            shift_n: 2,
+            index: true,
+            add: true,
+            wback: false,
         }
     );
 }
