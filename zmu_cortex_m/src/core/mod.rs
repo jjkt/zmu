@@ -347,6 +347,14 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
+    pub fn in_it_block(&mut self) -> bool {
+        self.itstate.get_bits(0..4) != 0
+    }
+
+    pub fn last_in_it_block(&mut self) -> bool {
+        self.itstate.get_bits(0..4) == 0b1000
+    }
+
     fn push_stack(&mut self, return_address: u32) {
         const FRAME_SIZE: u32 = 0x20;
 
@@ -444,6 +452,8 @@ impl<'a, T: Bus> Core<'a, T> {
     where
         F: FnMut(&SemihostingCommand) -> SemihostingResponse,
     {
+        let in_it_block = self.in_it_block();
+
         match execute(self, instruction, semihost_func) {
             ExecuteResult::Fault { fault: _ } => {
                 // all faults are mapped to hardfaults on armv6m
@@ -454,18 +464,20 @@ impl<'a, T: Bus> Core<'a, T> {
                 let step = instruction_size(instruction);
                 self.add_pc(step as u32);
                 self.cycle_count += 1;
-                self.it_advance();
+                if in_it_block {
+                    self.it_advance();
+                }
             }
             ExecuteResult::Branched { cycles } => {
                 self.cycle_count += cycles;
-                //TODO: check following?
-                self.it_advance();
             }
             ExecuteResult::Taken { cycles } => {
                 let step = instruction_size(instruction);
                 self.add_pc(step as u32);
                 self.cycle_count += cycles;
-                self.it_advance();
+                if in_it_block {
+                    self.it_advance();
+                }
             }
         }
     }

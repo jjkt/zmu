@@ -129,6 +129,10 @@ pub enum Instruction {
         shift_n: u8,
         thumb32: bool,
     },
+    CMN_imm {
+        rn: Reg,
+        imm32: u32,
+    },
     CMP_imm {
         rn: Reg,
         imm32: u32,
@@ -820,6 +824,7 @@ impl fmt::Display for Instruction {
                     format!("")
                 }
             ),
+            Instruction::CMN_imm { rn, imm32 } => write!(f, "cmn.W {}, #{}", rn, imm32),
             Instruction::CBZ { rn, nonzero, imm32 } => write!(
                 f,
                 "cb{}z {}, #{}",
@@ -1856,6 +1861,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::CMN_imm { rn, imm32 } => 4,
         Instruction::MVN_imm {
             rd,
             imm32,

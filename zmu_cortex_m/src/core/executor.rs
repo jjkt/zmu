@@ -167,11 +167,7 @@ where
             }
             return ExecuteResult::Taken { cycles: 1 };
         }
-        Instruction::CBZ {
-            rn,
-            nonzero,
-            imm32,
-        } => {
+        Instruction::CBZ { rn, nonzero, imm32 } => {
             if nonzero ^ (core.get_r(rn) == 0) {
                 let pc = core.get_r(&Reg::PC);
                 core.branch_write_pc(pc + imm32);
@@ -209,10 +205,7 @@ where
             return ExecuteResult::Taken { cycles: 4 };
         }
 
-        Instruction::MRS {
-            rd,
-            spec_reg,
-        } => {
+        Instruction::MRS { rd, spec_reg } => {
             if core.condition_passed() {
                 match spec_reg {
                     //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
@@ -234,10 +227,7 @@ where
 
             ExecuteResult::NotTaken
         }
-        Instruction::MSR_reg {
-            rn,
-            spec_reg,
-        } => {
+        Instruction::MSR_reg { rn, spec_reg } => {
             if core.condition_passed() {
                 match spec_reg {
                     //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
@@ -575,10 +565,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDM {
-            registers,
-            rn,
-        } => {
+        Instruction::LDM { registers, rn } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
 
@@ -614,7 +601,6 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-
                 let (result, carry) = expand_conditional_carry(&imm32, core.psr.get_c());
                 core.set_r(&rd, result);
                 if *setflags {
@@ -627,11 +613,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::MVN_reg {
-            rd,
-            rm,
-            setflags,
-        } => {
+        Instruction::MVN_reg { rd, rm, setflags } => {
             if core.condition_passed() {
                 let result = core.get_r(rm) ^ 0xFFFF_FFFF;
                 core.set_r(rd, result);
@@ -676,11 +658,7 @@ where
             ExecuteResult::NotTaken
         },
 
-        Instruction::CMP_imm {
-            rn,
-            imm32,
-            thumb32,
-        } => {
+        Instruction::CMP_imm { rn, imm32, thumb32 } => {
             if core.condition_passed() {
                 let (result, carry, overflow) =
                     add_with_carry(core.get_r(rn), imm32 ^ 0xFFFF_FFFF, true);
@@ -724,11 +702,19 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::CMN_imm { rn, imm32 } => {
+            if core.condition_passed() {
+                let (result, carry, overflow) = add_with_carry(core.get_r(rn), *imm32, false);
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+                core.psr.set_v(overflow);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
-        Instruction::PUSH {
-            registers,
-            thumb32,
-        } => {
+        Instruction::PUSH { registers, thumb32 } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
                 let sp = core.get_r(&Reg::SP);
@@ -748,10 +734,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::POP {
-            registers,
-            thumb32,
-        } => {
+        Instruction::POP { registers, thumb32 } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
                 let sp = core.get_r(&Reg::SP);
@@ -891,11 +874,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDRB_reg {
-            rt,
-            rn,
-            rm,
-        } => {
+        Instruction::LDRB_reg { rt, rn, rm } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = u32::from(core.bus.read8(address));
@@ -929,11 +908,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDRH_reg {
-            rt,
-            rn,
-            rm,
-        } => {
+        Instruction::LDRH_reg { rt, rn, rm } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + core.get_r(rm);
                 let value = u32::from(core.bus.read16(address));
@@ -972,11 +947,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDRSB_reg {
-            rt,
-            rn,
-            rm,
-        } => {
+        Instruction::LDRSB_reg { rt, rn, rm } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + core.get_r(rm);
                 let data = u32::from(core.bus.read8(address));
@@ -1576,11 +1547,7 @@ where
         } => unimplemented!(),
 
         // ARMv7-M
-        Instruction::UDIV {
-            rd,
-            rn,
-            rm,
-        } => {
+        Instruction::UDIV { rd, rn, rm } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
                 let result = if rm_ == 0 {
@@ -1600,11 +1567,7 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
-        Instruction::SDIV {
-            rd,
-            rn,
-            rm,
-        } => {
+        Instruction::SDIV { rd, rn, rm } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
                 let result = if rm_ == 0 {
@@ -1624,12 +1587,7 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
-        Instruction::MLA {
-            rd,
-            rn,
-            rm,
-            ra,
-        } => {
+        Instruction::MLA { rd, rn, rm, ra } => {
             if core.condition_passed() {
                 let rn_ = core.get_r(rn);
                 let rm_ = core.get_r(rm);
@@ -1642,12 +1600,7 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
-        Instruction::MLS {
-            rd,
-            rn,
-            rm,
-            ra,
-        } => {
+        Instruction::MLS { rd, rn, rm, ra } => {
             if core.condition_passed() {
                 let rn_ = core.get_r(rn);
                 let rm_ = core.get_r(rm);
@@ -1660,25 +1613,12 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
-        Instruction::UMLAL {
-            rdlo,
-            rdhi,
-            rn,
-            rm,
-        } => unimplemented!(),
+        Instruction::UMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
 
         // ARMv7-M
-        Instruction::SMLAL {
-            rdlo,
-            rdhi,
-            rn,
-            rm,
-        } => unimplemented!(),
+        Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
 
-        Instruction::UDF {
-            imm32,
-            opcode,
-        } => {
+        Instruction::UDF { imm32, opcode } => {
             println!("UDF {}, {}", imm32, opcode);
             panic!("undefined");
             //Some(Fault::UndefinedInstruction)
@@ -1689,6 +1629,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::condition::Condition;
+    use core::instruction::ITCondition;
     use memory::ram::*;
 
     #[test]
@@ -1751,4 +1693,70 @@ mod tests {
 
         assert_eq!(core.get_r(&Reg::R1), 0x20000DD0);
     }
+
+    /*"it ne" blokki (alla) ei suoritu oikein, iarissa mov r4, #0 ei ajeta, mutta emussa ajetaan.
+APSR = 
+    Q = 0
+    V = 0
+    C = 1 
+    Z = 1
+    N = 0
+
+   BD16        pop {R1, R2, R4, PC}             0x00003484    putchar                             15077 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+   42A8        cmp r0, r5                       0x00003748    _Prout                              15078 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+   BF18        it ne                            0x0000374A    _Prout                              15082 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+   2400        mov r4, #0                       0x0000374C    _Prout                              15083 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000000 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+*/
+    #[test]
+    fn test_it_block() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.set_r(&Reg::R5, 0x49);
+        core.set_r(&Reg::R4, 0x01);
+        core.set_r(&Reg::R0, 0x49);
+        core.psr.value = 0;
+
+        let i1 = Instruction::CMP_reg {
+            rn: Reg::R0,
+            rm: Reg::R5,
+        };
+
+        let i2 = Instruction::IT {
+            x: Some(ITCondition::Then),
+            y: None,
+            z: None,
+            firstcond: Condition::NE,
+            mask: 0b1000,
+        };
+        let i3 = Instruction::MOV_imm {
+            rd: Reg::R4,
+            imm32: Imm32Carry::NoCarry { imm32: 0 },
+            setflags: false,
+            thumb32: false,
+        };
+
+        core.step(
+            &i1,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+        core.step(
+            &i2,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+        core.step(
+            &i3,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(core.get_r(&Reg::R4), 0x01);
+        assert!(!core.in_it_block());
+    }
+
 }
