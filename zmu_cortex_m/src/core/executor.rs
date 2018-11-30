@@ -29,6 +29,17 @@ fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32)
     (address, offset_address)
 }
 
+fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
+    match imm32 {
+        Imm32Carry::NoCarry { imm32 } => (*imm32, carry),
+        Imm32Carry::Carry { imm32_c0, imm32_c1 } => if carry {
+            *imm32_c1
+        } else {
+            *imm32_c0
+        },
+    }
+}
+
 #[allow(unused_variables)]
 pub fn execute<T: Bus, F>(
     mut core: &mut Core<T>,
@@ -38,12 +49,12 @@ pub fn execute<T: Bus, F>(
 where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
-    match *instruction {
+    match instruction {
         Instruction::ADC_reg {
-            ref rn,
-            ref rd,
-            ref rm,
-            ref setflags,
+            rn,
+            rd,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -63,11 +74,11 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::ASR_imm {
-            ref rd,
-            ref rm,
-            ref shift_n,
-            ref setflags,
-            ref thumb32,
+            rd,
+            rm,
+            shift_n,
+            setflags,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
@@ -89,10 +100,10 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::ASR_reg {
-            ref rd,
-            ref rm,
-            ref rn,
-            ref setflags,
+            rd,
+            rm,
+            rn,
+            setflags,
         } => {
             if core.condition_passed() {
                 let shift_n = core.get_r(rm).get_bits(0..8);
@@ -114,10 +125,10 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::BIC_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
+            rd,
+            rn,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let result = core.get_r(rn) & (core.get_r(rm) ^ 0xffff_ffff);
@@ -132,10 +143,10 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::BFI {
-            ref rn,
-            ref rd,
-            ref lsbit,
-            ref msbit,
+            rn,
+            rd,
+            lsbit,
+            msbit,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -148,7 +159,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::CPS { ref im } => {
+        Instruction::CPS { im } => {
             if im == &CpsEffect::IE {
                 core.primask = false;
             } else {
@@ -157,9 +168,9 @@ where
             return ExecuteResult::Taken { cycles: 1 };
         }
         Instruction::CBZ {
-            ref rn,
-            ref nonzero,
-            ref imm32,
+            rn,
+            nonzero,
+            imm32,
         } => {
             if nonzero ^ (core.get_r(rn) == 0) {
                 let pc = core.get_r(&Reg::PC);
@@ -188,19 +199,19 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::IT {
-            ref x,
-            ref y,
-            ref z,
-            ref firstcond,
-            ref mask,
+            x,
+            y,
+            z,
+            firstcond,
+            mask,
         } => {
             core.set_itstate((((firstcond.value() as u32) << 4) + *mask as u32) as u8);
             return ExecuteResult::Taken { cycles: 4 };
         }
 
         Instruction::MRS {
-            ref rd,
-            ref spec_reg,
+            rd,
+            spec_reg,
         } => {
             if core.condition_passed() {
                 match spec_reg {
@@ -224,8 +235,8 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::MSR_reg {
-            ref rn,
-            ref spec_reg,
+            rn,
+            spec_reg,
         } => {
             if core.condition_passed() {
                 match spec_reg {
@@ -255,10 +266,10 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::MOV_reg {
-            ref rd,
-            ref rm,
-            ref setflags,
-            ref thumb32,
+            rd,
+            rm,
+            setflags,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let result = core.get_r(rm);
@@ -278,11 +289,11 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::LSL_imm {
-            ref rd,
-            ref rm,
-            ref shift_n,
-            ref thumb32,
-            ref setflags,
+            rd,
+            rm,
+            shift_n,
+            thumb32,
+            setflags,
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
@@ -304,10 +315,10 @@ where
         }
 
         Instruction::LSL_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
+            rd,
+            rn,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let shift_n = core.get_r(rm).get_bits(0..8);
@@ -330,11 +341,11 @@ where
         }
 
         Instruction::LSR_imm {
-            ref rd,
-            ref rm,
-            ref shift_n,
-            ref setflags,
-            ref thumb32,
+            rd,
+            rm,
+            shift_n,
+            setflags,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
@@ -356,10 +367,10 @@ where
         }
 
         Instruction::LSR_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
+            rd,
+            rn,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let shift_n = core.get_r(rm).get_bits(0..8);
@@ -396,7 +407,7 @@ where
         }
 
         Instruction::BKPT { imm32 } => {
-            if imm32 == 0xab {
+            if *imm32 == 0xab {
                 let r0 = core.get_r(&Reg::R0);
                 let r1 = core.get_r(&Reg::R1);
                 let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
@@ -411,11 +422,11 @@ where
         }
 
         Instruction::MUL {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
-            ref thumb32,
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let operand1 = core.get_r(rn);
@@ -435,13 +446,13 @@ where
         }
 
         Instruction::ORR_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
-            ref shift_t,
-            ref shift_n,
-            ref thumb32,
+            rd,
+            rn,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -462,20 +473,20 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::ORR_imm {
-            ref rd,
-            ref rn,
-            ref imm32,
-            ref setflags,
+            rd,
+            rn,
+            imm32,
+            setflags,
         } => unimplemented!(),
 
         Instruction::EOR_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
-            ref shift_t,
-            ref shift_n,
-            ref thumb32,
+            rd,
+            rn,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -499,10 +510,10 @@ where
         }
 
         Instruction::AND_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
+            rd,
+            rn,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -521,23 +532,14 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::AND_imm {
-            ref rd,
-            ref rn,
-            ref imm32,
-            ref setflags,
+            rd,
+            rn,
+            imm32,
+            setflags,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
-                let carry_before = core.psr.get_c();
-
-                let (im, carry) = match *imm32 {
-                    Imm32Carry::NoCarry { imm32 } => (imm32, carry_before),
-                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => if carry_before {
-                        imm32_c1
-                    } else {
-                        imm32_c0
-                    },
-                };
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
                 let result = r_n & im;
 
@@ -553,7 +555,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::BX { ref rm } => {
+        Instruction::BX { rm } => {
             if core.condition_passed() {
                 let r_m = core.get_r(rm);
                 core.bx_write_pc(r_m);
@@ -562,7 +564,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::BLX { ref rm } => {
+        Instruction::BLX { rm } => {
             if core.condition_passed() {
                 let pc = core.get_r(&Reg::PC);
                 let target = core.get_r(rm);
@@ -574,8 +576,8 @@ where
         }
 
         Instruction::LDM {
-            ref registers,
-            ref rn,
+            registers,
+            rn,
         } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
@@ -606,24 +608,16 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::MOV_imm {
-            ref rd,
-            ref imm32,
+            rd,
+            imm32,
             setflags,
             thumb32,
         } => {
             if core.condition_passed() {
-                let carry_before = core.psr.get_c();
 
-                let (result, carry) = match *imm32 {
-                    Imm32Carry::NoCarry { imm32 } => (imm32, carry_before),
-                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => if carry_before {
-                        imm32_c1
-                    } else {
-                        imm32_c0
-                    },
-                };
-                core.set_r(rd, result);
-                if setflags {
+                let (result, carry) = expand_conditional_carry(&imm32, core.psr.get_c());
+                core.set_r(&rd, result);
+                if *setflags {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -634,9 +628,9 @@ where
         }
 
         Instruction::MVN_reg {
-            ref rd,
-            ref rm,
-            ref setflags,
+            rd,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let result = core.get_r(rm) ^ 0xFFFF_FFFF;
@@ -651,13 +645,26 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::MVN_imm {
-            ref rd,
-            ref imm32,
-            ref setflags,
-        } => unimplemented!(),
+            rd,
+            imm32,
+            setflags,
+        } => {
+            if core.condition_passed() {
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
+                let result = im ^ 0xFFFF_FFFF;
+                core.set_r(rd, result);
 
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         Instruction::B {
-            ref cond,
+            cond,
             imm32,
             thumb32,
         } => if core.condition_passed_b(cond) {
@@ -670,7 +677,7 @@ where
         },
 
         Instruction::CMP_imm {
-            ref rn,
+            rn,
             imm32,
             thumb32,
         } => {
@@ -686,7 +693,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::CMP_reg { ref rn, ref rm } => {
+        Instruction::CMP_reg { rn, rm } => {
             if core.condition_passed() {
                 let (result, carry, overflow) =
                     add_with_carry(core.get_r(rn), core.get_r(rm) ^ 0xFFFF_FFFF, true);
@@ -700,11 +707,11 @@ where
         }
 
         Instruction::CMN_reg {
-            ref rn,
-            ref rm,
-            ref shift_t,
-            ref shift_n,
-            ref thumb32,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, core.psr.get_c());
@@ -719,7 +726,7 @@ where
         }
 
         Instruction::PUSH {
-            ref registers,
+            registers,
             thumb32,
         } => {
             if core.condition_passed() {
@@ -742,7 +749,7 @@ where
         }
 
         Instruction::POP {
-            ref registers,
+            registers,
             thumb32,
         } => {
             if core.condition_passed() {
@@ -776,8 +783,8 @@ where
         }
 
         Instruction::LDR_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -786,10 +793,10 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let data = core.bus.read32(address);
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
 
@@ -804,8 +811,8 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::LDRSH_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -814,10 +821,10 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let data = core.bus.read16(address);
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
 
@@ -828,15 +835,15 @@ where
         }
 
         Instruction::LDR_reg {
-            ref rt,
-            ref rn,
-            ref rm,
-            ref shift_t,
-            ref shift_n,
-            ref index,
-            ref add,
-            ref wback,
-            ref thumb32,
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
@@ -860,8 +867,8 @@ where
         }
 
         Instruction::LDRB_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -870,12 +877,12 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let data = core.bus.read8(address);
                 core.set_r(rt, data as u32);
 
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
 
@@ -885,9 +892,9 @@ where
         }
 
         Instruction::LDRB_reg {
-            ref rt,
-            ref rn,
-            ref rm,
+            rt,
+            rn,
+            rm,
         } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + core.get_r(rm);
@@ -899,8 +906,8 @@ where
         }
 
         Instruction::LDRH_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -909,10 +916,10 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let data = core.bus.read16(address);
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
                 core.set_r(rt, data as u32);
@@ -923,9 +930,9 @@ where
         }
 
         Instruction::LDRH_reg {
-            ref rt,
-            ref rn,
-            ref rm,
+            rt,
+            rn,
+            rm,
         } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + core.get_r(rm);
@@ -937,15 +944,15 @@ where
         }
 
         Instruction::LDRSH_reg {
-            ref rt,
-            ref rn,
-            ref rm,
-            ref shift_t,
-            ref shift_n,
-            ref index,
-            ref add,
-            ref wback,
-            ref thumb32,
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
@@ -966,9 +973,9 @@ where
         }
 
         Instruction::LDRSB_reg {
-            ref rt,
-            ref rn,
-            ref rm,
+            rt,
+            rn,
+            rm,
         } => {
             if core.condition_passed() {
                 let address = core.get_r(rn) + core.get_r(rm);
@@ -980,10 +987,10 @@ where
         }
 
         Instruction::SBC_reg {
-            ref rn,
-            ref rd,
-            ref rm,
-            ref setflags,
+            rn,
+            rd,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
@@ -1005,8 +1012,8 @@ where
         }
 
         Instruction::STM {
-            ref registers,
-            ref rn,
+            registers,
+            rn,
             wback,
         } => {
             if core.condition_passed() {
@@ -1020,7 +1027,7 @@ where
                     address += 4;
                 }
 
-                if wback {
+                if *wback {
                     core.add_r(rn, regs_size);
                 }
                 return ExecuteResult::Taken {
@@ -1031,8 +1038,8 @@ where
         }
 
         Instruction::STR_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -1041,10 +1048,10 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let value = core.get_r(rt);
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
 
@@ -1056,19 +1063,19 @@ where
         }
 
         Instruction::STR_reg {
-            ref rt,
-            ref rn,
-            ref rm,
-            ref shift_t,
+            rt,
+            rn,
+            rm,
+            shift_t,
             shift_n,
-            ref thumb32,
-            ref index,
-            ref add,
-            ref wback,
+            thumb32,
+            index,
+            add,
+            wback,
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(rm), shift_t, shift_n as usize, c);
+                let offset = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
                 let address = core.get_r(rn) + offset;
                 let value = core.get_r(rt);
                 core.bus.write32(address, value);
@@ -1079,19 +1086,19 @@ where
         }
 
         Instruction::STRB_reg {
-            ref rt,
-            ref rn,
-            ref rm,
-            ref shift_t,
+            rt,
+            rn,
+            rm,
+            shift_t,
             shift_n,
-            ref index,
-            ref add,
-            ref wback,
-            ref thumb32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(rm), shift_t, shift_n as usize, c);
+                let offset = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
                 let address = core.get_r(rn) + offset;
                 let value = core.get_r(rt).get_bits(0..8) as u8;
                 core.bus.write8(address, value);
@@ -1101,8 +1108,8 @@ where
         }
 
         Instruction::STRB_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -1111,10 +1118,10 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let value = core.get_r(rt);
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
 
@@ -1126,8 +1133,8 @@ where
         }
 
         Instruction::STRH_imm {
-            ref rt,
-            ref rn,
+            rt,
+            rn,
             imm32,
             index,
             add,
@@ -1136,12 +1143,12 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), imm32, add, index);
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let value = core.get_r(rt);
                 core.bus.write16(address, value.get_bits(0..16) as u16);
 
-                if wback {
+                if *wback {
                     core.set_r(rn, offset_address);
                 }
 
@@ -1151,19 +1158,19 @@ where
         }
 
         Instruction::STRH_reg {
-            ref rt,
-            ref rn,
-            ref rm,
-            ref shift_t,
+            rt,
+            rn,
+            rm,
+            shift_t,
             shift_n,
-            ref index,
-            ref add,
-            ref wback,
-            ref thumb32,
+            index,
+            add,
+            wback,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(rm), shift_t, shift_n as usize, c);
+                let offset = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
                 let address = core.get_r(rn) + offset;
                 let value = core.get_r(rt).get_bits(0..16) as u16;
                 core.bus.write16(address, value);
@@ -1173,14 +1180,14 @@ where
         }
 
         Instruction::LDR_lit {
-            ref rt,
+            rt,
             imm32,
             add,
             thumb32,
         } => {
             if core.condition_passed() {
                 let base = core.get_r(&Reg::PC) & 0xffff_fffc;
-                let address = if add { base + imm32 } else { base - imm32 };
+                let address = if *add { base + imm32 } else { base - imm32 };
                 let data = core.bus.read32(address);
 
                 if rt == &Reg::PC {
@@ -1195,12 +1202,12 @@ where
         }
 
         Instruction::ADD_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
-            ref shift_t,
-            ref shift_n,
+            rd,
+            rn,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
             thumb32,
         } => {
             if core.condition_passed() {
@@ -1227,15 +1234,15 @@ where
         }
 
         Instruction::ADD_imm {
-            ref rn,
-            ref rd,
+            rn,
+            rd,
             imm32,
-            ref setflags,
+            setflags,
             thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
-                let (result, carry, overflow) = add_with_carry(r_n, imm32, false);
+                let (result, carry, overflow) = add_with_carry(r_n, *imm32, false);
 
                 if *setflags {
                     core.psr.set_n(result);
@@ -1250,7 +1257,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::ADR { ref rd, imm32 } => {
+        Instruction::ADR { rd, imm32 } => {
             if core.condition_passed() {
                 let result = (core.get_r(&Reg::PC) & 0xffff_fffc) + imm32;
                 core.set_r(rd, result);
@@ -1260,14 +1267,14 @@ where
         }
 
         Instruction::RSB_imm {
-            ref rd,
-            ref rn,
+            rd,
+            rn,
             imm32,
-            ref setflags,
+            setflags,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
-                let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, imm32, true);
+                let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, *imm32, true);
 
                 if *setflags {
                     core.psr.set_n(result);
@@ -1283,10 +1290,10 @@ where
         }
 
         Instruction::SUB_imm {
-            ref rn,
-            ref rd,
+            rn,
+            rd,
             imm32,
-            ref setflags,
+            setflags,
             thumb32,
         } => {
             if core.condition_passed() {
@@ -1307,12 +1314,12 @@ where
         }
 
         Instruction::SUB_reg {
-            ref rn,
-            ref rd,
-            ref rm,
-            ref setflags,
-            ref shift_t,
-            ref shift_n,
+            rn,
+            rd,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
             thumb32,
         } => {
             if core.condition_passed() {
@@ -1331,7 +1338,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::TBB { ref rn, ref rm } => {
+        Instruction::TBB { rn, rm } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
                 let r_m = core.get_r(rm);
@@ -1345,7 +1352,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::TST_reg { ref rn, ref rm } => {
+        Instruction::TST_reg { rn, rm } => {
             if core.condition_passed() {
                 let result = core.get_r(rn) & core.get_r(rm);
 
@@ -1359,15 +1366,15 @@ where
 
         // ARMv7-M
         Instruction::UBFX {
-            ref rd,
-            ref rn,
+            rd,
+            rn,
             lsb,
             widthminus1,
         } => {
             if core.condition_passed() {
                 let msbit = lsb + widthminus1;
                 if msbit <= 31 {
-                    let data = core.get_r(rn).get_bits(lsb..(msbit + 1));
+                    let data = core.get_r(rn).get_bits(*lsb..(msbit + 1));
                     core.set_r(rd, data);
                 } else {
                     panic!();
@@ -1379,13 +1386,13 @@ where
         }
 
         Instruction::UXTB {
-            ref rd,
-            ref rm,
-            ref thumb32,
+            rd,
+            rm,
+            thumb32,
             rotation,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), rotation);
+                let rotated = ror(core.get_r(rm), *rotation);
                 core.set_r(rd, rotated.get_bits(0..8));
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1393,13 +1400,13 @@ where
         }
 
         Instruction::UXTH {
-            ref rd,
-            ref rm,
+            rd,
+            rm,
             rotation,
             thumb32,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), rotation);
+                let rotated = ror(core.get_r(rm), *rotation);
                 core.set_r(rd, rotated.get_bits(0..16));
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1407,13 +1414,13 @@ where
         }
 
         Instruction::SXTB {
-            ref rd,
-            ref rm,
+            rd,
+            rm,
             rotation,
-            ref thumb32,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), rotation);
+                let rotated = ror(core.get_r(rm), *rotation);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1421,19 +1428,19 @@ where
         }
 
         Instruction::SXTH {
-            ref rd,
-            ref rm,
+            rd,
+            rm,
             rotation,
-            ref thumb32,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), rotation);
+                let rotated = ror(core.get_r(rm), *rotation);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
         }
-        Instruction::REV { ref rd, ref rm } => {
+        Instruction::REV { rd, rm } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
                 core.set_r(
@@ -1447,7 +1454,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::REV16 { ref rd, ref rm } => {
+        Instruction::REV16 { rd, rm } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
                 core.set_r(
@@ -1461,7 +1468,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::REVSH { ref rd, ref rm } => {
+        Instruction::REVSH { rd, rm } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
                 core.set_r(
@@ -1473,10 +1480,10 @@ where
             ExecuteResult::NotTaken
         }
         Instruction::ROR_reg {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref setflags,
+            rd,
+            rn,
+            rm,
+            setflags,
         } => {
             if core.condition_passed() {
                 let shift_n = core.get_r(rm) & 0xff;
@@ -1496,7 +1503,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::SVC { ref imm32 } => {
+        Instruction::SVC { imm32 } => {
             if core.condition_passed() {
                 println!("SVC {}", imm32);
                 return ExecuteResult::Taken { cycles: 1 };
@@ -1534,45 +1541,45 @@ where
 
         // ARMv7-M
         Instruction::MCR {
-            ref rt,
-            ref coproc,
-            ref opc1,
-            ref opc2,
-            ref crn,
-            ref crm,
+            rt,
+            coproc,
+            opc1,
+            opc2,
+            crn,
+            crm,
         } => unimplemented!(),
 
         // ARMv7-M
         Instruction::MCR2 {
-            ref rt,
-            ref coproc,
-            ref opc1,
-            ref opc2,
-            ref crn,
-            ref crm,
+            rt,
+            coproc,
+            opc1,
+            opc2,
+            crn,
+            crm,
         } => unimplemented!(),
 
         // ARMv7-M
         Instruction::LDC_imm {
-            ref coproc,
-            ref imm32,
-            ref crd,
-            ref rn,
+            coproc,
+            imm32,
+            crd,
+            rn,
         } => unimplemented!(),
 
         // ARMv7-M
         Instruction::LDC2_imm {
-            ref coproc,
-            ref imm32,
-            ref crd,
-            ref rn,
+            coproc,
+            imm32,
+            crd,
+            rn,
         } => unimplemented!(),
 
         // ARMv7-M
         Instruction::UDIV {
-            ref rd,
-            ref rn,
-            ref rm,
+            rd,
+            rn,
+            rm,
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
@@ -1594,9 +1601,9 @@ where
         }
         // ARMv7-M
         Instruction::SDIV {
-            ref rd,
-            ref rn,
-            ref rm,
+            rd,
+            rn,
+            rm,
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(rm);
@@ -1618,10 +1625,10 @@ where
         }
         // ARMv7-M
         Instruction::MLA {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref ra,
+            rd,
+            rn,
+            rm,
+            ra,
         } => {
             if core.condition_passed() {
                 let rn_ = core.get_r(rn);
@@ -1636,10 +1643,10 @@ where
         }
         // ARMv7-M
         Instruction::MLS {
-            ref rd,
-            ref rn,
-            ref rm,
-            ref ra,
+            rd,
+            rn,
+            rm,
+            ra,
         } => {
             if core.condition_passed() {
                 let rn_ = core.get_r(rn);
@@ -1654,23 +1661,23 @@ where
         }
         // ARMv7-M
         Instruction::UMLAL {
-            ref rdlo,
-            ref rdhi,
-            ref rn,
-            ref rm,
+            rdlo,
+            rdhi,
+            rn,
+            rm,
         } => unimplemented!(),
 
         // ARMv7-M
         Instruction::SMLAL {
-            ref rdlo,
-            ref rdhi,
-            ref rn,
-            ref rm,
+            rdlo,
+            rdhi,
+            rn,
+            rm,
         } => unimplemented!(),
 
         Instruction::UDF {
-            ref imm32,
-            ref opcode,
+            imm32,
+            opcode,
         } => {
             println!("UDF {}, {}", imm32, opcode);
             panic!("undefined");

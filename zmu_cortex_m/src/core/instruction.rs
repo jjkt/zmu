@@ -1792,44 +1792,44 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::LSL_imm {
-            ref rd,
-            ref rm,
-            ref shift_n,
-            ref thumb32,
-            ref setflags,
+            rd,
+            rm,
+            shift_n,
+            thumb32,
+            setflags,
         } => if *thumb32 {
             4
         } else {
             2
         },
         Instruction::LSR_imm {
-            ref rd,
-            ref rm,
-            ref shift_n,
-            ref thumb32,
-            ref setflags,
+            rd,
+            rm,
+            shift_n,
+            thumb32,
+            setflags,
         } => if *thumb32 {
             4
         } else {
             2
         },
         Instruction::ASR_imm {
-            ref rd,
-            ref rm,
-            ref shift_n,
-            ref thumb32,
-            ref setflags,
+            rd,
+            rm,
+            shift_n,
+            thumb32,
+            setflags,
         } => if *thumb32 {
             4
         } else {
             2
         },
         Instruction::MUL {
-            ref rd,
-            ref rm,
-            ref rn,
-            ref thumb32,
-            ref setflags,
+            rd,
+            rm,
+            rn,
+            thumb32,
+            setflags,
         } => if *thumb32 {
             4
         } else {
@@ -1839,7 +1839,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rd,
             rm,
             setflags,
-            ref thumb32,
+            thumb32,
         } => if *thumb32 {
             4
         } else {
@@ -1850,12 +1850,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rm,
             shift_t,
             shift_n,
-            ref thumb32,
+            thumb32,
         } => if *thumb32 {
             4
         } else {
             2
         },
+        Instruction::MVN_imm {
+            rd,
+            imm32,
+            setflags,
+        } => 4,
 
         _ => 2,
     }
