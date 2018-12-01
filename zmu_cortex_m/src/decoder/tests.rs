@@ -696,9 +696,10 @@ fn test_decode_lsls() {
 fn test_decode_adr() {
     // ADR R0, PC, #(7<<2)
     match decode_16(0xa007) {
-        Instruction::ADR { rd, imm32 } => {
+        Instruction::ADR { rd, imm32, thumb32 } => {
             assert!(rd == Reg::R0);
             assert!(imm32 == 7 << 2);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);

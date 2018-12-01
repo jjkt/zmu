@@ -1245,7 +1245,7 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::ADR { rd, imm32 } => {
+        Instruction::ADR { rd, imm32, thumb32 } => {
             if core.condition_passed() {
                 let result = (core.get_r(&Reg::PC) & 0xffff_fffc) + imm32;
                 core.set_r(rd, result);

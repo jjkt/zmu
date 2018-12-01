@@ -61,6 +61,7 @@ pub enum Instruction {
     ADR {
         rd: Reg,
         imm32: u32,
+        thumb32: bool,
     },
     AND_reg {
         rd: Reg,
@@ -717,7 +718,13 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::ADR { rd, imm32 } => write!(f, "adr {}, pc, 0x#{:x}", rd, imm32),
+            Instruction::ADR { rd, imm32, thumb32 } => write!(
+                f,
+                "adr{} {}, pc, 0x#{:x}",
+                if thumb32 { ".W" } else { "" },
+                rd,
+                imm32
+            ),
             Instruction::AND_reg {
                 rn,
                 rd,
@@ -1873,6 +1880,11 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             imm32,
             setflags,
         } => 4,
+        Instruction::ADR { rd, imm32, thumb32 } => if *thumb32 {
+            4
+        } else {
+            2
+        },
 
         _ => 2,
     }
