@@ -1867,6 +1867,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             imm32,
             setflags,
         } => 4,
+        Instruction::ORR_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => 4,
 
         _ => 2,
     }

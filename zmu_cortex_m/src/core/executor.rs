@@ -467,7 +467,24 @@ where
             rn,
             imm32,
             setflags,
-        } => unimplemented!(),
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
+
+                let result = r_n | im;
+
+                core.set_r(rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::EOR_reg {
             rd,

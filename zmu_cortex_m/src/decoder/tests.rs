@@ -2009,3 +2009,21 @@ fn test_decode_str_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_orr_imm_w() {
+    // 0xf0400010
+    // ORR.W R0, R0, #16
+    assert_eq!(
+        decode_32(0xf0400010),
+        Instruction::ORR_imm {
+            rd: Reg::R0,
+            rn: Reg::R0,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (16, false),
+                imm32_c1: (16, true)
+            },
+            setflags: false
+        }
+    );
+}
