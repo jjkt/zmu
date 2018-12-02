@@ -419,6 +419,15 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+    STRD_imm {
+        rn: Reg,
+        rt: Reg,
+        rt2: Reg,
+        imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+    },
     STR_reg {
         rm: Reg,
         rn: Reg,
@@ -641,6 +650,63 @@ fn format_adressing_mode(
             name,
             if thumb32 { ".W" } else { "" },
             rt,
+            rn,
+            if add { "+" } else { "-" },
+            imm32
+        )
+    };
+    result
+}
+
+fn format_adressing_mode2(
+    name: &str,
+    f: &mut fmt::Formatter,
+    rn: Reg,
+    rt: Reg,
+    rt2: Reg,
+    imm32: u32,
+    index: bool,
+    add: bool,
+    wback: bool,
+    thumb32: bool,
+) -> fmt::Result {
+    let result = if index {
+        if !wback {
+            // Offset
+            write!(
+                f,
+                "{}{} {}, {}, [{} {{, #{}{}}}]",
+                name,
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rt2,
+                rn,
+                if add { "+" } else { "-" },
+                imm32
+            )
+        } else {
+            // Pre-indexed
+            write!(
+                f,
+                "{}{} {}, {}, [{} , #{}{}]!",
+                name,
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rt2,
+                rn,
+                if add { "+" } else { "-" },
+                imm32
+            )
+        }
+    } else {
+        // Post-indexed
+        write!(
+            f,
+            "{}{} {}, {},  [{}], #{}{}",
+            name,
+            if thumb32 { ".W" } else { "" },
+            rt,
+            rt2,
             rn,
             if add { "+" } else { "-" },
             imm32
@@ -1209,6 +1275,15 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("str", f, rn, rt, imm32, index, add, wback, thumb32),
+            Instruction::STRD_imm {
+                rn,
+                rt,
+                rt2,
+                imm32,
+                index,
+                add,
+                wback,
+            } => format_adressing_mode2("strd", f, rn, rt, rt2, imm32, index, add, wback, true),
             Instruction::STR_reg {
                 rn,
                 rm,
@@ -1527,6 +1602,15 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } else {
             2
         },
+        Instruction::STRD_imm {
+            rt,
+            rt2,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+        } => 4,
         Instruction::LDRSH_reg {
             rt,
             rn,

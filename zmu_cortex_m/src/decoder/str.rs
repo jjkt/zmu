@@ -2,7 +2,6 @@ use bit_field::*;
 use core::instruction::Instruction;
 use core::instruction::SRType;
 use core::register::Reg;
-use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -231,8 +230,13 @@ pub fn decode_STR_reg_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_STRD_imm_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
+    Instruction::STRD_imm {
+        rt2: From::from(opcode.get_bits(8..12) as u8),
+        rt: From::from(opcode.get_bits(12..16) as u8),
+        rn: From::from(opcode.get_bits(16..20) as u8),
+        imm32: opcode.get_bits(0..8) << 2,
+        index: opcode.get_bit(24),
+        add: opcode.get_bit(23),
+        wback: opcode.get_bit(21),
     }
 }

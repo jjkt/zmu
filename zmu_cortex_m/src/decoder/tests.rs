@@ -2028,3 +2028,20 @@ fn test_decode_orr_imm_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_strd_w() {
+    // 0xe9cd0100 -> STRD R0, R1, [SP]
+    assert_eq!(
+        decode_32(0xe9cd0100),
+        Instruction::STRD_imm {
+            rt: Reg::R0,
+            rt2: Reg::R1,
+            rn: Reg::SP,
+            imm32: 0,
+            index: true,
+            add: true,
+            wback: false,
+        }
+    );
+}
