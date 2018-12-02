@@ -428,6 +428,15 @@ pub enum Instruction {
         add: bool,
         wback: bool,
     },
+    LDRD_imm {
+        rn: Reg,
+        rt: Reg,
+        rt2: Reg,
+        imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+    },
     STR_reg {
         rm: Reg,
         rn: Reg,
@@ -1284,6 +1293,15 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
             } => format_adressing_mode2("strd", f, rn, rt, rt2, imm32, index, add, wback, true),
+            Instruction::LDRD_imm {
+                rn,
+                rt,
+                rt2,
+                imm32,
+                index,
+                add,
+                wback,
+            } => format_adressing_mode2("ldrd", f, rn, rt, rt2, imm32, index, add, wback, true),
             Instruction::STR_reg {
                 rn,
                 rm,
@@ -1603,6 +1621,15 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             2
         },
         Instruction::STRD_imm {
+            rt,
+            rt2,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+        } => 4,
+        Instruction::LDRD_imm {
             rt,
             rt2,
             rn,

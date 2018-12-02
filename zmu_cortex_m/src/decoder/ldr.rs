@@ -123,9 +123,14 @@ pub fn decode_LDRBT_t1(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_LDRD_imm_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
+    Instruction::LDRD_imm {
+        rt2: From::from(opcode.get_bits(8..12) as u8),
+        rt: From::from(opcode.get_bits(12..16) as u8),
+        rn: From::from(opcode.get_bits(16..20) as u8),
+        imm32: opcode.get_bits(0..8) << 2,
+        index: opcode.get_bit(24),
+        add: opcode.get_bit(23),
+        wback: opcode.get_bit(21),
     }
 }
 

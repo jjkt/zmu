@@ -1075,6 +1075,32 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::LDRD_imm {
+            rt,
+            rt2,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+        } => {
+            if core.condition_passed() {
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+
+                let data = core.bus.read32(address);
+                core.set_r(rt, data);
+                let data2 = core.bus.read32(address + 4);
+                core.set_r(rt2, data2);
+
+                if *wback {
+                    core.set_r(rn, offset_address);
+                }
+
+                return ExecuteResult::Taken { cycles: 2 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::STR_reg {
             rt,

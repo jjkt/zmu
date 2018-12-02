@@ -2045,3 +2045,20 @@ fn test_decode_strd_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_ldrd_w() {
+    // 0xe9d50100 -> LDRD R0, R1, [R5]
+    assert_eq!(
+        decode_32(0xe9d50100),
+        Instruction::LDRD_imm {
+            rt: Reg::R0,
+            rt2: Reg::R1,
+            rn: Reg::R5,
+            imm32: 0,
+            index: true,
+            add: true,
+            wback: false,
+        }
+    );
+}
