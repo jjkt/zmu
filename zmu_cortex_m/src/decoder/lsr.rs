@@ -2,7 +2,6 @@ use bit_field::BitField;
 use core::instruction::Instruction;
 use core::operation::decode_imm_shift;
 use core::register::Reg;
-use core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -27,6 +26,7 @@ pub fn decode_LSR_reg_t1(opcode: u16) -> Instruction {
         rn: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
         setflags: true,
+        thumb32: false,
     }
 }
 
@@ -52,8 +52,16 @@ pub fn decode_LSR_imm_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_LSR_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
+    let rn: u8 = opcode.get_bits(16..20) as u8;
+    let rm: u8 = opcode.get_bits(0..4) as u8;
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let s: u8 = opcode.get_bit(20) as u8;
+
+    Instruction::LSR_reg {
+        rd: Reg::from(rd as u8),
+        rn: Reg::from(rn as u8),
+        rm: Reg::from(rm as u8),
+        setflags: s == 1,
+        thumb32: true,
     }
 }

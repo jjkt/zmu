@@ -842,11 +842,13 @@ fn test_decode_lsr_reg() {
             rn,
             rm,
             setflags,
+            thumb32,
         } => {
             assert_eq!(rd, Reg::R1);
             assert_eq!(rn, Reg::R1);
             assert_eq!(rm, Reg::R4);
             assert!(setflags);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2073,6 +2075,21 @@ fn test_decode_ulmull() {
             rdhi: Reg::R3,
             rn: Reg::R4,
             rm: Reg::R0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_lsr_w_reg() {
+    // 0xfa30f009 -> LSRS.W R0, R0, R9
+    assert_eq!(
+        decode_32(0xfa30f009),
+        Instruction::LSR_reg {
+            rd: Reg::R0,
+            rn: Reg::R0,
+            rm: Reg::R9,
+            setflags: true,
+            thumb32: true
         }
     );
 }

@@ -361,6 +361,7 @@ where
             rn,
             rm,
             setflags,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let shift_n = core.get_r(rm).get_bits(0..8);

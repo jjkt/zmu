@@ -292,6 +292,7 @@ pub enum Instruction {
         rm: Reg,
         rn: Reg,
         setflags: bool,
+        thumb32: bool,
     },
 
     // ARMv7-M
@@ -1089,10 +1090,12 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 setflags,
+                thumb32,
             } => write!(
                 f,
-                "lsr{} {}, {}, {}",
+                "lsr{}{} {}, {}, {}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
                 rm
@@ -1940,6 +1943,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rd,
             rm,
             shift_n,
+            thumb32,
+            setflags,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
+        Instruction::LSR_reg {
+            rd,
+            rm,
+            rn,
             thumb32,
             setflags,
         } => if *thumb32 {
