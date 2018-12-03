@@ -1683,6 +1683,19 @@ where
         }
         // ARMv7-M
         Instruction::UMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
+        // ARMv7-M
+        Instruction::UMULL { rdlo, rdhi, rn, rm } => {
+            if core.condition_passed() {
+                let rn_ = core.get_r(rn) as u64;
+                let rm_ = core.get_r(rm) as u64;
+                let result = rn_.wrapping_mul(rm_);
+
+                core.set_r(rdlo, result.get_bits(0..32) as u32);
+                core.set_r(rdhi, result.get_bits(32..64) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         // ARMv7-M
         Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),

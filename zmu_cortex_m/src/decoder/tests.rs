@@ -2062,3 +2062,17 @@ fn test_decode_ldrd_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_ulmull() {
+    // 0xfba42300 -> UMULL R2, R3, R4, R0
+    assert_eq!(
+        decode_32(0xfba42300),
+        Instruction::UMULL {
+            rdlo: Reg::R2,
+            rdhi: Reg::R3,
+            rn: Reg::R4,
+            rm: Reg::R0,
+        }
+    );
+}

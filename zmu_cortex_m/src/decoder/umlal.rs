@@ -10,8 +10,8 @@ pub fn decode_UMLAL_t1(opcode: u32) -> Instruction {
     let reg_rn: u8 = opcode.get_bits(16, 19);
     Instruction::UMLAL {
         rm: Reg::from(reg_rm),
-        rdlo: Reg::from(reg_rd_hi),
-        rdhi: Reg::from(reg_rd_lo),
+        rdlo: Reg::from(reg_rd_lo),
+        rdhi: Reg::from(reg_rd_hi),
         rn: Reg::from(reg_rn),
     }
 }
