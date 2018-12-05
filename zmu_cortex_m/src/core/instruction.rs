@@ -398,6 +398,7 @@ pub enum Instruction {
         rn: Reg,
         imm32: u32,
         setflags: bool,
+        thumb32: bool,
     },
     SBC_reg {
         rd: Reg,
@@ -1252,10 +1253,12 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32,
                 setflags,
+                thumb32,
             } => write!(
                 f,
-                "rsb{} {}, {}, #{}",
+                "rsb{}{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
                 imm32
@@ -2023,6 +2026,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         },
         Instruction::UMLAL { rm, rdlo, rdhi, rn } => 4,
         Instruction::UMULL { rm, rdlo, rdhi, rn } => 4,
+        Instruction::RSB_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+            thumb32,
+        } => if *thumb32 {
+            4
+        } else {
+            2
+        },
 
         _ => 2,
     }

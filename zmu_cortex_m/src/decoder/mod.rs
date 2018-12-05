@@ -555,8 +555,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDREX_t1(opcode)
     } else if (opcode & 0xfff00f00) == 0xf9100e00 {
         decode_LDRSBT_t1(opcode)
-    } else if (opcode & 0xfbe08f00) == 0xf1c00f00 {
-        decode_RSB_imm_t2(opcode)
     } else if (opcode & 0xfbef8000) == 0xf04f0000 {
         decode_MOV_imm_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf85f0000 {
@@ -667,6 +665,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ORN_imm_t1(opcode)
     } else if (opcode & 0xfbe08000) == 0xf1a00000 {
         decode_SUB_imm_t3(opcode)
+    } else if (opcode & 0xfbe08000) == 0xf1c00000 {
+        decode_RSB_imm_t2(opcode)
     } else if (opcode & 0xfbe08000) == 0xf0800000 {
         decode_EOR_imm_t1(opcode)
     } else if (opcode & 0xfbe08000) == 0xf0200000 {

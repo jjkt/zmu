@@ -1266,6 +1266,7 @@ fn test_decode_rsb_imm() {
             rn: Reg::R0,
             imm32: 0,
             setflags: true,
+            thumb32: false
         }
     );
 }
@@ -2093,3 +2094,19 @@ fn test_decode_lsr_w_reg() {
         }
     );
 }
+
+#[test]
+fn test_decode_rsb_w_reg() {
+    //0xf1c6003c -> RSB.W R0, R6, #60
+    assert_eq!(
+        decode_32(0xf1c6003c),
+        Instruction::RSB_imm {
+            rd: Reg::R0,
+            rn: Reg::R6,
+            imm32: 60,
+            setflags: false,
+            thumb32: true
+        }
+    );
+}
+
