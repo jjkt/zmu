@@ -251,20 +251,18 @@ pub fn build_imm_6_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;
 
-    //let s = ((t1 >> 10) & 1) as u32;
     let imm6 = (t1 & 0x3f) as u32;
 
-    //let j1 = ((t2 >> 13) & 1) as u32;
-    //let j2 = ((t2 >> 11) & 1) as u32;
+    let s = ((t1 >> 10) & 1) as u32;
+
+    let j1 = ((t2 >> 13) & 1) as u32;
+    let j2 = ((t2 >> 11) & 1) as u32;
+
     let imm11 = (t2 & 0x7ff) as u32;
 
-    //let i1 = ((j1 ^ s) ^ 1) as u32;
-    //let i2 = ((j2 ^ s) ^ 1) as u32;
-
-
     sign_extend(
-        (imm11 << 1) + (imm6 << 12) /*+ (i2 << 17) + (i1 << 18) + (s << 19)*/,
-        19,
+        (imm11 << 1) + (imm6 << 12) + (j2 << 18) + (j1 << 19) + (s << 20),
+        20,
         32,
     ) as i32
 }
@@ -367,6 +365,7 @@ mod tests {
     #[test]
     fn test_build_imm_6_11() {
         assert_eq!(build_imm_6_11(0xF00080C4), 0xc4 << 1);
+        assert_eq!(build_imm_6_11(0xf57fad69), -1326);
     }
 
 }

@@ -2110,3 +2110,15 @@ fn test_decode_rsb_w_reg() {
     );
 }
 
+#[test]
+fn test_decode_b_pl_w() {
+    //0xf57fad69 -> BPL.W -1326
+    assert_eq!(
+        decode_32(0xf57fad69),
+        Instruction::B {
+            cond: Condition::PL,
+            imm32: -1326,
+            thumb32: true
+        }
+    );
+}
