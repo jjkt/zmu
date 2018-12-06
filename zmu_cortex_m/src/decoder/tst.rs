@@ -1,9 +1,9 @@
 use bit_field::BitField;
-use core::instruction::Imm32Carry;
-use core::instruction::Instruction;
-use core::operation::thumb_expand_imm_c;
-use core::register::Reg;
-use core::ThumbCode;
+use crate::core::instruction::Imm32Carry;
+use crate::core::instruction::Instruction;
+use crate::core::operation::thumb_expand_imm_c;
+use crate::core::register::Reg;
+use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]

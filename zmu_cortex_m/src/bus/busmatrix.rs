@@ -1,4 +1,4 @@
-use bus::Bus;
+use crate::bus::Bus;
 
 pub struct BusMatrix<'a, T: 'a + Bus, R: 'a + Bus> {
     intr: &'a mut T,

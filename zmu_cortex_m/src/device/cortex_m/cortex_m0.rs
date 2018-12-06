@@ -1,13 +1,13 @@
-use bus::ahblite::AHBLite;
-use bus::busmatrix::BusMatrix;
-use bus::internal::InternalBus;
-use core::instruction::Instruction;
-use core::Core;
-use core::ThumbCode;
-use memory::flash::FlashMemory;
-use memory::ram::RAM;
-use semihosting::SemihostingCommand;
-use semihosting::SemihostingResponse;
+use crate::bus::ahblite::AHBLite;
+use crate::bus::busmatrix::BusMatrix;
+use crate::bus::internal::InternalBus;
+use crate::core::instruction::Instruction;
+use crate::core::Core;
+use crate::core::ThumbCode;
+use crate::memory::flash::FlashMemory;
+use crate::memory::ram::RAM;
+use crate::semihosting::SemihostingCommand;
+use crate::semihosting::SemihostingResponse;
 
 pub fn cortex_m0_simulate<F>(code: &[u8], mut semihost_func: F) -> u64
 where

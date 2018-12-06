@@ -2,6 +2,7 @@
 name = "zmu_cortex_m"
 version = "0.1.0"
 authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
+edition = "2018"
 
 [dependencies]
 byteorder = "0.3"

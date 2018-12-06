@@ -1,14 +1,14 @@
 use bit_field::BitField;
-use bus::Bus;
-use core::fault::Fault;
-use core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType};
-use core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
-use core::register::{Apsr, Ipsr, Reg, SpecialReg};
-use core::Core;
-use semihosting::decode_semihostcmd;
-use semihosting::semihost_return;
-use semihosting::SemihostingCommand;
-use semihosting::SemihostingResponse;
+use crate::bus::Bus;
+use crate::core::fault::Fault;
+use crate::core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType};
+use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
+use crate::core::register::{Apsr, Ipsr, Reg, SpecialReg};
+use crate::core::Core;
+use crate::semihosting::decode_semihostcmd;
+use crate::semihosting::semihost_return;
+use crate::semihosting::SemihostingCommand;
+use crate::semihosting::SemihostingResponse;
 
 #[derive(PartialEq, Debug)]
 pub enum ExecuteResult {
@@ -1727,9 +1727,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::condition::Condition;
-    use core::instruction::ITCondition;
-    use memory::ram::*;
+    use crate::core::condition::Condition;
+    use crate::core::instruction::ITCondition;
+    use crate::memory::ram::*;
 
     #[test]
     fn test_udiv() {

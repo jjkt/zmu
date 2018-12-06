@@ -1,7 +1,7 @@
 use bit_field::*;
-use core::instruction::Instruction;
-use core::instruction::SRType;
-use core::register::Reg;
+use crate::core::instruction::Instruction;
+use crate::core::instruction::SRType;
+use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
 #[inline]

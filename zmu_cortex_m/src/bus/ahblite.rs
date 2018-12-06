@@ -1,4 +1,4 @@
-use bus::Bus;
+use crate::bus::Bus;
 
 pub struct AHBLite<'a, T: 'a + Bus, R: 'a + Bus> {
     code: &'a mut T,

@@ -1,4 +1,4 @@
-use bus::Bus;
+use crate::bus::Bus;
 use byteorder::{ByteOrder, LittleEndian};
 
 pub struct FlashMemory {

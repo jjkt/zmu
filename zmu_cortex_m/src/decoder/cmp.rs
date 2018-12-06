@@ -1,8 +1,8 @@
 use bit_field::BitField;
-use core::instruction::Instruction;
-use core::operation::thumb_expand_imm;
-use core::register::Reg;
-use core::ThumbCode;
+use crate::core::instruction::Instruction;
+use crate::core::operation::thumb_expand_imm;
+use crate::core::register::Reg;
+use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]

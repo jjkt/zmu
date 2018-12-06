@@ -1,6 +1,6 @@
 use bit_field::*;
-use core::instruction::Instruction;
-use core::register::Reg;
+use crate::core::instruction::Instruction;
+use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
 pub fn decode_CBZ_t1(opcode: u16) -> Instruction {

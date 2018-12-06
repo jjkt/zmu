@@ -8,18 +8,18 @@ pub mod operation;
 pub mod register;
 
 use bit_field::BitField;
-use bus::Bus;
-use core::condition::Condition;
-use core::exception::Exception;
-use core::executor::execute;
-use core::executor::ExecuteResult;
-use core::instruction::instruction_size;
-use core::instruction::Instruction;
-use core::operation::condition_test;
-use core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
-use decoder::{decode_16, decode_32, is_thumb32};
-use semihosting::SemihostingCommand;
-use semihosting::SemihostingResponse;
+use crate::bus::Bus;
+use crate::core::condition::Condition;
+use crate::core::exception::Exception;
+use crate::core::executor::execute;
+use crate::core::executor::ExecuteResult;
+use crate::core::instruction::instruction_size;
+use crate::core::instruction::Instruction;
+use crate::core::operation::condition_test;
+use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
+use crate::decoder::{decode_16, decode_32, is_thumb32};
+use crate::semihosting::SemihostingCommand;
+use crate::semihosting::SemihostingResponse;
 use std::fmt;
 
 #[derive(PartialEq, Debug)]
@@ -515,7 +515,7 @@ impl<'a, T: Bus> fmt::Display for Core<'a, T> {
 mod tests {
 
     use super::*;
-    use memory::ram::*;
+    use crate::memory::ram::*;
 
     #[test]
     fn test_push_stack() {

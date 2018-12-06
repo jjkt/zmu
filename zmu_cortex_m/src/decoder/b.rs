@@ -1,10 +1,10 @@
-use core::bits::*;
-use core::condition::Condition;
-use core::instruction::Instruction;
-use core::operation::build_imm_10_11;
-use core::operation::build_imm_6_11;
-use core::operation::sign_extend;
-use core::ThumbCode;
+use crate::core::bits::*;
+use crate::core::condition::Condition;
+use crate::core::instruction::Instruction;
+use crate::core::operation::build_imm_10_11;
+use crate::core::operation::build_imm_6_11;
+use crate::core::operation::sign_extend;
+use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]

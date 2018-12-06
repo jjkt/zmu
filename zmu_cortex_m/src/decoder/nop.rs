@@ -1,4 +1,4 @@
-use core::instruction::Instruction;
+use crate::core::instruction::Instruction;
 
 #[allow(non_snake_case)]
 #[inline]

@@ -1,6 +1,6 @@
-use core::instruction::Imm32Carry;
-use core::instruction::SRType;
-use core::register::Reg;
+use crate::core::instruction::Imm32Carry;
+use crate::core::instruction::SRType;
+use crate::core::register::Reg;
 
 use super::*;
 

@@ -1,4 +1,4 @@
-use bus::Bus;
+use crate::bus::Bus;
 
 #[derive(Default)]
 struct SysTick {

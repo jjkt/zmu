@@ -1,6 +1,6 @@
-use core::bits::*;
-use core::instruction::Instruction;
-use core::ThumbCode;
+use crate::core::bits::*;
+use crate::core::instruction::Instruction;
+use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]

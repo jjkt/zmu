@@ -1,11 +1,11 @@
-use core::bits::{bits_0_3, bits_0_7, bits_0_8, bits_3_6, bits_6_9, bits_8_11, Bits};
-use core::instruction::Instruction;
-use core::instruction::SRType;
-use core::operation::decode_imm_shift;
-use core::operation::thumb_expand_imm;
-use core::operation::zero_extend;
-use core::register::Reg;
-use core::ThumbCode;
+use crate::core::bits::{bits_0_3, bits_0_7, bits_0_8, bits_3_6, bits_6_9, bits_8_11, Bits};
+use crate::core::instruction::Instruction;
+use crate::core::instruction::SRType;
+use crate::core::operation::decode_imm_shift;
+use crate::core::operation::thumb_expand_imm;
+use crate::core::operation::zero_extend;
+use crate::core::register::Reg;
+use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]

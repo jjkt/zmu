@@ -1,7 +1,7 @@
-use core::bits::*;
-use core::instruction::Instruction;
-use core::operation::zero_extend;
-use core::register::Reg;
+use crate::core::bits::*;
+use crate::core::instruction::Instruction;
+use crate::core::operation::zero_extend;
+use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
 #[inline]

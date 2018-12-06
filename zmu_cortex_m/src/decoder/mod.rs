@@ -1,16 +1,16 @@
-use core::bits::*;
-use core::instruction::Instruction;
-use core::ThumbCode;
+use crate::core::bits::*;
+use crate::core::instruction::Instruction;
+use crate::core::ThumbCode;
 
 #[cfg(test)]
-use core::instruction::CpsEffect;
+use crate::core::instruction::CpsEffect;
 #[cfg(test)]
-use core::register::SpecialReg;
+use crate::core::register::SpecialReg;
 
 #[cfg(test)]
-use core::condition::Condition;
+use crate::core::condition::Condition;
 #[cfg(test)]
-use core::instruction::ITCondition;
+use crate::core::instruction::ITCondition;
 
 mod bfc;
 mod bfi;
@@ -109,103 +109,103 @@ mod umlal;
 mod umull;
 mod uxt;
 
-use decoder::adc::*;
-use decoder::add::*;
-use decoder::adr::*;
-use decoder::and::*;
-use decoder::asr::*;
+use crate::decoder::adc::*;
+use crate::decoder::add::*;
+use crate::decoder::adr::*;
+use crate::decoder::and::*;
+use crate::decoder::asr::*;
 
-use decoder::b::*;
-use decoder::bic::*;
-use decoder::bkpt::*;
-use decoder::bl::*;
-use decoder::blx::*;
-use decoder::bx::*;
+use crate::decoder::b::*;
+use crate::decoder::bic::*;
+use crate::decoder::bkpt::*;
+use crate::decoder::bl::*;
+use crate::decoder::blx::*;
+use crate::decoder::bx::*;
 
-use decoder::cbz::*;
-use decoder::clz::*;
-use decoder::cmn::*;
-use decoder::cmp::*;
-use decoder::cpd::*;
-use decoder::cps::*;
+use crate::decoder::cbz::*;
+use crate::decoder::clz::*;
+use crate::decoder::cmn::*;
+use crate::decoder::cmp::*;
+use crate::decoder::cpd::*;
+use crate::decoder::cps::*;
 
-use decoder::dmb::*;
-use decoder::dsb::*;
+use crate::decoder::dmb::*;
+use crate::decoder::dsb::*;
 
-use decoder::eor::*;
+use crate::decoder::eor::*;
 
-use decoder::isb::*;
-use decoder::it::*;
+use crate::decoder::isb::*;
+use crate::decoder::it::*;
 
-use decoder::ldc::*;
-use decoder::ldm::*;
-use decoder::ldr::*;
-use decoder::ldrb::*;
-use decoder::ldrh::*;
-use decoder::ldrsb::*;
-use decoder::ldrsh::*;
-use decoder::lsl::*;
-use decoder::lsr::*;
+use crate::decoder::ldc::*;
+use crate::decoder::ldm::*;
+use crate::decoder::ldr::*;
+use crate::decoder::ldrb::*;
+use crate::decoder::ldrh::*;
+use crate::decoder::ldrsb::*;
+use crate::decoder::ldrsh::*;
+use crate::decoder::lsl::*;
+use crate::decoder::lsr::*;
 
-use decoder::mcr::*;
-use decoder::mla::*;
-use decoder::mls::*;
-use decoder::mov::*;
-use decoder::mrs::*;
-use decoder::msr::*;
-use decoder::mul::*;
-use decoder::mvn::*;
+use crate::decoder::mcr::*;
+use crate::decoder::mla::*;
+use crate::decoder::mls::*;
+use crate::decoder::mov::*;
+use crate::decoder::mrs::*;
+use crate::decoder::msr::*;
+use crate::decoder::mul::*;
+use crate::decoder::mvn::*;
 
-use decoder::nop::*;
+use crate::decoder::nop::*;
 
-use decoder::orn::*;
-use decoder::orr::*;
+use crate::decoder::orn::*;
+use crate::decoder::orr::*;
 
-use decoder::pld::*;
-use decoder::pli::*;
-use decoder::pop::*;
-use decoder::push::*;
+use crate::decoder::pld::*;
+use crate::decoder::pli::*;
+use crate::decoder::pop::*;
+use crate::decoder::push::*;
 
-use decoder::rbit::*;
-use decoder::rev::*;
-use decoder::ror::*;
-use decoder::rrx::*;
-use decoder::rsb::*;
+use crate::decoder::rbit::*;
+use crate::decoder::rev::*;
+use crate::decoder::ror::*;
+use crate::decoder::rrx::*;
+use crate::decoder::rsb::*;
 
-use decoder::sbc::*;
-use decoder::sdiv::*;
-use decoder::smlal::*;
-use decoder::smull::*;
-use decoder::stc::*;
-use decoder::stm::*;
-use decoder::str::*;
-use decoder::strex::*;
-use decoder::sub::*;
-use decoder::sxt::*;
+use crate::decoder::sbc::*;
+use crate::decoder::sdiv::*;
+use crate::decoder::smlal::*;
+use crate::decoder::smull::*;
+use crate::decoder::stc::*;
+use crate::decoder::stm::*;
+use crate::decoder::str::*;
+use crate::decoder::strex::*;
+use crate::decoder::sub::*;
+use crate::decoder::sxt::*;
 
-use decoder::tbb::*;
-use decoder::tbh::*;
-use decoder::teq::*;
-use decoder::tst::*;
+use crate::decoder::tbb::*;
+use crate::decoder::tbh::*;
+use crate::decoder::teq::*;
+use crate::decoder::tst::*;
 
-use decoder::udiv::*;
-use decoder::umlal::*;
-use decoder::umull::*;
-use decoder::uxt::*;
+use crate::decoder::udiv::*;
+use crate::decoder::umlal::*;
+use crate::decoder::umull::*;
+use crate::decoder::uxt::*;
 
-use decoder::bfc::*;
-use decoder::bfi::*;
-use decoder::clrex::*;
-use decoder::dbg::*;
-use decoder::movt::*;
-use decoder::sbfx::*;
-use decoder::sev::*;
-use decoder::ssat::*;
-use decoder::ubfx::*;
-use decoder::usat::*;
-use decoder::wfe::*;
-use decoder::wfi::*;
-use decoder::yield_::*;
+use crate::decoder::bfc::*;
+use crate::decoder::bfi::*;
+use crate::decoder::clrex::*;
+use crate::decoder::dbg::*;
+use crate::decoder::movt::*;
+use crate::decoder::sbfx::*;
+use crate::decoder::sev::*;
+use crate::decoder::ssat::*;
+use crate::decoder::ubfx::*;
+use crate::decoder::usat::*;
+use crate::decoder::wfe::*;
+use crate::decoder::wfi::*;
+use crate::decoder::yield_::*;
 
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11, 15) {

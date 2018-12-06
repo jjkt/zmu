@@ -1,5 +1,5 @@
-use core::instruction::Instruction;
-use core::operation::build_imm_10_11;
+use crate::core::instruction::Instruction;
+use crate::core::operation::build_imm_10_11;
 
 #[inline]
 #[allow(non_snake_case)]

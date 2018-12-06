@@ -1,7 +1,7 @@
 use bit_field::BitField;
-use core::instruction::Instruction;
-use core::operation::decode_imm_shift;
-use core::register::Reg;
+use crate::core::instruction::Instruction;
+use crate::core::operation::decode_imm_shift;
+use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
 #[inline]

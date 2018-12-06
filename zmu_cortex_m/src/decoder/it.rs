@@ -1,7 +1,7 @@
 use bit_field::BitField;
-use core::condition::Condition;
-use core::instruction::ITCondition;
-use core::instruction::Instruction;
+use crate::core::condition::Condition;
+use crate::core::instruction::ITCondition;
+use crate::core::instruction::Instruction;
 
 #[allow(non_snake_case)]
 pub fn decode_IT_t1(opcode: u16) -> Instruction {

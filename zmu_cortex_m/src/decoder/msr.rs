@@ -1,6 +1,6 @@
-use core::bits::*;
-use core::instruction::Instruction;
-use core::register::{Reg, SpecialReg};
+use crate::core::bits::*;
+use crate::core::instruction::Instruction;
+use crate::core::register::{Reg, SpecialReg};
 
 #[allow(non_snake_case)]
 #[inline]

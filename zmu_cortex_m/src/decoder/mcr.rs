@@ -1,7 +1,7 @@
-use core::bits::*;
-use core::instruction::Instruction;
-use core::register::Reg;
-use core::ThumbCode;
+use crate::core::bits::*;
+use crate::core::instruction::Instruction;
+use crate::core::register::Reg;
+use crate::core::ThumbCode;
 
 
 #[allow(non_snake_case)]

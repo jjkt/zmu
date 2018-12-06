@@ -1,6 +1,6 @@
-use bus::Bus;
-use core::Core;
-use core::register::Reg;
+use crate::bus::Bus;
+use crate::core::Core;
+use crate::core::register::Reg;
 
 #[derive(PartialEq, Debug)]
 pub enum SysExceptionReason {

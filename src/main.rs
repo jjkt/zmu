@@ -35,7 +35,7 @@ mod errors {
     error_chain! {}
 }
 
-use errors::*;
+use crate::errors::*;
 
 fn run_bin(
     code: &[u8],

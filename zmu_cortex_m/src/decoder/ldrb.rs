@@ -1,7 +1,7 @@
 use bit_field::*;
-use core::instruction::Instruction;
-use core::register::Reg;
-use core::ThumbCode;
+use crate::core::instruction::Instruction;
+use crate::core::register::Reg;
+use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 pub fn decode_LDRB_reg_t1(opcode: u16) -> Instruction {

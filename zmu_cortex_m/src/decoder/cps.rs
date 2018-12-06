@@ -1,5 +1,5 @@
-use core::instruction::{CpsEffect, Instruction};
-use core::bits::*;
+use crate::core::instruction::{CpsEffect, Instruction};
+use crate::core::bits::*;
 
 #[allow(non_snake_case)]
 #[inline]
