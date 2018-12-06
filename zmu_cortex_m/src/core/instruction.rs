@@ -525,6 +525,10 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
     },
+    TST_imm {
+        rn: Reg,
+        imm32: Imm32Carry,
+    },
     TBB {
         rn: Reg,
         rm: Reg,
@@ -1449,9 +1453,19 @@ impl fmt::Display for Instruction {
             ),
             Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
             Instruction::TST_reg { rn, rm } => write!(f, "tst {}, {}", rn, rm),
+            Instruction::TST_imm { rn, ref imm32 } => write!(
+                f,
+                "tst {}, #{}",
+                rn,
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
+            ),
             Instruction::UDF { imm32, ref opcode } => {
                 write!(f, "udf {} (opcode = {})", imm32, opcode)
             }
+
             // ARMv7-M
             Instruction::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
             Instruction::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
@@ -1899,6 +1913,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             imm32,
             setflags,
         } => 4,
+        Instruction::TST_imm { rn, imm32 } => 4,
         Instruction::UBFX {
             rd,
             rn,

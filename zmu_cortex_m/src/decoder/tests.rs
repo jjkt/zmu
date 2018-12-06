@@ -2122,3 +2122,18 @@ fn test_decode_b_pl_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_tst_imm_w() {
+    //0xf0113f80 -> TST.W R1, 0x80808080
+    assert_eq!(
+        decode_32(0xf0113f80),
+        Instruction::TST_imm {
+            rn: Reg::R1,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (0x80808080, false),
+                imm32_c1: (0x80808080, true),
+            },
+        }
+    );
+}

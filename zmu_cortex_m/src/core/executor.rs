@@ -1405,6 +1405,20 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::TST_imm { rn, imm32 } => {
+            if core.condition_passed() {
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
+
+                let result = core.get_r(rn) & im;
+
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         // ARMv7-M
         Instruction::UBFX {
@@ -1841,6 +1855,32 @@ APSR =
 
         assert_eq!(core.get_r(&Reg::R4), 0x01);
         assert!(!core.in_it_block());
+    }
+
+    #[test]
+    fn test_b_cond() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.psr.value = 0;
+
+        let instruction = Instruction::B {
+            cond: Condition::EQ,
+            imm32: 0,
+            thumb32: true,
+        };
+
+        // act
+        let result = execute(
+            &mut core,
+            &instruction,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(result, ExecuteResult::NotTaken);
+
     }
 
 }
