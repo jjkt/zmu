@@ -68,6 +68,6 @@ pub fn decode_B_t4(opcode: u32) -> Instruction {
     Instruction::B {
         cond: Condition::AL,
         imm32: imm as i32,
-        thumb32: true
+        thumb32: true,
     }
 }

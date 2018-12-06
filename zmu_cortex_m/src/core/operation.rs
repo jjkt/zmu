@@ -1,9 +1,9 @@
-use bit_field::BitField;
 use crate::core::bits::bit_31;
 use crate::core::condition::Condition;
 use crate::core::instruction::SRType;
 use crate::core::register::Apsr;
 use crate::core::PSR;
+use bit_field::BitField;
 
 pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
@@ -247,7 +247,6 @@ pub fn build_imm_10_11(opcode: u32) -> i32 {
 }
 
 pub fn build_imm_6_11(opcode: u32) -> i32 {
-
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;
 

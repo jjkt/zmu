@@ -1,6 +1,6 @@
 use crate::bus::Bus;
-use crate::core::Core;
 use crate::core::register::Reg;
+use crate::core::Core;
 
 #[derive(PartialEq, Debug)]
 pub enum SysExceptionReason {
@@ -126,14 +126,18 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
             Ok(handle) => core.set_r(&Reg::R0, handle),
             Err(error_code) => core.set_r(&Reg::R0, error_code as u32),
         },
-        SemihostingResponse::SysException { success, stop } => if success {
-            core.running = !stop
-        },
-        SemihostingResponse::SysClose { success } => if success {
-            core.set_r(&Reg::R0, 0);
-        } else {
-            core.set_r(&Reg::R0, (-1_i32) as u32);
-        },
+        SemihostingResponse::SysException { success, stop } => {
+            if success {
+                core.running = !stop
+            }
+        }
+        SemihostingResponse::SysClose { success } => {
+            if success {
+                core.set_r(&Reg::R0, 0);
+            } else {
+                core.set_r(&Reg::R0, (-1_i32) as u32);
+            }
+        }
         SemihostingResponse::SysWrite { result } => match result {
             Ok(_) => core.set_r(&Reg::R0, 0),
             Err(unwritten_bytes) => core.set_r(&Reg::R0, unwritten_bytes as u32),

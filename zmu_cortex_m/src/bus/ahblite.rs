@@ -11,10 +11,7 @@ where
     R: Bus,
 {
     pub fn new(code: &'a mut T, sram: &'a mut R) -> AHBLite<'a, T, R> {
-        AHBLite {
-            code,
-            sram,
-        }
+        AHBLite { code, sram }
     }
 }
 
@@ -46,7 +43,6 @@ where
             panic!("bus access fault read16 addr 0x{:x}", addr);
         }
     }
-
 
     fn read32(&self, addr: u32) -> u32 {
         if addr & 3 != 0 {

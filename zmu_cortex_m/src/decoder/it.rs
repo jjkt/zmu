@@ -1,7 +1,7 @@
-use bit_field::BitField;
 use crate::core::condition::Condition;
 use crate::core::instruction::ITCondition;
 use crate::core::instruction::Instruction;
+use bit_field::BitField;
 
 #[allow(non_snake_case)]
 pub fn decode_IT_t1(opcode: u16) -> Instruction {
@@ -60,7 +60,7 @@ pub fn decode_IT_t1(opcode: u16) -> Instruction {
                 Some(ITCondition::Else),
                 Some(ITCondition::Else),
             ),
-            _ =>(None, None, None),
+            _ => (None, None, None),
         }
     } else {
         match mask {

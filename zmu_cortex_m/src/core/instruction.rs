@@ -1589,22 +1589,26 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             shift_t,
             shift_n,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::ADD_imm {
             rn,
             rd,
             imm32,
             setflags,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDR_imm {
             rt,
             rn,
@@ -1613,31 +1617,39 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDR_lit {
             rt,
             imm32,
             thumb32,
             add,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
-        Instruction::PUSH { thumb32, registers } => if *thumb32 {
-            4
-        } else {
-            2
-        },
-        Instruction::CMP_imm { rn, imm32, thumb32 } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::PUSH { thumb32, registers } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::CMP_imm { rn, imm32, thumb32 } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STR_imm {
             rt,
             rn,
@@ -1646,11 +1658,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STRD_imm {
             rt,
             rt2,
@@ -1679,11 +1693,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDR_reg {
             rt,
             rn,
@@ -1694,11 +1710,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STRB_reg {
             rt,
             rn,
@@ -1709,11 +1727,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STRH_reg {
             rt,
             rn,
@@ -1724,11 +1744,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STR_reg {
             rt,
             rn,
@@ -1739,11 +1761,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDRSH_imm {
             rt,
             rn,
@@ -1752,32 +1776,38 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::MOV_imm {
             rd,
             imm32,
             setflags,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::SUB_imm {
             rd,
             rn,
             imm32,
             setflags,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::SUB_reg {
             rm,
             rn,
@@ -1786,11 +1816,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             shift_t,
             shift_n,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STRH_imm {
             rt,
             rn,
@@ -1799,51 +1831,61 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::UXTH {
             rd,
             rm,
             rotation,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::UXTB {
             rd,
             rm,
             rotation,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::SXTH {
             rd,
             rm,
             rotation,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::SXTB {
             rd,
             rm,
             rotation,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDRB_imm {
             rt,
             rn,
@@ -1852,11 +1894,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::STRB_imm {
             rt,
             rn,
@@ -1865,11 +1909,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDRH_imm {
             rt,
             rn,
@@ -1878,11 +1924,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             add,
             wback,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::MSR_reg { rn, spec_reg } => 4,
         Instruction::MRS { rd, spec_reg } => 4,
         Instruction::MLA { rd, rn, rm, ra } => 4,
@@ -1892,11 +1940,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             cond,
             imm32,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::BFI {
             rn,
             rd,
@@ -1928,11 +1978,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             thumb32,
             shift_t,
             shift_n,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::ORR_reg {
             rd,
             rn,
@@ -1941,87 +1993,103 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             thumb32,
             shift_t,
             shift_n,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LSL_imm {
             rd,
             rm,
             shift_n,
             thumb32,
             setflags,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LSR_imm {
             rd,
             rm,
             shift_n,
             thumb32,
             setflags,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LSR_reg {
             rd,
             rm,
             rn,
             thumb32,
             setflags,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::ASR_imm {
             rd,
             rm,
             shift_n,
             thumb32,
             setflags,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::MUL {
             rd,
             rm,
             rn,
             thumb32,
             setflags,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::MOV_reg {
             rd,
             rm,
             setflags,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::CMN_reg {
             rn,
             rm,
             shift_t,
             shift_n,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::CMN_imm { rn, imm32 } => 4,
         Instruction::MVN_imm {
             rd,
@@ -2034,11 +2102,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             imm32,
             setflags,
         } => 4,
-        Instruction::ADR { rd, imm32, thumb32 } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        Instruction::ADR { rd, imm32, thumb32 } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::UMLAL { rm, rdlo, rdhi, rn } => 4,
         Instruction::UMULL { rm, rdlo, rdhi, rn } => 4,
         Instruction::RSB_imm {
@@ -2047,11 +2117,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             imm32,
             setflags,
             thumb32,
-        } => if *thumb32 {
-            4
-        } else {
-            2
-        },
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
 
         _ => 2,
     }

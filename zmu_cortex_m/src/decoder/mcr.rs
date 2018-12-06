@@ -3,7 +3,6 @@ use crate::core::instruction::Instruction;
 use crate::core::register::Reg;
 use crate::core::ThumbCode;
 
-
 #[allow(non_snake_case)]
 pub fn decode_MCR2_t2(opcode: u32) -> Instruction {
     let reg: u8 = opcode.get_bits(12, 15);

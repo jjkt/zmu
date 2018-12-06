@@ -1,6 +1,6 @@
 use crate::core::instruction::Instruction;
-use bit_field::BitField;
 use crate::core::register::Reg;
+use bit_field::BitField;
 
 #[allow(non_snake_case)]
 pub fn decode_TBB_t1(opcode: u32) -> Instruction {
@@ -9,6 +9,6 @@ pub fn decode_TBB_t1(opcode: u32) -> Instruction {
 
     Instruction::TBB {
         rn: Reg::from(rn),
-        rm: Reg::from(rm)
+        rm: Reg::from(rm),
     }
 }

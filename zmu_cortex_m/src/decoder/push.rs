@@ -96,7 +96,6 @@ pub fn decode_PUSH_t2(opcode: u32) -> Instruction {
         registers: regs,
         thumb32: true,
     }
-
 }
 
 #[allow(non_snake_case)]

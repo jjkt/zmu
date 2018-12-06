@@ -1,8 +1,6 @@
-
-
-use bit_field::BitField;
 use crate::core::instruction::Instruction;
 use crate::core::register::Reg;
+use bit_field::BitField;
 
 #[allow(non_snake_case)]
 pub fn decode_MLS_t1(opcode: u32) -> Instruction {

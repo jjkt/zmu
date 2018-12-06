@@ -54,7 +54,7 @@ impl fmt::Display for ThumbCode {
     }
 }
 
-pub struct Core<'a, T: Bus + 'a> {
+pub struct Core<'a, T: Bus> {
     /* 13 of 32-bit general purpose registers. */
     pub r0_12: [u32; 13],
 

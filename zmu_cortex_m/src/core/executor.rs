@@ -1,4 +1,3 @@
-use bit_field::BitField;
 use crate::bus::Bus;
 use crate::core::fault::Fault;
 use crate::core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType};
@@ -9,6 +8,7 @@ use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
+use bit_field::BitField;
 
 #[derive(PartialEq, Debug)]
 pub enum ExecuteResult {
@@ -32,11 +32,13 @@ fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32)
 fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
     match imm32 {
         Imm32Carry::NoCarry { imm32 } => (*imm32, carry),
-        Imm32Carry::Carry { imm32_c0, imm32_c1 } => if carry {
-            *imm32_c1
-        } else {
-            *imm32_c0
-        },
+        Imm32Carry::Carry { imm32_c0, imm32_c1 } => {
+            if carry {
+                *imm32_c1
+            } else {
+                *imm32_c0
+            }
+        }
     }
 }
 
@@ -667,14 +669,16 @@ where
             cond,
             imm32,
             thumb32,
-        } => if core.condition_passed_b(cond) {
-            let pc = core.get_r(&Reg::PC);
-            let target = ((pc as i32) + imm32) as u32;
-            core.branch_write_pc(target);
-            return ExecuteResult::Branched { cycles: 3 };
-        } else {
-            ExecuteResult::NotTaken
-        },
+        } => {
+            if core.condition_passed_b(cond) {
+                let pc = core.get_r(&Reg::PC);
+                let target = ((pc as i32) + imm32) as u32;
+                core.branch_write_pc(target);
+                return ExecuteResult::Branched { cycles: 3 };
+            } else {
+                ExecuteResult::NotTaken
+            }
+        }
 
         Instruction::CMP_imm { rn, imm32, thumb32 } => {
             if core.condition_passed() {
@@ -1793,18 +1797,18 @@ mod tests {
     }
 
     /*"it ne" blokki (alla) ei suoritu oikein, iarissa mov r4, #0 ei ajeta, mutta emussa ajetaan.
-APSR = 
-    Q = 0
-    V = 0
-    C = 1 
-    Z = 1
-    N = 0
+    APSR =
+        Q = 0
+        V = 0
+        C = 1
+        Z = 1
+        N = 0
 
-   BD16        pop {R1, R2, R4, PC}             0x00003484    putchar                             15077 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
-   42A8        cmp r0, r5                       0x00003748    _Prout                              15078 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
-   BF18        it ne                            0x0000374A    _Prout                              15082 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
-   2400        mov r4, #0                       0x0000374C    _Prout                              15083 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000000 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
-*/
+       BD16        pop {R1, R2, R4, PC}             0x00003484    putchar                             15077 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+       42A8        cmp r0, r5                       0x00003748    _Prout                              15078 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+       BF18        it ne                            0x0000374A    _Prout                              15082 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000001 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+       2400        mov r4, #0                       0x0000374C    _Prout                              15083 r0:00000049 r1:00000049 r2:00000000 r3:200007e0 r4:00000000 r5:00000049 r6:00000014 r7:0000377d r8:0000373d r9:7fffffff
+    */
     #[test]
     fn test_it_block() {
         // arrange
@@ -1880,7 +1884,6 @@ APSR =
         );
 
         assert_eq!(result, ExecuteResult::NotTaken);
-
     }
 
 }

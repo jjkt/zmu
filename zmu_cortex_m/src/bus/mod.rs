@@ -1,6 +1,6 @@
-pub mod internal;
 pub mod ahblite;
 pub mod busmatrix;
+pub mod internal;
 
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.

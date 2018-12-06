@@ -1,8 +1,8 @@
-use bit_field::BitField;
 use crate::core::instruction::Instruction;
 use crate::core::instruction::SRType;
 use crate::core::register::Reg;
 use crate::core::ThumbCode;
+use bit_field::BitField;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -50,12 +50,12 @@ pub fn decode_LDR_reg_t1(opcode: u16) -> Instruction {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
         rm: Reg::from(opcode.get_bits(6..9) as u8),
-        index : true,
-        add : true,
-        wback : false,
-        shift_t : SRType::LSL,
-        shift_n : 0,
-        thumb32 : false
+        index: true,
+        add: true,
+        wback: false,
+        shift_t: SRType::LSL,
+        shift_n: 0,
+        thumb32: false,
     }
 }
 

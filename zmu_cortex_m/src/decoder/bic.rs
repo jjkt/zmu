@@ -29,4 +29,3 @@ pub fn decode_BIC_imm_t1(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
-

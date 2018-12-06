@@ -1,8 +1,8 @@
 use enum_set::EnumSet;
 
-use crate::core::register::Reg;
-use crate::core::instruction::Instruction;
 use crate::core::bits::*;
+use crate::core::instruction::Instruction;
+use crate::core::register::Reg;
 use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]

@@ -1,8 +1,8 @@
-use bit_field::BitField;
 use crate::core::instruction::Instruction;
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 use crate::core::ThumbCode;
+use bit_field::BitField;
 
 #[allow(non_snake_case)]
 #[inline]

@@ -19,54 +19,53 @@ pub struct InternalBus {
     icsr: u32,  // Interrupt Control and State Register RW, 0xe000_ed04, reset value = 0
     syst: SysTick,
     dwt: Dwt, /*
-    ACTLR: u32, // RW, 0xe000_e008, reset value = implementation defined
-    
-    SYST_CSR: u32, // RW, 0xe000_e010, reset value = 0 or 4, 
-    SYST_RVR: u32, // RW, 0xe000_e014, reset value = unknown, 
-    SYST_CVR: u32, // RW, 0xe000_e018, reset value = unknown, 
-    SYST_CALIB: u32, // R0, 0xe000_e01C, reset value = implementation_defined, 
-    
-    CPUID: u32, // RO, 0xe000_ed00, reset value = implementation defined
-    
-    AIRCR: u32, // RW, 0xe000_ed0c, reset value = bits [10:8] = 0b000
-    SCR: u32,   // RW, 0xe000_ed10, reset value = bits [4,2,1] = 0b000
-    CCR: u32,   // RO, 0xe000_ed14, reset value = bits [9:3] = 0b111111
-    SHPR2: u32, // RW, 0xe000_ed1c, reset value = SBZ (svcall priority is zero)
-    SHCSR: u32, // RW, 0xe000_ed24, reset value = 0
-    DFSR: u32,  // RW, 0xe000_ed30, reset value = 0*/
+              ACTLR: u32, // RW, 0xe000_e008, reset value = implementation defined
 
-/*DWT_CTRL	Read/write	0xE0001000	0x00000000	See DWT Control Register
-DWT_CYCCNT	Read/write	0xE0001004	0x00000000	See DWT Current PC Sampler Cycle Count Register
-DWT_CPICNT	Read/write	0xE0001008	-	See DWT CPI Count Register
-DWT_EXCCNT	Read/write	0xE000100C	-	See DWT Exception Overhead Count Register
-DWT_SLEEPCNT	Read/write	0xE0001010	-	See DWT Sleep Count Register
-DWT_LSUCNT	Read/write	0xE0001014	-	See DWT LSU Count Register
-DWT_FOLDCNT	Read/write	0xE0001018	-	See DWT Fold Count Register
-DWT_PCSR	Read-only	0xE000101C	-	See DWT Program Counter Sample Register
-DWT_COMP0	Read/write	0xE0001020	-	See DWT Comparator Registers
-DWT_MASK0	Read/write	0xE0001024	-	See DWT Mask Registers 0-3
-DWT_FUNCTION0	Read/write	0xE0001028	0x00000000	See DWT Function Registers 0-3
-DWT_COMP1	Read/write	0xE0001030	-	See DWT Comparator Registers
-DWT_MASK1	Read/write	0xE0001034	-	See DWT Mask Registers 0-3
-DWT_FUNCTION1	Read/write	0xE0001038	0x00000000	See DWT Function Registers 0-3
-DWT_COMP2	Read/write	0xE0001040	-	See DWT Comparator Registers
-DWT_MASK2	Read/write	0xE0001044	-	See DWT Mask Registers 0-3
-DWT_FUNCTION2	Read/write	0xE0001048	0x00000000	See DWT Function Registers 0-3
-DWT_COMP3	Read/write	0xE0001050	-	See DWT Comparator Registers
-DWT_MASK3	Read/write	0xE0001054 	-	See DWT Mask Registers 0-3
-DWT_FUNCTION3	Read/write	0xE0001058 	0x00000000	See DWT Function Registers 0-3
-PID4	Read-only	0xE0001FD0	0x04	Value 0x04
-PID5	Read-only	0xE0001FD4	0x00	Value 0x00
-PID6	Read-only	0xE0001FD8	0x00	Value 0x00
-PID7	Read-only	0xE0001FDC	0x00	Value 0x00
-PID0	Read-only	0xE0001FE0	0x02	Value 0x02
-PID1	Read-only	0xE0001FE4	0xB0	Value 0xB0
-PID2	Read-only	0xE0001FE8	0x1B	Value 0x1B
-PID3	Read-only	0xE0001FEC	0x00	Value 0x00
-CID0	Read-only	0xE0001FF0	0x0D	Value 0x0D
-CID1	Read-only	0xE0001FF4	0xE0	Value 0xE0
-CID2	Read-only	0xE0001FF8	0x05	Value 0x05
-CID3	Read-only	0xE0001FFC	0xB1	Value 0xB1*/
+              SYST_CSR: u32, // RW, 0xe000_e010, reset value = 0 or 4,
+              SYST_RVR: u32, // RW, 0xe000_e014, reset value = unknown,
+              SYST_CVR: u32, // RW, 0xe000_e018, reset value = unknown,
+              SYST_CALIB: u32, // R0, 0xe000_e01C, reset value = implementation_defined,
+
+              CPUID: u32, // RO, 0xe000_ed00, reset value = implementation defined
+
+              AIRCR: u32, // RW, 0xe000_ed0c, reset value = bits [10:8] = 0b000
+              SCR: u32,   // RW, 0xe000_ed10, reset value = bits [4,2,1] = 0b000
+              CCR: u32,   // RO, 0xe000_ed14, reset value = bits [9:3] = 0b111111
+              SHPR2: u32, // RW, 0xe000_ed1c, reset value = SBZ (svcall priority is zero)
+              SHCSR: u32, // RW, 0xe000_ed24, reset value = 0
+              DFSR: u32,  // RW, 0xe000_ed30, reset value = 0*/
+              /*DWT_CTRL	Read/write	0xE0001000	0x00000000	See DWT Control Register
+              DWT_CYCCNT	Read/write	0xE0001004	0x00000000	See DWT Current PC Sampler Cycle Count Register
+              DWT_CPICNT	Read/write	0xE0001008	-	See DWT CPI Count Register
+              DWT_EXCCNT	Read/write	0xE000100C	-	See DWT Exception Overhead Count Register
+              DWT_SLEEPCNT	Read/write	0xE0001010	-	See DWT Sleep Count Register
+              DWT_LSUCNT	Read/write	0xE0001014	-	See DWT LSU Count Register
+              DWT_FOLDCNT	Read/write	0xE0001018	-	See DWT Fold Count Register
+              DWT_PCSR	Read-only	0xE000101C	-	See DWT Program Counter Sample Register
+              DWT_COMP0	Read/write	0xE0001020	-	See DWT Comparator Registers
+              DWT_MASK0	Read/write	0xE0001024	-	See DWT Mask Registers 0-3
+              DWT_FUNCTION0	Read/write	0xE0001028	0x00000000	See DWT Function Registers 0-3
+              DWT_COMP1	Read/write	0xE0001030	-	See DWT Comparator Registers
+              DWT_MASK1	Read/write	0xE0001034	-	See DWT Mask Registers 0-3
+              DWT_FUNCTION1	Read/write	0xE0001038	0x00000000	See DWT Function Registers 0-3
+              DWT_COMP2	Read/write	0xE0001040	-	See DWT Comparator Registers
+              DWT_MASK2	Read/write	0xE0001044	-	See DWT Mask Registers 0-3
+              DWT_FUNCTION2	Read/write	0xE0001048	0x00000000	See DWT Function Registers 0-3
+              DWT_COMP3	Read/write	0xE0001050	-	See DWT Comparator Registers
+              DWT_MASK3	Read/write	0xE0001054 	-	See DWT Mask Registers 0-3
+              DWT_FUNCTION3	Read/write	0xE0001058 	0x00000000	See DWT Function Registers 0-3
+              PID4	Read-only	0xE0001FD0	0x04	Value 0x04
+              PID5	Read-only	0xE0001FD4	0x00	Value 0x00
+              PID6	Read-only	0xE0001FD8	0x00	Value 0x00
+              PID7	Read-only	0xE0001FDC	0x00	Value 0x00
+              PID0	Read-only	0xE0001FE0	0x02	Value 0x02
+              PID1	Read-only	0xE0001FE4	0xB0	Value 0xB0
+              PID2	Read-only	0xE0001FE8	0x1B	Value 0x1B
+              PID3	Read-only	0xE0001FEC	0x00	Value 0x00
+              CID0	Read-only	0xE0001FF0	0x0D	Value 0x0D
+              CID1	Read-only	0xE0001FF4	0xE0	Value 0xE0
+              CID2	Read-only	0xE0001FF8	0x05	Value 0x05
+              CID3	Read-only	0xE0001FFC	0xB1	Value 0xB1*/
 }
 
 impl InternalBus {

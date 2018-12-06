@@ -120,7 +120,6 @@ pub fn bits_6_11(n: u16) -> u8 {
 
 pub trait Bits<O> {
     fn get_bits(&self, low: u8, high: u8) -> O;
-
 }
 
 impl Bits<u32> for u32 {

@@ -2,7 +2,6 @@ use crate::core::bits::*;
 use crate::core::instruction::Instruction;
 use crate::core::register::Reg;
 
-
 #[allow(non_snake_case)]
 pub fn decode_SMLAL_t1(opcode: u32) -> Instruction {
     let reg_rm: u8 = opcode.get_bits(0, 3);
