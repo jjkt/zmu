@@ -1073,7 +1073,7 @@ where
                 let value1 = core.get_r(rt);
                 core.bus.write32(address, value1);
                 let value2 = core.get_r(rt2);
-                core.bus.write32(address, value2);
+                core.bus.write32(address + 4, value2);
 
                 if *wback {
                     core.set_r(rn, offset_address);
