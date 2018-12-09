@@ -15,6 +15,14 @@ impl RAM {
             data: data,
         }
     }
+    pub fn new_with_fill(start_address: u32, size: usize, fill: u8) -> RAM {
+        let data = vec![fill; size].into_boxed_slice();
+
+        RAM {
+            start_address: start_address,
+            data: data,
+        }
+    }
 }
 
 impl Bus for RAM {

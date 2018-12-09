@@ -1,2 +1,2 @@
-pub mod ram;
 pub mod flash;
+pub mod ram;

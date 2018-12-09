@@ -14,7 +14,7 @@ where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
     let mut flash_memory = FlashMemory::new(0, 32768);
-    let mut ram_memory = RAM::new(0x2000_0000, 128 * 1024);
+    let mut ram_memory = RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd);
 
     flash_memory.load(code);
 
@@ -60,11 +60,11 @@ where
 
 pub fn cortex_m0_simulate_trace<F, G>(code: &[u8], mut trace_func: F, mut semihost_func: G) -> u64
 where
-    F: FnMut(&ThumbCode, u64, u32, &Instruction, [u32; 13]),
+    F: FnMut(&ThumbCode, u64, u32, &Instruction, [u32; 13], u32),
     G: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
     let mut flash_memory = FlashMemory::new(0, 32768);
-    let mut ram_memory = RAM::new(0x2000_0000, 128 * 1024);
+    let mut ram_memory = RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd);
 
     flash_memory.load(code);
 
@@ -103,7 +103,14 @@ where
                 semihost_func(semihost_cmd)
             },
         );
-        trace_func(&opcode, core.cycle_count, pc, instruction, core.r0_12);
+        trace_func(
+            &opcode,
+            core.cycle_count,
+            pc,
+            instruction,
+            core.r0_12,
+            core.psr.value,
+        );
         count += 1;
     }
 

@@ -21,6 +21,7 @@ use std::time::Instant;
 use tabwriter::TabWriter;
 
 use zmu_cortex_m::core::instruction::Instruction;
+use zmu_cortex_m::core::register::{Apsr, PSR};
 use zmu_cortex_m::core::ThumbCode;
 use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 
@@ -55,7 +56,8 @@ fn run_bin(
                 if handle == 1 {
                     let text = &**data;
                     print!("{}", String::from_utf8_lossy(text));
-                } else {}
+                } else {
+                }
                 SemihostingResponse::SysWrite { result: Ok(0) }
             }
             &SemihostingCommand::SysClock { .. } => {
@@ -86,7 +88,12 @@ fn run_bin(
     let trace_start = option_trace_start.unwrap_or(0);
     //    4803        ldr r0, =0x20010000 <__stack_end__>             0x000001A2    Reset_Handler    1
     let instruction_count = if trace {
-        let tracefunc = |opcode: &ThumbCode, count: u64, pc: u32, instruction: &Instruction, r0_12: [u32; 13]| {
+        let tracefunc = |opcode: &ThumbCode,
+                         count: u64,
+                         pc: u32,
+                         instruction: &Instruction,
+                         r0_12: [u32; 13],
+                         psr_value: u32| {
             if trace && count >= trace_start {
                 let opcode_str = match *opcode {
                     ThumbCode::Thumb32 { opcode } => format!("{:08X}", opcode).with_exact_width(8),
@@ -96,11 +103,20 @@ fn run_bin(
                 };
 
                 let instruction_str = format!("{}", instruction).with_exact_width(32);
-                let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(32);
+                let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(20);
+
+                let psr = PSR { value: psr_value };
+
                 writeln!(
                     &mut trace_stdout,
-                    "    {0:}    {1:} 0x{2:08X}    {3:}    {4:} r0:{5:08x} r1:{6:08x} r2:{7:08x} r3:{8:08x} r4:{9:08x} r5:{10:08x} r6:{11:08x} r7:{12:08x} r8:{13:08x} r9:{14:08x}",
-                    opcode_str, instruction_str, pc, symbol, count, r0_12[0], r0_12[1], r0_12[2], r0_12[3], r0_12[4], r0_12[5], r0_12[6], r0_12[7], r0_12[8], r0_12[9],
+                    "{0:}  {1:} {2:08X}  {3:}  {4:} {5:}{6:}{7:}{8:}{9:} r0:{10:08x} 1:{11:08x} 2:{12:08x} 3:{13:08x} 4:{14:08x} 5:{15:08x} 6:{16:08x} 7:{17:08x} 8:{18:08x} 9:{19:08x} 10:{20:08x} 11:{21:08x} 12:{22:08x}",
+                    opcode_str, instruction_str, pc, symbol, count,
+                 if psr.get_q() {'Q'} else {'q'},
+                 if psr.get_v() {'V'} else {'v'},
+                 if psr.get_c() {'C'} else {'c'},
+                 if psr.get_z() {'Z'} else {'z'},
+                 if psr.get_n() {'N'} else {'n'},
+                 r0_12[0], r0_12[1], r0_12[2], r0_12[3], r0_12[4], r0_12[5], r0_12[6], r0_12[7], r0_12[8], r0_12[9], r0_12[10], r0_12[11], r0_12[12],
                 ).unwrap();
                 let _ = trace_stdout.flush();
             }

@@ -7,7 +7,6 @@ pub mod instruction;
 pub mod operation;
 pub mod register;
 
-use bit_field::BitField;
 use crate::bus::Bus;
 use crate::core::condition::Condition;
 use crate::core::exception::Exception;
@@ -20,6 +19,7 @@ use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use crate::decoder::{decode_16, decode_32, is_thumb32};
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
+use bit_field::BitField;
 use std::fmt;
 
 #[derive(PartialEq, Debug)]
@@ -69,10 +69,10 @@ pub struct Core<'a, T: Bus> {
     pub cycle_count: u64,
 
     /* Processor state register, status flags. */
-    psr: PSR,
+    pub psr: PSR,
 
-    /* interrupt primary mask, a 1 bit mask register for 
-       global interrupt masking. */
+    /* interrupt primary mask, a 1 bit mask register for
+    global interrupt masking. */
     primask: bool,
 
     /* Control bits: currently used stack and execution privilege if core.mode == ThreadMode */
@@ -87,8 +87,8 @@ pub struct Core<'a, T: Bus> {
     /* Is the core simulation currently running or not.*/
     pub running: bool,
 
-    /* One boolean per exception on the system: fixed priority system exceptions, 
-       configurable priority system exceptions and external exceptions. */
+    /* One boolean per exception on the system: fixed priority system exceptions,
+    configurable priority system exceptions and external exceptions. */
     pub exception_active: [bool; 64],
 
     itstate: u8,
@@ -191,11 +191,13 @@ impl<'a, T: Bus> Core<'a, T> {
                 let reg: usize = From::from(*r);
                 self.r0_12[reg]
             }
-            Reg::SP => if self.control.sp_sel {
-                self.psp
-            } else {
-                self.msp
-            },
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp
+                } else {
+                    self.msp
+                }
+            }
             Reg::LR => self.lr,
             Reg::PC => self.pc + 4,
         }
@@ -221,11 +223,13 @@ impl<'a, T: Bus> Core<'a, T> {
                 let reg: usize = From::from(*r);
                 self.r0_12[reg] = value;
             }
-            Reg::SP => if self.control.sp_sel {
-                self.psp = value
-            } else {
-                self.msp = value
-            },
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp = value
+                } else {
+                    self.msp = value
+                }
+            }
             Reg::LR => self.lr = value,
             Reg::PC => panic!("use branch commands instead"),
         };
@@ -272,11 +276,13 @@ impl<'a, T: Bus> Core<'a, T> {
                 let reg: usize = From::from(*r);
                 self.r0_12[reg] += value;
             }
-            Reg::SP => if self.control.sp_sel {
-                self.psp = value
-            } else {
-                self.msp += value
-            },
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp = value
+                } else {
+                    self.msp += value
+                }
+            }
             Reg::LR => self.lr += value,
             Reg::PC => self.pc += value,
         };
