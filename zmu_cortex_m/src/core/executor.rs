@@ -154,7 +154,10 @@ where
                 let r_n = core.get_r(rn);
                 let r_d = core.get_r(rd);
 
-                let result = r_n.get_bits(0..((msbit - lsbit) + 1));
+                let width = (msbit - lsbit) + 1;
+
+                let mut result = r_d;
+                result.set_bits(0..width, r_n.get_bits(0..width));
 
                 core.set_r(rd, result);
                 return ExecuteResult::Taken { cycles: 1 };
@@ -1884,6 +1887,35 @@ mod tests {
         );
 
         assert_eq!(result, ExecuteResult::NotTaken);
+    }
+
+    #[test]
+    fn test_bfi() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.psr.value = 0;
+
+        core.set_r(&Reg::R2, 0x11223344);
+        core.set_r(&Reg::R3, 0xaabbccdd);
+        core.psr.value = 0;
+
+        let instruction = Instruction::BFI {
+            rd: Reg::R2,
+            rn: Reg::R3,
+            lsbit: 0,
+            msbit: 7,
+        };
+
+        core.step(
+            &instruction,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(core.get_r(&Reg::R3), 0xaabbccdd);
+        assert_eq!(core.get_r(&Reg::R2), 0x112233dd);
     }
 
 }
