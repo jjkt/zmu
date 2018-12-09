@@ -89,8 +89,12 @@ pub enum Instruction {
         setflags: bool,
     },
 
-    B {
+    B_t13 {
         cond: Condition,
+        imm32: i32,
+        thumb32: bool,
+    },
+    B_t24 {
         imm32: i32,
         thumb32: bool,
     },
@@ -884,11 +888,14 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::B {
+            Instruction::B_t13 {
                 ref cond,
                 imm32,
                 thumb32,
             } => write!(f, "b{}{} {}", cond, if thumb32 { ".W" } else { "" }, imm32),
+            Instruction::B_t24 { imm32, thumb32 } => {
+                write!(f, "b{} {}", if thumb32 { ".W" } else { "" }, imm32)
+            }
             Instruction::BL { imm32 } => write!(f, "bl 0x#{:x}", imm32),
             Instruction::BX { rm } => write!(f, "bx {}", rm),
             Instruction::BLX { rm } => write!(f, "blx {}", rm),
@@ -1936,11 +1943,18 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::MLA { rd, rn, rm, ra } => 4,
         Instruction::MLS { rd, rn, rm, ra } => 4,
         Instruction::BL { imm32 } => 4,
-        Instruction::B {
+        Instruction::B_t13 {
             cond,
             imm32,
             thumb32,
         } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::B_t24 { imm32, thumb32 } => {
             if *thumb32 {
                 4
             } else {

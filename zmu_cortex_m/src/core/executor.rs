@@ -668,12 +668,22 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::B {
+        Instruction::B_t13 {
             cond,
             imm32,
             thumb32,
         } => {
             if core.condition_passed_b(cond) {
+                let pc = core.get_r(&Reg::PC);
+                let target = ((pc as i32) + imm32) as u32;
+                core.branch_write_pc(target);
+                return ExecuteResult::Branched { cycles: 3 };
+            } else {
+                ExecuteResult::NotTaken
+            }
+        }
+        Instruction::B_t24 { imm32, thumb32 } => {
+            if core.condition_passed() {
                 let pc = core.get_r(&Reg::PC);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
