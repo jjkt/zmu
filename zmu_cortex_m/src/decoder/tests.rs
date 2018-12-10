@@ -377,7 +377,7 @@ fn test_decode_cmp() {
 fn test_decode_b() {
     // BEQ.N
     match decode_16(0xd001) {
-        Instruction::B {
+        Instruction::B_t13 {
             cond,
             imm32,
             thumb32,
@@ -393,7 +393,7 @@ fn test_decode_b() {
     }
     // BNE.N
     match decode_16(0xd1f8) {
-        Instruction::B {
+        Instruction::B_t13 {
             cond,
             imm32,
             thumb32,
@@ -408,12 +408,7 @@ fn test_decode_b() {
     }
     // B.N (PC + 8)
     match decode_16(0xE004) {
-        Instruction::B {
-            cond,
-            imm32,
-            thumb32,
-        } => {
-            assert!(cond == Condition::AL);
+        Instruction::B_t24 { imm32, thumb32 } => {
             assert!(imm32 == (4 << 1));
             assert_eq!(thumb32, false);
         }
@@ -1124,11 +1119,17 @@ fn test_decode_sbc() {
             rn,
             rm,
             setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             assert!(rd == Reg::R5);
             assert!(rn == Reg::R5);
             assert!(rm == Reg::R3);
             assert!(setflags);
+            assert!(shift_t == SRType::LSL);
+            assert!(shift_n == 0);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2115,7 +2116,7 @@ fn test_decode_b_pl_w() {
     //0xf57fad69 -> BPL.W -1326
     assert_eq!(
         decode_32(0xf57fad69),
-        Instruction::B {
+        Instruction::B_t13 {
             cond: Condition::PL,
             imm32: -1326,
             thumb32: true
@@ -2134,6 +2135,25 @@ fn test_decode_tst_imm_w() {
                 imm32_c0: (0x80808080, false),
                 imm32_c1: (0x80808080, true),
             },
+        }
+    );
+}
+
+//
+
+#[test]
+fn test_decode_sbc_reg_w() {
+    //0xeb6a0a4a -> SBC.W R10, R10, R10, LSL #1
+    assert_eq!(
+        decode_32(0xeb6a0a4a),
+        Instruction::SBC_reg {
+            rd: Reg::R10,
+            rn: Reg::R10,
+            rm: Reg::R10,
+            shift_n: 1,
+            shift_t: SRType::LSL,
+            setflags: false,
+            thumb32: true
         }
     );
 }

@@ -997,12 +997,18 @@ where
             rd,
             rm,
             setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
                 let r_m = core.get_r(rm);
+
+                let shifted = shift(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+
                 let (result, carry, overflow) =
-                    add_with_carry(r_n, r_m ^ 0xffff_ffff, core.psr.get_c());
+                    add_with_carry(r_n, shifted ^ 0xffff_ffff, core.psr.get_c());
 
                 if *setflags {
                     core.psr.set_n(result);
@@ -1881,7 +1887,7 @@ mod tests {
         let mut core = Core::new(&mut bus);
         core.psr.value = 0;
 
-        let instruction = Instruction::B {
+        let instruction = Instruction::B_t13 {
             cond: Condition::EQ,
             imm32: 0,
             thumb32: true,
