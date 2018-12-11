@@ -1305,7 +1305,7 @@ impl fmt::Display for Instruction {
                 rn,
                 wback,
                 registers,
-                thumb32
+                thumb32,
             } => write!(
                 f,
                 "stm{} {}{}, {{{:?}}}",
