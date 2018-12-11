@@ -1,6 +1,5 @@
-use enum_set::EnumSet;
-
 use crate::core::instruction::Instruction;
+use crate::core::operation::get_reglist;
 use crate::core::register::Reg;
 use crate::core::ThumbCode;
 use bit_field::BitField;
@@ -8,32 +7,7 @@ use bit_field::BitField;
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_PUSH_t1(opcode: u16) -> Instruction {
-    let mut regs: EnumSet<Reg> = EnumSet::new();
-
-    if opcode.get_bit(0) {
-        regs.insert(Reg::R0);
-    }
-    if opcode.get_bit(1) {
-        regs.insert(Reg::R1);
-    }
-    if opcode.get_bit(2) {
-        regs.insert(Reg::R2);
-    }
-    if opcode.get_bit(3) {
-        regs.insert(Reg::R3);
-    }
-    if opcode.get_bit(4) {
-        regs.insert(Reg::R4);
-    }
-    if opcode.get_bit(5) {
-        regs.insert(Reg::R5);
-    }
-    if opcode.get_bit(6) {
-        regs.insert(Reg::R6);
-    }
-    if opcode.get_bit(7) {
-        regs.insert(Reg::R7);
-    }
+    let mut regs = get_reglist(opcode & 0b_1111_1111);
 
     if opcode.get_bit(8) {
         regs.insert(Reg::LR);
@@ -47,50 +21,7 @@ pub fn decode_PUSH_t1(opcode: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_PUSH_t2(opcode: u32) -> Instruction {
-    let mut regs: EnumSet<Reg> = EnumSet::new();
-
-    if opcode.get_bit(0) {
-        regs.insert(Reg::R0);
-    }
-    if opcode.get_bit(1) {
-        regs.insert(Reg::R1);
-    }
-    if opcode.get_bit(2) {
-        regs.insert(Reg::R2);
-    }
-    if opcode.get_bit(3) {
-        regs.insert(Reg::R3);
-    }
-    if opcode.get_bit(4) {
-        regs.insert(Reg::R4);
-    }
-    if opcode.get_bit(5) {
-        regs.insert(Reg::R5);
-    }
-    if opcode.get_bit(6) {
-        regs.insert(Reg::R6);
-    }
-    if opcode.get_bit(7) {
-        regs.insert(Reg::R7);
-    }
-    if opcode.get_bit(8) {
-        regs.insert(Reg::R8);
-    }
-    if opcode.get_bit(9) {
-        regs.insert(Reg::R9);
-    }
-    if opcode.get_bit(10) {
-        regs.insert(Reg::R10);
-    }
-    if opcode.get_bit(11) {
-        regs.insert(Reg::R11);
-    }
-    if opcode.get_bit(12) {
-        regs.insert(Reg::R12);
-    }
-    if opcode.get_bit(14) {
-        regs.insert(Reg::LR);
-    }
+    let regs = get_reglist((opcode & 0b0101_1111_1111_1111) as u16);
 
     Instruction::PUSH {
         registers: regs,
