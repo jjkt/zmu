@@ -1027,7 +1027,7 @@ where
             registers,
             rn,
             wback,
-            thumb32
+            thumb32,
         } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);

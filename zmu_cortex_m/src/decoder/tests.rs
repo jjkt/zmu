@@ -1007,7 +1007,7 @@ fn test_decode_stm() {
             rn,
             registers,
             wback,
-            thumb32
+            thumb32,
         } => {
             assert!(rn == Reg::R2);
             let elems: Vec<_> = registers.iter().collect();
@@ -1029,7 +1029,7 @@ fn test_decode_stm2() {
             rn,
             registers,
             wback,
-            thumb32
+            thumb32,
         } => {
             assert!(rn == Reg::R3);
             let elems: Vec<_> = registers.iter().collect();
@@ -2180,6 +2180,4 @@ fn test_decode_stmdb_w() {
             assert!(false);
         }
     }
-
 }
-

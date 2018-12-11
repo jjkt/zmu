@@ -13,8 +13,7 @@ pub fn decode_STM_t1(opcode: u16) -> Instruction {
         registers: regs,
         rn: Reg::from(opcode.get_bits(8..11) as u8),
         wback: true,
-        thumb32: false
-
+        thumb32: false,
     }
 }
 
@@ -37,6 +36,6 @@ pub fn decode_STM_t2(opcode: u32) -> Instruction {
         registers: regs,
         rn: Reg::from(opcode.get_bits(16..20) as u8),
         wback: opcode.get_bit(21),
-        thumb32: true
+        thumb32: true,
     }
 }
