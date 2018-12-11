@@ -1007,11 +1007,13 @@ fn test_decode_stm() {
             rn,
             registers,
             wback,
+            thumb32
         } => {
             assert!(rn == Reg::R2);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
             assert!(wback);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -1027,11 +1029,13 @@ fn test_decode_stm2() {
             rn,
             registers,
             wback,
+            thumb32
         } => {
             assert!(rn == Reg::R3);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
             assert!(wback);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2157,3 +2161,25 @@ fn test_decode_sbc_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_stmdb_w() {
+    //0xe920003c -> STMDB R0!, {R2-R5}
+    match decode_32(0xe920003c) {
+        Instruction::STMDB {
+            rn,
+            registers,
+            wback,
+        } => {
+            assert!(rn == Reg::R0);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R2, Reg::R3, Reg::R4, Reg::R5], elems);
+            assert!(wback);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+
+}
+

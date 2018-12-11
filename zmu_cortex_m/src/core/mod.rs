@@ -278,13 +278,45 @@ impl<'a, T: Bus> Core<'a, T> {
             }
             Reg::SP => {
                 if self.control.sp_sel {
-                    self.psp = value
+                    self.psp += value
                 } else {
                     self.msp += value
                 }
             }
             Reg::LR => self.lr += value,
             Reg::PC => self.pc += value,
+        };
+    }
+    //
+    // Substract value from register
+    //
+    pub fn sub_r(&mut self, r: &Reg, value: u32) {
+        match *r {
+            Reg::R0
+            | Reg::R1
+            | Reg::R2
+            | Reg::R3
+            | Reg::R4
+            | Reg::R5
+            | Reg::R6
+            | Reg::R7
+            | Reg::R8
+            | Reg::R9
+            | Reg::R10
+            | Reg::R11
+            | Reg::R12 => {
+                let reg: usize = From::from(*r);
+                self.r0_12[reg] -= value;
+            }
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp -= value
+                } else {
+                    self.msp -= value
+                }
+            }
+            Reg::LR => self.lr -= value,
+            Reg::PC => self.pc -= value,
         };
     }
 
@@ -460,6 +492,9 @@ impl<'a, T: Bus> Core<'a, T> {
     {
         let in_it_block = self.in_it_block();
 
+        // TODO: optimization: execution could change it's state from
+        // conditional mode to back and forth. Most of the instructions executed are not
+        // under condition_passed() block, so checking that for each instruction is waste.
         match execute(self, instruction, semihost_func) {
             ExecuteResult::Fault { fault: _ } => {
                 // all faults are mapped to hardfaults on armv6m

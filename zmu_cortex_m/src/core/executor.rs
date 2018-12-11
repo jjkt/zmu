@@ -1027,6 +1027,7 @@ where
             registers,
             rn,
             wback,
+            thumb32
         } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
@@ -1041,6 +1042,31 @@ where
 
                 if *wback {
                     core.add_r(rn, regs_size);
+                }
+                return ExecuteResult::Taken {
+                    cycles: 1 + registers.len() as u64,
+                };
+            }
+            ExecuteResult::NotTaken
+        }
+        Instruction::STMDB {
+            registers,
+            rn,
+            wback,
+        } => {
+            if core.condition_passed() {
+                let regs_size = 4 * (registers.len() as u32);
+
+                let mut address = core.get_r(rn) - regs_size;
+
+                for reg in registers.iter() {
+                    let r = core.get_r(&reg);
+                    core.bus.write32(address, r);
+                    address += 4;
+                }
+
+                if *wback {
+                    core.sub_r(rn, regs_size);
                 }
                 return ExecuteResult::Taken {
                     cycles: 1 + registers.len() as u64,

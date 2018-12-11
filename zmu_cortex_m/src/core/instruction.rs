@@ -418,6 +418,12 @@ pub enum Instruction {
         rn: Reg,
         registers: EnumSet<Reg>,
         wback: bool,
+        thumb32: bool,
+    },
+    STMDB {
+        rn: Reg,
+        registers: EnumSet<Reg>,
+        wback: bool,
     },
     STR_imm {
         rn: Reg,
@@ -1299,9 +1305,22 @@ impl fmt::Display for Instruction {
                 rn,
                 wback,
                 registers,
+                thumb32
             } => write!(
                 f,
-                "stm {}{}, {{{:?}}}",
+                "stm{} {}{}, {{{:?}}}",
+                if thumb32 { ".W" } else { "" },
+                rn,
+                if wback { "!" } else { "" },
+                registers
+            ),
+            Instruction::STMDB {
+                rn,
+                wback,
+                registers,
+            } => write!(
+                f,
+                "stmdb {}{}, {{{:?}}}",
                 rn,
                 if wback { "!" } else { "" },
                 registers
@@ -2152,6 +2171,23 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             setflags,
             shift_t,
             shift_n,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::STMDB {
+            rn,
+            wback,
+            registers,
+        } => 4,
+        Instruction::STM {
+            rn,
+            wback,
+            registers,
             thumb32,
         } => {
             if *thumb32 {

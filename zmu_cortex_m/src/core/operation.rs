@@ -2,8 +2,65 @@ use crate::core::bits::bit_31;
 use crate::core::condition::Condition;
 use crate::core::instruction::SRType;
 use crate::core::register::Apsr;
+use crate::core::register::Reg;
 use crate::core::PSR;
 use bit_field::BitField;
+use enum_set::EnumSet;
+
+pub fn get_reglist(pattern: u16) -> EnumSet<Reg> {
+    let mut regs: EnumSet<Reg> = EnumSet::new();
+
+    if pattern.get_bit(0) {
+        regs.insert(Reg::R0);
+    }
+    if pattern.get_bit(1) {
+        regs.insert(Reg::R1);
+    }
+    if pattern.get_bit(2) {
+        regs.insert(Reg::R2);
+    }
+    if pattern.get_bit(3) {
+        regs.insert(Reg::R3);
+    }
+    if pattern.get_bit(4) {
+        regs.insert(Reg::R4);
+    }
+    if pattern.get_bit(5) {
+        regs.insert(Reg::R5);
+    }
+    if pattern.get_bit(6) {
+        regs.insert(Reg::R6);
+    }
+    if pattern.get_bit(7) {
+        regs.insert(Reg::R7);
+    }
+    if pattern.get_bit(8) {
+        regs.insert(Reg::R8);
+    }
+    if pattern.get_bit(9) {
+        regs.insert(Reg::R9);
+    }
+    if pattern.get_bit(10) {
+        regs.insert(Reg::R10);
+    }
+    if pattern.get_bit(11) {
+        regs.insert(Reg::R11);
+    }
+    if pattern.get_bit(12) {
+        regs.insert(Reg::R12);
+    }
+    if pattern.get_bit(13) {
+        regs.insert(Reg::SP);
+    }
+    if pattern.get_bit(14) {
+        regs.insert(Reg::LR);
+    }
+    if pattern.get_bit(15) {
+        regs.insert(Reg::PC);
+    }
+
+    regs
+}
 
 pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
