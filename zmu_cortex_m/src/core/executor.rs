@@ -144,6 +144,27 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::BIC_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => {
+            if core.condition_passed() {
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
+
+                let result = core.get_r(rn) & (im ^ 0xffff_ffff);
+                core.set_r(rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         Instruction::BFI {
             rn,
             rd,

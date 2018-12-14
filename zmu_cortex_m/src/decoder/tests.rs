@@ -2181,3 +2181,22 @@ fn test_decode_stmdb_w() {
         }
     }
 }
+
+#[test]
+fn test_decode_bic_imm_w() {
+    //0xf02400ff -> BIC.W R0, R4, #255
+
+    assert_eq!(
+        decode_32(0xf02400ff),
+        Instruction::BIC_imm {
+            rd: Reg::R0,
+            rn: Reg::R4,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (255, false),
+                imm32_c1: (255, true),
+            },
+            setflags: false,
+        }
+    );
+}
+

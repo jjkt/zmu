@@ -104,6 +104,12 @@ pub enum Instruction {
         rm: Reg,
         setflags: bool,
     },
+    BIC_imm {
+        rd: Reg,
+        rn: Reg,
+        imm32: Imm32Carry,
+        setflags: bool,
+    },
     BKPT {
         imm32: u32,
     },
@@ -896,6 +902,22 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm
+            ),
+            Instruction::BIC_imm {
+                rd,
+                rn,
+                ref imm32,
+                setflags,
+            } => write!(
+                f,
+                "bic{} {}, {}, #{}",
+                if setflags { "s" } else { "" },
+                rd,
+                rn,
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
             ),
             Instruction::B_t13 {
                 ref cond,
@@ -2196,7 +2218,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
-
+        Instruction::BIC_imm {
+            rd,
+            rn,
+            ref imm32,
+            setflags,
+        } => 4,
         _ => 2,
     }
 }
