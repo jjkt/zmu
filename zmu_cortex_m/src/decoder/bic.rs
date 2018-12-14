@@ -2,16 +2,16 @@ use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::register::Reg;
-use bit_field::BitField;
 use crate::core::ThumbCode;
+use bit_field::BitField;
 
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_BIC_reg_t1(command: u16) -> Instruction {
     Instruction::BIC_reg {
-        rd: Reg::from(command.get_bits(0..3)as u8),
-        rn: Reg::from(command.get_bits(0..3)as u8),
-        rm: Reg::from(command.get_bits(3..6)as u8),
+        rd: Reg::from(command.get_bits(0..3) as u8),
+        rn: Reg::from(command.get_bits(0..3) as u8),
+        rm: Reg::from(command.get_bits(3..6) as u8),
         setflags: true,
     }
 }
