@@ -614,7 +614,7 @@ pub fn decode_32(opcode: u32) -> Instruction {
     } else if (opcode & 0xfff00000) == 0xf8900000 {
         decode_LDRB_imm_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xebc00000 {
-        decode_RSB_reg_t2(opcode)
+        decode_RSB_reg_t1(opcode)
     } else if (opcode & 0xfff00000) == 0xf9900000 {
         decode_LDRSB_imm_t1(opcode)
     } else if (opcode & 0xfbf08000) == 0xf2400000 {

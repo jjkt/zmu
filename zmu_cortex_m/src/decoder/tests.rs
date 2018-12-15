@@ -2291,3 +2291,33 @@ fn test_decode_and_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_rsb_reg_w() {
+    //0xebc01046 -> RSB.W R0, R0, R6, LSL #5
+    assert_eq!(
+        decode_32(0xebc01046),
+        Instruction::RSB_reg {
+            rd: Reg::R0,
+            rn: Reg::R0,
+            rm: Reg::R6,
+            setflags: false,
+            thumb32: true,
+            shift_t: SRType::LSL,
+            shift_n: 5,
+        }
+    );
+    //0xebd720c0 -> RSBS.W R0, R7, R0, LSL #11
+    assert_eq!(
+        decode_32(0xebd720c0),
+        Instruction::RSB_reg {
+            rd: Reg::R0,
+            rn: Reg::R7,
+            rm: Reg::R0,
+            setflags: true,
+            thumb32: true,
+            shift_t: SRType::LSL,
+            shift_n: 11,
+        }
+    );
+}
