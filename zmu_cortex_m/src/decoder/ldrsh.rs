@@ -21,6 +21,21 @@ pub fn decode_LDRSH_reg_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
+pub fn decode_LDRSH_reg_t2(opcode: u32) -> Instruction {
+    Instruction::LDRSH_reg {
+        rm: Reg::from(opcode.get_bits(0..4) as u8),
+        rt: Reg::from(opcode.get_bits(12..16) as u8),
+        rn: Reg::from(opcode.get_bits(16..20) as u8),
+        shift_t: SRType::LSL,
+        shift_n: opcode.get_bits(4..6) as u8,
+        index: true,
+        add: true,
+        wback: false,
+        thumb32: true,
+    }
+}
+
+#[allow(non_snake_case)]
 pub fn decode_LDRSH_imm_t1(opcode: u32) -> Instruction {
     Instruction::LDRSH_imm {
         rt: From::from(opcode.get_bits(12..16) as u8),
@@ -54,17 +69,3 @@ pub fn decode_LDRSH_lit_t1(opcode: u32) -> Instruction {
     }
 }
 
-#[allow(non_snake_case)]
-pub fn decode_LDRSH_reg_t2(opcode: u32) -> Instruction {
-    Instruction::LDRSH_reg {
-        rm: Reg::from(opcode.get_bits(0..4) as u8),
-        rt: Reg::from(opcode.get_bits(12..16) as u8),
-        rn: Reg::from(opcode.get_bits(16..20) as u8),
-        shift_t: SRType::LSL,
-        shift_n: opcode.get_bits(4..6) as u8,
-        index: true,
-        add: true,
-        wback: false,
-        thumb32: true,
-    }
-}

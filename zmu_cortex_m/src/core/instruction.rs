@@ -249,6 +249,12 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     LDRSB_reg {
         rt: Reg,
@@ -1087,7 +1093,24 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrh", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::LDRH_reg { rt, rn, rm } => write!(f, "ldrh {}, [{}, {}]", rt, rn, rm),
+            Instruction::LDRH_reg {
+                rt,
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => write!(
+                f,
+                "ldrh{} {}, [{}, {}]",
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rn,
+                rm
+            ),
             Instruction::LDRSB_reg { rt, rn, rm } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRSH_reg {
                 rt,
@@ -1099,7 +1122,14 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
                 thumb32,
-            } => write!(f, "ldrsh {}, [{}, {}]", rt, rn, rm),
+            } => write!(
+                f,
+                "ldrsh{} {}, [{}, {}]",
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rn,
+                rm
+            ),
             Instruction::LSL_imm {
                 rd,
                 rm,
@@ -1739,6 +1769,23 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             wback,
         } => 4,
         Instruction::LDRSH_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::LDRH_reg {
             rt,
             rn,
             rm,

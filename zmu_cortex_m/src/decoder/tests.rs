@@ -2200,3 +2200,23 @@ fn test_decode_bic_imm_w() {
     );
 }
 
+#[test]
+fn test_decode_ldrh_reg_w() {
+    //0xf838301a -> LDRH.W R3, [R8, R10, LSL #1]
+
+    assert_eq!(
+        decode_32(0xf838301a),
+        Instruction::LDRH_reg {
+            rt: Reg::R3,
+            rn: Reg::R8,
+            rm: Reg::R10,
+            shift_t: SRType::LSL,
+            shift_n: 1,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
+

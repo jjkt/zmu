@@ -964,15 +964,35 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDRH_reg { rt, rn, rm } => {
+        Instruction::LDRH_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
-                let value = u32::from(core.bus.read16(address));
-                core.set_r(rt, value);
+                let rm_ = core.get_r(rm);
+                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(rn), offset, *add, *index);
+
+                let data = u32::from(core.bus.read16(address));
+                if *wback {
+                    core.set_r(rn, offset_address);
+                }
+
+                core.set_r(rt, data);
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken
         }
+
 
         Instruction::LDRSH_reg {
             rt,
