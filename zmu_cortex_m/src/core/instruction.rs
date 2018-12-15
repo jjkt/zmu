@@ -68,6 +68,9 @@ pub enum Instruction {
         rm: Reg,
         rn: Reg,
         setflags: bool,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     AND_imm {
         rd: Reg,
@@ -849,17 +852,26 @@ impl fmt::Display for Instruction {
                 imm32
             ),
             Instruction::AND_reg {
-                rn,
                 rd,
+                rn,
                 rm,
+                ref shift_t,
+                shift_n,
                 setflags,
+                thumb32,
             } => write!(
                 f,
-                "and{} {}, {}, {}",
+                "and{}{} {}, {}, {}{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
-                rm
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
             ),
             Instruction::AND_imm {
                 rd,
@@ -2122,6 +2134,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::ORR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32,
+            shift_t,
+            shift_n,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::AND_reg {
             rd,
             rn,
             rm,

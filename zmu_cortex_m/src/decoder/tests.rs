@@ -1079,10 +1079,16 @@ fn test_decode_and() {
             rn,
             rm,
             setflags,
+            thumb32,
+            shift_t,
+            shift_n,
         } => {
             assert_eq!(rd, Reg::R2);
             assert_eq!(rn, Reg::R2);
             assert_eq!(rm, Reg::R3);
+            assert_eq!(thumb32, false);
+            assert_eq!(shift_t, SRType::LSL);
+            assert_eq!(shift_n, 0);
             assert!(setflags);
         }
         _ => {
@@ -2269,3 +2275,19 @@ fn test_decode_pop_t3_w() {
     }
 }
 
+#[test]
+fn test_decode_and_reg_w() {
+    //0xea155411 -> ANDS.W R4, R5, R1, LSR #20
+    assert_eq!(
+        decode_32(0xea155411),
+        Instruction::AND_reg {
+            rd: Reg::R4,
+            rn: Reg::R5,
+            rm: Reg::R1,
+            setflags: true,
+            thumb32: true,
+            shift_t: SRType::LSR,
+            shift_n: 20,
+        }
+    );
+}
