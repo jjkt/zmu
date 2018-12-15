@@ -202,6 +202,16 @@ where
                 return ExecuteResult::Taken { cycles: 1 };
             }
         }
+        Instruction::CLZ { rd, rm } => {
+            if core.condition_passed() {
+                let rm = core.get_r(rm);
+
+                core.set_r(rd, rm.leading_zeros());
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         Instruction::DMB => {
             if core.condition_passed() {
                 return ExecuteResult::Taken { cycles: 4 };
@@ -500,6 +510,29 @@ where
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
                 let result = r_n | im;
+
+                core.set_r(rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        Instruction::EOR_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
+
+                let result = r_n ^ im;
 
                 core.set_r(rd, result);
 
@@ -992,7 +1025,6 @@ where
             }
             ExecuteResult::NotTaken
         }
-
 
         Instruction::LDRSH_reg {
             rt,

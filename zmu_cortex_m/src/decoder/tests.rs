@@ -2220,3 +2220,32 @@ fn test_decode_ldrh_reg_w() {
     );
 }
 
+#[test]
+fn test_decode_eor_imm_w() {
+    //0xf4814120 -> EOR.W R1, R1, #40960 ; 0xa000
+    assert_eq!(
+        decode_32(0xf4814120),
+        Instruction::EOR_imm {
+            rd: Reg::R1,
+            rn: Reg::R1,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (0xa000, false),
+                imm32_c1: (0xa000, false)
+            },
+            setflags: false
+        }
+    );
+}
+
+
+#[test]
+fn test_decode_clz_w() {
+    //0xfab0f180 -> CLZ R1, R0
+    assert_eq!(
+        decode_32(0xfab0f180),
+        Instruction::CLZ {
+            rd: Reg::R1,
+            rm: Reg::R0,
+        }
+    );
+}

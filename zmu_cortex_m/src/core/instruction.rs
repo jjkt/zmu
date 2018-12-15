@@ -133,6 +133,10 @@ pub enum Instruction {
         nonzero: bool,
         imm32: u32,
     },
+    CLZ {
+        rd: Reg,
+        rm: Reg,
+    },
     CMN_reg {
         rn: Reg,
         rm: Reg,
@@ -166,6 +170,12 @@ pub enum Instruction {
         shift_n: u8,
         setflags: bool,
         thumb32: bool,
+    },
+    EOR_imm {
+        rd: Reg,
+        rn: Reg,
+        imm32: Imm32Carry,
+        setflags: bool,
     },
     ISB,
     IT {
@@ -971,6 +981,7 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32,
             ),
+            Instruction::CLZ { rd, rm } => write!(f, "clz {},{}", rd, rm),
             Instruction::CMP_imm { rn, imm32, thumb32 } => write!(
                 f,
                 "cmp{} {}, #{}",
@@ -1290,6 +1301,22 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "orr{} {}, {}, #{}",
+                if setflags { "s" } else { "" },
+                rd,
+                rn,
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
+            ),
+            Instruction::EOR_imm {
+                rd,
+                rn,
+                ref imm32,
+                setflags,
+            } => write!(
+                f,
+                "eor{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
                 rd,
                 rn,
@@ -2211,6 +2238,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             imm32,
             setflags,
         } => 4,
+        Instruction::EOR_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => 4,
         Instruction::ADR { rd, imm32, thumb32 } => {
             if *thumb32 {
                 4
@@ -2271,6 +2304,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             ref imm32,
             setflags,
         } => 4,
+        Instruction::CLZ { rd, rm } => 4,
         _ => 2,
     }
 }
