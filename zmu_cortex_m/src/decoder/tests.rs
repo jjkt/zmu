@@ -2249,3 +2249,23 @@ fn test_decode_clz_w() {
         }
     );
 }
+
+
+#[test]
+fn test_decode_pop_t3_w() {
+    //0xf85deb04 -> LDR.W LR, [SP], #4   // POP.W LR  (pop 3)
+    match decode_32(0xf85deb04) {
+        Instruction::POP { registers, thumb32 } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(
+                vec![Reg::LR],
+                elems
+            );
+            assert_eq!(thumb32, true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+

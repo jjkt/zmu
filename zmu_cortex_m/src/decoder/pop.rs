@@ -3,7 +3,7 @@ use bit_field::BitField;
 use crate::core::instruction::Instruction;
 use crate::core::operation::get_reglist;
 use crate::core::register::Reg;
-use crate::core::ThumbCode;
+use enum_set::EnumSet;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -32,8 +32,13 @@ pub fn decode_POP_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_POP_t3(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: ThumbCode::from(opcode),
+    let reg = opcode.get_bits(12..16);
+    let mut regs: EnumSet<Reg> = EnumSet::new();
+
+    regs.insert(Reg::from(reg as u8));
+
+    Instruction::POP {
+        registers: regs,
+        thumb32: true,
     }
 }
