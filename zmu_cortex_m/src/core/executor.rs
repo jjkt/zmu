@@ -134,9 +134,17 @@ where
             rn,
             rm,
             setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let result = core.get_r(rn) & (core.get_r(rm) ^ 0xffff_ffff);
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
+
+                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+
+                let result = core.get_r(rn) & (shifted ^ 0xffff_ffff);
                 core.set_r(rd, result);
 
                 if *setflags {

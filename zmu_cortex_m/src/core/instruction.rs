@@ -109,6 +109,9 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
         setflags: bool,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     BIC_imm {
         rd: Reg,
@@ -950,14 +953,23 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
+                ref shift_t,
+                shift_n,
                 setflags,
+                thumb32,
             } => write!(
                 f,
-                "bic{} {}, {}, {}",
+                "bic{}{} {}, {}, {}{}",
                 if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
-                rm
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
             ),
             Instruction::BIC_imm {
                 rd,
@@ -2213,6 +2225,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::ORR_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            thumb32,
+            shift_t,
+            shift_n,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::BIC_reg {
             rd,
             rn,
             rm,

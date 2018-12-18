@@ -945,14 +945,20 @@ fn test_decode_bic() {
     match decode_16(0x4382) {
         Instruction::BIC_reg {
             rd,
-            rm,
             rn,
+            rm,
             setflags,
+            thumb32,
+            shift_t,
+            shift_n,
         } => {
             assert!(rd == Reg::R2);
             assert!(rn == Reg::R2);
             assert!(rm == Reg::R0);
             assert!(setflags);
+            assert_eq!(thumb32, false);
+            assert_eq!(shift_t, SRType::LSL);
+            assert_eq!(shift_n, 0);
         }
         _ => {
             assert!(false);
@@ -2355,6 +2361,25 @@ fn test_decode_adc_reg_w() {
             setflags: true,
             shift_t: SRType::LSL,
             shift_n: 20,
+            thumb32: true,
+        }
+    );
+}
+
+
+#[test]
+fn test_decode_bic_reg_w() {
+    //0xea235345 -> BIC.W R3, R3, R5, LSL #21
+
+    assert_eq!(
+        decode_32(0xea235345),
+        Instruction::BIC_reg {
+            rd: Reg::R3,
+            rn: Reg::R3,
+            rm: Reg::R5,
+            setflags: false,
+            shift_t: SRType::LSL,
+            shift_n: 21,
             thumb32: true,
         }
     );
