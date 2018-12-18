@@ -2321,3 +2321,18 @@ fn test_decode_rsb_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_sbc_imm_w() {
+    //0xf1670700 -> SBC.W R7, R7, #0
+    assert_eq!(
+        decode_32(0xf1670700),
+        Instruction::SBC_imm {
+            rd: Reg::R7,
+            rn: Reg::R7,
+            setflags: false,
+            imm32: 0
+        }
+    );
+}
+

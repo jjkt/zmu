@@ -1457,6 +1457,30 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::SBC_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (result, carry, overflow) = add_with_carry(r_n , *imm32 ^ 0xFFFF_FFFF, core.psr.get_c());
+
+                core.set_r(rd, result);
+                
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        
         Instruction::RSB_reg {
             rd,
             rn,
