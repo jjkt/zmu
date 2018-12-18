@@ -2018,6 +2018,21 @@ fn test_decode_subw_reg() {
             shift_n: 0,
         }
     );
+
+    // 0xEBA45613
+    // SUB.W R6, R4, R3, LSR #20
+    assert_eq!(
+        decode_32(0xEBA45613),
+        Instruction::SUB_reg {
+            rd: Reg::R6,
+            rn: Reg::R4,
+            rm: Reg::R3,
+            setflags: false,
+            thumb32: true,
+            shift_t: SRType::LSR,
+            shift_n: 20,
+        }
+    );
 }
 
 #[test]

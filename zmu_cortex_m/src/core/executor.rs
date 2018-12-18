@@ -1611,7 +1611,10 @@ where
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
                 let r_m = core.get_r(rm);
-                let (result, carry, overflow) = add_with_carry(r_n, r_m ^ 0xFFFF_FFFF, true);
+                let c = core.psr.get_c();
+                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
+
+                let (result, carry, overflow) = add_with_carry(r_n, shifted ^ 0xFFFF_FFFF, true);
                 core.set_r(rd, result);
 
                 if *setflags {
@@ -2190,6 +2193,38 @@ mod tests {
 
         assert_eq!(core.get_r(&Reg::R3), 0xaabbccdd);
         assert_eq!(core.get_r(&Reg::R2), 0x112233dd);
+    }
+
+    #[test]
+    fn test_sub() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.psr.value = 0;
+
+        //3:418415f7 4:00000418 5:80000000 6:7d17d411 
+        core.set_r(&Reg::R3, 0x418415f7);
+        core.set_r(&Reg::R4, 0x00000418);
+        core.psr.value = 0;
+
+        let instruction = Instruction::SUB_reg {
+            rd: Reg::R6,
+            rn: Reg::R4,
+            rm: Reg::R3,
+            setflags: false,
+            thumb32: true,
+            shift_t: SRType::LSR,
+            shift_n: 20,
+        };
+
+        core.step(
+            &instruction,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(core.get_r(&Reg::R6), 0);
     }
 
 }
