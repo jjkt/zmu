@@ -1104,6 +1104,31 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::ROR_imm {
+            rd,
+            rm,
+            shift_n,
+            setflags,
+        } => {
+            if core.condition_passed() {
+                let (result, carry) = shift_c(
+                    core.get_r(rm),
+                    &SRType::ROR,
+                    usize::from(*shift_n),
+                    core.psr.get_c(),
+                );
+
+                core.set_r(rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::SBC_reg {
             rn,
@@ -1625,6 +1650,27 @@ where
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
                 let result = core.get_r(rn) & im;
+
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        Instruction::TEQ_reg {
+            rn,
+            rm,
+            shift_n,
+            shift_t,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let r_m = core.get_r(rm);
+
+                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let result = r_n ^ shifted;
 
                 core.psr.set_n(result);
                 core.psr.set_z(result);

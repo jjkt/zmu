@@ -192,6 +192,12 @@ pub enum Instruction {
         imm32: Imm32Carry,
         setflags: bool,
     },
+    ROR_imm {
+        rd: Reg,
+        rm: Reg,
+        shift_n: u8,
+        setflags: bool,
+    },
     ISB,
     IT {
         x: Option<ITCondition>,
@@ -595,6 +601,12 @@ pub enum Instruction {
         rn: Reg,
         imm32: Imm32Carry,
     },
+    TEQ_reg {
+        rn: Reg,
+        rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+    },
     TBB {
         rn: Reg,
         rm: Reg,
@@ -951,6 +963,19 @@ impl fmt::Display for Instruction {
                 "asr{}{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
                 if thumb32 { ".W" } else { "" },
+                rd,
+                rm,
+                shift_n
+            ),
+            Instruction::ROR_imm {
+                rd,
+                rm,
+                shift_n,
+                setflags,
+            } => write!(
+                f,
+                "ror{}.w {}, {}, #{}",
+                if setflags { "s" } else { "" },
                 rd,
                 rm,
                 shift_n
@@ -1633,6 +1658,22 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm
+            ),
+            Instruction::TEQ_reg {
+                rm,
+                rn,
+                ref shift_t,
+                shift_n,
+            } => write!(
+                f,
+                "teq.W {}, {}, {}",
+                rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
             ),
             Instruction::SVC { imm32 } => write!(f, "svc #{}", imm32),
             Instruction::SXTH {
@@ -2340,6 +2381,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::ROR_imm {
+            rd,
+            rm,
+            shift_n,
+            setflags,
+        } => 4,
         Instruction::MUL {
             rd,
             rm,
@@ -2378,6 +2425,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::TEQ_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+        } => 4,
+
         Instruction::CMN_imm { rn, imm32 } => 4,
         Instruction::MVN_imm {
             rd,

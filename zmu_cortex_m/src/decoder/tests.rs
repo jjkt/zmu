@@ -2400,3 +2400,34 @@ fn test_decode_adc_imm_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_teq_reg_w() {
+    // 0xea910f03 -> TEQ.W R1, R3
+
+    assert_eq!(
+        decode_32(0xea910f03),
+        Instruction::TEQ_reg {
+            rn: Reg::R1,
+            rm: Reg::R3,
+            shift_t: SRType::LSL,
+            shift_n: 0
+        }
+    );
+}
+
+#[test]
+fn test_decode_ror_imm_w() {
+    // 0xea4f74f4 -> ROR.W R4, R4, #31
+
+    assert_eq!(
+        decode_32(0xea4f74f4),
+        Instruction::ROR_imm {
+            rd: Reg::R4,
+            rm: Reg::R4,
+            shift_n: 31,
+            setflags: false
+        }
+    );
+}
+
