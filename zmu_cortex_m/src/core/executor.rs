@@ -78,6 +78,30 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::ADC_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(rn);
+                let (result, carry, overflow) = add_with_carry(r_n, *imm32, core.psr.get_c());
+
+                core.set_r(rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                    core.psr.set_v(overflow);
+                }
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+
         Instruction::ASR_imm {
             rd,
             rm,
@@ -1889,7 +1913,23 @@ where
             ExecuteResult::NotTaken
         }
         // ARMv7-M
-        Instruction::UMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
+        Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
+            if core.condition_passed() {
+                let rn_ = core.get_r(rn) as u64;
+                let rm_ = core.get_r(rm) as u64;
+                let rdlo_ = core.get_r(rdlo) as u64;
+                let rdhi_ = core.get_r(rdhi) as u64;
+
+                let rdhilo = (rdhi_ << 32) + rdlo_;
+
+                let result = rn_.wrapping_mul(rm_).wrapping_add(rdhilo);
+
+                core.set_r(rdlo, result.get_bits(0..32) as u32);
+                core.set_r(rdhi, result.get_bits(32..64) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         // ARMv7-M
         Instruction::UMULL { rdlo, rdhi, rn, rm } => {
             if core.condition_passed() {

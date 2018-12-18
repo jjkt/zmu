@@ -45,6 +45,12 @@ pub enum Instruction {
         shift_n: u8,
         thumb32: bool,
     },
+    ADC_imm {
+        rd: Reg,
+        rn: Reg,
+        imm32: u32,
+        setflags: bool,
+    },
     ADD_imm {
         rn: Reg,
         rd: Reg,
@@ -831,6 +837,19 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
+            Instruction::ADC_imm {
+                rd,
+                rn,
+                imm32,
+                setflags,
+            } => write!(
+                f,
+                "adc{}.W {}, {}, #{}",
+                if setflags { "s" } else { "" },
+                rd,
+                rn,
+                imm32
+            ),
             Instruction::ADD_reg {
                 rm,
                 rn,
@@ -1421,7 +1440,7 @@ impl fmt::Display for Instruction {
                 setflags,
             } => write!(
                 f,
-                "rsb{}.W {}, {}, #{}",
+                "sbc{}.W {}, {}, #{}",
                 if setflags { "s" } else { "" },
                 rd,
                 rn,
@@ -2400,6 +2419,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::SBC_imm {
+            rd,
+            rn,
+            imm32,
+            setflags,
+        } => 4,
+        Instruction::ADC_imm {
             rd,
             rn,
             imm32,

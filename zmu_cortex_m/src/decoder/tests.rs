@@ -2384,3 +2384,19 @@ fn test_decode_bic_reg_w() {
         }
     );
 }
+
+
+#[test]
+fn test_decode_adc_imm_w() {
+    // 0xf1540401 -> ADCS.W R4, R4, #1 
+
+    assert_eq!(
+        decode_32(0xf1540401),
+        Instruction::ADC_imm {
+            rd: Reg::R4,
+            rn: Reg::R4,
+            setflags: true,
+            imm32: 1
+        }
+    );
+}
