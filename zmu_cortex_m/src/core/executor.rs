@@ -53,15 +53,19 @@ where
 {
     match instruction {
         Instruction::ADC_reg {
-            rn,
             rd,
+            rn,
             rm,
             setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
-                let (result, carry, overflow) = add_with_carry(r_n, r_m, core.psr.get_c());
+                let c = core.psr.get_c();
+                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
+                let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, c);
+                core.set_r(rd, result);
 
                 if *setflags {
                     core.psr.set_n(result);
@@ -70,7 +74,6 @@ where
                     core.psr.set_v(overflow);
                 }
 
-                core.set_r(rd, result);
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
@@ -1465,10 +1468,11 @@ where
         } => {
             if core.condition_passed() {
                 let r_n = core.get_r(rn);
-                let (result, carry, overflow) = add_with_carry(r_n , *imm32 ^ 0xFFFF_FFFF, core.psr.get_c());
+                let (result, carry, overflow) =
+                    add_with_carry(r_n, *imm32 ^ 0xFFFF_FFFF, core.psr.get_c());
 
                 core.set_r(rd, result);
-                
+
                 if *setflags {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
@@ -1480,7 +1484,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        
+
         Instruction::RSB_reg {
             rd,
             rn,

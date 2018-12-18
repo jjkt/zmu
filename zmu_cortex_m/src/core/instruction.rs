@@ -41,6 +41,9 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
         setflags: bool,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     ADD_imm {
         rn: Reg,
@@ -848,17 +851,26 @@ impl fmt::Display for Instruction {
                 }
             ),
             Instruction::ADC_reg {
+                rm,
+                rn,
+                rd,
+                setflags,
+                ref shift_t,
+                shift_n,
+                thumb32,
+            } => write!(
+                f,
+                "adc{}{} {}, {}, {}{}",
+                if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
                 rm,
-                setflags,
-            } => write!(
-                f,
-                "adc{} {}, {}, {}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                rm
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
             ),
             Instruction::ADR { rd, imm32, thumb32 } => write!(
                 f,
@@ -1758,6 +1770,21 @@ impl fmt::Display for ITCondition {
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
         Instruction::ADD_reg {
+            rm,
+            rn,
+            rd,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::ADC_reg {
             rm,
             rn,
             rd,

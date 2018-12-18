@@ -860,11 +860,17 @@ fn test_decode_adc_reg() {
             rm,
             rn,
             setflags,
+            shift_t,
+            shift_n,
+            thumb32,
         } => {
             assert!(rd == Reg::R2);
             assert!(rm == Reg::R2);
             assert!(rn == Reg::R2);
             assert!(setflags);
+            assert!(shift_t == SRType::LSL);
+            assert!(shift_n == 0);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2336,3 +2342,20 @@ fn test_decode_sbc_imm_w() {
     );
 }
 
+#[test]
+fn test_decode_adc_reg_w() {
+    //0xeb50500e -> ADCS.W R0, R0, LR, LSL #20
+
+    assert_eq!(
+        decode_32(0xeb50500e),
+        Instruction::ADC_reg {
+            rd: Reg::R0,
+            rn: Reg::R0,
+            rm: Reg::LR,
+            setflags: true,
+            shift_t: SRType::LSL,
+            shift_n: 20,
+            thumb32: true,
+        }
+    );
+}
