@@ -226,6 +226,7 @@ pub enum Instruction {
     LDM {
         rn: Reg,
         registers: EnumSet<Reg>,
+        thumb32: bool,
     },
     LDR_imm {
         rt: Reg,
@@ -1134,7 +1135,17 @@ impl fmt::Display for Instruction {
                 write!(f, "it{}{}{} {}", x_str, y_str, z_str, firstcond)
             }
 
-            Instruction::LDM { rn, registers } => write!(f, "ldm {}, {{{:?}}}", rn, registers),
+            Instruction::LDM {
+                rn,
+                registers,
+                thumb32,
+            } => write!(
+                f,
+                "ldm{} {}, {{{:?}}}",
+                if thumb32 { ".W" } else { "" },
+                rn,
+                registers
+            ),
             Instruction::LDR_reg {
                 rt,
                 rn,
@@ -2507,6 +2518,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::STM {
             rn,
             wback,
+            registers,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::LDM {
+            rn,
             registers,
             thumb32,
         } => {

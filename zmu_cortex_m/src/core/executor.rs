@@ -682,7 +682,11 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDM { registers, rn } => {
+        Instruction::LDM {
+            registers,
+            rn,
+            thumb32,
+        } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
 

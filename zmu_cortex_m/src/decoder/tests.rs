@@ -970,10 +970,11 @@ fn test_decode_bic() {
 fn test_decode_ldm() {
     // LDM R2!, {R0, R1}
     match decode_16(0xca03) {
-        Instruction::LDM { rn, registers } => {
+        Instruction::LDM { rn, registers, thumb32 } => {
             assert!(rn == Reg::R2);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -985,10 +986,11 @@ fn test_decode_ldm() {
 fn test_decode_ldm2() {
     // LDM R1!, {R3}
     match decode_16(0xc908) {
-        Instruction::LDM { rn, registers } => {
+        Instruction::LDM { rn, registers, thumb32 } => {
             assert!(rn == Reg::R1);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R3], elems);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -1000,10 +1002,11 @@ fn test_decode_ldm2() {
 fn test_decode_ldm3() {
     // LDM R4!, {R0-R2}
     match decode_16(0xcc07) {
-        Instruction::LDM { rn, registers } => {
+        Instruction::LDM { rn, registers, thumb32 } => {
             assert!(rn == Reg::R4);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2431,3 +2434,20 @@ fn test_decode_ror_imm_w() {
     );
 }
 
+
+#[test]
+fn test_decode_ldm_t2_w() {
+    // 0xe8b11008 -> LDM R1!, {R3, R12}
+
+    match decode_32(0xe8b11008) {
+        Instruction::LDM { rn, registers, thumb32 } => {
+            assert!(rn == Reg::R1);
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R3, Reg::R12], elems);
+            assert!(thumb32);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
