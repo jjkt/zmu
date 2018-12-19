@@ -42,6 +42,14 @@ fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
     }
 }
 
+fn conditional_setflags(thumb32: &bool, setflags: &bool, in_it_block: bool) -> bool {
+    if *thumb32 {
+        *setflags
+    } else {
+        !in_it_block
+    }
+}
+
 #[allow(unused_variables)]
 pub fn execute<T: Bus, F>(
     mut core: &mut Core<T>,
@@ -67,7 +75,7 @@ where
                 let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, c);
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -119,7 +127,7 @@ where
 
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -144,7 +152,7 @@ where
                 );
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(&false, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -171,7 +179,7 @@ where
                 let result = core.get_r(rn) & (shifted ^ 0xffff_ffff);
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -365,7 +373,7 @@ where
                 );
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -391,7 +399,7 @@ where
                 );
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(&false, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -498,7 +506,7 @@ where
 
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -525,7 +533,7 @@ where
 
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -600,7 +608,7 @@ where
 
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -630,7 +638,7 @@ where
 
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -724,7 +732,7 @@ where
             if core.condition_passed() {
                 let (result, carry) = expand_conditional_carry(&imm32, core.psr.get_c());
                 core.set_r(&rd, result);
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -739,7 +747,7 @@ where
                 let result = core.get_r(rm) ^ 0xFFFF_FFFF;
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(&false, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -1152,7 +1160,7 @@ where
                 let (result, carry, overflow) =
                     add_with_carry(r_n, shifted ^ 0xffff_ffff, core.psr.get_c());
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1451,7 +1459,7 @@ where
                     core.branch_write_pc(result);
                     return ExecuteResult::Branched { cycles: 3 };
                 } else {
-                    if *setflags {
+                    if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                         core.psr.set_n(result);
                         core.psr.set_z(result);
                         core.psr.set_c(carry);
@@ -1476,7 +1484,7 @@ where
                 let r_n = core.get_r(rn);
                 let (result, carry, overflow) = add_with_carry(r_n, *imm32, false);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1509,7 +1517,7 @@ where
                 let r_n = core.get_r(rn);
                 let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, *imm32, true);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1586,7 +1594,7 @@ where
                 let r_n = core.get_r(rn);
                 let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1617,7 +1625,7 @@ where
                 let (result, carry, overflow) = add_with_carry(r_n, shifted ^ 0xFFFF_FFFF, true);
                 core.set_r(rd, result);
 
-                if *setflags {
+                if conditional_setflags(thumb32, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1818,7 +1826,7 @@ where
                     core.psr.get_c(),
                 );
                 core.set_r(rd, result);
-                if *setflags {
+                if conditional_setflags(&false, setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -2202,7 +2210,7 @@ mod tests {
         let mut core = Core::new(&mut bus);
         core.psr.value = 0;
 
-        //3:418415f7 4:00000418 5:80000000 6:7d17d411 
+        //3:418415f7 4:00000418 5:80000000 6:7d17d411
         core.set_r(&Reg::R3, 0x418415f7);
         core.set_r(&Reg::R4, 0x00000418);
         core.psr.value = 0;
