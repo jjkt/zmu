@@ -2051,7 +2051,7 @@ where
 mod tests {
     use super::*;
     use crate::core::condition::Condition;
-    use crate::core::instruction::ITCondition;
+    use crate::core::instruction::{ITCondition, SetFlags};
     use crate::memory::ram::*;
 
     #[test]
@@ -2153,7 +2153,7 @@ mod tests {
         let i3 = Instruction::MOV_imm {
             rd: Reg::R4,
             imm32: Imm32Carry::NoCarry { imm32: 0 },
-            setflags: false,
+            setflags: SetFlags::False,
             thumb32: false,
         };
 
@@ -2250,7 +2250,7 @@ mod tests {
             rd: Reg::R6,
             rn: Reg::R4,
             rm: Reg::R3,
-            setflags: false,
+            setflags: SetFlags::False,
             thumb32: true,
             shift_t: SRType::LSR,
             shift_n: 20,
