@@ -1,8 +1,8 @@
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType,SetFlags};
+use crate::core::instruction::{SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
-use crate::core::register::Reg;
 use crate::core::operation::thumb_expand_imm;
+use crate::core::register::Reg;
 use bit_field::BitField;
 
 #[allow(non_snake_case)]
@@ -36,7 +36,11 @@ pub fn decode_SBC_reg_t2(opcode: u32) -> Instruction {
         rn: Reg::from(rn),
         rd: Reg::from(rd),
         rm: Reg::from(rm),
-        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         thumb32: true,
         shift_t: shift_t,
         shift_n: shift_n,

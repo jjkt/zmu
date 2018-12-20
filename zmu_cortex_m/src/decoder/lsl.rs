@@ -1,6 +1,6 @@
 use crate::core::instruction::Instruction;
-use crate::core::operation::decode_imm_shift;
 use crate::core::instruction::SetFlags;
+use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 use crate::core::ThumbCode;
 use bit_field::BitField;
@@ -30,7 +30,11 @@ pub fn decode_LSL_imm_t2(opcode: u32) -> Instruction {
     Instruction::LSL_imm {
         rd: Reg::from(rd),
         rm: Reg::from(rm),
-        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         shift_n: shift_n,
         thumb32: true,
     }

@@ -68,4 +68,3 @@ pub fn decode_LDRSH_lit_t1(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
-

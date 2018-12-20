@@ -54,7 +54,6 @@ pub fn decode_ADD_reg_sp_t1(opcode: u16) -> Instruction {
 #[allow(non_snake_case)]
 #[inline]
 pub fn decode_ADD_reg_sp_t2(opcode: u16) -> Instruction {
-
     Instruction::ADD_sp_reg {
         rm: Reg::from(opcode.get_bits(3..7) as u8),
         rd: Reg::SP,
@@ -64,7 +63,6 @@ pub fn decode_ADD_reg_sp_t2(opcode: u16) -> Instruction {
         thumb32: false,
     }
 }
-
 
 #[allow(non_snake_case)]
 pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
@@ -83,7 +81,11 @@ pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         rm: Reg::from(rm),
-        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         shift_t: shift_t,
         shift_n: shift_n,
         thumb32: true,
@@ -156,7 +158,7 @@ pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         imm32: thumb_expand_imm(&params, &lengths),
-        setflags: if s {SetFlags::True} else {SetFlags::False},
+        setflags: if s { SetFlags::True } else { SetFlags::False },
         thumb32: true,
     }
 }

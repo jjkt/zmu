@@ -1,7 +1,7 @@
 use crate::core::instruction::Instruction;
+use crate::core::instruction::SetFlags;
 use crate::core::register::Reg;
 use bit_field::BitField;
-use crate::core::instruction::SetFlags;
 
 #[allow(non_snake_case)]
 #[inline]

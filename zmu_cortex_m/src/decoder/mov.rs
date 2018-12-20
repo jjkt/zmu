@@ -1,11 +1,11 @@
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
+use crate::core::instruction::SetFlags;
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::operation::zero_extend;
 use crate::core::register::Reg;
 use bit_field::BitField;
-use crate::core::instruction::SetFlags;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -83,7 +83,7 @@ pub fn decode_MOV_imm_t2(opcode: u32) -> Instruction {
             imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
             imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
         },
-        setflags: if s {SetFlags::True} else {SetFlags::False},
+        setflags: if s { SetFlags::True } else { SetFlags::False },
         thumb32: true,
     }
 }

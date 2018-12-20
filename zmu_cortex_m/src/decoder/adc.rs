@@ -36,7 +36,11 @@ pub fn decode_ADC_reg_t2(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         rm: Reg::from(rm),
-        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         shift_t: shift_t,
         shift_n: shift_n,
         thumb32: true,
@@ -58,6 +62,10 @@ pub fn decode_ADC_imm_t1(opcode: u32) -> Instruction {
         rd: Reg::from(opcode.get_bits(8..12) as u8),
         rn: Reg::from(opcode.get_bits(16..20) as u8),
         imm32: thumb_expand_imm(&params, &lengths),
-        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
     }
 }

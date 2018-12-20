@@ -1,8 +1,8 @@
 use crate::core::instruction::Instruction;
+use crate::core::instruction::SRType;
 use crate::core::register::Reg;
 use crate::core::ThumbCode;
 use bit_field::BitField;
-use crate::core::instruction::SRType;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -34,7 +34,6 @@ pub fn decode_LDRH_reg_t2(opcode: u32) -> Instruction {
         thumb32: true,
     }
 }
-
 
 #[allow(non_snake_case)]
 #[inline]
@@ -83,4 +82,3 @@ pub fn decode_LDRH_lit_t1(opcode: u32) -> Instruction {
         opcode: ThumbCode::from(opcode),
     }
 }
-

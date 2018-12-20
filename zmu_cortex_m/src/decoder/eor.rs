@@ -1,6 +1,6 @@
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType,SetFlags};
+use crate::core::instruction::{SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::register::Reg;
@@ -37,7 +37,11 @@ pub fn decode_EOR_reg_t2(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         rm: Reg::from(rm),
-        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         shift_t: shift_t,
         shift_n: shift_n,
         thumb32: true,

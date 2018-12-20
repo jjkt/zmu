@@ -43,8 +43,7 @@ fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
 }
 
 fn conditional_setflags(setflags: &SetFlags, in_it_block: bool) -> bool {
-    match *setflags
-    {
+    match *setflags {
         SetFlags::True => true,
         SetFlags::False => false,
         SetFlags::NotInITBlock => !in_it_block,
@@ -1484,7 +1483,8 @@ where
             if core.condition_passed() {
                 let c = core.psr.get_c();
                 let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let (result, carry, overflow) = add_with_carry(core.get_r(&Reg::SP), shifted, false);
+                let (result, carry, overflow) =
+                    add_with_carry(core.get_r(&Reg::SP), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
