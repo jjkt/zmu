@@ -14,7 +14,7 @@ pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
         rd: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
         setflags: SetFlags::NotInITBlock,
-        imm32: bits_6_9(command) as u32,
+        imm32: u32::from(bits_6_9(command)),
         thumb32: false,
     }
 }
@@ -26,7 +26,7 @@ pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
         rd: From::from(bits_8_11(command)),
         rn: From::from(bits_8_11(command)),
         setflags: SetFlags::NotInITBlock,
-        imm32: bits_0_8(command) as u32,
+        imm32: u32::from(bits_0_8(command)),
         thumb32: false,
     }
 }
@@ -37,7 +37,7 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rn: Reg::SP,
         rd: Reg::SP,
-        imm32: (bits_0_7(command) as u32) << 2,
+        imm32: u32::from(bits_0_7(command)) << 2,
         setflags: SetFlags::False,
         thumb32: false,
     }

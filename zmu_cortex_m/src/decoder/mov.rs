@@ -13,7 +13,7 @@ pub fn decode_MOV_imm_t1(opcode: u16) -> Instruction {
     Instruction::MOV_imm {
         rd: Reg::from(opcode.get_bits(8..11) as u8),
         imm32: Imm32Carry::NoCarry {
-            imm32: opcode.get_bits(0..8) as u32,
+            imm32: u32::from(opcode.get_bits(0..8)),
         },
         setflags: SetFlags::NotInITBlock,
         thumb32: false,

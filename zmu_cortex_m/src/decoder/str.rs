@@ -9,7 +9,7 @@ pub fn decode_STR_imm_t1(opcode: u16) -> Instruction {
     Instruction::STR_imm {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
-        imm32: (opcode.get_bits(6..11) as u32) << 2,
+        imm32: u32::from(opcode.get_bits(6..11)) << 2,
         index: true,
         add: true,
         wback: false,
@@ -22,7 +22,7 @@ pub fn decode_STR_imm_t2(opcode: u16) -> Instruction {
     Instruction::STR_imm {
         rt: From::from(opcode.get_bits(8..11) as u8),
         rn: Reg::SP,
-        imm32: (opcode.get_bits(0..8) as u32) << 2,
+        imm32: u32::from(opcode.get_bits(0..8)) << 2,
         index: true,
         add: true,
         wback: false,
