@@ -33,6 +33,13 @@ pub enum Imm32Carry {
     },
 }
 
+#[derive(PartialEq, Debug)]
+pub enum SetFlags {
+    True,
+    False,
+    NotInITBlock,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug)]
 pub enum Instruction {
@@ -40,7 +47,7 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         shift_t: SRType,
         shift_n: u8,
         thumb32: bool,
@@ -49,18 +56,26 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         imm32: u32,
-        setflags: bool,
+        setflags: SetFlags,
     },
     ADD_imm {
         rn: Reg,
         rd: Reg,
         imm32: u32,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     ADD_reg {
         rd: Reg,
         rn: Reg,
+        rm: Reg,
+        setflags: SetFlags,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
+    },
+    ADD_sp_reg {
+        rd: Reg,
         rm: Reg,
         setflags: bool,
         shift_t: SRType,
@@ -76,7 +91,7 @@ pub enum Instruction {
         rd: Reg,
         rm: Reg,
         rn: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         shift_t: SRType,
         shift_n: u8,
         thumb32: bool,
@@ -91,14 +106,14 @@ pub enum Instruction {
         rd: Reg,
         rm: Reg,
         shift_n: u8,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     ASR_reg {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
     },
 
     B_t13 {
@@ -114,7 +129,7 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         shift_t: SRType,
         shift_n: u8,
         thumb32: bool,
@@ -183,7 +198,7 @@ pub enum Instruction {
         rm: Reg,
         shift_t: SRType,
         shift_n: u8,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     EOR_imm {
@@ -319,27 +334,27 @@ pub enum Instruction {
         rd: Reg,
         rm: Reg,
         shift_n: u8,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     LSL_reg {
         rd: Reg,
         rm: Reg,
         rn: Reg,
-        setflags: bool,
+        setflags: SetFlags,
     },
     LSR_imm {
         rd: Reg,
         rm: Reg,
         shift_n: u8,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     LSR_reg {
         rd: Reg,
         rm: Reg,
         rn: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
 
@@ -365,7 +380,7 @@ pub enum Instruction {
     MOV_imm {
         rd: Reg,
         imm32: Imm32Carry,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     MOV_reg {
@@ -386,13 +401,13 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     MVN_reg {
         rd: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
     },
     MVN_imm {
         rd: Reg,
@@ -406,7 +421,7 @@ pub enum Instruction {
         rm: Reg,
         shift_t: SRType,
         shift_n: u8,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     ORR_imm {
@@ -439,13 +454,13 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
     },
     RSB_imm {
         rd: Reg,
         rn: Reg,
         imm32: u32,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     RSB_reg {
@@ -462,7 +477,7 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         shift_t: SRType,
         shift_n: u8,
         thumb32: bool,
@@ -567,14 +582,14 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         imm32: u32,
-        setflags: bool,
+        setflags: SetFlags,
         thumb32: bool,
     },
     SUB_reg {
         rm: Reg,
         rn: Reg,
         rd: Reg,
-        setflags: bool,
+        setflags: SetFlags,
         shift_t: SRType,
         shift_n: u8,
         thumb32: bool,
@@ -816,6 +831,14 @@ fn format_adressing_mode2(
     result
 }
 
+fn setflags_to_str(setflags: &SetFlags) -> &'static str {
+    match *setflags {
+        SetFlags::True => "s",
+        SetFlags::False => "",
+        SetFlags::NotInITBlock => "",
+    }
+}
+
 #[allow(unused_variables)]
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -826,7 +849,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rd,
                 imm32,
-                setflags,
+                ref setflags,
                 thumb32,
             } => {
                 if rn == rd {
@@ -834,7 +857,7 @@ impl fmt::Display for Instruction {
                         f,
                         "add{}{} {}, #{}",
                         if thumb32 { ".W" } else { "" },
-                        if setflags { "s" } else { "" },
+                        setflags_to_str(setflags),
                         rd,
                         imm32
                     )
@@ -843,7 +866,7 @@ impl fmt::Display for Instruction {
                         f,
                         "add{}{} {}, {}, #{}",
                         if thumb32 { ".W" } else { "" },
-                        if setflags { "s" } else { "" },
+                        setflags_to_str(setflags),
                         rd,
                         rn,
                         imm32
@@ -854,11 +877,11 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 imm32,
-                setflags,
+                ref setflags,
             } => write!(
                 f,
                 "adc{}.W {}, {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 rd,
                 rn,
                 imm32
@@ -867,17 +890,37 @@ impl fmt::Display for Instruction {
                 rm,
                 rn,
                 rd,
-                setflags,
+                ref setflags,
                 ref shift_t,
                 shift_n,
                 thumb32,
             } => write!(
                 f,
                 "add{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    format!("")
+                }
+            ),
+            Instruction::ADD_sp_reg {
+                rm,
+                rd,
+                setflags,
+                ref shift_t,
+                shift_n,
+                thumb32,
+            } => write!(
+                f,
+                "add{}{} {}, SP, {}{}",
+                if setflags { "s" } else { "" },
+                if thumb32 { ".W" } else { "" },
+                rd,
                 rm,
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
@@ -889,14 +932,14 @@ impl fmt::Display for Instruction {
                 rm,
                 rn,
                 rd,
-                setflags,
+                ref setflags,
                 ref shift_t,
                 shift_n,
                 thumb32,
             } => write!(
                 f,
                 "adc{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -920,12 +963,12 @@ impl fmt::Display for Instruction {
                 rm,
                 ref shift_t,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "and{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -957,12 +1000,12 @@ impl fmt::Display for Instruction {
                 rd,
                 rm,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "asr{}{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rm,
@@ -985,27 +1028,20 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
-                setflags,
-            } => write!(
-                f,
-                "asr{} {}, {}, {}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                rm
-            ),
+                ref setflags,
+            } => write!(f, "asr{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
             Instruction::BIC_reg {
                 rd,
                 rn,
                 rm,
                 ref shift_t,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "bic{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1096,12 +1132,12 @@ impl fmt::Display for Instruction {
                 rm,
                 ref shift_t,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "eor{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1252,12 +1288,12 @@ impl fmt::Display for Instruction {
                 rd,
                 rm,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "lsl{}{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rm,
@@ -1267,25 +1303,18 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
-                setflags,
-            } => write!(
-                f,
-                "lsl{} {}, {}, {}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                rm
-            ),
+                ref setflags,
+            } => write!(f, "lsl{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
             Instruction::LSR_reg {
                 rd,
                 rn,
                 rm,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "lsr{}{} {}, {}, {}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1295,12 +1324,12 @@ impl fmt::Display for Instruction {
                 rd,
                 rm,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "lsr{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 rd,
                 rm,
                 shift_n
@@ -1311,16 +1340,9 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
-                setflags,
+                ref setflags,
                 thumb32,
-            } => write!(
-                f,
-                "mul{} {}, {}, {}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                rm
-            ),
+            } => write!(f, "mul{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
             Instruction::MOV_reg {
                 rd,
                 rm,
@@ -1337,12 +1359,12 @@ impl fmt::Display for Instruction {
             Instruction::MOV_imm {
                 rd,
                 ref imm32,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "mov{}{} {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 match *imm32 {
@@ -1360,9 +1382,11 @@ impl fmt::Display for Instruction {
                 thumb32,
             } => format_adressing_mode("ldrsh", f, rn, rt, imm32, index, add, wback, thumb32),
 
-            Instruction::MVN_reg { rd, rm, setflags } => {
-                write!(f, "mvn{} {}, {}", if setflags { "s" } else { "" }, rd, rm)
-            }
+            Instruction::MVN_reg {
+                rd,
+                rm,
+                ref setflags,
+            } => write!(f, "mvn{} {}, {}", setflags_to_str(setflags), rd, rm),
             Instruction::MVN_imm {
                 rd,
                 ref imm32,
@@ -1384,12 +1408,12 @@ impl fmt::Display for Instruction {
                 rm,
                 ref shift_t,
                 shift_n,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "orr{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1445,11 +1469,11 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
-                setflags,
+                ref setflags,
             } => write!(
                 f,
                 "ror{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 rd,
                 rn,
                 rm
@@ -1458,12 +1482,12 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 imm32,
-                setflags,
+                ref setflags,
                 thumb32,
             } => write!(
                 f,
                 "rsb{}{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1510,14 +1534,14 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm,
-                setflags,
+                ref setflags,
                 thumb32,
                 ref shift_t,
                 shift_n,
             } => write!(
                 f,
                 "sbc{}{} {}, {}, {}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1629,14 +1653,14 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 imm32,
-                setflags,
+                ref setflags,
                 thumb32,
             } => {
                 if rd == rn {
                     write!(
                         f,
                         "sub{}{} {}, #{}",
-                        if setflags { "s" } else { "" },
+                        setflags_to_str(setflags),
                         if thumb32 { ".W" } else { "" },
                         rd,
                         imm32
@@ -1645,7 +1669,7 @@ impl fmt::Display for Instruction {
                     write!(
                         f,
                         "sub{}{} {}, {}, #{}",
-                        if setflags { "s" } else { "" },
+                        setflags_to_str(setflags),
                         if thumb32 { ".W" } else { "" },
                         rd,
                         rn,
@@ -1657,14 +1681,14 @@ impl fmt::Display for Instruction {
                 rm,
                 rn,
                 rd,
-                setflags,
+                ref setflags,
                 ref shift_t,
                 shift_n,
                 thumb32,
             } => write!(
                 f,
                 "sub{}{} {}, {}, {}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1867,6 +1891,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::ADD_sp_reg {
+            rm,
+            rd,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+
         Instruction::ADC_reg {
             rm,
             rn,

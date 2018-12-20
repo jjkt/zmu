@@ -1,6 +1,6 @@
 use crate::core::bits::{bits_0_3, bits_0_7, bits_0_8, bits_3_6, bits_6_9, bits_8_11, Bits};
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SRType;
+use crate::core::instruction::{SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm;
 use crate::core::operation::zero_extend;
@@ -13,7 +13,7 @@ pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rd: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         imm32: bits_6_9(command) as u32,
         thumb32: false,
     }
@@ -25,7 +25,7 @@ pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rd: From::from(bits_8_11(command)),
         rn: From::from(bits_8_11(command)),
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         imm32: bits_0_8(command) as u32,
         thumb32: false,
     }
@@ -38,7 +38,7 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
         rn: Reg::SP,
         rd: Reg::SP,
         imm32: (bits_0_7(command) as u32) << 2,
-        setflags: false,
+        setflags: SetFlags::False,
         thumb32: false,
     }
 }
@@ -60,7 +60,11 @@ pub fn decode_SUB_SP_imm_t2(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::SP,
         imm32: thumb_expand_imm(&params, &lengths),
-        setflags: s == 1,
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         thumb32: true,
     }
 }
@@ -80,7 +84,7 @@ pub fn decode_SUB_SP_imm_t3(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::SP,
         imm32: zero_extend(&params, &lengths),
-        setflags: false,
+        setflags: SetFlags::False,
         thumb32: true,
     }
 }
@@ -92,7 +96,7 @@ pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
         rd: From::from(bits_0_3(command)),
         rn: From::from(bits_3_6(command)),
         rm: From::from(bits_6_9(command)),
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         shift_t: SRType::LSL,
         shift_n: 0,
         thumb32: false,
@@ -116,7 +120,11 @@ pub fn decode_SUB_reg_t2(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         rm: Reg::from(rm),
-        setflags: s == 1,
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         shift_t: shift_t,
         shift_n: shift_n,
         thumb32: true,
@@ -141,7 +149,11 @@ pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         imm32: thumb_expand_imm(&params, &lengths),
-        setflags: s == 1,
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
         thumb32: true,
     }
 }

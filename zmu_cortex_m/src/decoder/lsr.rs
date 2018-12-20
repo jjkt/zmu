@@ -2,6 +2,7 @@ use crate::core::instruction::Instruction;
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 use bit_field::BitField;
+use crate::core::instruction::{SetFlags};
 
 #[allow(non_snake_case)]
 #[inline]
@@ -13,7 +14,7 @@ pub fn decode_LSR_imm_t1(opcode: u16) -> Instruction {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
         shift_n: shift_n,
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
 }
@@ -25,7 +26,7 @@ pub fn decode_LSR_reg_t1(opcode: u16) -> Instruction {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
 }
@@ -44,7 +45,7 @@ pub fn decode_LSR_imm_t2(opcode: u32) -> Instruction {
     Instruction::LSR_imm {
         rd: Reg::from(rd),
         rm: Reg::from(rm),
-        setflags: s == 1,
+        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
         shift_n: shift_n,
         thumb32: true,
     }
@@ -61,7 +62,7 @@ pub fn decode_LSR_reg_t2(opcode: u32) -> Instruction {
         rd: Reg::from(rd as u8),
         rn: Reg::from(rn as u8),
         rm: Reg::from(rm as u8),
-        setflags: s == 1,
+        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
         thumb32: true,
     }
 }

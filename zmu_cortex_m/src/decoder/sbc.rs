@@ -1,5 +1,5 @@
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SRType;
+use crate::core::instruction::{SRType,SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 use crate::core::operation::thumb_expand_imm;
@@ -12,7 +12,7 @@ pub fn decode_SBC_reg_t1(opcode: u16) -> Instruction {
         rn: Reg::from(opcode.get_bits(0..3) as u8),
         rd: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         thumb32: false,
         shift_t: SRType::LSL,
         shift_n: 0,
@@ -36,7 +36,7 @@ pub fn decode_SBC_reg_t2(opcode: u32) -> Instruction {
         rn: Reg::from(rn),
         rd: Reg::from(rd),
         rm: Reg::from(rm),
-        setflags: s == 1,
+        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
         thumb32: true,
         shift_t: shift_t,
         shift_n: shift_n,

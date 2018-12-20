@@ -1,5 +1,5 @@
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SRType;
+use crate::core::instruction::{SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm;
 use crate::core::operation::zero_extend;
@@ -13,7 +13,7 @@ pub fn decode_ADD_reg_t1(opcode: u16) -> Instruction {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
         rm: Reg::from(opcode.get_bits(6..9) as u8),
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         shift_t: SRType::LSL,
         shift_n: 0,
         thumb32: false,
@@ -22,19 +22,49 @@ pub fn decode_ADD_reg_t1(opcode: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_ADD_reg_t2_ADD_SP_reg(opcode: u16) -> Instruction {
+pub fn decode_ADD_reg_t2(opcode: u16) -> Instruction {
     let rdn = Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8);
 
     Instruction::ADD_reg {
         rm: Reg::from(opcode.get_bits(3..7) as u8),
         rd: rdn,
         rn: rdn,
+        setflags: SetFlags::False,
+        shift_t: SRType::LSL,
+        shift_n: 0,
+        thumb32: false,
+    }
+}
+
+#[allow(non_snake_case)]
+#[inline]
+pub fn decode_ADD_reg_sp_t1(opcode: u16) -> Instruction {
+    let rdm = Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8);
+
+    Instruction::ADD_sp_reg {
+        rm: rdm,
+        rd: rdm,
         setflags: false,
         shift_t: SRType::LSL,
         shift_n: 0,
         thumb32: false,
     }
 }
+
+#[allow(non_snake_case)]
+#[inline]
+pub fn decode_ADD_reg_sp_t2(opcode: u16) -> Instruction {
+
+    Instruction::ADD_sp_reg {
+        rm: Reg::from(opcode.get_bits(3..7) as u8),
+        rd: Reg::SP,
+        setflags: false,
+        shift_t: SRType::LSL,
+        shift_n: 0,
+        thumb32: false,
+    }
+}
+
 
 #[allow(non_snake_case)]
 pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
@@ -53,7 +83,7 @@ pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         rm: Reg::from(rm),
-        setflags: s == 1,
+        setflags: if s == 1 {SetFlags::True} else {SetFlags::False},
         shift_t: shift_t,
         shift_n: shift_n,
         thumb32: true,
@@ -67,7 +97,7 @@ pub fn decode_ADD_imm_t1(opcode: u16) -> Instruction {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
         imm32: opcode.get_bits(6..9) as u32,
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
 }
@@ -79,7 +109,7 @@ pub fn decode_ADD_imm_t2(opcode: u16) -> Instruction {
         rn: Reg::from(opcode.get_bits(8..11) as u8),
         rd: Reg::from(opcode.get_bits(8..11) as u8),
         imm32: opcode.get_bits(0..8) as u32,
-        setflags: true,
+        setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
 }
@@ -91,7 +121,7 @@ pub fn decode_ADD_SP_imm_t1(opcode: u16) -> Instruction {
         rd: Reg::from(opcode.get_bits(8..11) as u8),
         rn: Reg::SP,
         imm32: (opcode.get_bits(0..8) as u32) << 2,
-        setflags: false,
+        setflags: SetFlags::False,
         thumb32: false,
     }
 }
@@ -103,7 +133,7 @@ pub fn decode_ADD_SP_imm_t2(opcode: u16) -> Instruction {
         rd: Reg::SP,
         rn: Reg::SP,
         imm32: (opcode.get_bits(0..7) as u32) << 2,
-        setflags: false,
+        setflags: SetFlags::False,
         thumb32: false,
     }
 }
@@ -126,7 +156,7 @@ pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         imm32: thumb_expand_imm(&params, &lengths),
-        setflags: s,
+        setflags: if s {SetFlags::True} else {SetFlags::False},
         thumb32: true,
     }
 }
@@ -148,7 +178,7 @@ pub fn decode_ADD_imm_t4(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         imm32: zero_extend(&params, &lengths),
-        setflags: false,
+        setflags: SetFlags::False,
         thumb32: true,
     }
 }

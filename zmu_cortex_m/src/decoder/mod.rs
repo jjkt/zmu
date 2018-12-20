@@ -231,9 +231,7 @@ fn decode_UDF_t2(opcode: u32) -> Instruction {
 }
 
 pub fn decode_16(opcode: u16) -> Instruction {
-    if (opcode & 0xffff) == 0xbf30 {
-        decode_WFI_t1(opcode)
-    } else if (opcode & 0xffff) == 0xbf20 {
+    if (opcode & 0xffff) == 0xbf20 {
         decode_WFE_t1(opcode)
     } else if (opcode & 0xffff) == 0xbf40 {
         decode_SEV_t1(opcode)
@@ -241,10 +239,16 @@ pub fn decode_16(opcode: u16) -> Instruction {
         decode_NOP_t1(opcode)
     } else if (opcode & 0xffff) == 0xbf10 {
         decode_YIELD_t1(opcode)
+    } else if (opcode & 0xffff) == 0xbf30 {
+        decode_WFI_t1(opcode)
     } else if (opcode & 0xffef) == 0xb662 {
         decode_CPS_t1(opcode)
+    } else if (opcode & 0xff87) == 0x4485 {
+        decode_ADD_reg_sp_t2(opcode)
     } else if (opcode & 0xff87) == 0x4700 {
         decode_BX_t1(opcode)
+    } else if (opcode & 0xff78) == 0x4468 {
+        decode_ADD_reg_sp_t1(opcode)
     } else if (opcode & 0xff87) == 0x4780 {
         decode_BLX_t1(opcode)
     } else if (opcode & 0xffc0) == 0x4140 {
@@ -302,7 +306,7 @@ pub fn decode_16(opcode: u16) -> Instruction {
     } else if (opcode & 0xff00) == 0x4600 {
         decode_MOV_reg_t1(opcode)
     } else if (opcode & 0xff00) == 0x4400 {
-        decode_ADD_reg_t2_ADD_SP_reg(opcode)
+        decode_ADD_reg_t2(opcode)
     } else if (opcode & 0xff00) == 0xbe00 {
         decode_BKPT_t1(opcode)
     } else if (opcode & 0xff00) == 0xbf00 {
