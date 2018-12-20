@@ -970,7 +970,11 @@ fn test_decode_bic() {
 fn test_decode_ldm() {
     // LDM R2!, {R0, R1}
     match decode_16(0xca03) {
-        Instruction::LDM { rn, registers, thumb32 } => {
+        Instruction::LDM {
+            rn,
+            registers,
+            thumb32,
+        } => {
             assert!(rn == Reg::R2);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
@@ -986,7 +990,11 @@ fn test_decode_ldm() {
 fn test_decode_ldm2() {
     // LDM R1!, {R3}
     match decode_16(0xc908) {
-        Instruction::LDM { rn, registers, thumb32 } => {
+        Instruction::LDM {
+            rn,
+            registers,
+            thumb32,
+        } => {
             assert!(rn == Reg::R1);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R3], elems);
@@ -1002,7 +1010,11 @@ fn test_decode_ldm2() {
 fn test_decode_ldm3() {
     // LDM R4!, {R0-R2}
     match decode_16(0xcc07) {
-        Instruction::LDM { rn, registers, thumb32 } => {
+        Instruction::LDM {
+            rn,
+            registers,
+            thumb32,
+        } => {
             assert!(rn == Reg::R4);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
@@ -2273,7 +2285,6 @@ fn test_decode_eor_imm_w() {
     );
 }
 
-
 #[test]
 fn test_decode_clz_w() {
     //0xfab0f180 -> CLZ R1, R0
@@ -2286,17 +2297,13 @@ fn test_decode_clz_w() {
     );
 }
 
-
 #[test]
 fn test_decode_pop_t3_w() {
     //0xf85deb04 -> LDR.W LR, [SP], #4   // POP.W LR  (pop 3)
     match decode_32(0xf85deb04) {
         Instruction::POP { registers, thumb32 } => {
             let elems: Vec<_> = registers.iter().collect();
-            assert_eq!(
-                vec![Reg::LR],
-                elems
-            );
+            assert_eq!(vec![Reg::LR], elems);
             assert_eq!(thumb32, true);
         }
         _ => {
@@ -2384,7 +2391,6 @@ fn test_decode_adc_reg_w() {
     );
 }
 
-
 #[test]
 fn test_decode_bic_reg_w() {
     //0xea235345 -> BIC.W R3, R3, R5, LSL #21
@@ -2403,10 +2409,9 @@ fn test_decode_bic_reg_w() {
     );
 }
 
-
 #[test]
 fn test_decode_adc_imm_w() {
-    // 0xf1540401 -> ADCS.W R4, R4, #1 
+    // 0xf1540401 -> ADCS.W R4, R4, #1
 
     assert_eq!(
         decode_32(0xf1540401),
@@ -2449,13 +2454,16 @@ fn test_decode_ror_imm_w() {
     );
 }
 
-
 #[test]
 fn test_decode_ldm_t2_w() {
     // 0xe8b11008 -> LDM R1!, {R3, R12}
 
     match decode_32(0xe8b11008) {
-        Instruction::LDM { rn, registers, thumb32 } => {
+        Instruction::LDM {
+            rn,
+            registers,
+            thumb32,
+        } => {
             assert!(rn == Reg::R1);
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R3, Reg::R12], elems);
@@ -2466,3 +2474,22 @@ fn test_decode_ldm_t2_w() {
         }
     }
 }
+
+//#[test]
+//fn test_decode_smul_t2_w() {
+// 0xfb1efe08 -> SMULBB LR, LR, R8
+//    assert_eq!(
+        //decode_32(0xfb1efe08),
+        //Instruction::SMUL {
+            //n_high: false, // "B"
+            //m_high: false, // "B"
+            //rd: Reg::LR,
+            //rn: Reg::LR,
+            //rm: Reg::R8,
+        //}
+    //);
+   
+    
+//}
+
+// 0xebb71f46 -> CMP.W R7, R6, LSL #5
