@@ -732,7 +732,7 @@ fn format_adressing_mode(
     wback: bool,
     thumb32: bool,
 ) -> fmt::Result {
-    let result = if index {
+    if index {
         if !wback {
             // Offset
             write!(
@@ -770,8 +770,7 @@ fn format_adressing_mode(
             if add { "+" } else { "-" },
             imm32
         )
-    };
-    result
+    }
 }
 
 fn format_adressing_mode2(
@@ -786,7 +785,7 @@ fn format_adressing_mode2(
     wback: bool,
     thumb32: bool,
 ) -> fmt::Result {
-    let result = if index {
+    if index {
         if !wback {
             // Offset
             write!(
@@ -827,8 +826,7 @@ fn format_adressing_mode2(
             if add { "+" } else { "-" },
             imm32
         )
-    };
-    result
+    }
 }
 
 fn setflags_to_str(setflags: &SetFlags) -> &'static str {
@@ -905,7 +903,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::ADD_sp_reg {
@@ -925,7 +923,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::ADC_reg {
@@ -947,7 +945,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::ADR { rd, imm32, thumb32 } => write!(
@@ -976,7 +974,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::AND_imm {
@@ -1049,7 +1047,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::BIC_imm {
@@ -1103,7 +1101,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::CMN_imm { rn, imm32 } => write!(f, "cmn.W {}, #{}", rn, imm32),
@@ -1145,7 +1143,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::ISB => write!(f, "isb"),
@@ -1421,7 +1419,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::ORR_imm {
@@ -1525,7 +1523,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
 
@@ -1707,7 +1705,7 @@ impl fmt::Display for Instruction {
                 if shift_n > 0 {
                     format!(", {:?} {}", shift_t, shift_n)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::SVC { imm32 } => write!(f, "svc #{}", imm32),
@@ -1725,7 +1723,7 @@ impl fmt::Display for Instruction {
                 if rotation > 0 {
                     format!("{}", rotation)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
 
@@ -1743,7 +1741,7 @@ impl fmt::Display for Instruction {
                 if rotation > 0 {
                     format!("{}", rotation)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
@@ -1794,7 +1792,7 @@ impl fmt::Display for Instruction {
                 if rotation > 0 {
                     format!("{}", rotation)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::UXTH {
@@ -1811,7 +1809,7 @@ impl fmt::Display for Instruction {
                 if rotation > 0 {
                     format!("{}", rotation)
                 } else {
-                    format!("")
+                    "".to_string()
                 }
             ),
             Instruction::UBFX {

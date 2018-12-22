@@ -122,7 +122,7 @@ impl<'a, T: Bus> Core<'a, T> {
         let itstate = self.itstate;
 
         if itstate != 0 {
-            let cond = itstate.get_bits(4..8) as u16;
+            let cond = u16::from(itstate.get_bits(4..8));
             condition_test(
                 &Condition::from_u16(cond).unwrap_or(Condition::AL),
                 &self.psr,
@@ -429,12 +429,10 @@ impl<'a, T: Bus> Core<'a, T> {
 
         if self.mode == ProcessorMode::HandlerMode {
             self.lr = 0xFFFF_FFF1;
+        } else if !self.control.sp_sel {
+            self.lr = 0xFFFF_FFF9;
         } else {
-            if self.control.sp_sel == false {
-                self.lr = 0xFFFF_FFF9;
-            } else {
-                self.lr = 0xFFFF_FFFD;
-            }
+            self.lr = 0xFFFF_FFFD;
         }
     }
 
@@ -470,7 +468,7 @@ impl<'a, T: Bus> Core<'a, T> {
         if is_thumb32(hw) {
             let hw2 = self.bus.read16(self.pc + 2);
             ThumbCode::Thumb32 {
-                opcode: ((hw as u32) << 16) + hw2 as u32,
+                opcode: (u32::from(hw) << 16) + u32::from(hw2),
             }
         } else {
             ThumbCode::Thumb16 { half_word: hw }
@@ -496,7 +494,7 @@ impl<'a, T: Bus> Core<'a, T> {
         // conditional mode to back and forth. Most of the instructions executed are not
         // under condition_passed() block, so checking that for each instruction is waste.
         match execute(self, instruction, semihost_func) {
-            ExecuteResult::Fault { fault: _ } => {
+            ExecuteResult::Fault { .. } => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
                 self.exception_entry(u8::from(Exception::HardFault), pc);

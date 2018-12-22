@@ -106,7 +106,10 @@ def main():
         onemask = onemasks[i]
         result = resultmasks[i]
         instr = INSTRUCTIONS[maskstrings[i]]
-        print '{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr)
+        if onemask == 0xffff:
+            print '{} if opcode == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', result, instr)
+        else:
+            print '{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr)
 
 
 main()

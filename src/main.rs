@@ -50,31 +50,32 @@ fn run_bin(
 
     let semihost_func = |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
         match semihost_cmd {
-            &SemihostingCommand::SysOpen { .. } => SemihostingResponse::SysOpen { result: Ok(1) },
-            &SemihostingCommand::SysClose { .. } => SemihostingResponse::SysClose { success: true },
-            &SemihostingCommand::SysWrite { handle, ref data } => {
-                if handle == 1 {
+            SemihostingCommand::SysOpen { .. } => SemihostingResponse::SysOpen { result: Ok(1) },
+            SemihostingCommand::SysClose { .. } => SemihostingResponse::SysClose { success: true },
+            SemihostingCommand::SysWrite { handle, ref data } => {
+                if *handle == 1 {
                     let text = &**data;
                     print!("{}", String::from_utf8_lossy(text));
                 } else {
                 }
                 SemihostingResponse::SysWrite { result: Ok(0) }
             }
-            &SemihostingCommand::SysClock { .. } => {
+            SemihostingCommand::SysClock { .. } => {
                 let elapsed = start.elapsed();
-                let in_cs = elapsed.as_secs() * 100 + elapsed.subsec_nanos() as u64 / 10_000_000;
+                let in_cs =
+                    elapsed.as_secs() * 100 + u64::from(elapsed.subsec_nanos()) / 10_000_000;
 
                 SemihostingResponse::SysClock {
                     result: Ok(in_cs as u32),
                 }
             }
-            &SemihostingCommand::SysException { ref reason } => {
-                let mut stop = false;
-                if reason == &SysExceptionReason::ADPStoppedApplicationExit {
-                    stop = true;
+            SemihostingCommand::SysException { ref reason } => {
+                let stop = if reason == &SysExceptionReason::ADPStoppedApplicationExit {
+                    true
                 } else {
                     println!("semihosting exception!");
-                }
+                    false
+                };
 
                 SemihostingResponse::SysException {
                     success: true,
@@ -135,7 +136,7 @@ fn run_bin(
         duration,
         instruction_count,
         instruction_count as f64
-            / (duration.as_secs() as f64 + (duration.subsec_nanos() as f64 / 1000_000_000f64))
+            / (duration.as_secs() as f64 + (f64::from(duration.subsec_nanos()) / 1_000_000_000f64))
     );
 }
 
@@ -185,19 +186,16 @@ fn run(args: &ArgMatches) -> Result<()> {
 
                     for sym in elf.syms {
                         if sym.st_type() != goblin::elf::sym::STT_FILE {
-                            match elf.strtab.get(sym.st_name) {
-                                Some(maybe_name) => {
-                                    let name = maybe_name.unwrap_or("unknown");
-                                    let mut count = 0;
-                                    let mut pos = sym.st_value as u32;
-                                    while count <= sym.st_size {
-                                        // Align addresses to 2 byte alignment
-                                        symboltable.insert(pos & 0xffff_fffe, name);
-                                        pos += 2;
-                                        count += 2;
-                                    }
+                            if let Some(maybe_name) = elf.strtab.get(sym.st_name) {
+                                let name = maybe_name.unwrap_or("unknown");
+                                let mut count = 0;
+                                let mut pos = sym.st_value as u32;
+                                while count <= sym.st_size {
+                                    // Align addresses to 2 byte alignment
+                                    symboltable.insert(pos & 0xffff_fffe, name);
+                                    pos += 2;
+                                    count += 2;
                                 }
-                                _ => {}
                             }
                         }
                     }

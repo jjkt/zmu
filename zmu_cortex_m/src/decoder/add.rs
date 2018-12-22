@@ -98,7 +98,7 @@ pub fn decode_ADD_imm_t1(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
-        imm32: opcode.get_bits(6..9) as u32,
+        imm32: u32::from(opcode.get_bits(6..9)),
         setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
@@ -110,7 +110,7 @@ pub fn decode_ADD_imm_t2(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
         rn: Reg::from(opcode.get_bits(8..11) as u8),
         rd: Reg::from(opcode.get_bits(8..11) as u8),
-        imm32: opcode.get_bits(0..8) as u32,
+        imm32: u32::from(opcode.get_bits(0..8)),
         setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
@@ -122,7 +122,7 @@ pub fn decode_ADD_SP_imm_t1(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: Reg::from(opcode.get_bits(8..11) as u8),
         rn: Reg::SP,
-        imm32: (opcode.get_bits(0..8) as u32) << 2,
+        imm32: u32::from(opcode.get_bits(0..8)) << 2,
         setflags: SetFlags::False,
         thumb32: false,
     }
@@ -134,7 +134,7 @@ pub fn decode_ADD_SP_imm_t2(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
         rd: Reg::SP,
         rn: Reg::SP,
-        imm32: (opcode.get_bits(0..7) as u32) << 2,
+        imm32: u32::from(opcode.get_bits(0..7)) << 2,
         setflags: SetFlags::False,
         thumb32: false,
     }

@@ -20,7 +20,7 @@ pub fn bits_0_8(n: u16) -> u8 {
 
 #[inline]
 pub fn bit_0(n: u16) -> u8 {
-    ((n & 0b0000_0001) >> 0) as u8
+    (n & 0b0000_0001)  as u8
 }
 
 #[inline]
@@ -60,7 +60,7 @@ pub fn bit_7(n: u16) -> u8 {
 
 #[inline]
 pub fn bit_8(n: u16) -> u8 {
-    ((n & 0b_1_0000_0000) >> 8) as u8
+    ((n & 0b1_0000_0000) >> 8) as u8
 }
 
 #[inline]
@@ -90,7 +90,7 @@ pub fn bits_3_6(n: u16) -> u8 {
 
 #[inline]
 pub fn bits_3_7(n: u16) -> u8 {
-    ((n & 0b1111_000) >> 3) as u8
+    ((n & 0b111_1000) >> 3) as u8
 }
 
 #[inline]

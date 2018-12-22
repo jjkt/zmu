@@ -231,15 +231,15 @@ fn decode_UDF_t2(opcode: u32) -> Instruction {
 }
 
 pub fn decode_16(opcode: u16) -> Instruction {
-    if (opcode & 0xffff) == 0xbf20 {
+    if opcode == 0xbf20 {
         decode_WFE_t1(opcode)
-    } else if (opcode & 0xffff) == 0xbf40 {
+    } else if opcode == 0xbf40 {
         decode_SEV_t1(opcode)
-    } else if (opcode & 0xffff) == 0xbf00 {
+    } else if opcode == 0xbf00 {
         decode_NOP_t1(opcode)
-    } else if (opcode & 0xffff) == 0xbf10 {
+    } else if opcode == 0xbf10 {
         decode_YIELD_t1(opcode)
-    } else if (opcode & 0xffff) == 0xbf30 {
+    } else if opcode == 0xbf30 {
         decode_WFI_t1(opcode)
     } else if (opcode & 0xffef) == 0xb662 {
         decode_CPS_t1(opcode)
@@ -391,17 +391,17 @@ pub fn decode_16(opcode: u16) -> Instruction {
 }
 
 pub fn decode_32(opcode: u32) -> Instruction {
-    if (opcode & 0xffffffff) == 0xf3af8000 {
+    if opcode == 0xf3af8000 {
         decode_NOP_t2(opcode)
-    } else if (opcode & 0xffffffff) == 0xf3af80f0 {
+    } else if opcode == 0xf3af80f0 {
         decode_DBG_t1(opcode)
-    } else if (opcode & 0xffffffff) == 0xf3af8004 {
+    } else if opcode == 0xf3af8004 {
         decode_SEV_t2(opcode)
-    } else if (opcode & 0xffffffff) == 0xf3af8001 {
+    } else if opcode == 0xf3af8001 {
         decode_YIELD_t2(opcode)
-    } else if (opcode & 0xffffffff) == 0xf3af8002 {
+    } else if opcode == 0xf3af8002 {
         decode_WFE_t2(opcode)
-    } else if (opcode & 0xffffffff) == 0xf3af8003 {
+    } else if opcode == 0xf3af8003 {
         decode_WFI_t2(opcode)
     } else if (opcode & 0xffff0fff) == 0xf84d0d04 {
         decode_PUSH_t3(opcode)

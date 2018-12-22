@@ -79,8 +79,8 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
 
             while filename_len > 0 {
                 string_bytes.push(core.bus.read8(string_ptr));
-                string_ptr = string_ptr + 1;
-                filename_len = filename_len - 1;
+                string_ptr += 1;
+                filename_len -= 1;
             }
 
             SemihostingCommand::SysOpen {
@@ -100,8 +100,8 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
             // :tt console output
             while len > 0 {
                 data.push(core.bus.read8(memoryptr));
-                memoryptr = memoryptr + 1;
-                len = len - 1;
+                memoryptr += 1;
+                len -= 1;
             }
 
             SemihostingCommand::SysWrite {

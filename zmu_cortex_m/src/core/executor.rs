@@ -234,15 +234,15 @@ where
             } else {
                 core.primask = true;
             }
-            return ExecuteResult::Taken { cycles: 1 };
+            ExecuteResult::Taken { cycles: 1 }
         }
         Instruction::CBZ { rn, nonzero, imm32 } => {
             if nonzero ^ (core.get_r(rn) == 0) {
                 let pc = core.get_r(&Reg::PC);
                 core.branch_write_pc(pc + imm32);
-                return ExecuteResult::Branched { cycles: 1 };
+                ExecuteResult::Branched { cycles: 1 }
             } else {
-                return ExecuteResult::Taken { cycles: 1 };
+                ExecuteResult::Taken { cycles: 1 }
             }
         }
         Instruction::CLZ { rd, rm } => {
@@ -280,21 +280,21 @@ where
             firstcond,
             mask,
         } => {
-            core.set_itstate((((firstcond.value() as u32) << 4) + *mask as u32) as u8);
-            return ExecuteResult::Taken { cycles: 4 };
+            core.set_itstate((((firstcond.value() as u32) << 4) + u32::from(*mask)) as u8);
+            ExecuteResult::Taken { cycles: 4 }
         }
 
         Instruction::MRS { rd, spec_reg } => {
             if core.condition_passed() {
                 match spec_reg {
                     //APSR => {core.set_r(rd, core.psr.value & 0xf000_0000),
-                    &SpecialReg::IPSR => {
-                        let ipsr_val = core.psr.get_exception_number() as u32;
+                    SpecialReg::IPSR => {
+                        let ipsr_val = u32::from(core.psr.get_exception_number());
                         core.set_r(rd, ipsr_val);
                     }
                     //MSP => core.set_r(rd, core.get_r(Reg::MSP)),
                     //PSP => core.set_r(rd, core.get_r(Reg::PSP),
-                    &SpecialReg::PRIMASK => {
+                    SpecialReg::PRIMASK => {
                         let primask = core.primask as u32;
                         core.set_r(rd, primask);
                     }
@@ -314,16 +314,16 @@ where
                         let ipsr_val = core.psr.get_exception_number() as u32;
                         core.set_r(rd, ipsr_val);
                     }*/
-                    &SpecialReg::MSP => {
+                    SpecialReg::MSP => {
                         let msp = core.get_r(rn);
                         core.set_msp(msp);
                     }
-                    &SpecialReg::PSP => {
+                    SpecialReg::PSP => {
                         let psp = core.get_r(rn);
                         core.set_psp(psp);
                     }
                     //PSP => core.set_r(rd, core.get_r(Reg::PSP),
-                    &SpecialReg::PRIMASK => {
+                    SpecialReg::PRIMASK => {
                         let primask = core.get_r(rn) & 1 == 1;
                         core.primask = primask;
                     }
@@ -484,11 +484,11 @@ where
                 let semihost_response = semihost_func(&semihost_cmd);
                 semihost_return(&mut core, &semihost_response);
             }
-            return ExecuteResult::Taken { cycles: 1 };
+            ExecuteResult::Taken { cycles: 1 }
         }
 
         Instruction::NOP => {
-            return ExecuteResult::Taken { cycles: 1 };
+            ExecuteResult::Taken { cycles: 1 }
         }
 
         Instruction::MUL {
@@ -783,7 +783,7 @@ where
                 let pc = core.get_r(&Reg::PC);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
-                return ExecuteResult::Branched { cycles: 3 };
+                ExecuteResult::Branched { cycles: 3 }
             } else {
                 ExecuteResult::NotTaken
             }
@@ -793,7 +793,7 @@ where
                 let pc = core.get_r(&Reg::PC);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
-                return ExecuteResult::Branched { cycles: 3 };
+                ExecuteResult::Branched { cycles: 3 }
             } else {
                 ExecuteResult::NotTaken
             }
@@ -952,7 +952,7 @@ where
                     core.set_r(rn, offset_address);
                 }
 
-                core.set_r(rt, sign_extend(data as u32, 15, 32) as u32);
+                core.set_r(rt, sign_extend(u32::from(data), 15, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
@@ -1004,7 +1004,7 @@ where
                     resolve_addressing(core.get_r(rn), *imm32, *add, *index);
 
                 let data = core.bus.read8(address);
-                core.set_r(rt, data as u32);
+                core.set_r(rt, u32::from(data));
 
                 if *wback {
                     core.set_r(rn, offset_address);
@@ -1042,7 +1042,7 @@ where
                 if *wback {
                     core.set_r(rn, offset_address);
                 }
-                core.set_r(rt, data as u32);
+                core.set_r(rt, u32::from(data));
 
                 return ExecuteResult::Taken { cycles: 2 };
             }
@@ -1457,7 +1457,7 @@ where
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
-                    return ExecuteResult::Branched { cycles: 3 };
+                    ExecuteResult::Branched { cycles: 3 }
                 } else {
                     if conditional_setflags(setflags, core.in_it_block()) {
                         core.psr.set_n(result);
@@ -1466,7 +1466,7 @@ where
                         core.psr.set_v(overflow);
                     }
                     core.set_r(rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    ExecuteResult::Taken { cycles: 1 }
                 }
             } else {
                 ExecuteResult::NotTaken
@@ -1488,7 +1488,7 @@ where
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
-                    return ExecuteResult::Branched { cycles: 3 };
+                    ExecuteResult::Branched { cycles: 3 }
                 } else {
                     if *setflags {
                         core.psr.set_n(result);
@@ -1497,7 +1497,7 @@ where
                         core.psr.set_v(overflow);
                     }
                     core.set_r(rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    ExecuteResult::Taken { cycles: 1 }
                 }
             } else {
                 ExecuteResult::NotTaken
@@ -2007,10 +2007,10 @@ where
         // ARMv7-M
         Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
             if core.condition_passed() {
-                let rn_ = core.get_r(rn) as u64;
-                let rm_ = core.get_r(rm) as u64;
-                let rdlo_ = core.get_r(rdlo) as u64;
-                let rdhi_ = core.get_r(rdhi) as u64;
+                let rn_ = u64::from(core.get_r(rn));
+                let rm_ = u64::from(core.get_r(rm));
+                let rdlo_ = u64::from(core.get_r(rdlo));
+                let rdhi_ = u64::from(core.get_r(rdhi));
 
                 let rdhilo = (rdhi_ << 32) + rdlo_;
 
@@ -2025,8 +2025,8 @@ where
         // ARMv7-M
         Instruction::UMULL { rdlo, rdhi, rn, rm } => {
             if core.condition_passed() {
-                let rn_ = core.get_r(rn) as u64;
-                let rm_ = core.get_r(rm) as u64;
+                let rn_ = u64::from(core.get_r(rn));
+                let rm_ = u64::from(core.get_r(rm));
                 let result = rn_.wrapping_mul(rm_);
 
                 core.set_r(rdlo, result.get_bits(0..32) as u32);

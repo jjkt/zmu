@@ -42,7 +42,7 @@ INSTRUCTIONS = {
     '111110010001....1111000000......': 'PLI_reg_t1',
     '111110010001........1110........': 'LDRSBT_t1',
     '111110010001........1...........': 'LDRSB_imm_t2',
-    '111110010000........000000......': 'LDRSB_reg_t1',
+    '111110010000........000000......': 'LDRSB_reg_t2',
     '11111001.0111111................': 'LDRSH_lit_t1',
     '11111001.00111111111............': 'PLI_lit_imm_t3',
     '11111001.0011111................': 'LDRSB_lit_t1',
@@ -127,7 +127,7 @@ INSTRUCTIONS = {
     '1110110....11111................': 'LDC_lit_t1',
     '1110110....1....................': 'LDC_imm_t1',
     '1110110....0....................': 'STC_t1',
-    '11101011110.....0...............': 'RSB_reg_t2',
+    '11101011110.....0...............': 'RSB_reg_t1',
     '111010111011....0...1111........': 'CMP_reg_t3',
     '11101011101.....0...............': 'SUB_reg_t2',
     '11101011011.....0...............': 'SBC_reg_t2',
@@ -191,7 +191,10 @@ def main():
         onemask = onemasks[i]
         result = resultmasks[i]
         instr = INSTRUCTIONS[maskstrings[i]]
-        print '{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr)
+        if onemask == 0xffffffff:
+            print '{} if opcode == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', result, instr)
+        else:
+            print '{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr)
 
 
 main()

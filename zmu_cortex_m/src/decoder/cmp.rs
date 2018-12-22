@@ -9,7 +9,7 @@ use bit_field::BitField;
 pub fn decode_CMP_imm_t1(opcode: u16) -> Instruction {
     Instruction::CMP_imm {
         rn: Reg::from(opcode.get_bits(8..11) as u8),
-        imm32: opcode.get_bits(0..8) as u32,
+        imm32: u32::from(opcode.get_bits(0..8)),
         thumb32: false,
     }
 }

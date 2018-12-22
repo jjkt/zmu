@@ -64,9 +64,9 @@ pub fn get_reglist(pattern: u16) -> EnumSet<Reg> {
 
 pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
-        return u64::from(word) | u64::from(((1_u64 << (size - topbit)) - 1) << topbit);
+        return u64::from(word) | ((1_u64 << (size - topbit)) - 1) << topbit;
     }
-    word as u64
+    u64::from(word)
 }
 
 //
@@ -106,13 +106,13 @@ pub fn condition_test(condition: &Condition, psr: &PSR) -> bool {
         Condition::VC => !psr.get_v(),
 
         Condition::HI => psr.get_c() && !psr.get_z(),
-        Condition::LS => !(psr.get_c() && !psr.get_z()),
+        Condition::LS => psr.get_z() || !psr.get_c(),
 
         Condition::GE => psr.get_n() == psr.get_v(),
-        Condition::LT => !(psr.get_n() == psr.get_v()),
+        Condition::LT => psr.get_n() != psr.get_v(),
 
         Condition::GT => (psr.get_n() == psr.get_v()) && !psr.get_z(),
-        Condition::LE => !((psr.get_n() == psr.get_v()) && !psr.get_z()),
+        Condition::LE => psr.get_z() || psr.get_n() != psr.get_v(),
 
         Condition::AL => true,
     }
@@ -196,7 +196,7 @@ fn ror_c(value: u32, shift: usize) -> (u32, bool) {
 
 pub fn ror(value: u32, shift: usize) -> u32 {
     if shift == 0 {
-        return value;
+        value
     } else {
         let (result, _) = ror_c(value, shift);
         result
@@ -249,8 +249,8 @@ pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32
         let low_word = imm12.get_bits(0..8) as u32;
         let imm32 = match imm12.get_bits(8..10) {
             0b00 => low_word as u32,
-            0b01 => low_word << 16 + low_word,
-            0b10 => low_word << 24 + low_word << 8,
+            0b01 => low_word << (16 + low_word),
+            0b10 => low_word << (24 + low_word) << 8,
             0b11 => {
                 (low_word << 24) as u32
                     + (low_word << 16) as u32
@@ -275,7 +275,7 @@ pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
     let mut result: u32 = 0;
     let mut shift = 0;
     for (param, length) in params.iter().rev().zip(lengths.iter().rev()) {
-        result += (*param as u32) << shift;
+        result += u32::from(*param) << shift;
         shift += length;
     }
 

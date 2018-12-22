@@ -50,7 +50,7 @@ pub fn decode_STRB_imm_t1(opcode: u16) -> Instruction {
     Instruction::STRB_imm {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
-        imm32: (opcode.get_bits(6..11) as u32),
+        imm32: u32::from(opcode.get_bits(6..11)),
         index: true,
         add: true,
         wback: false,
@@ -78,7 +78,7 @@ pub fn decode_STRH_imm_t1(opcode: u16) -> Instruction {
     Instruction::STRH_imm {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
         rn: Reg::from(opcode.get_bits(3..6) as u8),
-        imm32: (opcode.get_bits(6..11) as u32) << 1,
+        imm32: u32::from(opcode.get_bits(6..11)) << 1,
         thumb32: false,
         index: true,
         add: true,

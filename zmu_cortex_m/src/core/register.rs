@@ -106,7 +106,7 @@ impl Ipsr for PSR {
         (*self).value.get_bits(0..6) as u8
     }
     fn set_exception_number(&mut self, exception_number: u8) {
-        self.value = (self.value & 0xffff_ffc0) | (exception_number & 0b11_1111) as u32;
+        self.value = (self.value & 0xffff_ffc0) | u32::from(exception_number & 0b11_1111);
     }
 }
 
