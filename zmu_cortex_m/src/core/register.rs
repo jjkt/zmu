@@ -159,8 +159,8 @@ impl CLike for Reg {
 }
 
 impl Reg {
-    pub fn value(&self) -> usize {
-        match *self {
+    pub fn value(self) -> usize {
+        match self {
             Reg::R0 => 0,
             Reg::R1 => 1,
             Reg::R2 => 2,

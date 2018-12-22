@@ -205,8 +205,8 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     // Setter for registers
     //
-    pub fn set_r(&mut self, r: &Reg, value: u32) {
-        match *r {
+    pub fn set_r(&mut self, r: Reg, value: u32) {
+        match r {
             Reg::R0
             | Reg::R1
             | Reg::R2
@@ -220,7 +220,7 @@ impl<'a, T: Bus> Core<'a, T> {
             | Reg::R10
             | Reg::R11
             | Reg::R12 => {
-                let reg: usize = From::from(*r);
+                let reg: usize = From::from(r);
                 self.r0_12[reg] = value;
             }
             Reg::SP => {
@@ -258,8 +258,8 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     // Add value to register
     //
-    pub fn add_r(&mut self, r: &Reg, value: u32) {
-        match *r {
+    pub fn add_r(&mut self, r: Reg, value: u32) {
+        match r {
             Reg::R0
             | Reg::R1
             | Reg::R2
@@ -273,7 +273,7 @@ impl<'a, T: Bus> Core<'a, T> {
             | Reg::R10
             | Reg::R11
             | Reg::R12 => {
-                let reg: usize = From::from(*r);
+                let reg: usize = From::from(r);
                 self.r0_12[reg] += value;
             }
             Reg::SP => {
@@ -290,8 +290,8 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     // Substract value from register
     //
-    pub fn sub_r(&mut self, r: &Reg, value: u32) {
-        match *r {
+    pub fn sub_r(&mut self, r: Reg, value: u32) {
+        match r {
             Reg::R0
             | Reg::R1
             | Reg::R2
@@ -305,7 +305,7 @@ impl<'a, T: Bus> Core<'a, T> {
             | Reg::R10
             | Reg::R11
             | Reg::R12 => {
-                let reg: usize = From::from(*r);
+                let reg: usize = From::from(r);
                 self.r0_12[reg] -= value;
             }
             Reg::SP => {
@@ -565,12 +565,12 @@ mod tests {
             //    if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
             core.control.sp_sel = false;
             //core.mode = ProcessorMode::ThreadMode;
-            core.set_r(&Reg::R0, 42);
-            core.set_r(&Reg::R1, 43);
-            core.set_r(&Reg::R2, 44);
-            core.set_r(&Reg::R3, 45);
-            core.set_r(&Reg::R12, 46);
-            core.set_r(&Reg::LR, 47);
+            core.set_r(Reg::R0, 42);
+            core.set_r(Reg::R1, 43);
+            core.set_r(Reg::R2, 44);
+            core.set_r(Reg::R3, 45);
+            core.set_r(Reg::R12, 46);
+            core.set_r(Reg::LR, 47);
             core.set_psp(0);
             core.set_msp(0x100);
             core.psr.value = 0xffff_ffff;
