@@ -51,6 +51,7 @@ fn conditional_setflags(setflags: &SetFlags, in_it_block: bool) -> bool {
 }
 
 #[allow(unused_variables)]
+#[allow(clippy::cyclomatic_complexity)]
 pub fn execute<T: Bus, F>(
     mut core: &mut Core<T>,
     instruction: &Instruction,
@@ -71,8 +72,8 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, c);
+                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, c);
                 core.set_r(rd, result);
 
                 if conditional_setflags(setflags, core.in_it_block()) {
@@ -93,7 +94,7 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n, *imm32, core.psr.get_c());
 
                 core.set_r(rd, result);
@@ -119,7 +120,7 @@ where
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
-                    core.get_r(rm),
+                    core.get_r(*rm),
                     &SRType::ASR,
                     usize::from(*shift_n),
                     core.psr.get_c(),
@@ -143,9 +144,9 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(rm).get_bits(0..8);
+                let shift_n = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
-                    core.get_r(rn),
+                    core.get_r(*rn),
                     &SRType::ASR,
                     shift_n as usize,
                     core.psr.get_c(),
@@ -171,12 +172,12 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
 
-                let result = core.get_r(rn) & (shifted ^ 0xffff_ffff);
+                let result = core.get_r(*rn) & (shifted ^ 0xffff_ffff);
                 core.set_r(rd, result);
 
                 if conditional_setflags(setflags, core.in_it_block()) {
@@ -196,7 +197,7 @@ where
             if core.condition_passed() {
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
-                let result = core.get_r(rn) & (im ^ 0xffff_ffff);
+                let result = core.get_r(*rn) & (im ^ 0xffff_ffff);
                 core.set_r(rd, result);
 
                 if *setflags {
@@ -215,8 +216,8 @@ where
             msbit,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_d = core.get_r(rd);
+                let r_n = core.get_r(*rn);
+                let r_d = core.get_r(*rd);
 
                 let width = (msbit - lsbit) + 1;
 
@@ -237,8 +238,8 @@ where
             ExecuteResult::Taken { cycles: 1 }
         }
         Instruction::CBZ { rn, nonzero, imm32 } => {
-            if nonzero ^ (core.get_r(rn) == 0) {
-                let pc = core.get_r(&Reg::PC);
+            if nonzero ^ (core.get_r(*rn) == 0) {
+                let pc = core.get_r(Reg::PC);
                 core.branch_write_pc(pc + imm32);
                 ExecuteResult::Branched { cycles: 1 }
             } else {
@@ -247,7 +248,7 @@ where
         }
         Instruction::CLZ { rd, rm } => {
             if core.condition_passed() {
-                let rm = core.get_r(rm);
+                let rm = core.get_r(*rm);
 
                 core.set_r(rd, rm.leading_zeros());
 
@@ -315,16 +316,16 @@ where
                         core.set_r(rd, ipsr_val);
                     }*/
                     SpecialReg::MSP => {
-                        let msp = core.get_r(rn);
+                        let msp = core.get_r(*rn);
                         core.set_msp(msp);
                     }
                     SpecialReg::PSP => {
-                        let psp = core.get_r(rn);
+                        let psp = core.get_r(*rn);
                         core.set_psp(psp);
                     }
                     //PSP => core.set_r(rd, core.get_r(Reg::PSP),
                     SpecialReg::PRIMASK => {
-                        let primask = core.get_r(rn) & 1 == 1;
+                        let primask = core.get_r(*rn) & 1 == 1;
                         core.primask = primask;
                     }
                     //CONTROL => core.set_r(rd,core.control as u32),
@@ -341,7 +342,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let result = core.get_r(rm);
+                let result = core.get_r(*rm);
                 core.set_r(rd, result);
 
                 if *rd != Reg::PC {
@@ -366,7 +367,7 @@ where
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
-                    core.get_r(rm),
+                    core.get_r(*rm),
                     &SRType::LSL,
                     *shift_n as usize,
                     core.psr.get_c(),
@@ -390,9 +391,9 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(rm).get_bits(0..8);
+                let shift_n = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
-                    core.get_r(rn),
+                    core.get_r(*rn),
                     &SRType::LSL,
                     shift_n as usize,
                     core.psr.get_c(),
@@ -418,7 +419,7 @@ where
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
-                    core.get_r(rm),
+                    core.get_r(*rm),
                     &SRType::LSR,
                     usize::from(*shift_n),
                     core.psr.get_c(),
@@ -443,9 +444,9 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(rm).get_bits(0..8);
+                let shift_n = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
-                    core.get_r(rn),
+                    core.get_r(*rn),
                     &SRType::LSR,
                     shift_n as usize,
                     core.psr.get_c(),
@@ -466,7 +467,7 @@ where
 
         Instruction::BL { imm32 } => {
             if core.condition_passed() {
-                let pc = core.get_r(&Reg::PC);
+                let pc = core.get_r(Reg::PC);
                 core.set_r(&Reg::LR, pc | 0x01);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
@@ -478,8 +479,8 @@ where
 
         Instruction::BKPT { imm32 } => {
             if *imm32 == 0xab {
-                let r0 = core.get_r(&Reg::R0);
-                let r1 = core.get_r(&Reg::R1);
+                let r0 = core.get_r(Reg::R0);
+                let r1 = core.get_r(Reg::R1);
                 let semihost_cmd = decode_semihostcmd(r0, r1, &mut core);
                 let semihost_response = semihost_func(&semihost_cmd);
                 semihost_return(&mut core, &semihost_response);
@@ -499,8 +500,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let operand1 = core.get_r(rn);
-                let operand2 = core.get_r(rm);
+                let operand1 = core.get_r(*rn);
+                let operand2 = core.get_r(*rm);
 
                 let result = operand1.wrapping_mul(operand2);
 
@@ -525,8 +526,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
                 let result = r_n | shifted;
@@ -549,7 +550,7 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
                 let result = r_n | im;
@@ -572,7 +573,7 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
                 let result = r_n ^ im;
@@ -599,8 +600,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
 
@@ -629,8 +630,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
 
@@ -653,7 +654,7 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
                 let result = r_n & im;
@@ -672,7 +673,7 @@ where
 
         Instruction::BX { rm } => {
             if core.condition_passed() {
-                let r_m = core.get_r(rm);
+                let r_m = core.get_r(*rm);
                 core.bx_write_pc(r_m);
                 return ExecuteResult::Branched { cycles: 3 };
             }
@@ -681,8 +682,8 @@ where
 
         Instruction::BLX { rm } => {
             if core.condition_passed() {
-                let pc = core.get_r(&Reg::PC);
-                let target = core.get_r(rm);
+                let pc = core.get_r(Reg::PC);
+                let target = core.get_r(*rm);
                 core.set_r(&Reg::LR, (((pc - 2) >> 1) << 1) | 1);
                 core.blx_write_pc(target);
                 return ExecuteResult::Branched { cycles: 3 };
@@ -698,7 +699,7 @@ where
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
 
-                let mut address = core.get_r(rn);
+                let mut address = core.get_r(*rn);
 
                 let mut branched = false;
                 for reg in registers.iter() {
@@ -744,7 +745,7 @@ where
 
         Instruction::MVN_reg { rd, rm, setflags } => {
             if core.condition_passed() {
-                let result = core.get_r(rm) ^ 0xFFFF_FFFF;
+                let result = core.get_r(*rm) ^ 0xFFFF_FFFF;
                 core.set_r(rd, result);
 
                 if conditional_setflags(setflags, core.in_it_block()) {
@@ -780,7 +781,7 @@ where
             thumb32,
         } => {
             if core.condition_passed_b(cond) {
-                let pc = core.get_r(&Reg::PC);
+                let pc = core.get_r(Reg::PC);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
                 ExecuteResult::Branched { cycles: 3 }
@@ -790,7 +791,7 @@ where
         }
         Instruction::B_t24 { imm32, thumb32 } => {
             if core.condition_passed() {
-                let pc = core.get_r(&Reg::PC);
+                let pc = core.get_r(Reg::PC);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
                 ExecuteResult::Branched { cycles: 3 }
@@ -802,7 +803,7 @@ where
         Instruction::CMP_imm { rn, imm32, thumb32 } => {
             if core.condition_passed() {
                 let (result, carry, overflow) =
-                    add_with_carry(core.get_r(rn), imm32 ^ 0xFFFF_FFFF, true);
+                    add_with_carry(core.get_r(*rn), imm32 ^ 0xFFFF_FFFF, true);
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
@@ -815,7 +816,7 @@ where
         Instruction::CMP_reg { rn, rm } => {
             if core.condition_passed() {
                 let (result, carry, overflow) =
-                    add_with_carry(core.get_r(rn), core.get_r(rm) ^ 0xFFFF_FFFF, true);
+                    add_with_carry(core.get_r(*rn), core.get_r(*rm) ^ 0xFFFF_FFFF, true);
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
@@ -833,8 +834,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, core.psr.get_c());
-                let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, false);
+                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, core.psr.get_c());
+                let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, false);
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
@@ -845,7 +846,7 @@ where
         }
         Instruction::CMN_imm { rn, imm32 } => {
             if core.condition_passed() {
-                let (result, carry, overflow) = add_with_carry(core.get_r(rn), *imm32, false);
+                let (result, carry, overflow) = add_with_carry(core.get_r(*rn), *imm32, false);
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
@@ -858,11 +859,11 @@ where
         Instruction::PUSH { registers, thumb32 } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
-                let sp = core.get_r(&Reg::SP);
+                let sp = core.get_r(Reg::SP);
                 let mut address = sp - regs_size;
 
                 for reg in registers.iter() {
-                    let value = core.get_r(&reg);
+                    let value = core.get_r(reg);
                     core.bus.write32(address, value);
                     address += 4;
                 }
@@ -878,7 +879,7 @@ where
         Instruction::POP { registers, thumb32 } => {
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
-                let sp = core.get_r(&Reg::SP);
+                let sp = core.get_r(Reg::SP);
                 let mut address = sp;
 
                 for reg in registers.iter() {
@@ -917,7 +918,7 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let data = core.bus.read32(address);
                 if *wback {
@@ -945,7 +946,7 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let data = core.bus.read16(address);
                 if *wback {
@@ -970,11 +971,11 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), offset, *add, *index);
+                    resolve_addressing(core.get_r(*rn), offset, *add, *index);
 
                 let data = core.bus.read32(address);
                 if *wback {
@@ -1001,7 +1002,7 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let data = core.bus.read8(address);
                 core.set_r(rt, u32::from(data));
@@ -1017,7 +1018,7 @@ where
 
         Instruction::LDRB_reg { rt, rn, rm } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
+                let address = core.get_r(*rn) + core.get_r(*rm);
                 let value = u32::from(core.bus.read8(address));
                 core.set_r(rt, value);
                 return ExecuteResult::Taken { cycles: 2 };
@@ -1036,7 +1037,7 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let data = core.bus.read16(address);
                 if *wback {
@@ -1061,11 +1062,11 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), offset, *add, *index);
+                    resolve_addressing(core.get_r(*rn), offset, *add, *index);
 
                 let data = u32::from(core.bus.read16(address));
                 if *wback {
@@ -1090,11 +1091,11 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), offset, *add, *index);
+                    resolve_addressing(core.get_r(*rn), offset, *add, *index);
 
                 let data = u32::from(core.bus.read16(address));
                 if *wback {
@@ -1109,7 +1110,7 @@ where
 
         Instruction::LDRSB_reg { rt, rn, rm } => {
             if core.condition_passed() {
-                let address = core.get_r(rn) + core.get_r(rm);
+                let address = core.get_r(*rn) + core.get_r(*rm);
                 let data = u32::from(core.bus.read8(address));
                 core.set_r(rt, sign_extend(data, 7, 32) as u32);
                 return ExecuteResult::Taken { cycles: 2 };
@@ -1124,7 +1125,7 @@ where
         } => {
             if core.condition_passed() {
                 let (result, carry) = shift_c(
-                    core.get_r(rm),
+                    core.get_r(*rm),
                     &SRType::ROR,
                     usize::from(*shift_n),
                     core.psr.get_c(),
@@ -1152,8 +1153,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let shifted = shift(r_m, shift_t, *shift_n as usize, core.psr.get_c());
 
@@ -1182,10 +1183,10 @@ where
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
 
-                let mut address = core.get_r(rn);
+                let mut address = core.get_r(*rn);
 
                 for reg in registers.iter() {
-                    let r = core.get_r(&reg);
+                    let r = core.get_r(reg);
                     core.bus.write32(address, r);
                     address += 4;
                 }
@@ -1207,10 +1208,10 @@ where
             if core.condition_passed() {
                 let regs_size = 4 * (registers.len() as u32);
 
-                let mut address = core.get_r(rn) - regs_size;
+                let mut address = core.get_r(*rn) - regs_size;
 
                 for reg in registers.iter() {
-                    let r = core.get_r(&reg);
+                    let r = core.get_r(reg);
                     core.bus.write32(address, r);
                     address += 4;
                 }
@@ -1236,9 +1237,9 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
-                let value = core.get_r(rt);
+                let value = core.get_r(*rt);
                 if *wback {
                     core.set_r(rn, offset_address);
                 }
@@ -1260,11 +1261,11 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
-                let value1 = core.get_r(rt);
+                let value1 = core.get_r(*rt);
                 core.bus.write32(address, value1);
-                let value2 = core.get_r(rt2);
+                let value2 = core.get_r(*rt2);
                 core.bus.write32(address + 4, value2);
 
                 if *wback {
@@ -1286,7 +1287,7 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let data = core.bus.read32(address);
                 core.set_r(rt, data);
@@ -1315,9 +1316,9 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let address = core.get_r(rn) + offset;
-                let value = core.get_r(rt);
+                let offset = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let address = core.get_r(*rn) + offset;
+                let value = core.get_r(*rt);
                 core.bus.write32(address, value);
 
                 return ExecuteResult::Taken { cycles: 2 };
@@ -1338,9 +1339,9 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let address = core.get_r(rn) + offset;
-                let value = core.get_r(rt).get_bits(0..8) as u8;
+                let offset = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let address = core.get_r(*rn) + offset;
+                let value = core.get_r(*rt).get_bits(0..8) as u8;
                 core.bus.write8(address, value);
                 return ExecuteResult::Taken { cycles: 2 };
             }
@@ -1358,9 +1359,9 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
-                let value = core.get_r(rt);
+                let value = core.get_r(*rt);
                 if *wback {
                     core.set_r(rn, offset_address);
                 }
@@ -1383,9 +1384,9 @@ where
         } => {
             if core.condition_passed() {
                 let (address, offset_address) =
-                    resolve_addressing(core.get_r(rn), *imm32, *add, *index);
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
-                let value = core.get_r(rt);
+                let value = core.get_r(*rt);
                 core.bus.write16(address, value.get_bits(0..16) as u16);
 
                 if *wback {
@@ -1410,9 +1411,9 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let address = core.get_r(rn) + offset;
-                let value = core.get_r(rt).get_bits(0..16) as u16;
+                let offset = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let address = core.get_r(*rn) + offset;
+                let value = core.get_r(*rt).get_bits(0..16) as u16;
                 core.bus.write16(address, value);
                 return ExecuteResult::Taken { cycles: 2 };
             }
@@ -1426,7 +1427,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let base = core.get_r(&Reg::PC) & 0xffff_fffc;
+                let base = core.get_r(Reg::PC) & 0xffff_fffc;
                 let address = if *add { base + imm32 } else { base - imm32 };
                 let data = core.bus.read32(address);
 
@@ -1452,8 +1453,8 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
-                let (result, carry, overflow) = add_with_carry(core.get_r(rn), shifted, false);
+                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
@@ -1482,9 +1483,9 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
+                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
                 let (result, carry, overflow) =
-                    add_with_carry(core.get_r(&Reg::SP), shifted, false);
+                    add_with_carry(core.get_r(Reg::SP), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
@@ -1512,7 +1513,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n, *imm32, false);
 
                 if conditional_setflags(setflags, core.in_it_block()) {
@@ -1530,7 +1531,7 @@ where
 
         Instruction::ADR { rd, imm32, thumb32 } => {
             if core.condition_passed() {
-                let result = (core.get_r(&Reg::PC) & 0xffff_fffc) + imm32;
+                let result = (core.get_r(Reg::PC) & 0xffff_fffc) + imm32;
                 core.set_r(rd, result);
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1545,7 +1546,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, *imm32, true);
 
                 if conditional_setflags(setflags, core.in_it_block()) {
@@ -1567,7 +1568,7 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (result, carry, overflow) =
                     add_with_carry(r_n, *imm32 ^ 0xFFFF_FFFF, core.psr.get_c());
 
@@ -1595,8 +1596,8 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
                 let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, shifted, true);
@@ -1622,7 +1623,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
+                let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
 
                 if conditional_setflags(setflags, core.in_it_block()) {
@@ -1648,10 +1649,10 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(rm), shift_t, *shift_n as usize, c);
+                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
 
                 let (result, carry, overflow) = add_with_carry(r_n, shifted ^ 0xFFFF_FFFF, true);
                 core.set_r(rd, result);
@@ -1668,9 +1669,9 @@ where
         }
         Instruction::TBB { rn, rm } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
-                let pc = core.get_r(&Reg::PC);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
+                let pc = core.get_r(Reg::PC);
                 let halfwords = u32::from(core.bus.read8(r_n + r_m));
 
                 core.branch_write_pc(pc + 2 * halfwords);
@@ -1682,7 +1683,7 @@ where
 
         Instruction::TST_reg { rn, rm } => {
             if core.condition_passed() {
-                let result = core.get_r(rn) & core.get_r(rm);
+                let result = core.get_r(*rn) & core.get_r(*rm);
 
                 core.psr.set_n(result);
                 core.psr.set_z(result);
@@ -1695,7 +1696,7 @@ where
             if core.condition_passed() {
                 let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
 
-                let result = core.get_r(rn) & im;
+                let result = core.get_r(*rn) & im;
 
                 core.psr.set_n(result);
                 core.psr.set_z(result);
@@ -1712,8 +1713,8 @@ where
             shift_t,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(rn);
-                let r_m = core.get_r(rm);
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
 
                 let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
                 let result = r_n ^ shifted;
@@ -1737,7 +1738,7 @@ where
             if core.condition_passed() {
                 let msbit = lsb + widthminus1;
                 if msbit <= 31 {
-                    let data = core.get_r(rn).get_bits(*lsb..(msbit + 1));
+                    let data = core.get_r(*rn).get_bits(*lsb..(msbit + 1));
                     core.set_r(rd, data);
                 } else {
                     panic!();
@@ -1755,7 +1756,7 @@ where
             rotation,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), *rotation);
+                let rotated = ror(core.get_r(*rm), *rotation);
                 core.set_r(rd, rotated.get_bits(0..8));
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1769,7 +1770,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), *rotation);
+                let rotated = ror(core.get_r(*rm), *rotation);
                 core.set_r(rd, rotated.get_bits(0..16));
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1783,7 +1784,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), *rotation);
+                let rotated = ror(core.get_r(*rm), *rotation);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1797,7 +1798,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let rotated = ror(core.get_r(rm), *rotation);
+                let rotated = ror(core.get_r(*rm), *rotation);
                 core.set_r(rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1805,7 +1806,7 @@ where
         }
         Instruction::REV { rd, rm } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 core.set_r(
                     rd,
                     ((rm_ & 0xff) << 24)
@@ -1819,7 +1820,7 @@ where
         }
         Instruction::REV16 { rd, rm } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 core.set_r(
                     rd,
                     ((rm_ & 0xff) << 8)
@@ -1833,7 +1834,7 @@ where
         }
         Instruction::REVSH { rd, rm } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 core.set_r(
                     rd,
                     ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
@@ -1849,9 +1850,9 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(rm) & 0xff;
+                let shift_n = core.get_r(*rm) & 0xff;
                 let (result, carry) = shift_c(
-                    core.get_r(rn),
+                    core.get_r(*rn),
                     &SRType::ROR,
                     shift_n as usize,
                     core.psr.get_c(),
@@ -1941,7 +1942,7 @@ where
         // ARMv7-M
         Instruction::UDIV { rd, rn, rm } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 let result = if rm_ == 0 {
                     if core.integer_zero_divide_trapping_enabled() {
                         return ExecuteResult::Fault {
@@ -1950,7 +1951,7 @@ where
                     }
                     0
                 } else {
-                    let rn_ = core.get_r(rn);
+                    let rn_ = core.get_r(*rn);
                     rn_ / rm_
                 };
                 core.set_r(rd, result);
@@ -1961,7 +1962,7 @@ where
         // ARMv7-M
         Instruction::SDIV { rd, rn, rm } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(rm);
+                let rm_ = core.get_r(*rm);
                 let result = if rm_ == 0 {
                     if core.integer_zero_divide_trapping_enabled() {
                         return ExecuteResult::Fault {
@@ -1970,7 +1971,7 @@ where
                     }
                     0
                 } else {
-                    let rn_ = core.get_r(rn);
+                    let rn_ = core.get_r(*rn);
                     (rn_ as i32) / (rm_ as i32)
                 };
                 core.set_r(rd, result as u32);
@@ -1981,9 +1982,9 @@ where
         // ARMv7-M
         Instruction::MLA { rd, rn, rm, ra } => {
             if core.condition_passed() {
-                let rn_ = core.get_r(rn);
-                let rm_ = core.get_r(rm);
-                let ra_ = core.get_r(ra);
+                let rn_ = core.get_r(*rn);
+                let rm_ = core.get_r(*rm);
+                let ra_ = core.get_r(*ra);
                 let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
 
                 core.set_r(rd, result);
@@ -1994,9 +1995,9 @@ where
         // ARMv7-M
         Instruction::MLS { rd, rn, rm, ra } => {
             if core.condition_passed() {
-                let rn_ = core.get_r(rn);
-                let rm_ = core.get_r(rm);
-                let ra_ = core.get_r(ra);
+                let rn_ = core.get_r(*rn);
+                let rm_ = core.get_r(*rm);
+                let ra_ = core.get_r(*ra);
                 let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
 
                 core.set_r(rd, result);
@@ -2007,10 +2008,10 @@ where
         // ARMv7-M
         Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
             if core.condition_passed() {
-                let rn_ = u64::from(core.get_r(rn));
-                let rm_ = u64::from(core.get_r(rm));
-                let rdlo_ = u64::from(core.get_r(rdlo));
-                let rdhi_ = u64::from(core.get_r(rdhi));
+                let rn_ = u64::from(core.get_r(*rn));
+                let rm_ = u64::from(core.get_r(*rm));
+                let rdlo_ = u64::from(core.get_r(*rdlo));
+                let rdhi_ = u64::from(core.get_r(*rdhi));
 
                 let rdhilo = (rdhi_ << 32) + rdlo_;
 
@@ -2025,8 +2026,8 @@ where
         // ARMv7-M
         Instruction::UMULL { rdlo, rdhi, rn, rm } => {
             if core.condition_passed() {
-                let rn_ = u64::from(core.get_r(rn));
-                let rm_ = u64::from(core.get_r(rm));
+                let rn_ = u64::from(core.get_r(*rn));
+                let rm_ = u64::from(core.get_r(*rm));
                 let result = rn_.wrapping_mul(rm_);
 
                 core.set_r(rdlo, result.get_bits(0..32) as u32);
@@ -2080,8 +2081,8 @@ mod tests {
 
         assert_eq!(result, ExecuteResult::Taken { cycles: 1 });
 
-        assert_eq!(core.get_r(&Reg::R0), 0x29a);
-        assert_eq!(core.get_r(&Reg::R1), 0x3);
+        assert_eq!(core.get_r(Reg::R0), 0x29a);
+        assert_eq!(core.get_r(Reg::R1), 0x3);
     }
 
     #[test]
@@ -2112,7 +2113,7 @@ mod tests {
 
         assert_eq!(result, ExecuteResult::Taken { cycles: 1 });
 
-        assert_eq!(core.get_r(&Reg::R1), 0x20000DD0);
+        assert_eq!(core.get_r(Reg::R1), 0x20000DD0);
     }
 
     /*"it ne" blokki (alla) ei suoritu oikein, iarissa mov r4, #0 ei ajeta, mutta emussa ajetaan.
@@ -2176,7 +2177,7 @@ mod tests {
             },
         );
 
-        assert_eq!(core.get_r(&Reg::R4), 0x01);
+        assert_eq!(core.get_r(Reg::R4), 0x01);
         assert!(!core.in_it_block());
     }
 
@@ -2230,8 +2231,8 @@ mod tests {
             },
         );
 
-        assert_eq!(core.get_r(&Reg::R3), 0xaabbccdd);
-        assert_eq!(core.get_r(&Reg::R2), 0x112233dd);
+        assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
+        assert_eq!(core.get_r(Reg::R2), 0x112233dd);
     }
 
     #[test]
@@ -2263,7 +2264,7 @@ mod tests {
             },
         );
 
-        assert_eq!(core.get_r(&Reg::R6), 0);
+        assert_eq!(core.get_r(Reg::R6), 0);
     }
 
 }

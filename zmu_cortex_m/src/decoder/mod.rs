@@ -230,6 +230,7 @@ fn decode_UDF_t2(opcode: u32) -> Instruction {
     }
 }
 
+#[allow(clippy::cyclomatic_complexity)]
 pub fn decode_16(opcode: u16) -> Instruction {
     if opcode == 0xbf20 {
         decode_WFE_t1(opcode)
@@ -390,6 +391,7 @@ pub fn decode_16(opcode: u16) -> Instruction {
     }
 }
 
+#[allow(clippy::cyclomatic_complexity, clippy::unreadable_literal)]
 pub fn decode_32(opcode: u32) -> Instruction {
     if opcode == 0xf3af8000 {
         decode_NOP_t2(opcode)

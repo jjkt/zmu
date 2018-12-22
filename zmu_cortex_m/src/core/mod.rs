@@ -173,8 +173,8 @@ impl<'a, T: Bus> Core<'a, T> {
     //
     // Getter for registers
     //
-    pub fn get_r(&self, r: &Reg) -> u32 {
-        match *r {
+    pub fn get_r(&self, r: Reg) -> u32 {
+        match r {
             Reg::R0
             | Reg::R1
             | Reg::R2
@@ -188,7 +188,7 @@ impl<'a, T: Bus> Core<'a, T> {
             | Reg::R10
             | Reg::R11
             | Reg::R12 => {
-                let reg: usize = From::from(*r);
+                let reg: usize = From::from(r);
                 self.r0_12[reg]
             }
             Reg::SP => {
@@ -409,12 +409,12 @@ impl<'a, T: Bus> Core<'a, T> {
                 (self.msp, align)
             };
 
-        let r0 = self.get_r(&Reg::R0);
-        let r1 = self.get_r(&Reg::R1);
-        let r2 = self.get_r(&Reg::R2);
-        let r3 = self.get_r(&Reg::R3);
-        let r12 = self.get_r(&Reg::R12);
-        let lr = self.get_r(&Reg::LR);
+        let r0 = self.get_r(Reg::R0);
+        let r1 = self.get_r(Reg::R1);
+        let r2 = self.get_r(Reg::R2);
+        let r3 = self.get_r(Reg::R3);
+        let r12 = self.get_r(Reg::R12);
+        let lr = self.get_r(Reg::LR);
 
         self.bus.write32(frameptr, r0);
         self.bus.write32(frameptr + 0x4, r1);
@@ -526,27 +526,27 @@ impl<'a, T: Bus> fmt::Display for Core<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "PC:{:08X} {}{}{}{}{} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
                   R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X}",
-                 self.get_r(&Reg::PC),
+                 self.get_r(Reg::PC),
                  if self.psr.get_z() {'Z'} else {'z'},
                  if self.psr.get_n() {'N'} else {'n'},
                  if self.psr.get_c() {'C'} else {'c'},
                  if self.psr.get_v() {'V'} else {'v'},
                  if self.psr.get_q() {'Q'} else {'q'},
-                 self.get_r(&Reg::R0),
-                 self.get_r(&Reg::R1),
-                 self.get_r(&Reg::R2),
-                 self.get_r(&Reg::R3),
-                 self.get_r(&Reg::R4),
-                 self.get_r(&Reg::R5),
-                 self.get_r(&Reg::R6),
-                 self.get_r(&Reg::R7),
-                 self.get_r(&Reg::R8),
-                 self.get_r(&Reg::R9),
-                 self.get_r(&Reg::R10),
-                 self.get_r(&Reg::R11),
-                 self.get_r(&Reg::R12),
-                 self.get_r(&Reg::SP),
-                 self.get_r(&Reg::LR))
+                 self.get_r(Reg::R0),
+                 self.get_r(Reg::R1),
+                 self.get_r(Reg::R2),
+                 self.get_r(Reg::R3),
+                 self.get_r(Reg::R4),
+                 self.get_r(Reg::R5),
+                 self.get_r(Reg::R6),
+                 self.get_r(Reg::R7),
+                 self.get_r(Reg::R8),
+                 self.get_r(Reg::R9),
+                 self.get_r(Reg::R10),
+                 self.get_r(Reg::R11),
+                 self.get_r(Reg::R12),
+                 self.get_r(Reg::SP),
+                 self.get_r(Reg::LR))
     }
 }
 
@@ -579,7 +579,7 @@ mod tests {
             core.push_stack(99);
 
             assert_eq!(core.msp, 0xe0);
-            core.get_r(&Reg::LR)
+            core.get_r(Reg::LR)
         };
 
         // values pushed on to stack
