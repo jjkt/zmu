@@ -184,8 +184,11 @@ pub enum Instruction {
         thumb32: bool,
     },
     CMP_reg {
-        rm: Reg,
         rn: Reg,
+        rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     CPS {
         im: CpsEffect,
@@ -1121,7 +1124,24 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32
             ),
-            Instruction::CMP_reg { rn, rm } => write!(f, "cmp {}, {}", rn, rm),
+            Instruction::CMP_reg {
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                thumb32,
+            } => write!(
+                f,
+                "cmp{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    "".to_string()
+                }
+            ),
             Instruction::CPS { im } => write!(f, "cps{}", im),
             Instruction::DMB => write!(f, "dmb"),
             Instruction::DSB => write!(f, "dsb"),
@@ -2463,6 +2483,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::CMN_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::CMP_reg {
             rn,
             rm,
             shift_t,

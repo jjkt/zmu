@@ -488,9 +488,7 @@ where
             ExecuteResult::Taken { cycles: 1 }
         }
 
-        Instruction::NOP => {
-            ExecuteResult::Taken { cycles: 1 }
-        }
+        Instruction::NOP => ExecuteResult::Taken { cycles: 1 },
 
         Instruction::MUL {
             rd,
@@ -813,10 +811,23 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::CMP_reg { rn, rm } => {
+        Instruction::CMP_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
             if core.condition_passed() {
+                let shifted = shift(
+                    core.get_r(*rm),
+                    shift_t,
+                    *shift_n as usize,
+                    core.psr.get_c(),
+                );
                 let (result, carry, overflow) =
-                    add_with_carry(core.get_r(*rn), core.get_r(*rm) ^ 0xFFFF_FFFF, true);
+                    add_with_carry(core.get_r(*rn), shifted ^ 0xFFFF_FFFF, true);
+
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
@@ -834,7 +845,12 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, core.psr.get_c());
+                let shifted = shift(
+                    core.get_r(*rm),
+                    shift_t,
+                    *shift_n as usize,
+                    core.psr.get_c(),
+                );
                 let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, false);
                 core.psr.set_n(result);
                 core.psr.set_z(result);
@@ -1484,8 +1500,7 @@ where
             if core.condition_passed() {
                 let c = core.psr.get_c();
                 let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
-                let (result, carry, overflow) =
-                    add_with_carry(core.get_r(Reg::SP), shifted, false);
+                let (result, carry, overflow) = add_with_carry(core.get_r(Reg::SP), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
@@ -2142,6 +2157,9 @@ mod tests {
         let i1 = Instruction::CMP_reg {
             rn: Reg::R0,
             rm: Reg::R5,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            thumb32: false,
         };
 
         let i2 = Instruction::IT {
