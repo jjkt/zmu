@@ -310,7 +310,23 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
+    LDRSB_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
+    },
+
     LDRSH_reg {
         rt: Reg,
         rn: Reg,
@@ -1284,7 +1300,17 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LDRSB_reg { rt, rn, rm } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
+            Instruction::LDRSB_reg {
+                rt,
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                index,
+                wback,
+                add,
+                thumb32,
+            } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
             Instruction::LDRSH_reg {
                 rt,
                 rn,
@@ -1400,6 +1426,16 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrsh", f, rn, rt, imm32, index, add, wback, thumb32),
+
+            Instruction::LDRSB_imm {
+                rt,
+                rn,
+                imm32,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => format_adressing_mode("ldrsb", f, rn, rt, imm32, index, add, wback, thumb32),
 
             Instruction::MVN_reg {
                 rd,
@@ -2062,6 +2098,23 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::LDRSB_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::LDR_reg {
             rt,
             rn,
@@ -2131,6 +2184,21 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::LDRSH_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::LDRSB_imm {
             rt,
             rn,
             imm32,

@@ -974,6 +974,29 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::LDRSB_imm {
+            rt,
+            rn,
+            imm32,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            if core.condition_passed() {
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
+
+                let data = core.bus.read8(address);
+                if *wback {
+                    core.set_r(*rn, offset_address);
+                }
+
+                core.set_r(*rt, sign_extend(data.into(), 7, 32) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::LDR_reg {
             rt,
@@ -1124,10 +1147,29 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::LDRSB_reg { rt, rn, rm } => {
+        Instruction::LDRSB_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            wback,
+            add,
+            thumb32,
+        } => {
             if core.condition_passed() {
-                let address = core.get_r(*rn) + core.get_r(*rm);
+                let rm_ = core.get_r(*rm);
+                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+
+                let (address, offset_address) =
+                    resolve_addressing(core.get_r(*rn), offset, *add, *index);
+
                 let data = u32::from(core.bus.read8(address));
+                if *wback {
+                    core.set_r(*rn, offset_address);
+                }
+
                 core.set_r(*rt, sign_extend(data, 7, 32) as u32);
                 return ExecuteResult::Taken { cycles: 2 };
             }

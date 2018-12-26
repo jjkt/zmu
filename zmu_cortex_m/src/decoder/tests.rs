@@ -1273,16 +1273,20 @@ fn test_decode_eor_reg() {
 #[test]
 fn test_decode_ldrsb_reg() {
     // LDRSB R4, [R4, R0]
-    match decode_16(0x5624) {
-        Instruction::LDRSB_reg { rt, rn, rm } => {
-            assert_eq!(rt, Reg::R4);
-            assert_eq!(rn, Reg::R4);
-            assert_eq!(rm, Reg::R0);
+    assert_eq!(
+        decode_16(0x5624),
+        Instruction::LDRSB_reg {
+            rt: Reg::R4,
+            rn: Reg::R4,
+            rm: Reg::R0,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: false,
         }
-        _ => {
-            assert!(false);
-        }
-    }
+    );
 }
 
 #[test]
@@ -2487,22 +2491,6 @@ fn test_decode_ldm_t2_w() {
     }
 }
 
-//#[test]
-//fn test_decode_smul_t2_w() {
-// 0xfb1efe08 -> SMULBB LR, LR, R8
-//    assert_eq!(
-//decode_32(0xfb1efe08),
-//Instruction::SMUL {
-//n_high: false, // "B"
-//m_high: false, // "B"
-//rd: Reg::LR,
-//rn: Reg::LR,
-//rm: Reg::R8,
-//}
-//);
-
-//}
-
 #[test]
 fn test_decode_cmp_reg_w() {
     // 0xebb71f46 -> CMP.W R7, R6, LSL #5
@@ -2513,6 +2501,23 @@ fn test_decode_cmp_reg_w() {
             rm: Reg::R6,
             shift_t: SRType::LSL,
             shift_n: 5,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_ldrsb_imm_w() {
+    // 0xf9956000 -> LDRSB R6, [R5]
+    assert_eq!(
+        decode_32(0xf9956000),
+        Instruction::LDRSB_imm {
+            rt: Reg::R6,
+            rn: Reg::R5,
+            imm32: 0,
+            index: true,
+            add: true,
+            wback: false,
             thumb32: true,
         }
     );
