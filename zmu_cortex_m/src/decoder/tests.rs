@@ -2522,3 +2522,18 @@ fn test_decode_ldrsb_imm_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_smul_bb() {
+    // 0xfb1efe08 -> SMULBB LR, LR, R8
+    assert_eq!(
+        decode_32(0xfb1efe08),
+        Instruction::SMUL {
+            rd: Reg::LR,
+            rn: Reg::LR,
+            rm: Reg::R8,
+            n_high: false,
+            m_high: false
+        }
+    );
+}

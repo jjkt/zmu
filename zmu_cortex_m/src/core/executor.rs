@@ -513,6 +513,33 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::SMUL {
+            rd,
+            rn,
+            rm,
+            m_high,
+            n_high,
+        } => {
+            if core.condition_passed() {
+                let operand1 = if *n_high {
+                    core.get_r(*rn).get_bits(16..32) as i16
+                } else {
+                    core.get_r(*rn).get_bits(0..16) as i16
+                };
+                let operand2 = if *m_high {
+                    core.get_r(*rm).get_bits(16..32) as i16
+                } else {
+                    core.get_r(*rm).get_bits(0..16) as i16
+                };
+
+                let result = operand1.wrapping_mul(operand2);
+
+                core.set_r(*rd, result as u32);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::ORR_reg {
             rd,

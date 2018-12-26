@@ -90,6 +90,7 @@ mod sbc;
 mod sdiv;
 mod sev;
 mod smlal;
+mod smul;
 mod smull;
 mod stc;
 mod stm;
@@ -175,6 +176,7 @@ use crate::decoder::rsb::*;
 use crate::decoder::sbc::*;
 use crate::decoder::sdiv::*;
 use crate::decoder::smlal::*;
+use crate::decoder::smul::*;
 use crate::decoder::smull::*;
 use crate::decoder::stc::*;
 use crate::decoder::stm::*;
@@ -489,6 +491,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_PUSH_t2(opcode)
     } else if (opcode & 0xfff00fc0) == 0xf8400000 {
         decode_STR_reg_t2(opcode)
+    } else if (opcode & 0xfff0f0c0) == 0xfb10f000 {
+        decode_SMUL_t1(opcode)
     } else if (opcode & 0xfff00fc0) == 0xf8300000 {
         decode_LDRH_reg_t2(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0030 {
@@ -515,6 +519,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_CMN_reg_t2(opcode)
     } else if (opcode & 0xfff08f00) == 0xea900f00 {
         decode_TEQ_reg_t1(opcode)
+    } else if (opcode & 0xfff00f00) == 0xe8500f00 {
+        decode_LDREX_t1(opcode)
     } else if (opcode & 0xfbf08f00) == 0xf1100f00 {
         decode_CMN_imm_t1(opcode)
     } else if (opcode & 0xfbff8000) == 0xf20f0000 {
@@ -557,8 +563,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_UDF_t2(opcode)
     } else if (opcode & 0xfff000f0) == 0xfb800000 {
         decode_SMULL_t1(opcode)
-    } else if (opcode & 0xfff00f00) == 0xe8500f00 {
-        decode_LDREX_t1(opcode)
     } else if (opcode & 0xfff00f00) == 0xf9100e00 {
         decode_LDRSBT_t1(opcode)
     } else if (opcode & 0xfbef8000) == 0xf04f0000 {
@@ -613,8 +617,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_EOR_reg_t2(opcode)
     } else if (opcode & 0xfbf08000) == 0xf2c00000 {
         decode_MOVT_t1(opcode)
-    } else if (opcode & 0xffd02000) == 0xe9100000 {
-        decode_LDMDB_t1(opcode)
     } else if (opcode & 0xffe08000) == 0xeba00000 {
         decode_SUB_reg_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xebc00000 {
@@ -655,6 +657,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_AND_reg_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xeb400000 {
         decode_ADC_reg_t2(opcode)
+    } else if (opcode & 0xffd02000) == 0xe9100000 {
+        decode_LDMDB_t1(opcode)
     } else if (opcode & 0xffe08000) == 0xea600000 {
         decode_ORN_reg_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8800000 {

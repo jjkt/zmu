@@ -704,6 +704,14 @@ pub enum Instruction {
         rdhi: Reg,
         rn: Reg,
     },
+    // ARMv7-M
+    SMUL {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        n_high: bool,
+        m_high: bool,
+    },
     UXTB {
         rd: Reg,
         rm: Reg,
@@ -1388,6 +1396,21 @@ impl fmt::Display for Instruction {
                 ref setflags,
                 thumb32,
             } => write!(f, "mul{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
+            Instruction::SMUL {
+                rd,
+                rn,
+                rm,
+                n_high,
+                m_high,
+            } => write!(
+                f,
+                "smul{}{} {}, {}, {}",
+                if n_high { "T" } else { "B" },
+                if m_high { "T" } else { "B" },
+                rd,
+                rn,
+                rm
+            ),
             Instruction::MOV_reg {
                 rd,
                 rm,
@@ -2695,6 +2718,15 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             thumb32,
         } => 4,
         Instruction::CLZ { rd, rm } => 4,
+
+        Instruction::SMUL {
+            rd,
+            rn,
+            rm,
+            m_high,
+            n_high,
+        } => 4,
+
         _ => 2,
     }
 }
