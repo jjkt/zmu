@@ -704,11 +704,20 @@ pub enum Instruction {
         rdhi: Reg,
         rn: Reg,
     },
-    // ARMv7-M
+    // ARMv7-Me
     SMUL {
         rd: Reg,
         rn: Reg,
         rm: Reg,
+        n_high: bool,
+        m_high: bool,
+    },
+    // ARMv7-Me
+    SMLA {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        ra: Reg,
         n_high: bool,
         m_high: bool,
     },
@@ -1410,6 +1419,23 @@ impl fmt::Display for Instruction {
                 rd,
                 rn,
                 rm
+            ),
+            Instruction::SMLA {
+                rd,
+                rn,
+                rm,
+                ra,
+                n_high,
+                m_high,
+            } => write!(
+                f,
+                "smla{}{} {}, {}, {}, {}",
+                if n_high { "T" } else { "B" },
+                if m_high { "T" } else { "B" },
+                rd,
+                rn,
+                rm,
+                ra
             ),
             Instruction::MOV_reg {
                 rd,
@@ -2723,6 +2749,14 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rd,
             rn,
             rm,
+            m_high,
+            n_high,
+        } => 4,
+        Instruction::SMLA {
+            rd,
+            rn,
+            rm,
+            ra,
             m_high,
             n_high,
         } => 4,

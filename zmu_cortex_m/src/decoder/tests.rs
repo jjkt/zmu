@@ -2537,3 +2537,19 @@ fn test_decode_smul_bb() {
         }
     );
 }
+
+#[test]
+fn test_decode_smla_bb() {
+    // 0xfb15ee0b -> SMLABB LR, R5, R11, LR
+    assert_eq!(
+        decode_32(0xfb15ee0b),
+        Instruction::SMLA {
+            rd: Reg::LR,
+            rn: Reg::R5,
+            rm: Reg::R11,
+            ra: Reg::LR,
+            n_high: false,
+            m_high: false
+        }
+    );
+}

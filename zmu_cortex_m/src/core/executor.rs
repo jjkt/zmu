@@ -522,19 +522,52 @@ where
         } => {
             if core.condition_passed() {
                 let operand1 = if *n_high {
-                    core.get_r(*rn).get_bits(16..32) as i16
+                    core.get_r(*rn).get_bits(16..32) as i32
                 } else {
-                    core.get_r(*rn).get_bits(0..16) as i16
+                    core.get_r(*rn).get_bits(0..16) as i32
                 };
                 let operand2 = if *m_high {
-                    core.get_r(*rm).get_bits(16..32) as i16
+                    core.get_r(*rm).get_bits(16..32) as i32
                 } else {
-                    core.get_r(*rm).get_bits(0..16) as i16
+                    core.get_r(*rm).get_bits(0..16) as i32
                 };
 
                 let result = operand1.wrapping_mul(operand2);
 
                 core.set_r(*rd, result as u32);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        Instruction::SMLA {
+            rd,
+            rn,
+            rm,
+            ra,
+            m_high,
+            n_high,
+        } => {
+            if core.condition_passed() {
+                let operand1 = if *n_high {
+                    core.get_r(*rn).get_bits(16..32) as i32
+                } else {
+                    core.get_r(*rn).get_bits(0..16) as i32
+                };
+                let operand2 = if *m_high {
+                    core.get_r(*rm).get_bits(16..32) as i32
+                } else {
+                    core.get_r(*rm).get_bits(0..16) as i32
+                };
+
+                let result = operand1
+                    .wrapping_mul(operand2)
+                    .wrapping_add(core.get_r(*ra) as i32);
+
+                core.set_r(*rd, result as u32);
+                if result != result as i32 {
+                    core.psr.set_q(true);
+                }
 
                 return ExecuteResult::Taken { cycles: 1 };
             }

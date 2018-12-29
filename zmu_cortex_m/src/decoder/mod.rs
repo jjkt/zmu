@@ -89,6 +89,7 @@ mod rsb;
 mod sbc;
 mod sdiv;
 mod sev;
+mod smla;
 mod smlal;
 mod smul;
 mod smull;
@@ -175,6 +176,7 @@ use crate::decoder::rsb::*;
 
 use crate::decoder::sbc::*;
 use crate::decoder::sdiv::*;
+use crate::decoder::smla::*;
 use crate::decoder::smlal::*;
 use crate::decoder::smul::*;
 use crate::decoder::smull::*;
@@ -571,18 +573,20 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDR_lit_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf83f0000 {
         decode_LDRH_lit_t1(opcode)
+    } else if (opcode & 0xfbef8000) == 0xf1ad0000 {
+        decode_SUB_SP_imm_t2(opcode)
     } else if (opcode & 0xfbef8000) == 0xf06f0000 {
         decode_MVN_imm_t1(opcode)
     } else if (opcode & 0xff7f0000) == 0xf81f0000 {
         decode_LDRB_lit_t1(opcode)
     } else if (opcode & 0xff7f0000) == 0xf91f0000 {
         decode_LDRSB_lit_t1(opcode)
-    } else if (opcode & 0xfbef8000) == 0xf1ad0000 {
-        decode_SUB_SP_imm_t2(opcode)
     } else if (opcode & 0xff7f0000) == 0xf93f0000 {
         decode_LDRSH_lit_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3600000 {
         decode_BFI_t1(opcode)
+    } else if (opcode & 0xfff000c0) == 0xfb100000 {
+        decode_SMLA_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3c00000 {
         decode_UBFX_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3400000 {
