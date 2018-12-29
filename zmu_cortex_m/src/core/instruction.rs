@@ -285,6 +285,12 @@ pub enum Instruction {
         rt: Reg,
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
     },
     LDRH_imm {
         rt: Reg,
@@ -1289,7 +1295,24 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrb", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::LDRB_reg { rt, rn, rm } => write!(f, "ldrb {}, [{}, {}]", rt, rn, rm),
+            Instruction::LDRB_reg {
+                rt,
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                index,
+                add,
+                wback,
+                thumb32,
+            } => write!(
+                f,
+                "ldrb{} {}, [{}, {}]",
+                if thumb32 { ".W" } else { "" },
+                rt,
+                rn,
+                rm
+            ),
             Instruction::LDRH_imm {
                 rt,
                 rn,
@@ -2131,6 +2154,23 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::LDRH_reg {
+            rt,
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            index,
+            add,
+            wback,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::LDRB_reg {
             rt,
             rn,
             rm,

@@ -2553,3 +2553,23 @@ fn test_decode_smla_bb() {
         }
     );
 }
+
+#[test]
+fn test_decode_ldrb_reg_w() {
+    //0xf816c004 -> LDRB.W R12, [R6, R4]
+
+    assert_eq!(
+        decode_32(0xf816c004),
+        Instruction::LDRB_reg {
+            rt: Reg::R12,
+            rn: Reg::R6,
+            rm: Reg::R4,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            index: true,
+            add: true,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
