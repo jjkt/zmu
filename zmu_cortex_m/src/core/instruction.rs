@@ -2800,6 +2800,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             m_high,
             n_high,
         } => 4,
+        Instruction::POP { registers, thumb32 } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
 
         _ => 2,
     }
