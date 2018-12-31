@@ -110,6 +110,7 @@ mod udiv;
 mod umlal;
 mod umull;
 mod uxt;
+mod uxtab;
 
 use crate::decoder::adc::*;
 use crate::decoder::add::*;
@@ -196,6 +197,7 @@ use crate::decoder::udiv::*;
 use crate::decoder::umlal::*;
 use crate::decoder::umull::*;
 use crate::decoder::uxt::*;
+use crate::decoder::uxtab::*;
 
 use crate::decoder::bfc::*;
 use crate::decoder::bfi::*;
@@ -493,6 +495,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_PUSH_t2(opcode)
     } else if (opcode & 0xfff00fc0) == 0xf8400000 {
         decode_STR_reg_t2(opcode)
+    } else if (opcode & 0xfff0f0c0) == 0xfa50f080 {
+        decode_UXTAB_t1(opcode)
     } else if (opcode & 0xfff0f0c0) == 0xfb10f000 {
         decode_SMUL_t1(opcode)
     } else if (opcode & 0xfff00fc0) == 0xf8300000 {

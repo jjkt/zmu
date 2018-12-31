@@ -2573,3 +2573,18 @@ fn test_decode_ldrb_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_uxtab_() {
+    //0xfa54f480 UXTAB.W R4, R4, R0
+
+    assert_eq!(
+        decode_32(0xfa54f480),
+        Instruction::UXTAB {
+            rd: Reg::R4,
+            rn: Reg::R4,
+            rm: Reg::R0,
+            rotation: 0
+        }
+    );
+}

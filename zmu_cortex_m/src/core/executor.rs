@@ -1898,6 +1898,21 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::UXTAB {
+            rd,
+            rn,
+            rm,
+            rotation,
+        } => {
+            if core.condition_passed() {
+                let rotated = ror(core.get_r(*rm), *rotation);
+                let rn = core.get_r(*rn);
+                let result = rn.wrapping_add(rotated.get_bits(0..8));
+                core.set_r(*rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         Instruction::UXTH {
             rd,

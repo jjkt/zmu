@@ -739,6 +739,12 @@ pub enum Instruction {
         rotation: usize,
         thumb32: bool,
     },
+    UXTAB {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        rotation: usize,
+    },
     WFE,
     WFI,
     YIELD,
@@ -1924,6 +1930,23 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
+            Instruction::UXTAB {
+                rd,
+                rn,
+                rm,
+                rotation,
+            } => write!(
+                f,
+                "uxtb.w {},{},{} {}",
+                rd,
+                rn,
+                rm,
+                if rotation > 0 {
+                    format!("{}", rotation)
+                } else {
+                    "".to_string()
+                }
+            ),
             Instruction::UXTH {
                 rd,
                 rm,
@@ -2381,6 +2404,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::UXTAB {
+            rd,
+            rn,
+            rm,
+            rotation,
+        } => 4,
         Instruction::SXTH {
             rd,
             rm,
