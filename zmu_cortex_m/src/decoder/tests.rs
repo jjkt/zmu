@@ -1534,6 +1534,23 @@ fn test_decode_strh_w() {
 }
 
 #[test]
+fn test_decode_strh_w_2() {
+    // 0xf8a87000 -> STRH.W R7, [R8]
+    assert_eq!(
+        decode_32(0xf8a87000),
+        Instruction::STRH_imm {
+            rt: Reg::R7,
+            rn: Reg::R8,
+            imm32: 0x0,
+            thumb32: true,
+            index: true,
+            add: true,
+            wback: false,
+        }
+    );
+}
+
+#[test]
 fn test_decode_mov_w() {
     // MOV.W R8, #-1
     assert_eq!(

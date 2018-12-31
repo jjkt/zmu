@@ -164,7 +164,7 @@ pub fn decode_STRH_imm_t2(opcode: u32) -> Instruction {
     Instruction::STRH_imm {
         rt: Reg::from(opcode.get_bits(12..16) as u8),
         rn: Reg::from(opcode.get_bits(16..20) as u8),
-        imm32: opcode.get_bits(0..13) as u32,
+        imm32: opcode.get_bits(0..12) as u32,
         thumb32: true,
         index: true,
         add: true,
