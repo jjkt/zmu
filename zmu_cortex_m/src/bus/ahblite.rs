@@ -31,9 +31,14 @@ where
     }
 
     fn read16(&self, addr: u32) -> u16 {
+        /*
+        FIXME: LDR{S}H{T}, STRH{T} support non-halfword aligned access.
+        FIXME: TBH support non-hw aligned access
+        FIXME: LDR{T}, STR{T} support non-hw aligned access
+
         if addr & 1 == 1 {
             panic!("unaliged read16 addr 0x{:x}", addr);
-        }
+        }*/
 
         if self.code.in_range(addr) {
             self.code.read16(addr)
@@ -45,9 +50,14 @@ where
     }
 
     fn read32(&self, addr: u32) -> u32 {
+        /*
+        FIXME: LDR{S}H{T}, STRH{T} support non-halfword aligned access.
+        FIXME: TBH support non-hw aligned access
+        FIXME: LDR{T}, STR{T} support non-hw aligned access
         if addr & 3 != 0 {
             panic!("unaliged read32 addr 0x{:x}", addr);
         }
+        */
         if self.code.in_range(addr) {
             self.code.read32(addr)
         } else if self.sram.in_range(addr) {
@@ -58,9 +68,11 @@ where
     }
 
     fn write32(&mut self, addr: u32, value: u32) {
+        /*
         if addr & 3 != 0 {
             panic!("unaliged write32 addr 0x{:x}", addr);
         }
+        */
         if self.code.in_range(addr) {
             self.code.write32(addr, value);
         } else if self.sram.in_range(addr) {
@@ -71,9 +83,9 @@ where
     }
 
     fn write16(&mut self, addr: u32, value: u16) {
-        if addr & 1 != 0 {
+        /*        if addr & 1 != 0 {
             panic!("unaligned write16 address 0x{:x}", addr);
-        }
+        }*/
         if self.code.in_range(addr) {
             self.code.write16(addr, value);
         } else if self.sram.in_range(addr) {
