@@ -521,16 +521,16 @@ where
             n_high,
         } => {
             if core.condition_passed() {
-                let operand1 = if *n_high {
-                    core.get_r(*rn).get_bits(16..32) as i32
+                let operand1 = i32::from(if *n_high {
+                    core.get_r(*rn).get_bits(16..32) as i16
                 } else {
-                    core.get_r(*rn).get_bits(0..16) as i32
-                };
-                let operand2 = if *m_high {
-                    core.get_r(*rm).get_bits(16..32) as i32
+                    core.get_r(*rn).get_bits(0..16) as i16
+                });
+                let operand2 = i32::from(if *m_high {
+                    core.get_r(*rm).get_bits(16..32) as i16
                 } else {
-                    core.get_r(*rm).get_bits(0..16) as i32
-                };
+                    core.get_r(*rm).get_bits(0..16) as i16
+                });
 
                 let result = operand1.wrapping_mul(operand2);
 
@@ -549,16 +549,16 @@ where
             n_high,
         } => {
             if core.condition_passed() {
-                let operand1 = if *n_high {
-                    core.get_r(*rn).get_bits(16..32) as i32
+                let operand1 = i32::from(if *n_high {
+                    core.get_r(*rn).get_bits(16..32) as i16
                 } else {
-                    core.get_r(*rn).get_bits(0..16) as i32
-                };
-                let operand2 = if *m_high {
-                    core.get_r(*rm).get_bits(16..32) as i32
+                    core.get_r(*rn).get_bits(0..16) as i16
+                });
+                let operand2 = i32::from(if *m_high {
+                    core.get_r(*rm).get_bits(16..32) as i16
                 } else {
-                    core.get_r(*rm).get_bits(0..16) as i32
-                };
+                    core.get_r(*rm).get_bits(0..16) as i16
+                });
 
                 let result = operand1
                     .wrapping_mul(operand2)
@@ -2420,5 +2420,40 @@ mod tests {
 
         assert_eq!(core.get_r(Reg::R6), 0);
     }
+
+    #[test]
+    fn test_smlabb() {
+        // arrange
+        let mut bus = RAM::new(0, 1000);
+        let mut core = Core::new(&mut bus);
+        core.psr.value = 0;
+
+        //
+        core.set_r(Reg::R8, 0xffff9d88);
+        core.set_r(Reg::R12, 0x0012dfc3);
+        core.set_r(Reg::LR, 0xa1);
+        core.psr.value = 0;
+
+        let instruction = Instruction::SMLA {
+            rd: Reg::R12,
+            rn: Reg::LR,
+            rm: Reg::R8,
+            ra: Reg::R12,
+            n_high: false,
+            m_high: false,
+        };
+
+        core.step(
+            &instruction,
+            |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("should not happen.")
+            },
+        );
+
+        assert_eq!(core.get_r(Reg::R12), 0xFFD4F24B);
+    }
+
+    //F9368B02  ldrsh.W r8, [r6], #+2            00002D58  matrix_mul_vect       1392335 qvCzn r0:00000009 1:20000c7c 2:20000b38 3:20000bda 4:00000009 5:20000b48 6:20000bea 7:00000001 8:ffff9d88 9:20000b38 10:0000615f 11:200008fc 12:0012dfc3
+    //FB1ECC08  smlaBB r12, lr, r8, r12          00002D5C  matrix_mul_vect       1392336 qvCzn r0:00000009 1:20000c7c 2:20000b38 3:20000bda 4:00000009 5:20000b48 6:20000bea 7:00000001 8:ffff9d88 9:20000b38 10:0000615f 11:200008fc 12:0075f24b
 
 }
