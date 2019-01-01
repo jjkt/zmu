@@ -3,11 +3,6 @@ use enum_set::CLike;
 use std::fmt;
 use std::mem;
 
-pub enum StackPointer {
-    MSP(u32),
-    PSP(u32),
-}
-
 pub struct PSR {
     pub value: u32,
 }
@@ -110,7 +105,6 @@ impl Ipsr for PSR {
     }
 }
 
-/// TODO: remove Copy to improve performance
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
 pub enum Reg {

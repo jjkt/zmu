@@ -2,7 +2,7 @@ use crate::bus::Bus;
 use crate::core::register::Reg;
 use crate::core::Core;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum SysExceptionReason {
     ADPStoppedBranchThroughZero,
     ADPStoppedUndefinedInstr,
@@ -51,6 +51,7 @@ impl SysExceptionReason {
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub enum SemihostingCommand {
     SysOpen { name: String, mode: u32 },
     SysClose { handle: u32 },
@@ -59,6 +60,7 @@ pub enum SemihostingCommand {
     SysClock,
 }
 
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum SemihostingResponse {
     SysOpen { result: Result<u32, i32> },
     SysClose { success: bool },

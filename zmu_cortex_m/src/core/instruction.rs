@@ -4,7 +4,7 @@ use crate::core::register::SpecialReg;
 use crate::core::ThumbCode;
 use enum_set::EnumSet;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SRType {
     LSL,
     LSR,
@@ -13,13 +13,13 @@ pub enum SRType {
     ROR,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ITCondition {
     Then,
     Else,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Imm32Carry {
     /// precalculated value carry value was not relevant
     /// for the decoding
@@ -33,7 +33,7 @@ pub enum Imm32Carry {
     },
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum SetFlags {
     True,
     False,
@@ -41,7 +41,7 @@ pub enum SetFlags {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Instruction {
     ADC_reg {
         rd: Reg,
@@ -877,8 +877,8 @@ fn format_adressing_mode2(
     }
 }
 
-fn setflags_to_str(setflags: &SetFlags) -> &'static str {
-    match *setflags {
+fn setflags_to_str(setflags: SetFlags) -> &'static str {
+    match setflags {
         SetFlags::True => "s",
         SetFlags::False => "",
         SetFlags::NotInITBlock => "",
@@ -904,7 +904,7 @@ impl fmt::Display for Instruction {
                         f,
                         "add{}{} {}, #{}",
                         if thumb32 { ".W" } else { "" },
-                        setflags_to_str(setflags),
+                        setflags_to_str(*setflags),
                         rd,
                         imm32
                     )
@@ -913,7 +913,7 @@ impl fmt::Display for Instruction {
                         f,
                         "add{}{} {}, {}, #{}",
                         if thumb32 { ".W" } else { "" },
-                        setflags_to_str(setflags),
+                        setflags_to_str(*setflags),
                         rd,
                         rn,
                         imm32
@@ -928,7 +928,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "adc{}.W {}, {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 rd,
                 rn,
                 imm32
@@ -944,7 +944,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "add{}{} {}, {}, {}{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -986,7 +986,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "adc{}{} {}, {}, {}{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1015,7 +1015,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "and{}{} {}, {}, {}{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1052,7 +1052,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "asr{}{} {}, {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rm,
@@ -1076,7 +1076,14 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 ref setflags,
-            } => write!(f, "asr{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
+            } => write!(
+                f,
+                "asr{} {}, {}, {}",
+                setflags_to_str(*setflags),
+                rd,
+                rn,
+                rm
+            ),
             Instruction::BIC_reg {
                 rd,
                 rn,
@@ -1088,7 +1095,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "bic{}{} {}, {}, {}{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1201,7 +1208,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "eor{}{} {}, {}, {}{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1384,7 +1391,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "lsl{}{} {}, {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rm,
@@ -1395,7 +1402,14 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 ref setflags,
-            } => write!(f, "lsl{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
+            } => write!(
+                f,
+                "lsl{} {}, {}, {}",
+                setflags_to_str(*setflags),
+                rd,
+                rn,
+                rm
+            ),
             Instruction::LSR_reg {
                 rd,
                 rn,
@@ -1405,7 +1419,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "lsr{}{} {}, {}, {}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1420,7 +1434,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "lsr{} {}, {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 rd,
                 rm,
                 shift_n
@@ -1433,7 +1447,14 @@ impl fmt::Display for Instruction {
                 rm,
                 ref setflags,
                 thumb32,
-            } => write!(f, "mul{} {}, {}, {}", setflags_to_str(setflags), rd, rn, rm),
+            } => write!(
+                f,
+                "mul{} {}, {}, {}",
+                setflags_to_str(*setflags),
+                rd,
+                rn,
+                rm
+            ),
             Instruction::SMUL {
                 rd,
                 rn,
@@ -1487,7 +1508,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "mov{}{} {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 match *imm32 {
@@ -1519,7 +1540,7 @@ impl fmt::Display for Instruction {
                 rd,
                 rm,
                 ref setflags,
-            } => write!(f, "mvn{} {}, {}", setflags_to_str(setflags), rd, rm),
+            } => write!(f, "mvn{} {}, {}", setflags_to_str(*setflags), rd, rm),
             Instruction::MVN_imm {
                 rd,
                 ref imm32,
@@ -1546,7 +1567,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "orr{}{} {}, {}, {}{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1606,7 +1627,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "ror{} {}, {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 rd,
                 rn,
                 rm
@@ -1620,7 +1641,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "rsb{}{} {}, {}, #{}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1674,7 +1695,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "sbc{}{} {}, {}, {}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
@@ -1793,7 +1814,7 @@ impl fmt::Display for Instruction {
                     write!(
                         f,
                         "sub{}{} {}, #{}",
-                        setflags_to_str(setflags),
+                        setflags_to_str(*setflags),
                         if thumb32 { ".W" } else { "" },
                         rd,
                         imm32
@@ -1802,7 +1823,7 @@ impl fmt::Display for Instruction {
                     write!(
                         f,
                         "sub{}{} {}, {}, #{}",
-                        setflags_to_str(setflags),
+                        setflags_to_str(*setflags),
                         if thumb32 { ".W" } else { "" },
                         rd,
                         rn,
@@ -1821,7 +1842,7 @@ impl fmt::Display for Instruction {
             } => write!(
                 f,
                 "sub{}{} {}, {}, {}",
-                setflags_to_str(setflags),
+                setflags_to_str(*setflags),
                 if thumb32 { ".W" } else { "" },
                 rd,
                 rn,

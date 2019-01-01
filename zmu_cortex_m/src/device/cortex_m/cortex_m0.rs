@@ -35,7 +35,7 @@ where
         while pc < (code.len() as u32) {
             core.set_pc(pc);
             let thumb = core.fetch();
-            let instruction = core.decode(&thumb);
+            let instruction = core.decode(thumb);
             instruction_cache.push(instruction);
             pc += 2;
         }
@@ -85,7 +85,7 @@ where
         while pc < (code.len() as u32) {
             core.set_pc(pc);
             let thumb = core.fetch();
-            let instruction = core.decode(&thumb);
+            let instruction = core.decode(thumb);
             instruction_cache.push(instruction);
             pc += 2;
         }

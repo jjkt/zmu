@@ -22,13 +22,13 @@ use crate::semihosting::SemihostingResponse;
 use bit_field::BitField;
 use std::fmt;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ProcessorMode {
     ThreadMode,
     HandlerMode,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ThumbCode {
     Thumb32 { opcode: u32 },
     Thumb16 { half_word: u16 },
@@ -124,7 +124,7 @@ impl<'a, T: Bus> Core<'a, T> {
         if itstate != 0 {
             let cond = u16::from(itstate.get_bits(4..8));
             condition_test(
-                &Condition::from_u16(cond).unwrap_or(Condition::AL),
+                Condition::from_u16(cond).unwrap_or(Condition::AL),
                 &self.psr,
             )
         } else {
@@ -132,7 +132,7 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
-    pub fn condition_passed_b(&mut self, cond: &Condition) -> bool {
+    pub fn condition_passed_b(&mut self, cond: Condition) -> bool {
         condition_test(cond, &self.psr)
     }
 
@@ -476,8 +476,8 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     // Decode ThumbCode into Instruction
-    pub fn decode(&self, code: &ThumbCode) -> Instruction {
-        match *code {
+    pub fn decode(&self, code: ThumbCode) -> Instruction {
+        match code {
             ThumbCode::Thumb32 { opcode } => decode_32(opcode),
             ThumbCode::Thumb16 { half_word } => decode_16(half_word),
         }

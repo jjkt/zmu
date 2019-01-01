@@ -3,7 +3,7 @@
 //!
 //!
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Fault {
     ///
     /// Bus error happened while reading the vector table entry

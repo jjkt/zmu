@@ -10,7 +10,7 @@ use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use bit_field::BitField;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ExecuteResult {
     // Instruction execution resulted in a fault.
     Fault { fault: Fault },
@@ -22,6 +22,7 @@ pub enum ExecuteResult {
     Branched { cycles: u64 },
 }
 
+#[inline]
 fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32) {
     let offset_address = if add { rn + imm32 } else { rn - imm32 };
 
@@ -42,8 +43,8 @@ fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
     }
 }
 
-fn conditional_setflags(setflags: &SetFlags, in_it_block: bool) -> bool {
-    match *setflags {
+fn conditional_setflags(setflags: SetFlags, in_it_block: bool) -> bool {
+    match setflags {
         SetFlags::True => true,
         SetFlags::False => false,
         SetFlags::NotInITBlock => !in_it_block,
@@ -72,11 +73,11 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let shifted = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, c);
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -99,7 +100,7 @@ where
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -121,14 +122,14 @@ where
             if core.condition_passed() {
                 let (result, carry) = shift_c(
                     core.get_r(*rm),
-                    &SRType::ASR,
+                    SRType::ASR,
                     usize::from(*shift_n),
                     core.psr.get_c(),
                 );
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -147,13 +148,13 @@ where
                 let shift_n = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
-                    &SRType::ASR,
+                    SRType::ASR,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -175,12 +176,12 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let result = core.get_r(*rn) & (shifted ^ 0xffff_ffff);
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -368,13 +369,13 @@ where
             if core.condition_passed() {
                 let (result, carry) = shift_c(
                     core.get_r(*rm),
-                    &SRType::LSL,
+                    SRType::LSL,
                     *shift_n as usize,
                     core.psr.get_c(),
                 );
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -394,13 +395,13 @@ where
                 let shift_n = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
-                    &SRType::LSL,
+                    SRType::LSL,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -420,13 +421,13 @@ where
             if core.condition_passed() {
                 let (result, carry) = shift_c(
                     core.get_r(*rm),
-                    &SRType::LSR,
+                    SRType::LSR,
                     usize::from(*shift_n),
                     core.psr.get_c(),
                 );
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -447,14 +448,14 @@ where
                 let shift_n = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
-                    &SRType::LSR,
+                    SRType::LSR,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -505,7 +506,7 @@ where
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -587,12 +588,12 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
                 let result = r_n | shifted;
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -661,13 +662,13 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let result = r_n ^ shifted;
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -691,13 +692,13 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let result = r_n & shifted;
 
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -791,7 +792,7 @@ where
             if core.condition_passed() {
                 let (result, carry) = expand_conditional_carry(&imm32, core.psr.get_c());
                 core.set_r(*rd, result);
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -806,7 +807,7 @@ where
                 let result = core.get_r(*rm) ^ 0xFFFF_FFFF;
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                 }
@@ -838,7 +839,7 @@ where
             imm32,
             thumb32,
         } => {
-            if core.condition_passed_b(cond) {
+            if core.condition_passed_b(*cond) {
                 let pc = core.get_r(Reg::PC);
                 let target = ((pc as i32) + imm32) as u32;
                 core.branch_write_pc(target);
@@ -881,7 +882,7 @@ where
             if core.condition_passed() {
                 let shifted = shift(
                     core.get_r(*rm),
-                    shift_t,
+                    *shift_t,
                     *shift_n as usize,
                     core.psr.get_c(),
                 );
@@ -907,7 +908,7 @@ where
             if core.condition_passed() {
                 let shifted = shift(
                     core.get_r(*rm),
-                    shift_t,
+                    *shift_t,
                     *shift_n as usize,
                     core.psr.get_c(),
                 );
@@ -1071,7 +1072,7 @@ where
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
-                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+                let offset = shift(rm_, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
                     resolve_addressing(core.get_r(*rn), offset, *add, *index);
@@ -1128,7 +1129,7 @@ where
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
-                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+                let offset = shift(rm_, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
                     resolve_addressing(core.get_r(*rn), offset, *add, *index);
@@ -1181,7 +1182,7 @@ where
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
-                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+                let offset = shift(rm_, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
                     resolve_addressing(core.get_r(*rn), offset, *add, *index);
@@ -1210,7 +1211,7 @@ where
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
-                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+                let offset = shift(rm_, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
                     resolve_addressing(core.get_r(*rn), offset, *add, *index);
@@ -1239,7 +1240,7 @@ where
         } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
-                let offset = shift(rm_, shift_t, *shift_n as usize, core.psr.get_c());
+                let offset = shift(rm_, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (address, offset_address) =
                     resolve_addressing(core.get_r(*rn), offset, *add, *index);
@@ -1263,7 +1264,7 @@ where
             if core.condition_passed() {
                 let (result, carry) = shift_c(
                     core.get_r(*rm),
-                    &SRType::ROR,
+                    SRType::ROR,
                     usize::from(*shift_n),
                     core.psr.get_c(),
                 );
@@ -1293,12 +1294,12 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let shifted = shift(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let shifted = shift(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
 
                 let (result, carry, overflow) =
                     add_with_carry(r_n, shifted ^ 0xffff_ffff, core.psr.get_c());
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1453,7 +1454,7 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let offset = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let address = core.get_r(*rn) + offset;
                 let value = core.get_r(*rt);
                 core.bus.write32(address, value);
@@ -1476,7 +1477,7 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let offset = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let address = core.get_r(*rn) + offset;
                 let value = core.get_r(*rt).get_bits(0..8) as u8;
                 core.bus.write8(address, value);
@@ -1548,7 +1549,7 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let offset = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let offset = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let address = core.get_r(*rn) + offset;
                 let value = core.get_r(*rt).get_bits(0..16) as u16;
                 core.bus.write16(address, value);
@@ -1590,14 +1591,14 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let shifted = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, false);
 
                 if rd == &Reg::PC {
                     core.branch_write_pc(result);
                     ExecuteResult::Branched { cycles: 3 }
                 } else {
-                    if conditional_setflags(setflags, core.in_it_block()) {
+                    if conditional_setflags(*setflags, core.in_it_block()) {
                         core.psr.set_n(result);
                         core.psr.set_z(result);
                         core.psr.set_c(carry);
@@ -1620,7 +1621,7 @@ where
         } => {
             if core.condition_passed() {
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let shifted = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let (result, carry, overflow) = add_with_carry(core.get_r(Reg::SP), shifted, false);
 
                 if rd == &Reg::PC {
@@ -1652,7 +1653,7 @@ where
                 let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n, *imm32, false);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1685,7 +1686,7 @@ where
                 let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, *imm32, true);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1735,7 +1736,7 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
                 let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, shifted, true);
 
                 core.set_r(*rd, result);
@@ -1762,7 +1763,7 @@ where
                 let r_n = core.get_r(*rn);
                 let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1788,12 +1789,12 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
                 let c = core.psr.get_c();
-                let shifted = shift(core.get_r(*rm), shift_t, *shift_n as usize, c);
+                let shifted = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
 
                 let (result, carry, overflow) = add_with_carry(r_n, shifted ^ 0xFFFF_FFFF, true);
                 core.set_r(*rd, result);
 
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
@@ -1852,7 +1853,7 @@ where
                 let r_n = core.get_r(*rn);
                 let r_m = core.get_r(*rm);
 
-                let (shifted, carry) = shift_c(r_m, shift_t, *shift_n as usize, core.psr.get_c());
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
                 let result = r_n ^ shifted;
 
                 core.psr.set_n(result);
@@ -2004,12 +2005,12 @@ where
                 let shift_n = core.get_r(*rm) & 0xff;
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
-                    &SRType::ROR,
+                    SRType::ROR,
                     shift_n as usize,
                     core.psr.get_c(),
                 );
                 core.set_r(*rd, result);
-                if conditional_setflags(setflags, core.in_it_block()) {
+                if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);

@@ -93,8 +93,8 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
 // • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction
 // • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
 //
-pub fn condition_test(condition: &Condition, psr: &PSR) -> bool {
-    match *condition {
+pub fn condition_test(condition: Condition, psr: &PSR) -> bool {
+    match condition {
         Condition::EQ => psr.get_z(),
         Condition::NE => !psr.get_z(),
         Condition::CS => psr.get_c(),
@@ -215,8 +215,8 @@ pub fn ror(value: u32, shift: usize) -> u32 {
 /// Returns:
 /// - shifted value
 /// - carry out
-pub fn shift_c(value: u32, shift_t: &SRType, amount: usize, carry_in: bool) -> (u32, bool) {
-    assert!(!((shift_t == &SRType::RRX) && (amount != 1)));
+pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u32, bool) {
+    assert!(!((shift_t == SRType::RRX) && (amount != 1)));
     if amount == 0 {
         (value, carry_in)
     } else {
@@ -230,7 +230,7 @@ pub fn shift_c(value: u32, shift_t: &SRType, amount: usize, carry_in: bool) -> (
     }
 }
 
-pub fn shift(value: u32, shift_t: &SRType, amount: usize, carry_in: bool) -> u32 {
+pub fn shift(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> u32 {
     let (result, _) = shift_c(value, shift_t, amount, carry_in);
 
     result

@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Condition {
     EQ, // Equal
     NE, // Not Equal
@@ -20,8 +20,8 @@ pub enum Condition {
 }
 
 impl Condition {
-    pub fn value(&self) -> usize {
-        match *self {
+    pub fn value(self) -> usize {
+        match self {
             Condition::EQ => 0b0000,
             Condition::NE => 0b0001,
             Condition::CS => 0b0010,
