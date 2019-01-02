@@ -55,6 +55,7 @@ impl SysExceptionReason {
 pub enum SemihostingCommand {
     SysOpen { name: String, mode: u32 },
     SysClose { handle: u32 },
+    SysFlen { handle: u32 },
     SysWrite { handle: u32, data: Vec<u8> },
     SysException { reason: SysExceptionReason },
     SysClock,
@@ -64,6 +65,7 @@ pub enum SemihostingCommand {
 pub enum SemihostingResponse {
     SysOpen { result: Result<u32, i32> },
     SysClose { success: bool },
+    SysFlen { result: Result<u32, u32> },
     SysWrite { result: Result<u32, u32> },
     SysException { success: bool, stop: bool },
     SysClock { result: Result<u32, i32> },
@@ -111,6 +113,7 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
                 data: data,
             }
         }
+        12 => SemihostingCommand::SysFlen{handle: r1 },
         16 => SemihostingCommand::SysClock,
         24 => SemihostingCommand::SysException {
             reason: SysExceptionReason::from_u32(r1),
@@ -127,6 +130,10 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
         SemihostingResponse::SysOpen { result } => match result {
             Ok(handle) => core.set_r(Reg::R0, handle),
             Err(error_code) => core.set_r(Reg::R0, error_code as u32),
+        },
+        SemihostingResponse::SysFlen { result } => match result {
+            Ok(size) => core.set_r(Reg::R0, size),
+            Err(error_code) => core.set_r(Reg::R0, (-1_i32) as u32),
         },
         SemihostingResponse::SysException { success, stop } => {
             if success {

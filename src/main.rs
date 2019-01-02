@@ -52,6 +52,7 @@ fn run_bin(
         match semihost_cmd {
             SemihostingCommand::SysOpen { .. } => SemihostingResponse::SysOpen { result: Ok(1) },
             SemihostingCommand::SysClose { .. } => SemihostingResponse::SysClose { success: true },
+            SemihostingCommand::SysFlen { .. } => SemihostingResponse::SysFlen { result: Ok(0) },
             SemihostingCommand::SysWrite { handle, ref data } => {
                 if *handle == 1 {
                     let text = &**data;
