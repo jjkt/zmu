@@ -53,27 +53,57 @@ impl SysExceptionReason {
 
 #[derive(PartialEq, Debug)]
 pub enum SemihostingCommand {
-    SysOpen { name: String, mode: u32 },
-    SysClose { handle: u32 },
-    SysFlen { handle: u32 },
-    SysWrite { handle: u32, data: Vec<u8> },
-    SysException { reason: SysExceptionReason },
+    SysOpen {
+        name: String,
+        mode: u32,
+    },
+    SysClose {
+        handle: u32,
+    },
+    SysFlen {
+        handle: u32,
+    },
+    SysWrite {
+        handle: u32,
+        data: Vec<u8>,
+    },
+    SysRead {
+        handle: u32,
+        memoryptr: u32,
+        len: u32,
+    },
+    SysException {
+        reason: SysExceptionReason,
+    },
     SysClock,
+    SysErrno,
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum SemihostingResponse {
     SysOpen { result: Result<u32, i32> },
     SysClose { success: bool },
-    SysFlen { result: Result<u32, u32> },
-    SysWrite { result: Result<u32, u32> },
+    SysFlen { result: Result<u32, i32> },
+    SysWrite { result: Result<u32, i32> },
+    SysRead { result: Result<(u32, Vec<u8>), i32> },
     SysException { success: bool, stop: bool },
     SysClock { result: Result<u32, i32> },
+    SysErrno { result: u32 },
 }
+
+const SYS_OPEN: u32 = 1;
+const SYS_CLOSE: u32 = 2;
+const SYS_WRITE: u32 = 5;
+const SYS_READ: u32 = 6;
+const SYS_FLEN: u32 = 0x0c;
+const SYS_CLOCK: u32 = 0x10;
+const SYS_ERRNO: u32 = 0x13;
+const SYS_EXIT: u32 = 0x18;
+const SYS_ISTTY: u32 = 0x09;
 
 pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> SemihostingCommand {
     match r0 {
-        1 => {
+        SYS_OPEN => {
             let argument_block = r1;
 
             let mut string_ptr = core.bus.read32(argument_block);
@@ -92,8 +122,12 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
                 mode: mode,
             }
         }
-        2 => SemihostingCommand::SysClose { handle: r1 },
-        5 => {
+        SYS_CLOSE => {
+            let params_ptr = r1;
+            let handle = core.bus.read32(params_ptr);
+            SemihostingCommand::SysClose { handle: handle }
+        }
+        SYS_WRITE => {
             let params_ptr = r1;
             let handle = core.bus.read32(params_ptr);
             let mut memoryptr = core.bus.read32(params_ptr + 4);
@@ -107,19 +141,36 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
                 memoryptr += 1;
                 len -= 1;
             }
-
             SemihostingCommand::SysWrite {
                 handle: handle,
                 data: data,
             }
         }
-        12 => SemihostingCommand::SysFlen{handle: r1 },
-        16 => SemihostingCommand::SysClock,
-        24 => SemihostingCommand::SysException {
+        SYS_READ => {
+            let params_ptr = r1;
+            let handle = core.bus.read32(params_ptr);
+            let memoryptr = core.bus.read32(params_ptr + 4);
+            let len = core.bus.read32(params_ptr + 8);
+
+            SemihostingCommand::SysRead {
+                handle: handle,
+                memoryptr: memoryptr,
+                len: len,
+            }
+        }
+        SYS_FLEN => {
+            let params_ptr = r1;
+            let handle = core.bus.read32(params_ptr);
+
+            SemihostingCommand::SysFlen { handle: handle }
+        }
+        SYS_CLOCK => SemihostingCommand::SysClock,
+        SYS_ERRNO => SemihostingCommand::SysErrno,
+        SYS_EXIT => SemihostingCommand::SysException {
             reason: SysExceptionReason::from_u32(r1),
         },
         _ => {
-            panic!("unknown semihosting command");
+            panic!("unknown semihosting command {}", r0);
         }
     }
 }
@@ -133,7 +184,7 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
         },
         SemihostingResponse::SysFlen { result } => match result {
             Ok(size) => core.set_r(Reg::R0, size),
-            Err(error_code) => core.set_r(Reg::R0, (-1_i32) as u32),
+            Err(error_code) => core.set_r(Reg::R0, error_code as u32),
         },
         SemihostingResponse::SysException { success, stop } => {
             if success {
@@ -151,9 +202,25 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
             Ok(_) => core.set_r(Reg::R0, 0),
             Err(unwritten_bytes) => core.set_r(Reg::R0, unwritten_bytes as u32),
         },
+        SemihostingResponse::SysRead { ref result } => match result {
+            Ok((memoryptr, data)) => {
+                println!("sys read impl");
+                let mut addr = *memoryptr;
+                data.iter().map(|x| {
+                    println!("write 0x{:x}= {:x}", addr, *x);
+                    core.bus.write8(addr, *x);
+                    addr += 1;
+                });
+                core.set_r(Reg::R0, 0);
+            }
+            Err(error_code) => core.set_r(Reg::R0, *error_code as u32),
+        },
         SemihostingResponse::SysClock { result } => match result {
             Ok(centiseconds) => core.set_r(Reg::R0, centiseconds),
             Err(error_code) => core.set_r(Reg::R0, error_code as u32),
         },
+        SemihostingResponse::SysErrno { result } => {
+            core.set_r(Reg::R0, result);
+        }
     }
 }

@@ -38,6 +38,9 @@ mod errors {
 
 use crate::errors::*;
 
+const TT_HANDLE: u32 = 1;
+const SEMIHOST_FEATURES_HANDLE: u32 = 2;
+
 fn run_bin(
     code: &[u8],
     trace: bool,
@@ -50,16 +53,76 @@ fn run_bin(
 
     let semihost_func = |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
         match semihost_cmd {
-            SemihostingCommand::SysOpen { .. } => SemihostingResponse::SysOpen { result: Ok(1) },
-            SemihostingCommand::SysClose { .. } => SemihostingResponse::SysClose { success: true },
-            SemihostingCommand::SysFlen { .. } => SemihostingResponse::SysFlen { result: Ok(0) },
+            SemihostingCommand::SysOpen { name, mode } => {
+                println!("opening stream '{}' in mode '{}'", name, mode);
+                if name == ":tt" {
+                    SemihostingResponse::SysOpen {
+                        result: Ok(TT_HANDLE),
+                    }
+                } else if name == ":semihosting-features" {
+                    SemihostingResponse::SysOpen {
+                        result: Ok(SEMIHOST_FEATURES_HANDLE),
+                    }
+                } else {
+                    SemihostingResponse::SysOpen { result: Err(-1) }
+                }
+            }
+            SemihostingCommand::SysClose { handle } => {
+                println!("closing handle '{}'", handle);
+
+                SemihostingResponse::SysClose { success: true }
+            }
+            SemihostingCommand::SysFlen { handle } => {
+                println!("filelen for handle '{}'", handle);
+
+                if *handle == TT_HANDLE {
+                    SemihostingResponse::SysFlen { result: Ok(0) }
+                } else if *handle == SEMIHOST_FEATURES_HANDLE {
+                    SemihostingResponse::SysFlen { result: Ok(5) }
+                } else {
+                    SemihostingResponse::SysFlen { result: Err(-1) }
+                }
+            }
             SemihostingCommand::SysWrite { handle, ref data } => {
-                if *handle == 1 {
+                if *handle == TT_HANDLE {
                     let text = &**data;
                     print!("{}", String::from_utf8_lossy(text));
+                    SemihostingResponse::SysWrite { result: Ok(0) }
                 } else {
+                    SemihostingResponse::SysWrite { result: Err(-1) }
                 }
-                SemihostingResponse::SysWrite { result: Ok(0) }
+            }
+            SemihostingCommand::SysRead {
+                handle,
+                memoryptr,
+                len,
+            } => {
+                println!(
+                    "read: handle={}, memoryptr=0x{:x}, len={}",
+                    handle, memoryptr, len
+                );
+                if *handle == SEMIHOST_FEATURES_HANDLE {
+                    let mut data: Vec<u8> = Vec::new();
+
+                    /*byte 0: SHFB_MAGIC_0 0x53
+                    byte 1: SHFB_MAGIC_1 0x48
+                    byte 2: SHFB_MAGIC_2 0x46
+                    byte 3: SHFB_MAGIC_3 0x42
+                    byte 4: feature bits
+                    */
+                    data.push(0x53);
+                    data.push(0x48);
+                    data.push(0x46);
+                    data.push(0x42);
+                    //data.push(0x1);
+                    println!("read response: memoryptr=0x{:x}, data={:?}", memoryptr, data);
+
+                    SemihostingResponse::SysRead {
+                        result: Ok((*memoryptr, data)),
+                    }
+                } else {
+                    SemihostingResponse::SysRead { result: Err(-1) }
+                }
             }
             SemihostingCommand::SysClock { .. } => {
                 let elapsed = start.elapsed();
@@ -83,6 +146,7 @@ fn run_bin(
                     stop: stop,
                 }
             }
+            SemihostingCommand::SysErrno { .. } => SemihostingResponse::SysErrno { result: 0 },
         }
     };
 
