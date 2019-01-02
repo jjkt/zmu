@@ -12,7 +12,6 @@ use crate::core::condition::Condition;
 use crate::core::exception::Exception;
 use crate::core::executor::execute;
 use crate::core::executor::ExecuteResult;
-use crate::core::instruction::instruction_size;
 use crate::core::instruction::Instruction;
 use crate::core::operation::condition_test;
 use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
@@ -484,7 +483,7 @@ impl<'a, T: Bus> Core<'a, T> {
     }
 
     // Run single instruction on core
-    pub fn step<F>(&mut self, instruction: &Instruction, semihost_func: F)
+    pub fn step<F>(&mut self, instruction: &Instruction, instruction_size: usize, semihost_func: F)
     where
         F: FnMut(&SemihostingCommand) -> SemihostingResponse,
     {
@@ -500,8 +499,7 @@ impl<'a, T: Bus> Core<'a, T> {
                 self.exception_entry(u8::from(Exception::HardFault), pc);
             }
             ExecuteResult::NotTaken => {
-                let step = instruction_size(instruction);
-                self.add_pc(step as u32);
+                self.add_pc(instruction_size as u32);
                 self.cycle_count += 1;
                 if in_it_block {
                     self.it_advance();
@@ -511,8 +509,7 @@ impl<'a, T: Bus> Core<'a, T> {
                 self.cycle_count += cycles;
             }
             ExecuteResult::Taken { cycles } => {
-                let step = instruction_size(instruction);
-                self.add_pc(step as u32);
+                self.add_pc(instruction_size as u32);
                 self.cycle_count += cycles;
                 if in_it_block {
                     self.it_advance();

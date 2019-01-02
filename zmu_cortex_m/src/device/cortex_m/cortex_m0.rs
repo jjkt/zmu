@@ -1,6 +1,7 @@
 use crate::bus::ahblite::AHBLite;
 use crate::bus::busmatrix::BusMatrix;
 use crate::bus::internal::InternalBus;
+use crate::core::instruction::instruction_size;
 use crate::core::instruction::Instruction;
 use crate::core::Core;
 use crate::core::ThumbCode;
@@ -36,7 +37,7 @@ where
             core.set_pc(pc);
             let thumb = core.fetch();
             let instruction = core.decode(thumb);
-            instruction_cache.push(instruction);
+            instruction_cache.push((instruction, instruction_size(&instruction)));
             pc += 2;
         }
     }
@@ -45,9 +46,10 @@ where
 
     while core.running {
         let pc = core.get_pc();
-        let instruction = &instruction_cache[(pc >> 1) as usize];
+        let (instruction, instruction_size) = &instruction_cache[(pc >> 1) as usize];
         core.step(
             instruction,
+            *instruction_size,
             |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 semihost_func(semihost_cmd)
             },
@@ -86,7 +88,7 @@ where
             core.set_pc(pc);
             let thumb = core.fetch();
             let instruction = core.decode(thumb);
-            instruction_cache.push(instruction);
+            instruction_cache.push((thumb, instruction, instruction_size(&instruction)));
             pc += 2;
         }
     }
@@ -95,10 +97,10 @@ where
 
     while core.running {
         let pc = core.get_pc();
-        let instruction = &instruction_cache[(pc >> 1) as usize];
-        let opcode = core.fetch();
+        let (opcode, instruction, instruction_size) = &instruction_cache[(pc >> 1) as usize];
         core.step(
             instruction,
+            *instruction_size,
             |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 semihost_func(semihost_cmd)
             },

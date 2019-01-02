@@ -22,7 +22,7 @@ pub enum ExecuteResult {
     Branched { cycles: u64 },
 }
 
-#[inline]
+#[inline(always)]
 fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32) {
     let offset_address = if add { rn + imm32 } else { rn - imm32 };
 
@@ -2204,6 +2204,7 @@ where
 mod tests {
     use super::*;
     use crate::core::condition::Condition;
+    use crate::core::instruction::instruction_size;
     use crate::core::instruction::{ITCondition, SetFlags};
     use crate::memory::ram::*;
 
@@ -2315,18 +2316,21 @@ mod tests {
 
         core.step(
             &i1,
+            instruction_size(&i1),
             |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 panic!("should not happen.")
             },
         );
         core.step(
             &i2,
+            instruction_size(&i2),
             |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 panic!("should not happen.")
             },
         );
         core.step(
             &i3,
+            instruction_size(&i3),
             |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 panic!("should not happen.")
             },
@@ -2381,6 +2385,7 @@ mod tests {
 
         core.step(
             &instruction,
+            instruction_size(&instruction),
             |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 panic!("should not happen.")
             },
@@ -2414,6 +2419,7 @@ mod tests {
 
         core.step(
             &instruction,
+            instruction_size(&instruction),
             |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 panic!("should not happen.")
             },
@@ -2446,6 +2452,7 @@ mod tests {
 
         core.step(
             &instruction,
+            instruction_size(&instruction),
             |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
                 panic!("should not happen.")
             },
