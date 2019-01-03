@@ -60,7 +60,14 @@ pub enum SemihostingCommand {
     SysClose {
         handle: u32,
     },
+    SysSeek {
+        handle: u32,
+        position: u32,
+    },
     SysFlen {
+        handle: u32,
+    },
+    SysIstty {
         handle: u32,
     },
     SysWrite {
@@ -75,31 +82,64 @@ pub enum SemihostingCommand {
     SysException {
         reason: SysExceptionReason,
     },
+    SysExitExtended {
+        reason: SysExceptionReason,
+        subcode: u32,
+    },
     SysClock,
     SysErrno,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum SemihostingResponse {
-    SysOpen { result: Result<u32, i32> },
-    SysClose { success: bool },
-    SysFlen { result: Result<u32, i32> },
-    SysWrite { result: Result<u32, i32> },
-    SysRead { result: Result<(u32, Vec<u8>), i32> },
-    SysException { success: bool, stop: bool },
-    SysClock { result: Result<u32, i32> },
-    SysErrno { result: u32 },
+    SysOpen {
+        result: Result<u32, i32>,
+    },
+    SysClose {
+        success: bool,
+    },
+    SysFlen {
+        result: Result<u32, i32>,
+    },
+    SysIstty {
+        result: Result<u32, i32>,
+    },
+    SysSeek {
+        success: bool,
+    },
+    SysWrite {
+        result: Result<u32, i32>,
+    },
+    SysRead {
+        result: Result<(u32, Vec<u8>, u32), i32>,
+    },
+    SysException {
+        success: bool,
+        stop: bool,
+    },
+    SysExitExtended {
+        success: bool,
+        stop: bool,
+    },
+    SysClock {
+        result: Result<u32, i32>,
+    },
+    SysErrno {
+        result: u32,
+    },
 }
 
-const SYS_OPEN: u32 = 1;
-const SYS_CLOSE: u32 = 2;
-const SYS_WRITE: u32 = 5;
-const SYS_READ: u32 = 6;
+const SYS_OPEN: u32 = 0x01;
+const SYS_CLOSE: u32 = 0x02;
+const SYS_WRITE: u32 = 0x05;
+const SYS_READ: u32 = 0x06;
+const SYS_ISTTY: u32 = 0x09;
+const SYS_SEEK: u32 = 0x0a;
 const SYS_FLEN: u32 = 0x0c;
 const SYS_CLOCK: u32 = 0x10;
 const SYS_ERRNO: u32 = 0x13;
 const SYS_EXIT: u32 = 0x18;
-const SYS_ISTTY: u32 = 0x09;
+const SYS_EXIT_EXTENDED: u32 = 0x20;
 
 pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> SemihostingCommand {
     match r0 {
@@ -164,8 +204,34 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
 
             SemihostingCommand::SysFlen { handle: handle }
         }
+        SYS_ISTTY => {
+            let params_ptr = r1;
+            let handle = core.bus.read32(params_ptr);
+
+            SemihostingCommand::SysIstty { handle: handle }
+        }
+        SYS_SEEK => {
+            let params_ptr = r1;
+            let handle = core.bus.read32(params_ptr);
+            let position = core.bus.read32(params_ptr + 4);
+
+            SemihostingCommand::SysSeek {
+                handle: handle,
+                position: position,
+            }
+        }
         SYS_CLOCK => SemihostingCommand::SysClock,
         SYS_ERRNO => SemihostingCommand::SysErrno,
+        SYS_EXIT_EXTENDED => {
+            let params_ptr = r1;
+            let reason = SysExceptionReason::from_u32(core.bus.read32(params_ptr));
+            let subcode = core.bus.read32(params_ptr + 4);
+
+            SemihostingCommand::SysExitExtended {
+                reason: reason,
+                subcode: subcode,
+            }
+        }
         SYS_EXIT => SemihostingCommand::SysException {
             reason: SysExceptionReason::from_u32(r1),
         },
@@ -186,7 +252,16 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
             Ok(size) => core.set_r(Reg::R0, size),
             Err(error_code) => core.set_r(Reg::R0, error_code as u32),
         },
+        SemihostingResponse::SysIstty { result } => match result {
+            Ok(response) => core.set_r(Reg::R0, response),
+            Err(error_code) => core.set_r(Reg::R0, error_code as u32),
+        },
         SemihostingResponse::SysException { success, stop } => {
+            if success {
+                core.running = !stop
+            }
+        }
+        SemihostingResponse::SysExitExtended { success, stop } => {
             if success {
                 core.running = !stop
             }
@@ -198,20 +273,25 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
                 core.set_r(Reg::R0, (-1_i32) as u32);
             }
         }
+        SemihostingResponse::SysSeek { success } => {
+            if success {
+                core.set_r(Reg::R0, 0);
+            } else {
+                core.set_r(Reg::R0, (-1_i32) as u32);
+            }
+        }
         SemihostingResponse::SysWrite { result } => match result {
             Ok(_) => core.set_r(Reg::R0, 0),
             Err(unwritten_bytes) => core.set_r(Reg::R0, unwritten_bytes as u32),
         },
         SemihostingResponse::SysRead { ref result } => match result {
-            Ok((memoryptr, data)) => {
-                println!("sys read impl");
+            Ok((memoryptr, data, diff)) => {
                 let mut addr = *memoryptr;
-                data.iter().map(|x| {
-                    println!("write 0x{:x}= {:x}", addr, *x);
+                for x in data {
                     core.bus.write8(addr, *x);
                     addr += 1;
-                });
-                core.set_r(Reg::R0, 0);
+                }
+                core.set_r(Reg::R0, *diff);
             }
             Err(error_code) => core.set_r(Reg::R0, *error_code as u32),
         },
