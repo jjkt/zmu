@@ -1,6 +1,5 @@
 use crate::core::bits::*;
 use crate::core::instruction::Instruction;
-use crate::core::ThumbCode;
 
 #[cfg(test)]
 use crate::core::instruction::CpsEffect;
@@ -224,7 +223,7 @@ pub fn is_thumb32(word: u16) -> bool {
 fn decode_undefined(opcode: u16) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }
 
@@ -232,7 +231,7 @@ fn decode_undefined(opcode: u16) -> Instruction {
 fn decode_UDF_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }
 

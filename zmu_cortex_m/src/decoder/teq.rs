@@ -3,8 +3,6 @@ use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 use bit_field::BitField;
 
-use crate::core::ThumbCode;
-
 #[allow(non_snake_case)]
 pub fn decode_TEQ_reg_t1(opcode: u32) -> Instruction {
     let imm3: u8 = opcode.get_bits(12..15) as u8;
@@ -24,6 +22,6 @@ pub fn decode_TEQ_reg_t1(opcode: u32) -> Instruction {
 pub fn decode_TEQ_imm_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }

@@ -3,7 +3,6 @@ use crate::core::instruction::Instruction;
 use crate::core::instruction::SetFlags;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::register::Reg;
-use crate::core::ThumbCode;
 use bit_field::BitField;
 
 #[allow(non_snake_case)]
@@ -20,7 +19,7 @@ pub fn decode_MVN_reg_t1(opcode: u16) -> Instruction {
 pub fn decode_MVN_reg_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }
 

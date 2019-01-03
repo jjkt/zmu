@@ -1,6 +1,5 @@
 use crate::core::bits::*;
 use crate::core::instruction::Instruction;
-use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -33,7 +32,7 @@ pub fn decode_REV16_t1(opcode: u16) -> Instruction {
 pub fn decode_REV16_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }
 
@@ -41,7 +40,7 @@ pub fn decode_REV16_t2(opcode: u32) -> Instruction {
 pub fn decode_REVSH_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }
 
@@ -49,6 +48,6 @@ pub fn decode_REVSH_t2(opcode: u32) -> Instruction {
 pub fn decode_REV_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }

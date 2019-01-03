@@ -3,7 +3,6 @@ use bit_field::BitField;
 use crate::core::instruction::Instruction;
 use crate::core::operation::get_reglist;
 use crate::core::register::Reg;
-use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -21,7 +20,7 @@ pub fn decode_LDM_t1(opcode: u16) -> Instruction {
 pub fn decode_LDMDB_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }
 

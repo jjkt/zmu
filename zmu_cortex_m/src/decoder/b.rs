@@ -4,7 +4,6 @@ use crate::core::instruction::Instruction;
 use crate::core::operation::build_imm_10_11;
 use crate::core::operation::build_imm_6_11;
 use crate::core::operation::sign_extend;
-use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -18,7 +17,7 @@ pub fn decode_B_t1_SVC_t1(opcode: u16) -> Instruction {
     if cond == 0b1110 {
         return Instruction::UDF {
             imm32: 0,
-            opcode: ThumbCode::from(opcode),
+            opcode: opcode.into(),
         };
     }
 

@@ -5,7 +5,6 @@ use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm;
 use crate::core::operation::zero_extend;
 use crate::core::register::Reg;
-use crate::core::ThumbCode;
 
 #[allow(non_snake_case)]
 #[inline]
@@ -163,6 +162,6 @@ pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
 pub fn decode_SUB_imm_t4(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
-        opcode: ThumbCode::from(opcode),
+        opcode: opcode.into(),
     }
 }

@@ -15,8 +15,11 @@ pub fn decode_ADR_t1(command: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline]
-pub fn decode_ADR_t2(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_ADR_t2(opcode: u32) -> Instruction {
+    Instruction::UDF {
+        imm32: 0,
+        opcode: opcode.into(),
+    }
 }
 
 #[allow(non_snake_case)]
