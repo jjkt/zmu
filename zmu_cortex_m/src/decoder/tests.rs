@@ -617,9 +617,18 @@ fn test_decode_sub2() {
 fn test_decode_tst() {
     // TST R4, R1
     match decode_16(0x420c) {
-        Instruction::TST_reg { rn, rm } => {
+        Instruction::TST_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
             assert!(rn == Reg::R4);
             assert!(rm == Reg::R1);
+            assert!(shift_t == SRType::LSL);
+            assert!(shift_n == 0);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2602,6 +2611,22 @@ fn test_decode_uxtab_() {
             rn: Reg::R4,
             rm: Reg::R0,
             rotation: 0
+        }
+    );
+}
+
+#[test]
+fn test_decode_tst_reg_w() {
+    // 0xea180f03 tst.w   r8, r3
+
+    assert_eq!(
+        decode_32(0xea180f03),
+        Instruction::TST_reg {
+            rn: Reg::R8,
+            rm: Reg::R3,
+            thumb32: true,
+            shift_n: 0,
+            shift_t: SRType::LSL,
         }
     );
 }

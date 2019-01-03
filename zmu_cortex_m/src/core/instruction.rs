@@ -637,6 +637,9 @@ pub enum Instruction {
     TST_reg {
         rn: Reg,
         rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     TST_imm {
         rn: Reg,
@@ -1901,7 +1904,24 @@ impl fmt::Display for Instruction {
                 }
             ),
             Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
-            Instruction::TST_reg { rn, rm } => write!(f, "tst {}, {}", rn, rm),
+            Instruction::TST_reg {
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                thumb32,
+            } => write!(
+                f,
+                "tst{} {}, {}{}",
+                if thumb32 { ".W" } else { "" },
+                rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    "".to_string()
+                }
+            ),
             Instruction::TST_imm { rn, ref imm32 } => write!(
                 f,
                 "tst {}, #{}",
@@ -2690,6 +2710,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::CMN_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+        Instruction::TST_reg {
             rn,
             rm,
             shift_t,
