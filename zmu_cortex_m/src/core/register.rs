@@ -22,6 +22,12 @@ pub trait Apsr {
 
     fn get_q(&self) -> bool;
     fn set_q(&mut self, q: bool);
+
+    //DSP extensions: GE
+    fn set_ge0(&mut self, bit: bool);
+    fn set_ge1(&mut self, bit: bool);
+    fn set_ge2(&mut self, bit: bool);
+    fn set_ge3(&mut self, bit: bool);
 }
 
 pub trait Ipsr {
@@ -84,6 +90,19 @@ impl Apsr for PSR {
     }
     fn set_q(&mut self, q: bool) {
         (*self).value.set_bit(27, q);
+    }
+
+    fn set_ge0(&mut self, bit: bool) {
+        (*self).value.set_bit(16, bit);
+    }
+    fn set_ge1(&mut self, bit: bool) {
+        (*self).value.set_bit(17, bit);
+    }
+    fn set_ge2(&mut self, bit: bool) {
+        (*self).value.set_bit(18, bit);
+    }
+    fn set_ge3(&mut self, bit: bool) {
+        (*self).value.set_bit(19, bit);
     }
 }
 

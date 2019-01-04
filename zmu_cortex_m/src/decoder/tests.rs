@@ -2677,3 +2677,17 @@ fn test_decode_orn_reg_t2() {
         }
     );
 }
+
+#[test]
+fn test_decode_uadd8() {
+    // fa82 f24c       uadd8   r2, r2, ip
+
+    assert_eq!(
+        decode_32(0xfa82f24c),
+        Instruction::UADD8 {
+            rd: Reg::R2,
+            rn: Reg::R2,
+            rm: Reg::R12,
+        }
+    );
+}

@@ -105,6 +105,7 @@ mod teq;
 mod tst;
 
 mod movt;
+mod uadd8;
 mod udiv;
 mod umlal;
 mod umull;
@@ -192,6 +193,7 @@ use crate::decoder::tbh::*;
 use crate::decoder::teq::*;
 use crate::decoder::tst::*;
 
+use crate::decoder::uadd8::*;
 use crate::decoder::udiv::*;
 use crate::decoder::umlal::*;
 use crate::decoder::umull::*;
@@ -454,6 +456,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_RBIT_t1(opcode)
     } else if (opcode & 0xfff0ff00) == 0xf3808800 {
         decode_MSR_reg_t1(opcode)
+    } else if (opcode & 0xfff0f0f0) == 0xfa80f040 {
+        decode_UADD8_t1(opcode)
     } else if (opcode & 0xfff0f0f0) == 0xfa90f0b0 {
         decode_REVSH_t2(opcode)
     } else if (opcode & 0xfff0f0f0) == 0xfbb0f0f0 {
@@ -496,8 +500,6 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDRSB_reg_t2(opcode)
     } else if (opcode & 0xffffa000) == 0xe92d0000 {
         decode_PUSH_t2(opcode)
-    } else if (opcode & 0xfff00fc0) == 0xf8400000 {
-        decode_STR_reg_t2(opcode)
     } else if (opcode & 0xfff0f0c0) == 0xfa50f080 {
         decode_UXTAB_t1(opcode)
     } else if (opcode & 0xfff0f0c0) == 0xfb10f000 {
@@ -514,6 +516,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ASR_imm_t2(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0010 {
         decode_LSR_imm_t2(opcode)
+    } else if (opcode & 0xfff00fc0) == 0xf8400000 {
+        decode_STR_reg_t2(opcode)
     } else if (opcode & 0xffef8030) == 0xea4f0000 {
         decode_LSL_imm_t2(opcode)
     } else if (opcode & 0xffff2000) == 0xe8bd0000 {

@@ -2176,6 +2176,31 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::UADD8 { rd, rn, rm } => {
+            if core.condition_passed() {
+                let rm_ = core.get_r(*rm);
+                let rn_ = core.get_r(*rn);
+
+                let sum1 = rn_.get_bits(0..8) + rm_.get_bits(0..8);
+                let sum2 = rn_.get_bits(8..16) + rm_.get_bits(8..16);
+                let sum3 = rn_.get_bits(16..24) + rm_.get_bits(16..24);
+                let sum4 = rn_.get_bits(24..32) + rm_.get_bits(24..32);
+
+                let mut result = sum1.get_bits(0..8);
+                result.set_bits(8..16, sum2.get_bits(0..8));
+                result.set_bits(16..24, sum3.get_bits(0..8));
+                result.set_bits(24..32, sum4.get_bits(0..8));
+                core.set_r(*rd, result);
+
+                core.psr.set_ge0(sum1 >= 0x100);
+                core.psr.set_ge1(sum2 >= 0x100);
+                core.psr.set_ge2(sum3 >= 0x100);
+                core.psr.set_ge3(sum4 >= 0x100);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         // ARMv7-M
         Instruction::SDIV { rd, rn, rm } => {
             if core.condition_passed() {

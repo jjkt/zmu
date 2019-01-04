@@ -683,6 +683,11 @@ pub enum Instruction {
         imm32: u32,
         opcode: ThumbCode,
     },
+    UADD8 {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
     // ARMv7-M
     UBFX {
         rd: Reg,
@@ -2004,6 +2009,7 @@ impl fmt::Display for Instruction {
                 write!(f, "udf {} (opcode = {})", imm32, opcode)
             }
 
+            Instruction::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
             // ARMv7-M
             Instruction::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
             Instruction::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
@@ -2988,6 +2994,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::UADD8 { rd, rn, rm } => 4,
         _ => 2,
     }
 }
