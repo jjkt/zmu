@@ -1,6 +1,6 @@
 
 CC=arm-none-eabi-gcc
-CFLAGS= --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld  
+CFLAGS= -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld  
 LIBS=-lc -lrdimon
 STARTUP_PATH=/usr/share/gcc-arm-embedded/samples/startup
 
@@ -10,7 +10,7 @@ STARTUP_PATH=/usr/share/gcc-arm-embedded/samples/startup
 # cortex-m23 cortex-m3 cortex-m33 cortex-m33+nodsp cortex-m4 cortex-m7
 #
 
-all: hello_world-cm0.elf hello_world-cm3.elf hello_world-cm4.elf hello_world-cm4f.elf
+all: hello_world-cm0.elf hello_world-cm0p.elf hello_world-cm3.elf hello_world-cm4.elf hello_world-cm4f.elf
 
 hello_world-cm0.elf:
 	$(CC) $(CFLAGS) -mcpu=cortex-m0 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM0.S -o $@
