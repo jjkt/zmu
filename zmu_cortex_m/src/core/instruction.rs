@@ -367,6 +367,7 @@ pub enum Instruction {
         rm: Reg,
         rn: Reg,
         setflags: SetFlags,
+        thumb32: bool,
     },
     LSR_imm {
         rd: Reg,
@@ -1420,10 +1421,12 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 ref setflags,
+                thumb32,
             } => write!(
                 f,
-                "lsl{} {}, {}, {}",
+                "lsl{}{} {}, {}, {}",
                 setflags_to_str(*setflags),
+                if thumb32 { ".W" } else { "" },
                 rd,
                 rn,
                 rm
@@ -2936,7 +2939,19 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             shift_t,
             shift_n,
         } => 4,
-
+        Instruction::LSL_reg {
+            rd,
+            rn,
+            rm,
+            ref setflags,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         _ => 2,
     }
 }

@@ -2644,3 +2644,19 @@ fn test_decode_pld_reg() {
         }
     );
 }
+
+#[test]
+fn test_decode_lsl_reg_t2() {
+    // 0xfa0cf505 ->     lsl.w   r5, ip, r5
+
+    assert_eq!(
+        decode_32(0xfa0cf505),
+        Instruction::LSL_reg {
+            rd: Reg::R5,
+            rn: Reg::R12,
+            rm: Reg::R5,
+            thumb32: true,
+            setflags: SetFlags::False
+        }
+    );
+}

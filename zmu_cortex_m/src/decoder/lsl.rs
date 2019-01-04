@@ -8,10 +8,26 @@ use bit_field::BitField;
 #[inline]
 pub fn decode_LSL_reg_t1(opcode: u16) -> Instruction {
     Instruction::LSL_reg {
-        rd: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..6) as u8),
+        rd: opcode.get_bits(0..3).into(),
+        rn: opcode.get_bits(0..3).into(),
+        rm: opcode.get_bits(3..6).into(),
         setflags: SetFlags::NotInITBlock,
+        thumb32: false,
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn decode_LSL_reg_t2(opcode: u32) -> Instruction {
+    Instruction::LSL_reg {
+        rd: opcode.get_bits(8..12).into(),
+        rn: opcode.get_bits(16..20).into(),
+        rm: opcode.get_bits(0..4).into(),
+        setflags: if opcode.get_bit(20) {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
+        thumb32: true,
     }
 }
 
@@ -36,13 +52,5 @@ pub fn decode_LSL_imm_t2(opcode: u32) -> Instruction {
         },
         shift_n: shift_n,
         thumb32: true,
-    }
-}
-
-#[allow(non_snake_case)]
-pub fn decode_LSL_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
     }
 }
