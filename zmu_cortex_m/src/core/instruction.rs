@@ -538,6 +538,11 @@ pub enum Instruction {
         setflags: bool,
     },
     SEV,
+    SEL {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
     STM {
         rn: Reg,
         registers: EnumSet<Reg>,
@@ -2010,6 +2015,7 @@ impl fmt::Display for Instruction {
             }
 
             Instruction::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
+            Instruction::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
             // ARMv7-M
             Instruction::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
             Instruction::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
@@ -2995,6 +3001,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             }
         }
         Instruction::UADD8 { rd, rn, rm } => 4,
+        Instruction::SEL { rd, rn, rm } => 4,
         _ => 2,
     }
 }

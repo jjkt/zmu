@@ -28,6 +28,11 @@ pub trait Apsr {
     fn set_ge1(&mut self, bit: bool);
     fn set_ge2(&mut self, bit: bool);
     fn set_ge3(&mut self, bit: bool);
+
+    fn get_ge0(&self) -> bool;
+    fn get_ge1(&self) -> bool;
+    fn get_ge2(&self) -> bool;
+    fn get_ge3(&self) -> bool;
 }
 
 pub trait Ipsr {
@@ -103,6 +108,19 @@ impl Apsr for PSR {
     }
     fn set_ge3(&mut self, bit: bool) {
         (*self).value.set_bit(19, bit);
+    }
+
+    fn get_ge0(&self) -> bool {
+        (*self).value.get_bit(16)
+    }
+    fn get_ge1(&self) -> bool {
+        (*self).value.get_bit(17)
+    }
+    fn get_ge2(&self) -> bool {
+        (*self).value.get_bit(18)
+    }
+    fn get_ge3(&self) -> bool {
+        (*self).value.get_bit(19)
     }
 }
 

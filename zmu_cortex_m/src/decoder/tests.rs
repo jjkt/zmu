@@ -2691,3 +2691,17 @@ fn test_decode_uadd8() {
         }
     );
 }
+
+#[test]
+fn test_decode_sel() {
+    //0xfaa4f28c       sel     r2, r4, ip
+
+    assert_eq!(
+        decode_32(0xfaa4f28c),
+        Instruction::SEL {
+            rd: Reg::R2,
+            rn: Reg::R4,
+            rm: Reg::R12,
+        }
+    );
+}

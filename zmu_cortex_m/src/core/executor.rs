@@ -2201,6 +2201,50 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::SEL { rd, rn, rm } => {
+            if core.condition_passed() {
+                let rm_ = core.get_r(*rm);
+                let rn_ = core.get_r(*rn);
+
+                let mut result = 0;
+                result.set_bits(
+                    0..8,
+                    if core.psr.get_ge0() {
+                        rn_.get_bits(0..8)
+                    } else {
+                        rm_.get_bits(0..8)
+                    },
+                );
+                result.set_bits(
+                    8..16,
+                    if core.psr.get_ge1() {
+                        rn_.get_bits(8..16)
+                    } else {
+                        rm_.get_bits(8..16)
+                    },
+                );
+                result.set_bits(
+                    16..24,
+                    if core.psr.get_ge2() {
+                        rn_.get_bits(16..24)
+                    } else {
+                        rm_.get_bits(16..24)
+                    },
+                );
+                result.set_bits(
+                    24..32,
+                    if core.psr.get_ge3() {
+                        rn_.get_bits(24..32)
+                    } else {
+                        rm_.get_bits(24..32)
+                    },
+                );
+                core.set_r(*rd, result);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         // ARMv7-M
         Instruction::SDIV { rd, rn, rm } => {
             if core.condition_passed() {
