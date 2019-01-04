@@ -344,16 +344,17 @@ where
         } => {
             if core.condition_passed() {
                 let result = core.get_r(*rm);
-                core.set_r(*rd, result);
 
                 if *rd != Reg::PC {
+                    core.set_r(*rd, result);
                     if *setflags {
                         core.psr.set_n(result);
                         core.psr.set_z(result);
                     }
                     return ExecuteResult::Taken { cycles: 1 };
                 } else {
-                    unimplemented!()
+                    core.branch_write_pc(result);
+                    return ExecuteResult::Branched { cycles: 3 };
                 }
             }
 
