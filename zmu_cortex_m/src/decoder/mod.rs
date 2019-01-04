@@ -671,7 +671,7 @@ pub fn decode_32(opcode: u32) -> Instruction {
     } else if (opcode & 0xffd02000) == 0xe9100000 {
         decode_LDMDB_t1(opcode)
     } else if (opcode & 0xffe08000) == 0xea600000 {
-        decode_ORN_reg_t2(opcode)
+        decode_ORN_reg_t1(opcode)
     } else if (opcode & 0xfff00000) == 0xf8800000 {
         decode_STRB_imm_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8b00000 {

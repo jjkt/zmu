@@ -626,6 +626,32 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::ORN_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
+        } => {
+            if core.condition_passed() {
+                let r_n = core.get_r(*rn);
+                let r_m = core.get_r(*rm);
+
+                let (shifted, carry) = shift_c(r_m, *shift_t, *shift_n as usize, core.psr.get_c());
+                let result = r_n | (shifted ^ 0xFFFF_FFFF);
+
+                core.set_r(*rd, result);
+
+                if *setflags {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
         Instruction::EOR_imm {
             rd,
             rn,

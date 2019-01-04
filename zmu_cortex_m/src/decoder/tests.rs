@@ -2660,3 +2660,20 @@ fn test_decode_lsl_reg_t2() {
         }
     );
 }
+
+#[test]
+fn test_decode_orn_reg_t2() {
+    // 0xea62 0205       orn     r2, r2, r5
+
+    assert_eq!(
+        decode_32(0xea620205),
+        Instruction::ORN_reg {
+            rd: Reg::R2,
+            rn: Reg::R2,
+            rm: Reg::R5,
+            setflags: false,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        }
+    );
+}

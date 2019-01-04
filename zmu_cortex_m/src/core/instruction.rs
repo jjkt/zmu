@@ -456,6 +456,14 @@ pub enum Instruction {
         imm32: Imm32Carry,
         setflags: bool,
     },
+    ORN_reg {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        setflags: bool,
+    },
     POP {
         registers: EnumSet<Reg>,
         thumb32: bool,
@@ -1615,6 +1623,26 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
+            Instruction::ORN_reg {
+                rd,
+                rn,
+                rm,
+                ref shift_t,
+                shift_n,
+                setflags,
+            } => write!(
+                f,
+                "orn{}.w {}, {}, {}{}",
+                if setflags { "s" } else { "" },
+                rd,
+                rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    "".to_string()
+                }
+            ),
             Instruction::EOR_imm {
                 rd,
                 rn,
@@ -2637,6 +2665,14 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::ORN_reg {
+            rd,
+            rn,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
+        } => 4,
         Instruction::BIC_reg {
             rd,
             rn,
