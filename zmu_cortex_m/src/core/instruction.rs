@@ -684,6 +684,10 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
     },
+    TBH {
+        rn: Reg,
+        rm: Reg,
+    },
     UDF {
         imm32: u32,
         opcode: ThumbCode,
@@ -1989,6 +1993,7 @@ impl fmt::Display for Instruction {
                 }
             ),
             Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
+            Instruction::TBH { rn, rm } => write!(f, "tbh [{}, {}, lsl #1]", rn, rm),
             Instruction::TST_reg {
                 rn,
                 rm,
@@ -2641,6 +2646,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         } => 4,
 
         Instruction::TBB { rn, rm } => 4,
+        Instruction::TBH { rn, rm } => 4,
         Instruction::UDIV { rd, rn, rm } => 4,
         Instruction::SDIV { rd, rn, rm } => 4,
         Instruction::AND_imm {

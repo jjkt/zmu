@@ -2718,3 +2718,16 @@ fn test_decode_sel() {
         }
     );
 }
+
+#[test]
+fn test_decode_tbh() {
+    // e8df f013       tbh     [pc, r3, lsl #1]
+
+    assert_eq!(
+        decode_32(0xe8dff013),
+        Instruction::TBH {
+            rn: Reg::PC,
+            rm: Reg::R3,
+        }
+    );
+}
