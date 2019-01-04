@@ -755,6 +755,12 @@ pub enum Instruction {
         n_high: bool,
         m_high: bool,
     },
+    SMULL {
+        rdlo: Reg,
+        rdhi: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
     // ARMv7-Me
     SMLA {
         rd: Reg,
@@ -2027,6 +2033,9 @@ impl fmt::Display for Instruction {
             Instruction::UMULL { rdlo, rdhi, rn, rm } => {
                 write!(f, "umull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
+            Instruction::SMULL { rdlo, rdhi, rn, rm } => {
+                write!(f, "smull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
+            }
             // ARMv7-M
             Instruction::MLA { rd, rn, rm, ra } => write!(f, "mla {}, {}, {}, {}", rd, rn, rm, ra),
             // ARMv7-M
@@ -2871,6 +2880,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         }
         Instruction::UMLAL { rm, rdlo, rdhi, rn } => 4,
         Instruction::UMULL { rm, rdlo, rdhi, rn } => 4,
+        Instruction::SMULL { rm, rdlo, rdhi, rn } => 4,
         Instruction::RSB_imm {
             rd,
             rn,

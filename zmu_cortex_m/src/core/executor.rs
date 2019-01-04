@@ -2323,6 +2323,18 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::SMULL { rdlo, rdhi, rn, rm } => {
+            if core.condition_passed() {
+                let rn_ = i64::from(core.get_r(*rn));
+                let rm_ = i64::from(core.get_r(*rm));
+                let result = rn_.wrapping_mul(rm_);
+
+                core.set_r(*rdlo, result.get_bits(0..32) as u32);
+                core.set_r(*rdhi, result.get_bits(32..64) as u32);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         // ARMv7-M
         Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),

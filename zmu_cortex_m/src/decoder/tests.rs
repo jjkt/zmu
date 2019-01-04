@@ -2174,6 +2174,19 @@ fn test_decode_ulmull() {
         }
     );
 }
+#[test]
+fn test_decode_smull() {
+    // fb83 320b       smull   r3, r2, r3, fp
+    assert_eq!(
+        decode_32(0xfb83320b),
+        Instruction::SMULL {
+            rdlo: Reg::R3,
+            rdhi: Reg::R2,
+            rn: Reg::R3,
+            rm: Reg::R11,
+        }
+    );
+}
 
 #[test]
 fn test_decode_lsr_w_reg() {
