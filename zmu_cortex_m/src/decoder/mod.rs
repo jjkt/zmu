@@ -434,6 +434,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_RRX_t1(opcode)
     } else if (opcode & 0xffeff0f0) == 0xea4f0000 {
         decode_MOV_reg_t3(opcode)
+    } else if (opcode & 0xfff0ffc0) == 0xf810f000 {
+        decode_PLD_reg_t1(opcode)
     } else if (opcode & 0xfffff0c0) == 0xfa0ff080 {
         decode_SXTH_t2(opcode)
     } else if (opcode & 0xfff0ffc0) == 0xf910f000 {
@@ -476,6 +478,8 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LSL_reg_t2(opcode)
     } else if (opcode & 0xffe0f0f0) == 0xfa60f000 {
         decode_ROR_reg_t2(opcode)
+    } else if (opcode & 0xff7ff000) == 0xf81ff000 {
+        decode_PLD_lit_t1(opcode)
     } else if (opcode & 0xff7ff000) == 0xf91ff000 {
         decode_PLI_lit_imm_t3(opcode)
     } else if (opcode & 0xffe0f0f0) == 0xfa40f000 {
@@ -620,12 +624,12 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_LDRH_imm_t3(opcode)
     } else if (opcode & 0xffd0a000) == 0xe9000000 {
         decode_STMDB_t1(opcode)
-    } else if (opcode & 0xffe08000) == 0xea800000 {
-        decode_EOR_reg_t2(opcode)
     } else if (opcode & 0xfbf08000) == 0xf2c00000 {
         decode_MOVT_t1(opcode)
     } else if (opcode & 0xffe08000) == 0xeba00000 {
         decode_SUB_reg_t2(opcode)
+    } else if (opcode & 0xffd02000) == 0xe8900000 {
+        decode_LDM_t2(opcode)
     } else if (opcode & 0xffe08000) == 0xebc00000 {
         decode_RSB_reg_t1(opcode)
     } else if (opcode & 0xfff00000) == 0xf9900000 {
@@ -652,10 +656,10 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_ADD_reg_t3(opcode)
     } else if (opcode & 0xfff00000) == 0xf8d00000 {
         decode_LDR_imm_t3(opcode)
+    } else if (opcode & 0xffe08000) == 0xea800000 {
+        decode_EOR_reg_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xf8900000 {
         decode_LDRB_imm_t2(opcode)
-    } else if (opcode & 0xffd02000) == 0xe8900000 {
-        decode_LDM_t2(opcode)
     } else if (opcode & 0xfff00000) == 0xec400000 {
         decode_MCRR_t1(opcode)
     } else if (opcode & 0xfff00000) == 0xf9b00000 {
@@ -718,12 +722,12 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_BL_t1(opcode)
     } else if (opcode & 0xfe100000) == 0xfc100000 {
         decode_LDC2_imm_t2(opcode)
+    } else if (opcode & 0xf800d000) == 0xf0008000 {
+        decode_B_t3(opcode)
     } else if (opcode & 0xf800d000) == 0xf0009000 {
         decode_B_t4(opcode)
     } else if (opcode & 0xfe100000) == 0xec000000 {
         decode_STC_t1(opcode)
-    } else if (opcode & 0xf800d000) == 0xf0008000 {
-        decode_B_t3(opcode)
     } else if (opcode & 0xfe100000) == 0xfc000000 {
         decode_STC2_t2(opcode)
     } else if (opcode & 0xfe100000) == 0xec100000 {

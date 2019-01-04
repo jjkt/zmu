@@ -459,6 +459,21 @@ pub enum Instruction {
         registers: EnumSet<Reg>,
         thumb32: bool,
     },
+    PLD_imm {
+        rn: Reg,
+        imm32: u32,
+        add: bool,
+    },
+    PLD_lit {
+        imm32: u32,
+        add: bool,
+    },
+    PLD_reg {
+        rn: Reg,
+        rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+    },
     PUSH {
         registers: EnumSet<Reg>,
         thumb32: bool,
@@ -1619,6 +1634,29 @@ impl fmt::Display for Instruction {
             Instruction::PUSH { thumb32, registers } => {
                 write!(f, "push{} {:?}", if thumb32 { ".W" } else { "" }, registers)
             }
+            Instruction::PLD_imm { rn, imm32, add } => {
+                write!(f, "pld [{}, {}{}]", rn, if add { "+" } else { "-" }, imm32)
+            }
+            Instruction::PLD_lit { imm32, add } => {
+                write!(f, "pld [PC, {}{}]", if add { "+" } else { "-" }, imm32)
+            }
+            Instruction::PLD_reg {
+                rn,
+                rm,
+                shift_t,
+                shift_n,
+            } => write!(
+                f,
+                "pld [{}, {}, {}]",
+                rn,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    "".to_string()
+                }
+            ),
+
             Instruction::REV { rd, rm } => write!(f, "rev {}, {}", rd, rm),
             Instruction::REV16 { rd, rm } => write!(f, "rev16 {}, {}", rd, rm),
             Instruction::REVSH { rd, rm } => write!(f, "revsh {}, {}", rd, rm),
@@ -2890,6 +2928,14 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::PLD_imm { rn, imm32, add } => 4,
+        Instruction::PLD_lit { imm32, add } => 4,
+        Instruction::PLD_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+        } => 4,
 
         _ => 2,
     }

@@ -2630,3 +2630,17 @@ fn test_decode_tst_reg_w() {
         }
     );
 }
+
+#[test]
+fn test_decode_pld_reg() {
+    // 0xf890f000 pld [r0]
+
+    assert_eq!(
+        decode_32(0xf890f000),
+        Instruction::PLD_imm {
+            rn: Reg::R0,
+            imm32: 0,
+            add: true
+        }
+    );
+}

@@ -983,7 +983,32 @@ where
             }
             ExecuteResult::NotTaken
         }
-
+        Instruction::PLD_imm { rn, imm32, add } => {
+            if core.condition_passed() {
+                ExecuteResult::Taken { cycles: 1 }
+            } else {
+                ExecuteResult::NotTaken
+            }
+        }
+        Instruction::PLD_lit { imm32, add } => {
+            if core.condition_passed() {
+                ExecuteResult::Taken { cycles: 1 }
+            } else {
+                ExecuteResult::NotTaken
+            }
+        }
+        Instruction::PLD_reg {
+            rn,
+            rm,
+            shift_t,
+            shift_n,
+        } => {
+            if core.condition_passed() {
+                ExecuteResult::Taken { cycles: 1 }
+            } else {
+                ExecuteResult::NotTaken
+            }
+        }
         Instruction::LDR_imm {
             rt,
             rn,
