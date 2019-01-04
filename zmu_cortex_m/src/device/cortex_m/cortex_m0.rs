@@ -14,7 +14,7 @@ pub fn cortex_m0_simulate<F>(code: &[u8], mut semihost_func: F) -> u64
 where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
-    let mut flash_memory = FlashMemory::new(0, 32768);
+    let mut flash_memory = FlashMemory::new(0, 65536);
     let mut ram_memory = RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd);
 
     flash_memory.load(code);
@@ -65,7 +65,7 @@ where
     F: FnMut(&ThumbCode, u64, u32, &Instruction, [u32; 13], u32),
     G: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
-    let mut flash_memory = FlashMemory::new(0, 32768);
+    let mut flash_memory = FlashMemory::new(0, 65536);
     let mut ram_memory = RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd);
 
     flash_memory.load(code);

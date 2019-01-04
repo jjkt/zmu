@@ -268,7 +268,7 @@ fn run_bin(
     let duration = end.duration_since(start);
 
     println!(
-        "{:?}, {} instructions, {} instructions per sec",
+        "\n{:?}, {} instructions, {} instructions per sec",
         duration,
         instruction_count,
         instruction_count as f64
@@ -281,7 +281,7 @@ fn run(args: &ArgMatches) -> Result<()> {
         ("run", Some(run_matches)) => {
             let _device = run_matches.value_of("device").unwrap_or("cortex-m0");
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
-            let mut flash_mem = [0; 32768];
+            let mut flash_mem = [0; 65536];
             let instructions = match run_matches.value_of("instructions") {
                 Some(instr) => Some(instr.parse::<u64>().unwrap()),
                 None => None,
