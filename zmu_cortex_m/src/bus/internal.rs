@@ -1,11 +1,6 @@
 use crate::bus::Bus;
-
-#[derive(Default)]
-struct SysTick {
-    pub rvr: u32,
-    pub cvr: u32,
-    pub csr: u32,
-}
+use crate::bus::BusStepResult;
+use crate::peripheral::systick::SysTick;
 
 #[derive(Default)]
 struct Dwt {
@@ -77,18 +72,6 @@ impl InternalBus {
         self.shpr3 = value
     }
 
-    fn write_syst_rvr(&mut self, value: u32) {
-        self.syst.rvr = value
-    }
-
-    fn write_syst_cvr(&mut self, value: u32) {
-        self.syst.cvr = value
-    }
-
-    fn write_syst_csr(&mut self, value: u32) {
-        self.syst.csr = value
-    }
-
     fn write_vtor(&mut self, value: u32) {
         self.vtor = value
     }
@@ -118,6 +101,10 @@ impl Bus for InternalBus {
 
     fn read32(&self, addr: u32) -> u32 {
         match addr {
+            0xE000_E010 => self.syst.read_syst_csr(),
+            0xE000_E014 => self.syst.read_syst_rvr(),
+            0xE000_E018 => self.syst.read_syst_cvr(),
+            0xE000_E01C => self.syst.read_syst_calib(),
             0xE000_ED20 => self.read_shpr3(),
             // DWT
             0xE000_1000 => self.dwt.ctrl,
@@ -134,9 +121,9 @@ impl Bus for InternalBus {
             }
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED20 => self.write_shpr3(value),
-            0xE000_E010 => self.write_syst_csr(value),
-            0xE000_E014 => self.write_syst_rvr(value),
-            0xE000_E018 => self.write_syst_cvr(value),
+            0xE000_E010 => self.syst.write_syst_csr(value),
+            0xE000_E014 => self.syst.write_syst_rvr(value),
+            0xE000_E018 => self.syst.write_syst_cvr(value),
             _ => panic!("bus access fault write addr 0x{:x}={}", addr, value),
         }
     }
@@ -157,5 +144,9 @@ impl Bus for InternalBus {
             return true;
         }
         false
+    }
+
+    fn step(&mut self) -> BusStepResult {
+        self.syst.step()
     }
 }

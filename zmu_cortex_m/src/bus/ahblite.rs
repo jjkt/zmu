@@ -1,4 +1,5 @@
 use crate::bus::Bus;
+use crate::bus::BusStepResult;
 
 pub struct AHBLite<'a, T: 'a + Bus, R: 'a + Bus> {
     code: &'a mut T,
@@ -107,5 +108,9 @@ where
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         self.code.in_range(addr) || self.sram.in_range(addr)
+    }
+
+    fn step(&mut self) -> BusStepResult {
+        BusStepResult::Nothing
     }
 }

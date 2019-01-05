@@ -2,6 +2,11 @@ pub mod ahblite;
 pub mod busmatrix;
 pub mod internal;
 
+pub enum BusStepResult {
+    Nothing,
+    Exception { exception_number: u8 },
+}
+
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.
     ///
@@ -30,4 +35,9 @@ pub trait Bus {
     /// Checks if given address can be reached via the bus.
     ///
     fn in_range(&self, addr: u32) -> bool;
+
+    //
+    // drives bus connected devices state
+    //
+    fn step(&mut self) -> BusStepResult;
 }

@@ -6,8 +6,7 @@ zmu supports linux and windows operating systems.
 
 ## Supported features
 - Architectures: arm-v6m, arm-v7m (in progress), arm-v7me (in progress)
-    - notably missing: floating point support and most of the DSP extensions
-- Cores (in progress): Cortex-m0/m0+, Cortex-m3, Cortex-m4, Cortex-M4f
+- Cores (in progress): Cortex-m0/m0+, Cortex-m3, Cortex-m4, Cortex-m4f
     - notably missing: full exception and interrupt support
 - ARM semihosting, semihosting extensions:
     - open, close (streams only)
@@ -17,6 +16,9 @@ zmu supports linux and windows operating systems.
     - seek, clock, exception -> exit
     - errno
 
+## Missing features
+- Full v7m, v7me + floats
+- NVIC
 
 
 ## "Hello, world" example with semihosting

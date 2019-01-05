@@ -54,6 +54,7 @@ where
                 semihost_func(semihost_cmd)
             },
         );
+
         count += 1;
     }
 

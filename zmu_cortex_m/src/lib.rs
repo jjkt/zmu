@@ -7,4 +7,5 @@ pub mod core;
 pub mod decoder;
 pub mod device;
 pub mod memory;
+pub mod peripheral;
 pub mod semihosting;

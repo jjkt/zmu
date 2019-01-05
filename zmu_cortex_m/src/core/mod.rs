@@ -8,6 +8,7 @@ pub mod operation;
 pub mod register;
 
 use crate::bus::Bus;
+use crate::bus::BusStepResult;
 use crate::core::condition::Condition;
 use crate::core::exception::Exception;
 use crate::core::executor::execute;
@@ -489,9 +490,6 @@ impl<'a, T: Bus> Core<'a, T> {
     {
         let in_it_block = self.in_it_block();
 
-        // TODO: optimization: execution could change it's state from
-        // conditional mode to back and forth. Most of the instructions executed are not
-        // under condition_passed() block, so checking that for each instruction is waste.
         match execute(self, instruction, semihost_func) {
             ExecuteResult::Fault { .. } => {
                 // all faults are mapped to hardfaults on armv6m
@@ -515,6 +513,17 @@ impl<'a, T: Bus> Core<'a, T> {
                     self.it_advance();
                 }
             }
+        }
+
+        //
+        // run bus connected devices forward
+        //
+        match self.bus.step() {
+            BusStepResult::Exception { exception_number } => {
+                let pc = self.get_pc();
+                self.exception_entry(exception_number, pc);
+            }
+            _ => {}
         }
     }
 }

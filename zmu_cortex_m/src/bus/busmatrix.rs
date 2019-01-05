@@ -1,4 +1,5 @@
 use crate::bus::Bus;
+use crate::bus::BusStepResult;
 
 pub struct BusMatrix<'a, T: 'a + Bus, R: 'a + Bus> {
     intr: &'a mut T,
@@ -16,6 +17,8 @@ where
             extr: extr,
         }
     }
+
+    pub fn step(&self) {}
 }
 
 impl<'a, T, R> Bus for BusMatrix<'a, T, R>
@@ -84,5 +87,11 @@ where
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         true
+    }
+    fn step(&mut self) -> BusStepResult {
+        let result = self.intr.step();
+        self.extr.step();
+
+        result
     }
 }
