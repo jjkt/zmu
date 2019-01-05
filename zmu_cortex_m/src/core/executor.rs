@@ -360,6 +360,16 @@ where
 
             ExecuteResult::NotTaken
         }
+        Instruction::MOVT { rd, imm16 } => {
+            if core.condition_passed() {
+                let mut result = core.get_r(*rd);
+                result.set_bits(16..32, (*imm16).into());
+                core.set_r(*rd, result);
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+
+            ExecuteResult::NotTaken
+        }
         Instruction::LSL_imm {
             rd,
             rm,

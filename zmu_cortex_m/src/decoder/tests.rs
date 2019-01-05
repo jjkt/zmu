@@ -2731,3 +2731,16 @@ fn test_decode_tbh() {
         }
     );
 }
+
+#[test]
+fn test_decode_movt() {
+    // f2c2 0100       movt    r1, #8192
+
+    assert_eq!(
+        decode_32(0xf2c20100),
+        Instruction::MOVT {
+            rd: Reg::R1,
+            imm16: 0x2000
+        }
+    );
+}

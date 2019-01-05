@@ -415,6 +415,10 @@ pub enum Instruction {
         setflags: bool,
         thumb32: bool,
     },
+    MOVT {
+        rd: Reg,
+        imm16: u16,
+    },
     MRS {
         rd: Reg,
         spec_reg: SpecialReg,
@@ -1565,6 +1569,7 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
+            Instruction::MOVT { rd, imm16 } => write!(f, "movt {}, #{}", rd, imm16),
             Instruction::LDRSH_imm {
                 rt,
                 rn,
@@ -3018,6 +3023,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         }
         Instruction::UADD8 { rd, rn, rm } => 4,
         Instruction::SEL { rd, rn, rm } => 4,
+        Instruction::MOVT { rd, imm16 } => 4,
         _ => 2,
     }
 }
