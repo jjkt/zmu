@@ -15,12 +15,6 @@ cd ../..
 ./target/release/zmu run tests/hello_world/hello_world-cm4f.elf
 
 
-#
-# rust hello world
-cd tests/hello_world_rust
-cargo build --example hello
-cd ../..
-./target/release/zmu run tests/hello_world_rust/target/thumbv7m-none-eabi/debug/examples/hello
 
 
 #
@@ -36,3 +30,10 @@ cd ../..
 ./target/release/zmu run tests/pi/pi-cm4.elf
 #./target/release/zmu run tests/pi/pi-cm4f.elf
 
+#
+# rust hello world
+cd tests/hello_world_rust
+cargo build --example hello
+cd ../..
+./target/release/zmu run tests/hello_world_rust/target/thumbv7m-none-eabi/debug/examples/hello
+./target/release/zmu run tests/hello_world_rust/target/thumbv7m-none-eabi/debug/examples/exception

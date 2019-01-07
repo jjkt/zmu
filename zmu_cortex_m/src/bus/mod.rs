@@ -1,10 +1,11 @@
 pub mod ahblite;
 pub mod busmatrix;
 pub mod internal;
+use crate::core::exception::Exception;
 
 pub enum BusStepResult {
     Nothing,
-    Exception { exception_number: u8 },
+    Exception { exception: Exception },
 }
 
 pub trait Bus {

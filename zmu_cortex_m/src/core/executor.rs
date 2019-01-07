@@ -997,6 +997,8 @@ where
                 let sp = core.get_r(Reg::SP);
                 let mut address = sp;
 
+                core.set_r(Reg::SP, sp + regs_size);
+
                 for reg in registers.iter() {
                     if reg == Reg::PC {
                         let target = core.bus.read32(address);
@@ -1008,7 +1010,6 @@ where
                     address += 4;
                 }
 
-                core.set_r(Reg::SP, sp + regs_size);
                 if registers.contains(&Reg::PC) {
                     return ExecuteResult::Branched {
                         cycles: 4 + registers.len() as u64,

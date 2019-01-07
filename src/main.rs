@@ -130,6 +130,7 @@ fn run_bin(
                 if *handle == TT_HANDLE_STDOUT {
                     let text = &**data;
                     print!("{}", String::from_utf8_lossy(text));
+                    io::stdout().flush().expect("Could not flush stdout");
                     SemihostingResponse::SysWrite { result: Ok(0) }
                 } else {
                     SemihostingResponse::SysWrite { result: Err(-1) }
@@ -337,7 +338,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                     }
                 }
                 _ => {
-                    panic!("unsupported file format");
+                    panic!("unsupported file format {:?}", res);
                 }
             }
 

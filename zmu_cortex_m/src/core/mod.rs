@@ -225,12 +225,14 @@ impl<'a, T: Bus> Core<'a, T> {
             }
             Reg::SP => {
                 if self.control.sp_sel {
-                    self.psp = value
+                    self.set_psp(value)
                 } else {
-                    self.msp = value
+                    self.set_msp(value)
                 }
             }
-            Reg::LR => self.lr = value,
+            Reg::LR => {
+                self.lr = value;
+            }
             Reg::PC => panic!("use branch commands instead"),
         };
     }
@@ -241,6 +243,13 @@ impl<'a, T: Bus> Core<'a, T> {
 
     pub fn set_psp(&mut self, value: u32) {
         self.psp = value;
+    }
+    pub fn get_msp(&self) -> u32 {
+        self.msp
+    }
+
+    pub fn get_psp(&self) -> u32 {
+        self.psp
     }
 
     pub fn add_pc(&mut self, value: u32) {
@@ -393,19 +402,39 @@ impl<'a, T: Bus> Core<'a, T> {
         self.itstate.get_bits(0..4) == 0b1000
     }
 
-    fn push_stack(&mut self, return_address: u32) {
+    fn return_address(&self, exception_type: Exception, return_address: u32) -> u32 {
+        match exception_type {
+            Exception::NMI => return_address,
+            Exception::HardFault => return_address,
+            Exception::MemoryManagementFault => return_address,
+            Exception::BusFault => return_address,
+            Exception::UsageFault => return_address - 4,
+            Exception::SVCall => return_address,
+            Exception::DebugMonitor => return_address,
+            Exception::PendSV => return_address,
+            Exception::SysTick => return_address,
+            Exception::Interrupt { .. } => return_address,
+            _ => panic!("unsupported exception"),
+        }
+    }
+
+    fn push_stack(&mut self, exception_type: Exception, return_address: u32) {
         const FRAME_SIZE: u32 = 0x20;
+
+        //TODO FP extensions
+        //TODO forcealign
+        // forces 8 byte alignment on the stack
+        let forcealign = true;
+        let spmask = ((forcealign as u32) << 2) ^ 0xFFFF_FFFF;
 
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
-                let align = self.psp.get_bit(2) as u32;
-                // forces 8 byte alignment on the stack
-                self.psp = (self.psp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
+                let align = (self.psp.get_bit(2) & forcealign) as u32;
+                self.set_psp((self.psp - FRAME_SIZE) & spmask);
                 (self.psp, align)
             } else {
                 let align = self.msp.get_bit(2) as u32;
-                // forces 8 byte alignment on the stack
-                self.msp = (self.msp - FRAME_SIZE) & (4 ^ 0xFFFF_FFFF);
+                self.set_msp((self.msp - FRAME_SIZE) & spmask);
                 (self.msp, align)
             };
 
@@ -416,13 +445,15 @@ impl<'a, T: Bus> Core<'a, T> {
         let r12 = self.get_r(Reg::R12);
         let lr = self.get_r(Reg::LR);
 
+        let ret_addr = self.return_address(exception_type, return_address);
+
         self.bus.write32(frameptr, r0);
         self.bus.write32(frameptr + 0x4, r1);
         self.bus.write32(frameptr + 0x8, r2);
         self.bus.write32(frameptr + 0xc, r3);
         self.bus.write32(frameptr + 0x10, r12);
         self.bus.write32(frameptr + 0x14, lr);
-        self.bus.write32(frameptr + 0x18, return_address);
+        self.bus.write32(frameptr + 0x18, ret_addr);
         let xpsr = (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111)
             | (frameptralign << 9) as u32;
         self.bus.write32(frameptr + 0x1c, xpsr);
@@ -436,27 +467,161 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
-    pub fn exception_taken(&mut self, exception_number: u8) {
+    fn pop_stack(&mut self, frameptr: u32, exc_return: u32) {
+        //TODO: fp extensions
+
+        const FRAME_SIZE: u32 = 0x20;
+
+        //let forcealign = ccr.stkalign;
+        let forcealign = true;
+
+        self.set_r(Reg::R0, self.bus.read32(frameptr));
+        self.set_r(Reg::R1, self.bus.read32(frameptr + 0x4));
+        self.set_r(Reg::R2, self.bus.read32(frameptr + 0x8));
+        self.set_r(Reg::R3, self.bus.read32(frameptr + 0xc));
+        self.set_r(Reg::R12, self.bus.read32(frameptr + 0x10));
+        self.set_r(Reg::LR, self.bus.read32(frameptr + 0x14));
+        let pc = self.bus.read32(frameptr + 0x18);
+        let psr = self.bus.read32(frameptr + 0x1c);
+
+        self.branch_write_pc(pc);
+
+        let spmask = ((psr.get_bit(9) && forcealign) as u32) << 2;
+
+        match exc_return.get_bits(0..4) {
+            0b0001 | 0b1001 => {
+                let msp = self.get_msp();
+                self.set_msp((msp + FRAME_SIZE) | spmask);
+            }
+            0b1101 => {
+                let psp = self.get_psp();
+                self.set_psp((psp + FRAME_SIZE) | spmask);
+            }
+            _ => {
+                panic!("wrong exc return");
+            }
+        }
+        self.psr.value.set_bits(27..32, psr.get_bits(27..32));
+        self.psr.value.set_bits(0..9, psr.get_bits(0..9));
+        self.psr.value.set_bits(10..16, psr.get_bits(10..16));
+        self.psr.value.set_bits(24..27, psr.get_bits(24..27));
+    }
+
+    pub fn exception_taken(&mut self, exception: Exception) {
         self.control.sp_sel = false;
         self.mode = ProcessorMode::HandlerMode;
-        self.psr.set_exception_number(exception_number);
-        self.exception_active[exception_number as usize] = true;
+        self.psr.set_exception_number(exception.into());
+        self.exception_active[usize::from(u8::from(exception))] = true;
 
         // SetEventRegister();
         // InstructionSynchronizationBarrier();
         let vtor = self.vtor;
-        let start = self.bus.read32(vtor + u32::from(exception_number) * 4);
+        let offset = u32::from(u8::from(exception)) * 4;
+        let start = self.bus.read32(vtor + offset);
         self.blx_write_pc(start);
     }
 
-    pub fn exception_entry(&mut self, exception_number: u8, return_address: u32) {
-        self.push_stack(return_address);
-        self.exception_taken(exception_number);
+    pub fn exception_entry(&mut self, exception: Exception, return_address: u32) {
+        self.push_stack(exception, return_address);
+        self.exception_taken(exception);
     }
 
-    #[allow(unused_variables)]
+    fn exception_active_bit_count(&self) -> usize {
+        self.exception_active
+            .iter()
+            .fold(0, |acc, &x| acc + (x as usize))
+    }
+
+    fn deactivate(&mut self, returning_exception_number: u8) {
+        self.exception_active[returning_exception_number as usize] = false;
+        if self.psr.get_exception_number() != 0b10 {
+            //TODO
+            //self.faultmask0 = 0;
+        }
+    }
+
+    fn invalid_exception_return(&mut self, returning_exception_number: u8, exc_return: u32) {
+        self.deactivate(returning_exception_number);
+        //ufsr.invpc = true;
+        self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
+        self.exception_taken(Exception::UsageFault);
+    }
+
     pub fn exception_return(&mut self, exc_return: u32) {
-        unimplemented!();
+        assert!(self.mode == ProcessorMode::HandlerMode);
+
+        let returning_exception_number = self.psr.get_exception_number();
+        let nested_activation = self.exception_active_bit_count();
+
+        if !self.exception_active[returning_exception_number as usize] {
+            self.invalid_exception_return(returning_exception_number, exc_return);
+            return;
+        } else {
+            let frameptr;
+            match exc_return.get_bits(0..4) {
+                0b0001 => {
+                    // return to handler
+                    frameptr = self.get_msp();
+                    self.mode = ProcessorMode::HandlerMode;
+                    self.control.sp_sel = false;
+                }
+                0b1001 => {
+                    // returning to thread using main stack
+                    if nested_activation == 0
+                    /*&& !self.ccr.nonbasethreadena*/
+                    {
+                        self.invalid_exception_return(returning_exception_number, exc_return);
+                        return;
+                    } else {
+                        frameptr = self.get_msp();
+                        self.mode = ProcessorMode::ThreadMode;
+                        self.control.sp_sel = false;
+                    }
+                }
+                0b1101 => {
+                    // returning to thread using process stack
+                    if nested_activation == 0
+                    /*&& !self.ccr.nonbasethreadena*/
+                    {
+                        self.invalid_exception_return(returning_exception_number, exc_return);
+                        return;
+                    } else {
+                        frameptr = self.get_psp();
+                        self.mode = ProcessorMode::ThreadMode;
+                        self.control.sp_sel = true;
+                    }
+                }
+                _ => {
+                    self.invalid_exception_return(returning_exception_number, exc_return);
+                    return;
+                }
+            }
+
+            self.deactivate(returning_exception_number);
+            self.pop_stack(frameptr, exc_return);
+            if self.mode == ProcessorMode::HandlerMode && self.psr.get_exception_number() == 0 {
+                //ufsr.invpc = true;
+                self.push_stack(Exception::UsageFault, exc_return); // to negate pop_stack
+                self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
+                self.exception_taken(Exception::UsageFault);
+                return;
+            }
+
+            if self.mode == ProcessorMode::ThreadMode && self.psr.get_exception_number() != 0 {
+                //ufsr.invpc = true;
+                self.push_stack(Exception::UsageFault, exc_return); // to negate pop_stack
+                self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
+                self.exception_taken(Exception::UsageFault);
+                return;
+            }
+
+            //self.clear_exclusive_local(processor_id());
+            //self.set_event_register();
+            //self.instruction_synchronization_barrier();
+            /*if self.mode == ProcessorMode::ThreadMode && !nested_activation && scr.sleeponexit{
+                self.sleep_on_exit();
+            }*/
+        }
     }
 
     // Fetch next Thumb2-coded instruction from current
@@ -494,7 +659,7 @@ impl<'a, T: Bus> Core<'a, T> {
             ExecuteResult::Fault { .. } => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
-                self.exception_entry(u8::from(Exception::HardFault), pc);
+                self.exception_entry(Exception::HardFault, pc);
             }
             ExecuteResult::NotTaken => {
                 self.add_pc(instruction_size as u32);
@@ -518,12 +683,9 @@ impl<'a, T: Bus> Core<'a, T> {
         //
         // run bus connected devices forward
         //
-        match self.bus.step() {
-            BusStepResult::Exception { exception_number } => {
-                let pc = self.get_pc();
-                self.exception_entry(exception_number, pc);
-            }
-            _ => {}
+        if let BusStepResult::Exception { exception } = self.bus.step() {
+            let pc = self.get_pc();
+            self.exception_entry(exception, pc);
         }
     }
 }
@@ -582,7 +744,7 @@ mod tests {
             core.psr.value = 0xffff_ffff;
 
             // act
-            core.push_stack(99);
+            core.push_stack(Exception::HardFault, 99);
 
             assert_eq!(core.msp, 0xe0);
             core.get_r(Reg::LR)
@@ -614,13 +776,16 @@ mod tests {
         core.psr.value = 0xffff_ffff;
 
         // Act
-        core.exception_taken(5);
+        core.exception_taken(Exception::BusFault);
 
         // Assert
         assert_eq!(core.control.sp_sel, false);
         assert_eq!(core.mode, ProcessorMode::HandlerMode);
-        assert_eq!(core.psr.get_exception_number(), 5);
-        assert_eq!(core.exception_active[5], true);
+        assert_eq!(core.psr.get_exception_number(), Exception::BusFault.into());
+        assert_eq!(
+            core.exception_active[u8::from(Exception::BusFault) as usize],
+            true
+        );
     }
 
 }

@@ -1,4 +1,5 @@
 use crate::bus::BusStepResult;
+use crate::core::exception::Exception;
 
 #[derive(Default)]
 pub struct SysTick {
@@ -50,7 +51,7 @@ impl SysTick {
 
     pub fn step(&mut self) -> BusStepResult {
         if (self.csr & SYST_ENABLE) == SYST_ENABLE {
-            self.cvr = self.cvr.saturating_sub(1000);
+            self.cvr = self.cvr.saturating_sub(1);
             self.cvr &= 0x00ff_ffff;
 
             // reach 0?
@@ -60,7 +61,7 @@ impl SysTick {
                 self.csr |= SYST_COUNTFLAG;
                 if (self.csr & SYST_TICKINT) == SYST_TICKINT {
                     return BusStepResult::Exception {
-                        exception_number: 15,
+                        exception: Exception::SysTick,
                     };
                 }
             }

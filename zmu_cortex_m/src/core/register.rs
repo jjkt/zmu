@@ -135,6 +135,7 @@ impl Epsr for PSR {
 
 impl Ipsr for PSR {
     fn get_exception_number(&self) -> u8 {
+        //TODO: diff between cortex m0 and m3+
         (*self).value.get_bits(0..6) as u8
     }
     fn set_exception_number(&mut self, exception_number: u8) {
