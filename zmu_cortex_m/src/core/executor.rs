@@ -1903,18 +1903,18 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let shifted = shift(
+                let (shifted, carry) = shift_c(
                     core.get_r(*rm),
                     *shift_t,
                     *shift_n as usize,
                     core.psr.get_c(),
                 );
-                let (result, carry, overflow) = add_with_carry(core.get_r(*rn), shifted, false);
+
+                let result = core.get_r(*rn) & shifted;
 
                 core.psr.set_n(result);
                 core.psr.set_z(result);
                 core.psr.set_c(carry);
-                core.psr.set_v(overflow);
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
