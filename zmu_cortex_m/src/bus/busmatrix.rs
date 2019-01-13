@@ -84,10 +84,12 @@ where
             panic!("write16 out of bus range");
         }
     }
+
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         true
     }
+    
     fn step(&mut self) -> BusStepResult {
         let result = self.intr.step();
         self.extr.step();

@@ -26,8 +26,8 @@ use zmu_cortex_m::core::register::{Apsr, PSR};
 use zmu_cortex_m::core::ThumbCode;
 use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 
-use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate;
-use zmu_cortex_m::device::cortex_m::cortex_m0::cortex_m0_simulate_trace;
+use zmu_cortex_m::system::simulation::simulate;
+use zmu_cortex_m::system::simulation::simulate_trace;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -56,11 +56,9 @@ static FEATURE_DATA: [u8; 5] = [0x53, 0x48, 0x46, 0x42, 3];
 fn run_bin(
     code: &[u8],
     trace: bool,
-    instructions: Option<u64>,
     option_trace_start: Option<u64>,
     symboltable: &HashMap<u32, &str>,
 ) {
-    let _max_instructions = instructions.unwrap_or(0xffff_ffff_ffff_ffff);
     let start = Instant::now();
 
     let mut semihost_features_position: u32 = 0;
@@ -259,9 +257,9 @@ fn run_bin(
                 let _ = trace_stdout.flush();
             }
         };
-        cortex_m0_simulate_trace(code, tracefunc, semihost_func)
+        simulate_trace(code, tracefunc, semihost_func)
     } else {
-        cortex_m0_simulate(code, semihost_func)
+        simulate(code, semihost_func)
     };
 
     let end = Instant::now();
@@ -280,14 +278,10 @@ fn run_bin(
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("run", Some(run_matches)) => {
-            let _device = run_matches.value_of("device").unwrap_or("cortex-m0");
             let filename = run_matches.value_of("EXECUTABLE").unwrap();
             let mut flash_mem = [0; 65536];
-            let instructions = match run_matches.value_of("instructions") {
-                Some(instr) => Some(instr.parse::<u64>().unwrap()),
-                None => None,
-            };
-            let trace_start = match run_matches.value_of("trace_start") {
+
+            let trace_start = match run_matches.value_of("trace-start") {
                 Some(instr) => Some(instr.parse::<u64>().unwrap()),
                 None => None,
             };
@@ -345,13 +339,9 @@ fn run(args: &ArgMatches) -> Result<()> {
             run_bin(
                 &flash_mem,
                 run_matches.is_present("trace"),
-                instructions,
                 trace_start,
                 &symboltable,
             );
-        }
-        ("devices", Some(_)) => {
-            println!("cortex-m0");
         }
         ("", None) => panic!("No sub command found"),
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
@@ -362,19 +352,12 @@ fn run(args: &ArgMatches) -> Result<()> {
 
 fn main() {
     let args = App::new("zmu")
-        .version("1.0")
+        .version("0.1")
         .about("a Low level emulator for microcontrollers")
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
             SubCommand::with_name("run")
                 .about("Load and run <EXECUTABLE>")
-                .arg(
-                    Arg::with_name("device")
-                        .short("d")
-                        .long("device")
-                        .help("Use specific device")
-                        .takes_value(true),
-                )
                 .arg(
                     Arg::with_name("trace")
                         .short("t")
@@ -382,15 +365,8 @@ fn main() {
                         .help("Print instruction trace to stdout"),
                 )
                 .arg(
-                    Arg::with_name("instructions")
-                        .short("n")
-                        .long("max_instructions")
-                        .help("Max number of instructions to run")
-                        .takes_value(true),
-                )
-                .arg(
-                    Arg::with_name("trace_start")
-                        .long("trace_start")
+                    Arg::with_name("trace-start")
+                        .long("trace-start")
                         .help("Instruction on which to start tracing")
                         .takes_value(true),
                 )
@@ -401,7 +377,6 @@ fn main() {
                         .required(true),
                 ),
         )
-        .subcommand(SubCommand::with_name("devices").about("List available devices"))
         .get_matches();
 
     if let Err(ref e) = run(&args) {

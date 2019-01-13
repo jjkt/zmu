@@ -10,7 +10,7 @@ use crate::memory::ram::RAM;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
-pub fn cortex_m0_simulate<F>(code: &[u8], mut semihost_func: F) -> u64
+pub fn simulate<F>(code: &[u8], mut semihost_func: F) -> u64
 where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
@@ -61,7 +61,7 @@ where
     count
 }
 
-pub fn cortex_m0_simulate_trace<F, G>(code: &[u8], mut trace_func: F, mut semihost_func: G) -> u64
+pub fn simulate_trace<F, G>(code: &[u8], mut trace_func: F, mut semihost_func: G) -> u64
 where
     F: FnMut(&ThumbCode, u64, u32, &Instruction, [u32; 13], u32),
     G: FnMut(&SemihostingCommand) -> SemihostingResponse,
