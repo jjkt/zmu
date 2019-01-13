@@ -31,6 +31,10 @@ impl SystemControlAndID {
         self.shpr3 = value
     }
 
+    pub fn read_shpr3(&self) -> u32 {
+        self.shpr3
+    }
+
     pub fn step(&mut self) -> BusStepResult {
         BusStepResult::Nothing
     }

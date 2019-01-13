@@ -47,6 +47,7 @@ impl Bus for InternalBus {
 
             0xE000_ED04 => self.scid.read_icsr(),
             0xE000_ED08 => self.scid.read_vtor(),
+            0xE000_ED20 => self.scid.read_shpr3(),
 
             // DWT
             0xE000_1000 => self.dwt.ctrl,
