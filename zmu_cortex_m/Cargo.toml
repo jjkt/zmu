@@ -8,3 +8,9 @@ edition = "2018"
 byteorder = "0.3"
 bit_field = "0.9.0"
 enum-set = "0.0.7"
+
+
+[features]
+armv6m = []
+armv7m = []
+armv7em = []
