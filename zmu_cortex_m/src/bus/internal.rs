@@ -2,6 +2,7 @@ use crate::bus::Bus;
 use crate::bus::BusStepResult;
 use crate::peripheral::systick::SysTick;
 use crate::peripheral::scid::SystemControlAndID;
+use crate::peripheral::itm::InstrumentationTraceMacrocell;
 
 #[derive(Default)]
 struct Dwt {
@@ -12,7 +13,8 @@ struct Dwt {
 pub struct InternalBus {
     syst: SysTick,
     scid: SystemControlAndID,
-    dwt: Dwt,               
+    dwt: Dwt,
+    itm: InstrumentationTraceMacrocell
 }
 
 impl InternalBus {
@@ -22,6 +24,7 @@ impl InternalBus {
             syst: SysTick::default(),
             scid: SystemControlAndID::default(),
             dwt: Dwt { ctrl: 0x4000_0000 },
+            itm: InstrumentationTraceMacrocell::default(),
         }
     }
 }
@@ -40,6 +43,9 @@ impl Bus for InternalBus {
 
     fn read32(&self, addr: u32) -> u32 {
         match addr {
+
+            0xE000_0000 => self.itm.read_stim0(),
+
             0xE000_E010 => self.syst.read_syst_csr(),
             0xE000_E014 => self.syst.read_syst_rvr(),
             0xE000_E018 => self.syst.read_syst_cvr(),
@@ -57,6 +63,8 @@ impl Bus for InternalBus {
 
     fn write32(&mut self, addr: u32, value: u32) {
         match addr {
+            0xE000_0000 => self.itm.write_stim0_u32(value),
+
             0xE000_1000 => self.dwt.ctrl = value,
             
             0xE000_ED04 => self.scid.write_icsr(value),
@@ -71,14 +79,17 @@ impl Bus for InternalBus {
     }
 
     fn write16(&mut self, addr: u32, value: u16) {
-        panic!(
-            "half-word access write to system area 0x{:x}->{}",
-            addr, value
-        );
+        match addr {
+            0xE000_0000 => self.itm.write_stim0_u16(value),
+            _ => panic!("unsupported half-word access write to system area 0x{:x}->{}", addr, value),
+        }
     }
 
     fn write8(&mut self, addr: u32, value: u8) {
-        panic!("byte access write to system area 0x{:x}->{}", addr, value);
+        match addr {
+            0xE000_0000 => self.itm.write_stim0_u8(value),
+            _ => panic!("unsupported byte access write to system area 0x{:x}->{}", addr, value),
+        }
     }
 
     fn in_range(&self, addr: u32) -> bool {
