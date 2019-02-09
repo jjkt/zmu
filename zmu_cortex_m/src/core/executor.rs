@@ -1,4 +1,5 @@
 use crate::bus::Bus;
+use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType, SetFlags};
 use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
@@ -8,7 +9,6 @@ use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
-use bit_field::BitField;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ExecuteResult {
@@ -145,7 +145,7 @@ where
             setflags,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(*rm).get_bits(0..8);
+                let shift_n: u32 = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
                     SRType::ASR,
@@ -217,13 +217,14 @@ where
             msbit,
         } => {
             if core.condition_passed() {
-                let r_n = core.get_r(*rn);
+                let r_n: u32 = core.get_r(*rn);
                 let r_d = core.get_r(*rd);
 
                 let width = (msbit - lsbit) + 1;
 
-                let mut result = r_d;
-                result.set_bits(0..width, r_n.get_bits(0..width));
+                let mut result: u32 = r_d;
+                let value: u32 = r_n.get_bits(0..width);
+                result.set_bits(0..width, value);
 
                 core.set_r(*rd, result);
                 return ExecuteResult::Taken { cycles: 1 };
@@ -362,7 +363,7 @@ where
         }
         Instruction::MOVT { rd, imm16 } => {
             if core.condition_passed() {
-                let mut result = core.get_r(*rd);
+                let mut result: u32 = core.get_r(*rd);
                 result.set_bits(16..32, (*imm16).into());
                 core.set_r(*rd, result);
                 return ExecuteResult::Taken { cycles: 1 };
@@ -404,7 +405,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(*rm).get_bits(0..8);
+                let shift_n: u32 = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
                     SRType::LSL,
@@ -457,7 +458,7 @@ where
             thumb32,
         } => {
             if core.condition_passed() {
-                let shift_n = core.get_r(*rm).get_bits(0..8);
+                let shift_n: u32 = core.get_r(*rm).get_bits(0..8);
                 let (result, carry) = shift_c(
                     core.get_r(*rn),
                     SRType::LSR,
@@ -535,14 +536,18 @@ where
         } => {
             if core.condition_passed() {
                 let operand1 = i32::from(if *n_high {
-                    core.get_r(*rn).get_bits(16..32) as i16
+                    let op = core.get_r(*rn).get_bits(16..32);
+                    op as i16
                 } else {
-                    core.get_r(*rn).get_bits(0..16) as i16
+                    let op = core.get_r(*rn).get_bits(0..16);
+                    op as i16
                 });
                 let operand2 = i32::from(if *m_high {
-                    core.get_r(*rm).get_bits(16..32) as i16
+                    let op = core.get_r(*rm).get_bits(16..32);
+                    op as i16
                 } else {
-                    core.get_r(*rm).get_bits(0..16) as i16
+                    let op = core.get_r(*rm).get_bits(0..16);
+                    op as i16
                 });
 
                 let result = operand1.wrapping_mul(operand2);
@@ -563,14 +568,18 @@ where
         } => {
             if core.condition_passed() {
                 let operand1 = i32::from(if *n_high {
-                    core.get_r(*rn).get_bits(16..32) as i16
+                    let op: u32 = core.get_r(*rn).get_bits(16..32);
+                    op as i16
                 } else {
-                    core.get_r(*rn).get_bits(0..16) as i16
+                    let op: u32 = core.get_r(*rn).get_bits(0..16);
+                    op as i16
                 });
                 let operand2 = i32::from(if *m_high {
-                    core.get_r(*rm).get_bits(16..32) as i16
+                    let op: u32 = core.get_r(*rm).get_bits(16..32);
+                    op as i16
                 } else {
-                    core.get_r(*rm).get_bits(0..16) as i16
+                    let op: u32 = core.get_r(*rm).get_bits(0..16);
+                    op as i16
                 });
 
                 let result = operand1
@@ -1543,8 +1552,9 @@ where
                 let c = core.psr.get_c();
                 let offset = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let address = core.get_r(*rn) + offset;
-                let value = core.get_r(*rt).get_bits(0..8) as u8;
-                core.bus.write8(address, value);
+                let rt: u32 = core.get_r(*rt);
+                let value = rt.get_bits(0..8);
+                core.bus.write8(address, value as u8);
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken
@@ -1589,7 +1599,7 @@ where
                     resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let value = core.get_r(*rt);
-                core.bus.write16(address, value.get_bits(0..16) as u16);
+                core.bus.write16(address, value.get_bits(0..16)as u16);
 
                 if *wback {
                     core.set_r(*rn, offset_address);
@@ -1615,8 +1625,8 @@ where
                 let c = core.psr.get_c();
                 let offset = shift(core.get_r(*rm), *shift_t, *shift_n as usize, c);
                 let address = core.get_r(*rn) + offset;
-                let value = core.get_r(*rt).get_bits(0..16) as u16;
-                core.bus.write16(address, value);
+                let value = core.get_r(*rt).get_bits(0..16);
+                core.bus.write16(address, value as u16);
                 return ExecuteResult::Taken { cycles: 2 };
             }
             ExecuteResult::NotTaken
@@ -2203,15 +2213,15 @@ where
         }
         Instruction::UADD8 { rd, rn, rm } => {
             if core.condition_passed() {
-                let rm_ = core.get_r(*rm);
-                let rn_ = core.get_r(*rn);
+                let rm_: u32 = core.get_r(*rm);
+                let rn_: u32 = core.get_r(*rn);
 
-                let sum1 = rn_.get_bits(0..8) + rm_.get_bits(0..8);
-                let sum2 = rn_.get_bits(8..16) + rm_.get_bits(8..16);
-                let sum3 = rn_.get_bits(16..24) + rm_.get_bits(16..24);
-                let sum4 = rn_.get_bits(24..32) + rm_.get_bits(24..32);
+                let sum1: u32 = rn_.get_bits(0..8) + rm_.get_bits(0..8);
+                let sum2: u32 = rn_.get_bits(8..16) + rm_.get_bits(8..16);
+                let sum3: u32 = rn_.get_bits(16..24) + rm_.get_bits(16..24);
+                let sum4: u32 = rn_.get_bits(24..32) + rm_.get_bits(24..32);
 
-                let mut result = sum1.get_bits(0..8);
+                let mut result: u32 = sum1.get_bits(0..8);
                 result.set_bits(8..16, sum2.get_bits(0..8));
                 result.set_bits(16..24, sum3.get_bits(0..8));
                 result.set_bits(24..32, sum4.get_bits(0..8));
@@ -2351,7 +2361,7 @@ where
             if core.condition_passed() {
                 let rn_ = i64::from(core.get_r(*rn));
                 let rm_ = i64::from(core.get_r(*rm));
-                let result = rn_.wrapping_mul(rm_);
+                let result = rn_.wrapping_mul(rm_) as u64;
 
                 core.set_r(*rdlo, result.get_bits(0..32) as u32);
                 core.set_r(*rdhi, result.get_bits(32..64) as u32);

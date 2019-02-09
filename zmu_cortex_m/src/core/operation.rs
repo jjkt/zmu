@@ -4,7 +4,7 @@ use crate::core::instruction::SRType;
 use crate::core::register::Apsr;
 use crate::core::register::Reg;
 use crate::core::PSR;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 use enum_set::EnumSet;
 
 pub fn get_reglist(pattern: u16) -> EnumSet<Reg> {

@@ -2,10 +2,10 @@ use crate::core::instruction::Instruction;
 use crate::core::instruction::SetFlags;
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_LSR_imm_t1(opcode: u16) -> Instruction {
     let imm5 = opcode.get_bits(6..11) as u8;
 
@@ -20,7 +20,7 @@ pub fn decode_LSR_imm_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_LSR_reg_t1(opcode: u16) -> Instruction {
     Instruction::LSR_reg {
         rd: Reg::from(opcode.get_bits(0..3) as u8),

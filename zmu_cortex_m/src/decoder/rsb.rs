@@ -3,10 +3,10 @@ use crate::core::instruction::SetFlags;
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm;
 use crate::core::register::Reg;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_RSB_imm_t1(opcode: u16) -> Instruction {
     Instruction::RSB_imm {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
@@ -42,7 +42,7 @@ pub fn decode_RSB_reg_t1(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_RSB_imm_t2(opcode: u32) -> Instruction {
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm8: u8 = opcode.get_bits(0..8) as u8;

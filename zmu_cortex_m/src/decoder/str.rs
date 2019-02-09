@@ -1,10 +1,10 @@
 use crate::core::instruction::Instruction;
 use crate::core::instruction::SRType;
 use crate::core::register::Reg;
-use bit_field::*;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_STR_imm_t1(opcode: u16) -> Instruction {
     Instruction::STR_imm {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
@@ -87,7 +87,7 @@ pub fn decode_STRH_imm_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_STRH_reg_t1(opcode: u16) -> Instruction {
     Instruction::STRH_reg {
         rt: Reg::from(opcode.get_bits(0..3) as u8),
@@ -103,7 +103,7 @@ pub fn decode_STRH_reg_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_STRH_reg_t2(opcode: u32) -> Instruction {
     Instruction::STRH_reg {
         rt: Reg::from(opcode.get_bits(12..16) as u8),

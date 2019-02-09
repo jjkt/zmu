@@ -1,4 +1,4 @@
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 use crate::core::instruction::Instruction;
 use crate::core::operation::get_reglist;
@@ -6,7 +6,7 @@ use crate::core::register::Reg;
 use enum_set::EnumSet;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_POP_reg_t1(opcode: u16) -> Instruction {
     let mut regs = get_reglist(opcode & 0b1111_1111);
 

@@ -6,9 +6,9 @@ use crate::core::operation::build_imm_6_11;
 use crate::core::operation::sign_extend;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_B_t1_SVC_t1(opcode: u16) -> Instruction {
-    let cond = opcode.get_bits(8, 11);
+    let cond = opcode.get_bits(8..12);
     if cond == 0b1111 {
         return Instruction::SVC {
             imm32: u32::from(bits_0_8(opcode)),
@@ -29,18 +29,18 @@ pub fn decode_B_t1_SVC_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_B_t2(opcode: u16) -> Instruction {
     Instruction::B_t24 {
-        imm32: sign_extend(u32::from(opcode.get_bits(0, 10)) << 1, 11, 32) as i32,
+        imm32: sign_extend(u32::from(opcode.get_bits(0..11)) << 1, 11, 32) as i32,
         thumb32: false,
     }
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_B_t3(opcode: u32) -> Instruction {
-    let cond: u16 = opcode.get_bits(22, 25);
+    let cond: u16 = opcode.get_bits(22..26) as u16;
 
     let imm = build_imm_6_11(opcode);
 
@@ -58,7 +58,7 @@ pub fn decode_B_t3(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_B_t4(opcode: u32) -> Instruction {
     let imm = build_imm_10_11(opcode);
 

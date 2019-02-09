@@ -4,10 +4,10 @@ use crate::core::instruction::{SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::register::Reg;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_EOR_reg_t1(opcode: u16) -> Instruction {
     Instruction::EOR_reg {
         rd: Reg::from(opcode.get_bits(0..3) as u8),
@@ -49,7 +49,7 @@ pub fn decode_EOR_reg_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_EOR_imm_t1(opcode: u32) -> Instruction {
     let rd: u8 = opcode.get_bits(8..12) as u8;
     let rn: u8 = opcode.get_bits(16..20) as u8;

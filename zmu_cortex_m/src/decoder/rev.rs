@@ -2,7 +2,7 @@ use crate::core::bits::*;
 use crate::core::instruction::Instruction;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_REVSH_t1(opcode: u16) -> Instruction {
     Instruction::REVSH {
         rd: From::from(bits_0_3(opcode)),
@@ -11,7 +11,7 @@ pub fn decode_REVSH_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_REV_t1(opcode: u16) -> Instruction {
     Instruction::REV {
         rd: From::from(bits_0_3(opcode)),
@@ -20,7 +20,7 @@ pub fn decode_REV_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_REV16_t1(opcode: u16) -> Instruction {
     Instruction::REV16 {
         rd: From::from(bits_0_3(opcode)),

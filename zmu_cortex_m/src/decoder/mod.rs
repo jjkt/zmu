@@ -217,7 +217,7 @@ use crate::decoder::wfi::*;
 use crate::decoder::yield_::*;
 
 pub fn is_thumb32(word: u16) -> bool {
-    match word.get_bits(11, 15) {
+    match word.get_bits(11..16) {
         0b11101 | 0b11110 | 0b11111 => true,
         _ => false,
     }

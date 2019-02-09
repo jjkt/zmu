@@ -84,10 +84,14 @@ echo "========================================"
 cd tests/rustbook
 cargo build --example hello
 cargo build --example exception
+cargo build --example itm
 cd ../..
 echo "armv7m->hello"
 echo "----------------------------------------"
 ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/hello
+echo "armv7m->itm"
+echo "----------------------------------------"
+./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm
 echo "armv7m->exception"
 echo "----------------------------------------"
 ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception

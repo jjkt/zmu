@@ -1,4 +1,3 @@
-extern crate bit_field;
 extern crate byteorder;
 extern crate enum_set;
 

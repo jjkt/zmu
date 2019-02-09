@@ -1,6 +1,6 @@
 use crate::core::instruction::Instruction;
 use crate::core::operation::decode_imm_shift;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
 pub fn decode_ORN_reg_t1(opcode: u32) -> Instruction {

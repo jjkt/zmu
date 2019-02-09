@@ -1,4 +1,4 @@
-use bit_field::BitField;
+use crate::core::bits::Bits;
 use enum_set::CLike;
 use std::fmt;
 use std::mem;

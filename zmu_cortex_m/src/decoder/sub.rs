@@ -7,7 +7,7 @@ use crate::core::operation::zero_extend;
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rd: From::from(bits_0_3(command)),
@@ -19,7 +19,7 @@ pub fn decode_SUB_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rd: From::from(bits_8_11(command)),
@@ -31,7 +31,7 @@ pub fn decode_SUB_imm_t2(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
     Instruction::SUB_imm {
         rn: Reg::SP,
@@ -43,14 +43,14 @@ pub fn decode_SUB_SP_imm_t1(command: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_SP_imm_t2(opcode: u32) -> Instruction {
-    let i: u8 = opcode.get_bits(26, 26);
-    let s: u8 = opcode.get_bits(20, 20);
+    let i: u8 = opcode.get_bit(26) as u8;
+    let s: u8 = opcode.get_bit(20) as u8;
 
-    let rd: u8 = opcode.get_bits(8, 11);
-    let imm3: u8 = opcode.get_bits(12, 14);
-    let imm8: u8 = opcode.get_bits(0, 7);
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let imm3: u8 = opcode.get_bits(12..15) as u8;
+    let imm8: u8 = opcode.get_bits(0..8) as u8;
 
     let params = [i, imm3, imm8];
     let lengths = [1, 3, 8];
@@ -69,13 +69,13 @@ pub fn decode_SUB_SP_imm_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_SP_imm_t3(opcode: u32) -> Instruction {
-    let i: u8 = opcode.get_bits(26, 26);
+    let i: u8 = opcode.get_bit(26) as u8;
 
-    let rd: u8 = opcode.get_bits(8, 11);
-    let imm3: u8 = opcode.get_bits(12, 14);
-    let imm8: u8 = opcode.get_bits(0, 7);
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let imm3: u8 = opcode.get_bits(12..15) as u8;
+    let imm8: u8 = opcode.get_bits(0..8) as u8;
 
     let params = [i, imm3, imm8];
     let lengths = [1, 3, 8];
@@ -89,7 +89,7 @@ pub fn decode_SUB_SP_imm_t3(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
     Instruction::SUB_reg {
         rd: From::from(bits_0_3(command)),
@@ -104,14 +104,14 @@ pub fn decode_SUB_reg_t1(command: u16) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_SUB_reg_t2(opcode: u32) -> Instruction {
-    let rn: u8 = opcode.get_bits(16, 19);
-    let rm: u8 = opcode.get_bits(0, 3);
-    let rd: u8 = opcode.get_bits(8, 11);
-    let s: u8 = opcode.get_bits(20, 20);
+    let rn: u8 = opcode.get_bits(16..20) as u8;
+    let rm: u8 = opcode.get_bits(0..4) as u8;
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let s: u8 = opcode.get_bit(20) as u8;
 
-    let imm3: u8 = opcode.get_bits(12, 14);
-    let imm2: u8 = opcode.get_bits(6, 7);
-    let type_: u8 = opcode.get_bits(4, 5);
+    let imm3: u8 = opcode.get_bits(12..15) as u8;
+    let imm2: u8 = opcode.get_bits(6..8)as u8;
+    let type_: u8 = opcode.get_bits(4..6)as u8;
 
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
 
@@ -131,15 +131,15 @@ pub fn decode_SUB_reg_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
-    let i: u8 = opcode.get_bits(26, 26);
-    let s: u8 = opcode.get_bits(20, 20);
+    let i: u8 = opcode.get_bit(26) as u8;
+    let s: u8 = opcode.get_bit(20) as u8;
 
-    let rn: u8 = opcode.get_bits(16, 19);
-    let rd: u8 = opcode.get_bits(8, 11);
-    let imm3: u8 = opcode.get_bits(12, 14);
-    let imm8: u8 = opcode.get_bits(0, 7);
+    let rn: u8 = opcode.get_bits(16..20) as u8;
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let imm3: u8 = opcode.get_bits(12..15) as u8;
+    let imm8: u8 = opcode.get_bits(0..8) as u8;
 
     let params = [i, imm3, imm8];
     let lengths = [1, 3, 8];
@@ -158,7 +158,7 @@ pub fn decode_SUB_imm_t3(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_SUB_imm_t4(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,

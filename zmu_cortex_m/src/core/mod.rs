@@ -19,7 +19,7 @@ use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use crate::decoder::{decode_16, decode_32, is_thumb32};
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 use std::fmt;
 
 #[derive(PartialEq, Debug, Copy, Clone)]

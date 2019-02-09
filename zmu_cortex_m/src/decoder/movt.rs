@@ -1,7 +1,7 @@
 use crate::core::instruction::Instruction;
 use crate::core::operation::zero_extend;
 
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
 pub fn decode_MOVT_t1(opcode: u32) -> Instruction {

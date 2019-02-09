@@ -1,11 +1,11 @@
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 use crate::core::instruction::Instruction;
 use crate::core::operation::get_reglist;
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_LDM_t1(opcode: u16) -> Instruction {
     let regs = get_reglist(opcode & 0b_1111_1111);
 

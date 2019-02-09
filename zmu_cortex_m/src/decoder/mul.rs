@@ -1,10 +1,10 @@
 use crate::core::instruction::Instruction;
 use crate::core::instruction::SetFlags;
 use crate::core::register::Reg;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_MUL_t1(opcode: u16) -> Instruction {
     Instruction::MUL {
         rn: Reg::from(opcode.get_bits(3..6) as u8),

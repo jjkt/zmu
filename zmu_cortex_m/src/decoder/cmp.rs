@@ -2,10 +2,10 @@ use crate::core::instruction::Instruction;
 use crate::core::instruction::SRType;
 use crate::core::operation::{decode_imm_shift, thumb_expand_imm};
 use crate::core::register::Reg;
-use bit_field::BitField;
+use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_CMP_imm_t1(opcode: u16) -> Instruction {
     Instruction::CMP_imm {
         rn: Reg::from(opcode.get_bits(8..11) as u8),
@@ -15,7 +15,7 @@ pub fn decode_CMP_imm_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
     let rn: u8 = opcode.get_bits(16..20) as u8;
 
@@ -34,7 +34,7 @@ pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_CMP_reg_t1(opcode: u16) -> Instruction {
     Instruction::CMP_reg {
         rn: Reg::from(opcode.get_bits(0..3) as u8),
@@ -46,7 +46,7 @@ pub fn decode_CMP_reg_t1(opcode: u16) -> Instruction {
 }
 
 #[allow(non_snake_case)]
-#[inline]
+#[inline(always)]
 pub fn decode_CMP_reg_t2(opcode: u16) -> Instruction {
     Instruction::CMP_reg {
         rn: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
