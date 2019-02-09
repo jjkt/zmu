@@ -7,8 +7,8 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_ADR_t1(command: u16) -> Instruction {
     Instruction::ADR {
-        rd: From::from(bits_8_11(command)),
-        imm32: u32::from(bits_0_8(command)) << 2,
+        rd: From::from(command.get_bits(8..11)),
+        imm32: u32::from(command.get_bits(0..8)) << 2,
         thumb32: false,
     }
 }

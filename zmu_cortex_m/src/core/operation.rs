@@ -1,4 +1,3 @@
-use crate::core::bits::bit_31;
 use crate::core::condition::Condition;
 use crate::core::instruction::SRType;
 use crate::core::register::Apsr;
@@ -190,7 +189,7 @@ fn ror_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
     let m = shift % 32;
     let result = lsr(value, m) | lsl(value, 32 - m);
-    let carry_out = bit_31(result) == 1;
+    let carry_out = result.get_bit(31);
     (result, carry_out)
 }
 

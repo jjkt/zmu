@@ -5,8 +5,8 @@ use crate::core::instruction::Instruction;
 #[inline(always)]
 pub fn decode_REVSH_t1(opcode: u16) -> Instruction {
     Instruction::REVSH {
-        rd: From::from(bits_0_3(opcode)),
-        rm: From::from(bits_3_6(opcode)),
+        rd: From::from(opcode.get_bits(0..3)),
+        rm: From::from(opcode.get_bits(3..6)),
     }
 }
 
@@ -14,8 +14,8 @@ pub fn decode_REVSH_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_REV_t1(opcode: u16) -> Instruction {
     Instruction::REV {
-        rd: From::from(bits_0_3(opcode)),
-        rm: From::from(bits_3_6(opcode)),
+        rd: From::from(opcode.get_bits(0..3)),
+        rm: From::from(opcode.get_bits(3..6)),
     }
 }
 
@@ -23,8 +23,8 @@ pub fn decode_REV_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_REV16_t1(opcode: u16) -> Instruction {
     Instruction::REV16 {
-        rd: From::from(bits_0_3(opcode)),
-        rm: From::from(bits_3_6(opcode)),
+        rd: From::from(opcode.get_bits(0..3)),
+        rm: From::from(opcode.get_bits(3..6)),
     }
 }
 

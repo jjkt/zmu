@@ -5,6 +5,6 @@ use crate::core::instruction::Instruction;
 #[inline(always)]
 pub fn decode_BX_t1(command: u16) -> Instruction {
     Instruction::BX {
-        rm: From::from(bits_3_7(command)),
+        rm: From::from(command.get_bits(3..7)),
     }
 }
