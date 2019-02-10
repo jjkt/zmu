@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 { set +x; } 2>/dev/null
 
 echo "building..."
@@ -91,9 +91,11 @@ echo "----------------------------------------"
 ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/hello
 echo "armv7m->itm"
 echo "----------------------------------------"
-./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm
+timeout 1s ./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
 echo "armv7m->exception"
 echo "----------------------------------------"
-./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception
+timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception
 
+echo ""
+echo "all done"
 set -x;

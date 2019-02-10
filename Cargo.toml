@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 zmu_cortex_m = {path =  "zmu_cortex_m"}
-bit_field = "0.7.0"
 clap = "2.19"
 tabwriter = "1"
 error-chain = "0.12.0"

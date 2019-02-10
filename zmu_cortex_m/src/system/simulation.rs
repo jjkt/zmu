@@ -9,8 +9,13 @@ use crate::memory::flash::FlashMemory;
 use crate::memory::ram::RAM;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
+use std::io;
 
-pub fn simulate<F>(code: &[u8], mut semihost_func: F) -> u64
+pub fn simulate<F>(
+    code: &[u8],
+    mut semihost_func: F,
+    itm_file: Option<Box<io::Write + 'static>>,
+) -> u64
 where
     F: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
@@ -19,7 +24,7 @@ where
 
     flash_memory.load(code);
 
-    let mut internal_bus = InternalBus::new();
+    let mut internal_bus = InternalBus::new(itm_file);
     let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
     let mut bus = BusMatrix::new(&mut internal_bus, &mut ahb);
 
@@ -61,7 +66,12 @@ where
     count
 }
 
-pub fn simulate_trace<F, G>(code: &[u8], mut trace_func: F, mut semihost_func: G) -> u64
+pub fn simulate_trace<F, G>(
+    code: &[u8],
+    mut trace_func: F,
+    mut semihost_func: G,
+    itm_file: Option<Box<io::Write + 'static>>,
+) -> u64
 where
     F: FnMut(&ThumbCode, u64, u32, &Instruction, [u32; 13], u32),
     G: FnMut(&SemihostingCommand) -> SemihostingResponse,
@@ -71,7 +81,7 @@ where
 
     flash_memory.load(code);
 
-    let mut internal_bus = InternalBus::new();
+    let mut internal_bus = InternalBus::new(itm_file);
     let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
     let mut bus = BusMatrix::new(&mut internal_bus, &mut ahb);
 

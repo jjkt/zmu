@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate error_chain;
 
-extern crate bit_field;
 extern crate clap;
 extern crate goblin;
 extern crate pad;
@@ -29,9 +28,6 @@ use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExce
 use zmu_cortex_m::system::simulation::simulate;
 use zmu_cortex_m::system::simulation::simulate_trace;
 
-// We'll put our errors in an `errors` module, and other modules in
-// this crate will `use errors::*;` to get access to everything
-// `error_chain!` creates.
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {}
@@ -58,6 +54,7 @@ fn run_bin(
     trace: bool,
     option_trace_start: Option<u64>,
     symboltable: &HashMap<u32, &str>,
+    itm_file: Option<Box<io::Write + 'static>>
 ) {
     let start = Instant::now();
 
@@ -257,9 +254,9 @@ fn run_bin(
                 let _ = trace_stdout.flush();
             }
         };
-        simulate_trace(code, tracefunc, semihost_func)
+        simulate_trace(code, tracefunc, semihost_func, itm_file)
     } else {
-        simulate(code, semihost_func)
+        simulate(code, semihost_func, itm_file)
     };
 
     let end = Instant::now();
@@ -274,15 +271,29 @@ fn run_bin(
             / (duration.as_secs() as f64 + (f64::from(duration.subsec_nanos()) / 1_000_000_000f64))
     );
 }
+fn open_itm_file(filename: &str) -> Option<Box<io::Write + 'static>> {
+    let result = File::create(filename);
+
+    match result {
+        Ok(f) => Some(Box::new(f) as Box<io::Write + 'static>),
+        Err(_) => None,
+    }
+}
+
 
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("run", Some(run_matches)) => {
-            let filename = run_matches.value_of("EXECUTABLE").unwrap();
+            let filename = run_matches.value_of("EXECUTABLE").chain_err(|| "filename missing")?;
             let mut flash_mem = [0; 65536];
 
             let trace_start = match run_matches.value_of("trace-start") {
-                Some(instr) => Some(instr.parse::<u64>().unwrap()),
+                Some(instr) => Some(instr.parse::<u64>().chain_err(|| "invalid trace start point")?),
+                None => None,
+            };
+
+            let itm_output = match run_matches.value_of("itm") {
+                Some(filename) => open_itm_file(filename),
                 None => None,
             };
 
@@ -293,7 +304,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                 v
             };
             let mut symboltable = HashMap::new();
-            let res = Object::parse(&buffer).unwrap();
+            let res = Object::parse(&buffer).chain_err(|| "failed to parse binary")?;
             match res {
                 Object::Elf(elf) => {
                     //println!("elf: {:#?}", &elf);
@@ -332,7 +343,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                     }
                 }
                 _ => {
-                    panic!("unsupported file format {:?}", res);
+                    return Err("unsupported file format".into());
                 }
             }
 
@@ -341,6 +352,7 @@ fn run(args: &ArgMatches) -> Result<()> {
                 run_matches.is_present("trace"),
                 trace_start,
                 &symboltable,
+                itm_output,
             );
         }
         ("", None) => panic!("No sub command found"),
@@ -368,6 +380,12 @@ fn main() {
                     Arg::with_name("trace-start")
                         .long("trace-start")
                         .help("Instruction on which to start tracing")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("itm")
+                        .long("itm")
+                        .help("Name of file to which itm trace data is written to. ")
                         .takes_value(true),
                 )
                 .arg(
