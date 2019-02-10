@@ -1,27 +1,70 @@
-# zmu - emulator for microcontrollers
+# zmu - Emulator for Microcontroller Systems
 
-zmu is an instruction level emulator for microcontrollers, aiming for high speed simulation of core and peripherals. Currently targets ARM Cortex MCUs.
+zmu is an system level emulator for microcontrollers, aiming for high speed simulation of core and peripherals. Currently targets ARM Cortex MCUs.
 
-zmu supports linux and windows operating systems.
+zmu supports Linux and Windows operating systems.
 
 ## Supported features
-- Architectures: arm-v6m, arm-v7m (in progress), arm-v7me (in progress)
+- Loading of ELF binaries
+- Architectures: 
+    - arm-v6m, 
+    - arm-v7m (partial support)
+    - arm-v7me (partial support)
 - Cores (in progress): Cortex-m0/m0+, Cortex-m3, Cortex-m4, Cortex-m4f
     - notably missing: full exception and interrupt support
-- ARM semihosting, semihosting extensions:
+- ARM semihosting, supported semihosting extensions:
     - open, close (streams only)
     - FLEN 
     - ISTTY
     - write, read
     - seek, clock, exception -> exit
     - errno
+- ITM
+    - (TPIU) write stimulus register data to a file, in framed format
+    - STIM0 .. STIM31 supported
+- instruction trace
 
-## Missing features
-- Full v7m, v7me + floats
-- NVIC
+## Missing / Planned features
+- Time simulation / sync
+- Some instructions are not yet properly supported
+    - WFI, WFE
+    - Full v7m + DSP
+    - Full v7me + floats
+- ARM Cortex peripherals
+    - NVIC
+    - MPU
+    - DWT
+- Configurability of the simulated HW via device profiles
 
+## Usage
 
-## "Hello, world" example with semihosting
+- ```zmu-armv6m``` runs the zmu with support for armv6m instructions.
+- ```zmu-armv7m``` runs the zmu with support for armv7m instructions.
+
+### Run an ELF binary 
+```
+$zmu-armv6m run tests/hello_world/hello_world-cm0.elf
+hello, world
+```
+
+### Run with tracing
+```
+$zmu-armv7m run -t tests/minimal/minimal.elf | head -3
+4906      ldr r1, [pc, #+24]               00000074  Reset_Handler         2 qvczn r0:00000000 1:00001c84 2:00000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
+4A07      ldr r2, [pc, #+28]               00000076  Reset_Handler         4 qvczn r0:00000000 1:00001c84 2:20000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
+4B07      ldr r3, [pc, #+28]               00000078  Reset_Handler         6 qvczn r0:00000000 1:00001c84 2:20000000 3:20000854 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
+```
+
+### Run with ITM trace via itmdump
+
+Following example uses the [https://docs.rs/itm/0.3.1/itm/](itmdump) tool and embedded rustbook examples to show how to dump itm trace prints to stdout from the zmu. To install itmdump, you need to run ```cargo install itmdump```. 
+
+```
+$zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
+Hello, world!
+```
+
+### "Hello, world" example with Arm GCC + semihosting
 
 ```c
 #include <stdio.h>
