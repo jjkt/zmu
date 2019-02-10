@@ -11,6 +11,15 @@ use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use std::io;
 
+pub struct TraceData {
+    pub opcode: ThumbCode,
+    pub count: u64,
+    pub pc: u32,
+    pub instruction: Instruction,
+    pub r0_12: [u32; 13],
+    pub psr_value: u32,
+}
+
 pub fn simulate<F>(
     code: &[u8],
     mut semihost_func: F,
@@ -73,7 +82,7 @@ pub fn simulate_trace<F, G>(
     itm_file: Option<Box<io::Write + 'static>>,
 ) -> u64
 where
-    F: FnMut(&ThumbCode, u64, u32, &Instruction, [u32; 13], u32),
+    F: FnMut(&TraceData),
     G: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
     let mut flash_memory = FlashMemory::new(0, 65536);
@@ -116,14 +125,16 @@ where
                 semihost_func(semihost_cmd)
             },
         );
-        trace_func(
-            &opcode,
-            core.cycle_count,
-            pc,
-            instruction,
-            core.r0_12,
-            core.psr.value,
-        );
+
+        let trace_data = TraceData {
+            opcode: *opcode,
+            count: core.cycle_count,
+            pc: pc,
+            instruction: *instruction,
+            r0_12: core.r0_12,
+            psr_value: core.psr.value,
+        };
+        trace_func(&trace_data);
         count += 1;
     }
 

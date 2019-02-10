@@ -11,22 +11,24 @@ extern crate zmu_cortex_m;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use goblin::Object;
-use pad::PadStr;
-use std::cmp::min;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::time::Instant;
-use tabwriter::TabWriter;
 
-use zmu_cortex_m::core::instruction::Instruction;
-use zmu_cortex_m::core::register::{Apsr, PSR};
-use zmu_cortex_m::core::ThumbCode;
-use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
+mod semihost;
+mod trace;
+
+use crate::semihost::get_semihost_func;
+use crate::trace::format_trace_entry;
+
+use std::collections::HashMap;
+use tabwriter::TabWriter;
+use zmu_cortex_m::system::simulation::TraceData;
 
 use zmu_cortex_m::system::simulation::simulate;
 use zmu_cortex_m::system::simulation::simulate_trace;
+
 
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
@@ -35,228 +37,67 @@ mod errors {
 
 use crate::errors::*;
 
-const TT_HANDLE_STDIN: u32 = 1;
-const TT_HANDLE_STDOUT: u32 = 2;
-const TT_HANDLE_STDERR: u32 = 3;
-const SEMIHOST_FEATURES_HANDLE: u32 = 4;
-
-/*
- byte 0: SHFB_MAGIC_0 0x53
- byte 1: SHFB_MAGIC_1 0x48
- byte 2: SHFB_MAGIC_2 0x46
- byte 3: SHFB_MAGIC_3 0x42
- byte 4: feature bits
-*/
-static FEATURE_DATA: [u8; 5] = [0x53, 0x48, 0x46, 0x42, 3];
-
 fn run_bin(
-    code: &[u8],
+    buffer: &[u8],
     trace: bool,
     option_trace_start: Option<u64>,
-    symboltable: &HashMap<u32, &str>,
-    itm_file: Option<Box<io::Write + 'static>>
+    itm_file: Option<Box<io::Write + 'static>>,
 ) {
-    let start = Instant::now();
-
-    let mut semihost_features_position: u32 = 0;
-
-    let semihost_func = |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-        match semihost_cmd {
-            SemihostingCommand::SysOpen { name, mode } => {
-                // println!("opening stream '{}' in mode '{}'", name, mode);
-                if name == ":tt" {
-                    match mode {
-                        0...3 => SemihostingResponse::SysOpen {
-                            result: Ok(TT_HANDLE_STDIN),
-                        },
-                        4...7 => SemihostingResponse::SysOpen {
-                            result: Ok(TT_HANDLE_STDOUT),
-                        },
-                        8...11 => SemihostingResponse::SysOpen {
-                            result: Ok(TT_HANDLE_STDERR),
-                        },
-                        _ => SemihostingResponse::SysOpen {
-                            result: Ok(TT_HANDLE_STDOUT),
-                        },
-                    }
-                } else if name == ":semihosting-features" {
-                    SemihostingResponse::SysOpen {
-                        result: Ok(SEMIHOST_FEATURES_HANDLE),
-                    }
-                } else {
-                    SemihostingResponse::SysOpen { result: Err(-1) }
-                }
-            }
-            SemihostingCommand::SysClose { handle } => {
-                // println!("closing handle '{}'", handle);
-                if *handle == SEMIHOST_FEATURES_HANDLE {
-                    semihost_features_position = 0;
-                }
-
-                SemihostingResponse::SysClose { success: true }
-            }
-            SemihostingCommand::SysFlen { handle } => {
-                // println!("filelen for handle '{}'", handle);
-
-                if *handle == TT_HANDLE_STDIN || *handle == TT_HANDLE_STDOUT {
-                    SemihostingResponse::SysFlen { result: Ok(0) }
-                } else if *handle == SEMIHOST_FEATURES_HANDLE {
-                    SemihostingResponse::SysFlen { result: Ok(5) }
-                } else {
-                    SemihostingResponse::SysFlen { result: Err(-1) }
-                }
-            }
-            SemihostingCommand::SysIstty { handle } => {
-                // println!("istty query for handle '{}'", handle);
-
-                if *handle == TT_HANDLE_STDIN
-                    || *handle == TT_HANDLE_STDOUT
-                    || *handle == TT_HANDLE_STDERR
-                {
-                    SemihostingResponse::SysIstty { result: Ok(1) }
-                } else if *handle == SEMIHOST_FEATURES_HANDLE {
-                    SemihostingResponse::SysIstty { result: Ok(0) }
-                } else {
-                    SemihostingResponse::SysIstty { result: Err(-1) }
-                }
-            }
-            SemihostingCommand::SysWrite { handle, ref data } => {
-                // println!("write: handle={}, data={:?}", handle, data);
-                if *handle == TT_HANDLE_STDOUT {
-                    let text = &**data;
-                    print!("{}", String::from_utf8_lossy(text));
-                    io::stdout().flush().expect("Could not flush stdout");
-                    SemihostingResponse::SysWrite { result: Ok(0) }
-                } else {
-                    SemihostingResponse::SysWrite { result: Err(-1) }
-                }
-            }
-            SemihostingCommand::SysRead {
-                handle,
-                memoryptr,
-                len,
-            } => {
-                /*println!(
-                    "read: handle={}, memoryptr=0x{:x}, len={}",
-                    handle, memoryptr, len
-                );*/
-                if *handle == SEMIHOST_FEATURES_HANDLE {
-                    let max_size = min(FEATURE_DATA.len() as u32, *len);
-
-                    let read_slice = &FEATURE_DATA[(semihost_features_position as usize)
-                        ..((semihost_features_position + max_size) as usize)];
-
-                    let data = read_slice.to_vec();
-                    let data_len = data.len();
-                    let diff = ((*len as usize) - data_len) as u32;
-
-                    /*println!(
-                        "read response: memoryptr=0x{:x}, data={:?}, bytes not read = {}",
-                        memoryptr, data, diff
-                    );*/
-
-                    semihost_features_position += data.len() as u32;
-
-                    SemihostingResponse::SysRead {
-                        result: Ok((*memoryptr, data, diff)),
-                    }
-                } else {
-                    SemihostingResponse::SysRead { result: Err(-1) }
-                }
-            }
-            SemihostingCommand::SysSeek { handle, position } => {
-                /*println!("seek: handle={}, position={}", handle, position);*/
-
-                if *handle == SEMIHOST_FEATURES_HANDLE {
-                    if *position < 5 {
-                        semihost_features_position = *position;
-                        SemihostingResponse::SysSeek { success: true }
-                    } else {
-                        SemihostingResponse::SysSeek { success: false }
-                    }
-                } else {
-                    SemihostingResponse::SysSeek { success: false }
-                }
-            }
-            SemihostingCommand::SysClock { .. } => {
-                // println!("sysclock");
-                let elapsed = start.elapsed();
-                let in_cs =
-                    elapsed.as_secs() * 100 + u64::from(elapsed.subsec_nanos()) / 10_000_000;
-
-                SemihostingResponse::SysClock {
-                    result: Ok(in_cs as u32),
-                }
-            }
-            SemihostingCommand::SysException { ref reason } => {
-                // println!("sysexception {:?}", reason);
-                let stop = match reason {
-                    SysExceptionReason::ADPStoppedApplicationExit
-                    | SysExceptionReason::ADPStopped => true,
-                    _ => false,
-                };
-
-                SemihostingResponse::SysException {
-                    success: true,
-                    stop: stop,
-                }
-            }
-            SemihostingCommand::SysExitExtended { ref reason, .. } => {
-                // println!("sys exit {:?}", reason);
-
-                SemihostingResponse::SysExitExtended {
-                    success: true,
-                    stop: reason == &SysExceptionReason::ADPStoppedApplicationExit,
-                }
-            }
-            SemihostingCommand::SysErrno { .. } => {
-                // println!("syserrno");
-
-                SemihostingResponse::SysErrno { result: 0 }
-            }
+    let mut flash_mem = [0; 65536];
+    let res = Object::parse(buffer).unwrap();
+    let elf = match res {
+        Object::Elf(elf) => elf,
+        _ => {
+            panic!("unsupported file format");
         }
     };
 
-    let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
+    for ph in elf.program_headers {
+        if ph.p_type == goblin::elf::program_header::PT_LOAD && ph.p_filesz > 0 {
+            let dst_addr = ph.p_paddr as usize;
+            let dst_end_addr = (ph.p_paddr + ph.p_filesz) as usize;
+
+            let src_addr = ph.p_offset as usize;
+            let src_end_addr = (ph.p_offset + ph.p_filesz) as usize;
+            flash_mem[dst_addr..dst_end_addr].copy_from_slice(&buffer[src_addr..src_end_addr]);
+        }
+    }
     let trace_start = option_trace_start.unwrap_or(0);
-    //    4803        ldr r0, =0x20010000 <__stack_end__>             0x000001A2    Reset_Handler    1
+
+
+    let start = Instant::now();
+    let semihost_func = get_semihost_func(start);
+
     let instruction_count = if trace {
-        let tracefunc = |opcode: &ThumbCode,
-                         count: u64,
-                         pc: u32,
-                         instruction: &Instruction,
-                         r0_12: [u32; 13],
-                         psr_value: u32| {
-            if trace && count >= trace_start {
-                let opcode_str = match *opcode {
-                    ThumbCode::Thumb32 { opcode } => format!("{:08X}", opcode).with_exact_width(8),
-                    ThumbCode::Thumb16 { half_word } => {
-                        format!("{:04X}", half_word).with_exact_width(8)
+        let mut symboltable = HashMap::new();
+        let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
+
+        for sym in elf.syms {
+            if sym.st_type() != goblin::elf::sym::STT_FILE {
+                if let Some(maybe_name) = elf.strtab.get(sym.st_name) {
+                    let name = maybe_name.unwrap_or("unknown");
+                    let mut count = 0;
+                    let mut pos = sym.st_value as u32;
+                    while count <= sym.st_size {
+                        // Align addresses to 2 byte alignment
+                        symboltable.insert(pos & 0xffff_fffe, name);
+                        pos += 2;
+                        count += 2;
                     }
-                };
+                }
+            }
+        }
 
-                let instruction_str = format!("{}", instruction).with_exact_width(32);
-                let symbol = symboltable.get(&pc).unwrap_or(&"").with_exact_width(20);
-
-                let psr = PSR { value: psr_value };
-
-                writeln!(
-                    &mut trace_stdout,
-                    "{0:}  {1:} {2:08X}  {3:}  {4:} {5:}{6:}{7:}{8:}{9:} r0:{10:08x} 1:{11:08x} 2:{12:08x} 3:{13:08x} 4:{14:08x} 5:{15:08x} 6:{16:08x} 7:{17:08x} 8:{18:08x} 9:{19:08x} 10:{20:08x} 11:{21:08x} 12:{22:08x}",
-                    opcode_str, instruction_str, pc, symbol, count,
-                 if psr.get_q() {'Q'} else {'q'},
-                 if psr.get_v() {'V'} else {'v'},
-                 if psr.get_c() {'C'} else {'c'},
-                 if psr.get_z() {'Z'} else {'z'},
-                 if psr.get_n() {'N'} else {'n'},
-                 r0_12[0], r0_12[1], r0_12[2], r0_12[3], r0_12[4], r0_12[5], r0_12[6], r0_12[7], r0_12[8], r0_12[9], r0_12[10], r0_12[11], r0_12[12],
-                ).unwrap();
+        let tracefunc = |trace_data : &TraceData| {
+            if trace_data.count >= trace_start {
+                let trace_entry = format_trace_entry(trace_data, &symboltable);
+                writeln!(&mut trace_stdout,"{}",trace_entry).unwrap();
                 let _ = trace_stdout.flush();
             }
         };
-        simulate_trace(code, tracefunc, semihost_func, itm_file)
+        simulate_trace(&flash_mem, tracefunc, semihost_func, itm_file)
     } else {
-        simulate(code, semihost_func, itm_file)
+        simulate(&flash_mem, semihost_func, itm_file)
     };
 
     let end = Instant::now();
@@ -271,6 +112,7 @@ fn run_bin(
             / (duration.as_secs() as f64 + (f64::from(duration.subsec_nanos()) / 1_000_000_000f64))
     );
 }
+
 fn open_itm_file(filename: &str) -> Option<Box<io::Write + 'static>> {
     let result = File::create(filename);
 
@@ -280,15 +122,19 @@ fn open_itm_file(filename: &str) -> Option<Box<io::Write + 'static>> {
     }
 }
 
-
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("run", Some(run_matches)) => {
-            let filename = run_matches.value_of("EXECUTABLE").chain_err(|| "filename missing")?;
-            let mut flash_mem = [0; 65536];
+            let filename = run_matches
+                .value_of("EXECUTABLE")
+                .chain_err(|| "filename missing")?;
 
             let trace_start = match run_matches.value_of("trace-start") {
-                Some(instr) => Some(instr.parse::<u64>().chain_err(|| "invalid trace start point")?),
+                Some(instr) => Some(
+                    instr
+                        .parse::<u64>()
+                        .chain_err(|| "invalid trace start point")?,
+                ),
                 None => None,
             };
 
@@ -303,55 +149,11 @@ fn run(args: &ArgMatches) -> Result<()> {
                 f.read_to_end(&mut v).chain_err(|| "failed to read file")?;
                 v
             };
-            let mut symboltable = HashMap::new();
-            let res = Object::parse(&buffer).chain_err(|| "failed to parse binary")?;
-            match res {
-                Object::Elf(elf) => {
-                    //println!("elf: {:#?}", &elf);
-                    for ph in elf.program_headers {
-                        if ph.p_type == goblin::elf::program_header::PT_LOAD {
-                            /*println!(
-                                "load: {} bytes from offset 0x{:x} to addr 0x{:x}",
-                                ph.p_filesz, ph.p_offset, ph.p_paddr
-                            );*/
-                            if ph.p_filesz > 0 {
-                                let dst_addr = ph.p_paddr as usize;
-                                let dst_end_addr = (ph.p_paddr + ph.p_filesz) as usize;
-
-                                let src_addr = ph.p_offset as usize;
-                                let src_end_addr = (ph.p_offset + ph.p_filesz) as usize;
-                                flash_mem[dst_addr..dst_end_addr]
-                                    .copy_from_slice(&buffer[src_addr..src_end_addr]);
-                            }
-                        }
-                    }
-
-                    for sym in elf.syms {
-                        if sym.st_type() != goblin::elf::sym::STT_FILE {
-                            if let Some(maybe_name) = elf.strtab.get(sym.st_name) {
-                                let name = maybe_name.unwrap_or("unknown");
-                                let mut count = 0;
-                                let mut pos = sym.st_value as u32;
-                                while count <= sym.st_size {
-                                    // Align addresses to 2 byte alignment
-                                    symboltable.insert(pos & 0xffff_fffe, name);
-                                    pos += 2;
-                                    count += 2;
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    return Err("unsupported file format".into());
-                }
-            }
 
             run_bin(
-                &flash_mem,
+                &buffer,
                 run_matches.is_present("trace"),
                 trace_start,
-                &symboltable,
                 itm_output,
             );
         }
