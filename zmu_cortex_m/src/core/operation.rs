@@ -202,6 +202,12 @@ pub fn ror(value: u32, shift: usize) -> u32 {
     }
 }
 
+fn rrx_c(value: u32, carry_in: bool) -> (u32, bool) {
+    let carry_out = value.get_bit(0);
+    let result = (value >> 1) + ((carry_in as u32) << 31);
+    (result, carry_out)
+}
+
 ///
 /// Do the one of the different shifting operations, with carry in support
 ///
@@ -224,7 +230,7 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u
             SRType::LSR => lsr_c(value, amount),
             SRType::ASR => asr_c(value, amount),
             SRType::ROR => ror_c(value, amount),
-            _ => panic!("not implemented"),
+            SRType::RRX => rrx_c(value, carry_in),
         }
     }
 }
@@ -358,7 +364,7 @@ mod tests {
         {
             let (result, carry) = shift_c(1, SRType::ROR, 1, false);
             assert!(result == 0x8000_0000);
-            assert!(carry == false);
+            assert!(carry == true);
         }
     }
 

@@ -1,7 +1,8 @@
+use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
 use crate::core::operation::get_reglist;
 use crate::core::register::Reg;
-use crate::core::bits::Bits;
+use enum_set::EnumSet;
 
 #[allow(non_snake_case)]
 #[inline(always)]
@@ -30,8 +31,14 @@ pub fn decode_PUSH_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_PUSH_t3(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
+    let rt = opcode.get_bits(12..16);
+
+    let mut regs: EnumSet<Reg> = EnumSet::new();
+
+    regs.insert(rt.into());
+
+    Instruction::PUSH {
+        registers: regs,
+        thumb32: true,
     }
 }

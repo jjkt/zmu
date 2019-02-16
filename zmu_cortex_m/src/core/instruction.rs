@@ -114,6 +114,7 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
         setflags: SetFlags,
+        thumb32: bool,
     },
 
     B_t13 {
@@ -438,6 +439,9 @@ pub enum Instruction {
         rd: Reg,
         rm: Reg,
         setflags: SetFlags,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
     },
     MVN_imm {
         rd: Reg,
@@ -525,7 +529,11 @@ pub enum Instruction {
         shift_n: u8,
         thumb32: bool,
     },
-
+    RRX {
+        rd: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
     SBC_reg {
         rd: Reg,
         rn: Reg,
@@ -683,6 +691,10 @@ pub enum Instruction {
         rm: Reg,
         shift_t: SRType,
         shift_n: u8,
+    },
+    TEQ_imm {
+        rn: Reg,
+        imm32: Imm32Carry,
     },
     TBB {
         rn: Reg,
@@ -1127,9 +1139,11 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 ref setflags,
+                thumb32,
             } => write!(
                 f,
-                "asr{} {}, {}, {}",
+                "asr{}{} {}, {}, {}",
+                if thumb32 { ".W" } else { "" },
                 setflags_to_str(*setflags),
                 rd,
                 rn,
@@ -1167,6 +1181,15 @@ impl fmt::Display for Instruction {
                 "bic{} {}, {}, #{}",
                 if setflags { "s" } else { "" },
                 rd,
+                rn,
+                match *imm32 {
+                    Imm32Carry::NoCarry { imm32 } => imm32,
+                    Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
+                }
+            ),
+            Instruction::TEQ_imm { rn, ref imm32 } => write!(
+                f,
+                "teq.w {}, #{}",
                 rn,
                 match *imm32 {
                     Imm32Carry::NoCarry { imm32 } => imm32,
@@ -1594,7 +1617,22 @@ impl fmt::Display for Instruction {
                 rd,
                 rm,
                 ref setflags,
-            } => write!(f, "mvn{} {}, {}", setflags_to_str(*setflags), rd, rm),
+                ref shift_t,
+                shift_n,
+                thumb32,
+            } => write!(
+                f,
+                "mvn{}{} {}, {}, {}",
+                setflags_to_str(*setflags),
+                if thumb32 { ".W" } else { "" },
+                rd,
+                rm,
+                if shift_n > 0 {
+                    format!(", {:?} {}", shift_t, shift_n)
+                } else {
+                    "".to_string()
+                }
+            ),
             Instruction::MVN_imm {
                 rd,
                 ref imm32,
@@ -1744,6 +1782,14 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32
             ),
+            Instruction::RRX { rd, rm, setflags } => write!(
+                f,
+                "mov.w{} {}, {}, rrx",
+                if setflags { "s" } else { "" },
+                rd,
+                rm,
+            ),
+
             Instruction::SBC_imm {
                 rd,
                 rn,
@@ -2218,6 +2264,20 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             rd,
             imm32,
             setflags,
+            thumb32,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
+
+        Instruction::ASR_reg {
+            rd,
+            rn,
+            rm,
+            ref setflags,
             thumb32,
         } => {
             if *thumb32 {
@@ -2720,6 +2780,20 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::MVN_reg {
+            rd,
+            rm,
+            setflags,
+            thumb32,
+            shift_t,
+            shift_n,
+        } => {
+            if *thumb32 {
+                4
+            } else {
+                2
+            }
+        }
         Instruction::AND_reg {
             rd,
             rn,
@@ -2905,6 +2979,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
                 2
             }
         }
+        Instruction::RRX { rd, rm, setflags } => 4,
         Instruction::SBC_imm {
             rd,
             rn,
@@ -2966,6 +3041,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
             ref imm32,
             setflags,
         } => 4,
+        Instruction::TEQ_imm { rn, ref imm32 } => 4,
 
         Instruction::RSB_reg {
             rd,

@@ -674,10 +674,13 @@ fn test_decode_ldrb_imm2() {
 fn test_decode_mvns() {
     // MVNS R5,R5
     match decode_16(0x43ed) {
-        Instruction::MVN_reg { rd, rm, setflags } => {
+        Instruction::MVN_reg { rd, rm, setflags, shift_t, shift_n, thumb32 } => {
             assert!(rd == Reg::R5);
             assert!(rm == Reg::R5);
             assert!(setflags == SetFlags::NotInITBlock);
+            assert!(shift_t == SRType::LSL);
+            assert!(shift_n == 0);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -2741,6 +2744,101 @@ fn test_decode_movt() {
         Instruction::MOVT {
             rd: Reg::R1,
             imm16: 0x2000
+        }
+    );
+}
+
+#[test]
+fn test_decode_mvn_reg_w() {
+    // ea6f 5507       mvn.w   r5, r7, lsl #20
+
+    assert_eq!(
+        decode_32(0xea6f5507),
+        Instruction::MVN_reg {
+        rd: Reg::R5,
+        rm: Reg::R7,
+        setflags: SetFlags::False,
+        shift_n: 20,
+        shift_t: SRType::LSL,
+        thumb32: true,
+        }
+    );
+}
+
+#[test]
+fn test_decode_teq_w() {
+    //f090 0f00       teq     r0, #0
+    assert_eq!(
+        decode_32(0xf0900f00),
+        Instruction::TEQ_imm {
+        rn: Reg::R0,
+        imm32: Imm32Carry::Carry {
+            imm32_c0: (0, false),
+            imm32_c1: (0, true),
+        },
+        }
+    );
+}
+
+
+#[test]
+fn test_decode_mov_rxx_w() {
+    //ea4f 0232       mov.w   r2, r2, rrx
+    assert_eq!(
+        decode_32(0xea4f0232),
+        Instruction::RRX {
+            rd: Reg::R2,
+            rm: Reg::R2,
+            setflags: false,
+        }
+        
+    );
+}
+
+
+#[test]
+fn test_decode_str_imm_t4() {
+    //f84d cd04       str.w   ip, [sp, #-4]!
+    // => same as PUSH r12
+    match decode_32(0xf84dcd04){
+        Instruction::PUSH { registers, thumb32 } => {
+            let elems: Vec<_> = registers.iter().collect();
+            assert_eq!(vec![Reg::R12], elems);
+            assert_eq!(thumb32, true);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_subw_imm_t4() {
+    // f2a4 4333       subw    r3, r4, #1075   ; 0x433
+    assert_eq!(
+        decode_32(0xf2a44333),
+        Instruction::SUB_imm {
+            rd: Reg::R3,
+            rn: Reg::R4,
+            imm32: 1075,
+            setflags: SetFlags::False,
+            thumb32: true,
+        }
+    );
+}
+
+
+#[test]
+fn test_decode_asrw_reg_t2() {
+    //  fa43 f305       asr.w   r3, r3, r5
+    assert_eq!(
+        decode_32(0xfa43f305),
+        Instruction::ASR_reg {
+            rd: Reg::R3,
+            rn: Reg::R3,
+            rm: Reg::R5,
+            setflags: SetFlags::False,
+            thumb32: true,
         }
     );
 }

@@ -1,9 +1,16 @@
 use crate::core::instruction::Instruction;
+use crate::core::bits::Bits;
+
 
 #[allow(non_snake_case)]
 pub fn decode_RRX_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
+    let rm: u8 = opcode.get_bits(0..4) as u8;
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let s: u8 = opcode.get_bit(20) as u8;
+
+    Instruction::RRX {
+        rd: rd.into(),
+        rm: rm.into(),
+        setflags: s == 1,
     }
 }

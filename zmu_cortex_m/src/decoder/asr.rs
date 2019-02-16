@@ -1,8 +1,8 @@
+use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
 use crate::core::instruction::SetFlags;
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
-use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
 #[inline(always)]
@@ -27,6 +27,7 @@ pub fn decode_ASR_reg_t1(opcode: u16) -> Instruction {
         rn: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
         setflags: SetFlags::NotInITBlock,
+        thumb32: false
     }
 }
 
@@ -56,8 +57,20 @@ pub fn decode_ASR_imm_t2(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_ASR_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
+    let rn: u8 = opcode.get_bits(16..20) as u8;
+    let rm: u8 = opcode.get_bits(0..4) as u8;
+    let rd: u8 = opcode.get_bits(8..12) as u8;
+    let s: u8 = opcode.get_bit(20) as u8;
+
+    Instruction::ASR_reg {
+        rd: rd.into(),
+        rn: rn.into(),
+        rm: rm.into(),
+        setflags: if s == 1 {
+            SetFlags::True
+        } else {
+            SetFlags::False
+        },
+        thumb32: true,
     }
 }

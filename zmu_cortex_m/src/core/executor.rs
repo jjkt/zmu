@@ -143,6 +143,7 @@ where
             rm,
             rn,
             setflags,
+            thumb32
         } => {
             if core.condition_passed() {
                 let shift_n: u32 = core.get_r(*rm).get_bits(0..8);
@@ -849,14 +850,28 @@ where
             ExecuteResult::NotTaken
         }
 
-        Instruction::MVN_reg { rd, rm, setflags } => {
+        Instruction::MVN_reg {
+            rd,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
             if core.condition_passed() {
-                let result = core.get_r(*rm) ^ 0xFFFF_FFFF;
+                let (shifted, carry) = shift_c(
+                    core.get_r(*rm),
+                    *shift_t,
+                    *shift_n as usize,
+                    core.psr.get_c(),
+                );
+                let result = shifted ^ 0xFFFF_FFFF;
                 core.set_r(*rd, result);
 
                 if conditional_setflags(*setflags, core.in_it_block()) {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
+                    core.psr.set_c(carry);
                 }
                 return ExecuteResult::Taken { cycles: 1 };
             }
@@ -1599,7 +1614,7 @@ where
                     resolve_addressing(core.get_r(*rn), *imm32, *add, *index);
 
                 let value = core.get_r(*rt);
-                core.bus.write16(address, value.get_bits(0..16)as u16);
+                core.bus.write16(address, value.get_bits(0..16) as u16);
 
                 if *wback {
                     core.set_r(*rn, offset_address);
@@ -1964,6 +1979,20 @@ where
             }
             ExecuteResult::NotTaken
         }
+        Instruction::TEQ_imm { rn, imm32 } => {
+            if core.condition_passed() {
+                let (im, carry) = expand_conditional_carry(imm32, core.psr.get_c());
+
+                let result = core.get_r(*rn) ^ im;
+
+                core.psr.set_n(result);
+                core.psr.set_z(result);
+                core.psr.set_c(carry);
+
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
 
         // ARMv7-M
         Instruction::UBFX {
@@ -2111,6 +2140,19 @@ where
                 );
                 core.set_r(*rd, result);
                 if conditional_setflags(*setflags, core.in_it_block()) {
+                    core.psr.set_n(result);
+                    core.psr.set_z(result);
+                    core.psr.set_c(carry);
+                }
+                return ExecuteResult::Taken { cycles: 1 };
+            }
+            ExecuteResult::NotTaken
+        }
+        Instruction::RRX { rd, rm, setflags } => {
+            if core.condition_passed() {
+                let (result, carry) = shift_c(core.get_r(*rm), SRType::RRX, 1, core.psr.get_c());
+                core.set_r(*rd, result);
+                if *setflags {
                     core.psr.set_n(result);
                     core.psr.set_z(result);
                     core.psr.set_c(carry);
