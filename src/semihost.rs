@@ -1,7 +1,7 @@
-use std::time::Instant;
-use std::io;
 use std::cmp::min;
+use std::io;
 use std::io::prelude::*;
+use std::time::Instant;
 
 use zmu_cortex_m::semihosting::{SemihostingCommand, SemihostingResponse, SysExceptionReason};
 
@@ -18,7 +18,6 @@ const SEMIHOST_FEATURES_HANDLE: u32 = 4;
  byte 4: feature bits
 */
 static FEATURE_DATA: [u8; 5] = [0x53, 0x48, 0x46, 0x42, 3];
-
 
 pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> SemihostingResponse {
     let mut semihost_features_position: u32 = 0;

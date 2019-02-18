@@ -29,7 +29,6 @@ use zmu_cortex_m::system::simulation::TraceData;
 use zmu_cortex_m::system::simulation::simulate;
 use zmu_cortex_m::system::simulation::simulate_trace;
 
-
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {}
@@ -64,7 +63,6 @@ fn run_bin(
     }
     let trace_start = option_trace_start.unwrap_or(0);
 
-
     let start = Instant::now();
     let semihost_func = get_semihost_func(start);
 
@@ -88,10 +86,10 @@ fn run_bin(
             }
         }
 
-        let tracefunc = |trace_data : &TraceData| {
+        let tracefunc = |trace_data: &TraceData| {
             if trace_data.count >= trace_start {
                 let trace_entry = format_trace_entry(trace_data, &symboltable);
-                writeln!(&mut trace_stdout,"{}",trace_entry).unwrap();
+                writeln!(&mut trace_stdout, "{}", trace_entry).unwrap();
                 let _ = trace_stdout.flush();
             }
         };
