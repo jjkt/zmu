@@ -1,6 +1,6 @@
 
 CC=arm-none-eabi-gcc
-CFLAGS= -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld  
+CFLAGS= -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
 LIBS=-lc -lrdimon
 STARTUP_PATH=/usr/share/gcc-arm-embedded/samples/startup
 
