@@ -143,7 +143,7 @@ where
             rm,
             rn,
             setflags,
-            thumb32
+            thumb32,
         } => {
             if core.condition_passed() {
                 let shift_n: u32 = core.get_r(*rm).get_bits(0..8);

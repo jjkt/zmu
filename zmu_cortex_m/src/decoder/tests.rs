@@ -674,7 +674,14 @@ fn test_decode_ldrb_imm2() {
 fn test_decode_mvns() {
     // MVNS R5,R5
     match decode_16(0x43ed) {
-        Instruction::MVN_reg { rd, rm, setflags, shift_t, shift_n, thumb32 } => {
+        Instruction::MVN_reg {
+            rd,
+            rm,
+            setflags,
+            shift_t,
+            shift_n,
+            thumb32,
+        } => {
             assert!(rd == Reg::R5);
             assert!(rm == Reg::R5);
             assert!(setflags == SetFlags::NotInITBlock);
@@ -2755,12 +2762,12 @@ fn test_decode_mvn_reg_w() {
     assert_eq!(
         decode_32(0xea6f5507),
         Instruction::MVN_reg {
-        rd: Reg::R5,
-        rm: Reg::R7,
-        setflags: SetFlags::False,
-        shift_n: 20,
-        shift_t: SRType::LSL,
-        thumb32: true,
+            rd: Reg::R5,
+            rm: Reg::R7,
+            setflags: SetFlags::False,
+            shift_n: 20,
+            shift_t: SRType::LSL,
+            thumb32: true,
         }
     );
 }
@@ -2771,15 +2778,14 @@ fn test_decode_teq_w() {
     assert_eq!(
         decode_32(0xf0900f00),
         Instruction::TEQ_imm {
-        rn: Reg::R0,
-        imm32: Imm32Carry::Carry {
-            imm32_c0: (0, false),
-            imm32_c1: (0, true),
-        },
+            rn: Reg::R0,
+            imm32: Imm32Carry::Carry {
+                imm32_c0: (0, false),
+                imm32_c1: (0, true),
+            },
         }
     );
 }
-
 
 #[test]
 fn test_decode_mov_rxx_w() {
@@ -2791,16 +2797,14 @@ fn test_decode_mov_rxx_w() {
             rm: Reg::R2,
             setflags: false,
         }
-        
     );
 }
-
 
 #[test]
 fn test_decode_str_imm_t4() {
     //f84d cd04       str.w   ip, [sp, #-4]!
     // => same as PUSH r12
-    match decode_32(0xf84dcd04){
+    match decode_32(0xf84dcd04) {
         Instruction::PUSH { registers, thumb32 } => {
             let elems: Vec<_> = registers.iter().collect();
             assert_eq!(vec![Reg::R12], elems);
@@ -2826,7 +2830,6 @@ fn test_decode_subw_imm_t4() {
         }
     );
 }
-
 
 #[test]
 fn test_decode_asrw_reg_t2() {

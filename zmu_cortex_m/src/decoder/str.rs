@@ -1,7 +1,7 @@
+use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
 use crate::core::instruction::SRType;
 use crate::core::register::Reg;
-use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
 #[inline(always)]

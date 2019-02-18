@@ -27,7 +27,7 @@ pub fn decode_ASR_reg_t1(opcode: u16) -> Instruction {
         rn: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
         setflags: SetFlags::NotInITBlock,
-        thumb32: false
+        thumb32: false,
     }
 }
 

@@ -1,6 +1,6 @@
+use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
 use crate::core::instruction::SRType;
-use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
 pub fn decode_PLD_imm_t1(opcode: u32) -> Instruction {

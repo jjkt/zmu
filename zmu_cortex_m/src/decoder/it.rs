@@ -1,7 +1,7 @@
+use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::instruction::ITCondition;
 use crate::core::instruction::Instruction;
-use crate::core::bits::Bits;
 
 #[allow(non_snake_case)]
 pub fn decode_IT_t1(opcode: u16) -> Instruction {

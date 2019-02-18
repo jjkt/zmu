@@ -9,6 +9,7 @@ pub mod register;
 
 use crate::bus::Bus;
 use crate::bus::BusStepResult;
+use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::Exception;
 use crate::core::executor::execute;
@@ -19,7 +20,6 @@ use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use crate::decoder::{decode_16, decode_32, is_thumb32};
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
-use crate::core::bits::Bits;
 use std::fmt;
 
 #[derive(PartialEq, Debug, Copy, Clone)]

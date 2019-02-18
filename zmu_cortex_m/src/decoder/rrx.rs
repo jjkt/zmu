@@ -1,6 +1,5 @@
-use crate::core::instruction::Instruction;
 use crate::core::bits::Bits;
-
+use crate::core::instruction::Instruction;
 
 #[allow(non_snake_case)]
 pub fn decode_RRX_t1(opcode: u32) -> Instruction {
