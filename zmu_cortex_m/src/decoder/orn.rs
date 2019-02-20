@@ -25,5 +25,6 @@ pub fn decode_ORN_imm_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }

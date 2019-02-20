@@ -448,7 +448,9 @@ pub enum Instruction {
         imm32: Imm32Carry,
         setflags: bool,
     },
-    NOP,
+    NOP {
+        thumb32: bool,
+    },
     ORR_reg {
         rd: Reg,
         rn: Reg,
@@ -498,20 +500,24 @@ pub enum Instruction {
     REV {
         rd: Reg,
         rm: Reg,
+        thumb32: bool,
     },
     REV16 {
         rd: Reg,
         rm: Reg,
+        thumb32: bool,
     },
     REVSH {
         rd: Reg,
         rm: Reg,
+        thumb32: bool,
     },
     ROR_reg {
         rd: Reg,
         rn: Reg,
         rm: Reg,
         setflags: SetFlags,
+        thumb32: bool,
     },
     RSB_imm {
         rd: Reg,
@@ -549,7 +555,9 @@ pub enum Instruction {
         imm32: u32,
         setflags: bool,
     },
-    SEV,
+    SEV {
+        thumb32: bool,
+    },
     SEL {
         rd: Reg,
         rn: Reg,
@@ -707,6 +715,7 @@ pub enum Instruction {
     UDF {
         imm32: u32,
         opcode: ThumbCode,
+        thumb32: bool,
     },
     UADD8 {
         rd: Reg,
@@ -808,9 +817,15 @@ pub enum Instruction {
         rm: Reg,
         rotation: usize,
     },
-    WFE,
-    WFI,
-    YIELD,
+    WFE {
+        thumb32: bool,
+    },
+    WFI {
+        thumb32: bool,
+    },
+    YIELD {
+        thumb32: bool,
+    },
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -1647,7 +1662,7 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::NOP => write!(f, "nop"),
+            Instruction::NOP { .. } => write!(f, "nop"),
             Instruction::ORR_reg {
                 rd,
                 rn,
@@ -1751,14 +1766,15 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Instruction::REV { rd, rm } => write!(f, "rev {}, {}", rd, rm),
-            Instruction::REV16 { rd, rm } => write!(f, "rev16 {}, {}", rd, rm),
-            Instruction::REVSH { rd, rm } => write!(f, "revsh {}, {}", rd, rm),
+            Instruction::REV { rd, rm, .. } => write!(f, "rev {}, {}", rd, rm),
+            Instruction::REV16 { rd, rm, .. } => write!(f, "rev16 {}, {}", rd, rm),
+            Instruction::REVSH { rd, rm, .. } => write!(f, "revsh {}, {}", rd, rm),
             Instruction::ROR_reg {
                 rd,
                 rn,
                 rm,
                 ref setflags,
+                ..
             } => write!(
                 f,
                 "ror{} {}, {}, #{}",
@@ -1826,7 +1842,7 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Instruction::SEV => write!(f, "sev"),
+            Instruction::SEV { .. } => write!(f, "sev"),
             Instruction::SBC_reg {
                 rd,
                 rn,
@@ -2072,9 +2088,9 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::UDF { imm32, ref opcode } => {
-                write!(f, "udf {} (opcode = {})", imm32, opcode)
-            }
+            Instruction::UDF {
+                imm32, ref opcode, ..
+            } => write!(f, "udf {} (opcode = {})", imm32, opcode),
 
             Instruction::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
             Instruction::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
@@ -2158,9 +2174,9 @@ impl fmt::Display for Instruction {
                 widthminus1,
             } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
 
-            Instruction::WFE => write!(f, "wfe"),
-            Instruction::WFI => write!(f, "wfi"),
-            Instruction::YIELD => write!(f, "yield"),
+            Instruction::WFE { .. } => write!(f, "wfe"),
+            Instruction::WFI { .. } => write!(f, "wfi"),
+            Instruction::YIELD { .. } => write!(f, "yield"),
             // ARMv7-M
             Instruction::MCR {
                 ref rt,
@@ -2214,892 +2230,283 @@ impl fmt::Display for ITCondition {
 #[allow(unused_variables)]
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
-        Instruction::ADD_reg {
-            rm,
-            rn,
-            rd,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::ADD_sp_reg {
-            rm,
-            rd,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
+        Instruction::ADC_imm { .. } => 4,
+        Instruction::ADC_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ADD_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ADD_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ADD_sp_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ADR { thumb32, .. } => isize_t(*thumb32),
+        Instruction::AND_imm { .. } => 4,
+        Instruction::AND_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ASR_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ASR_reg { thumb32, .. } => isize_t(*thumb32),
 
-        Instruction::ADC_reg {
-            rm,
-            rn,
-            rd,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::ADD_imm {
-            rn,
-            rd,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
+        Instruction::B_t13 { thumb32, .. } => isize_t(*thumb32),
+        Instruction::B_t24 { thumb32, .. } => isize_t(*thumb32),
+        Instruction::BFI { .. } => 4,
+        //BFC
+        Instruction::BIC_imm { .. } => 4,
+        Instruction::BIC_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::BKPT { .. } => 2,
+        Instruction::BL { .. } => 4,
+        Instruction::BLX { .. } => 2,
+        Instruction::BX { .. } => 2,
 
-        Instruction::ASR_reg {
-            rd,
-            rn,
-            rm,
-            ref setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDR_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDR_lit {
-            rt,
-            imm32,
-            thumb32,
-            add,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::PUSH { thumb32, registers } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::CMP_imm { rn, imm32, thumb32 } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STR_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STRD_imm {
-            rt,
-            rt2,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-        } => 4,
-        Instruction::LDRD_imm {
-            rt,
-            rt2,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-        } => 4,
-        Instruction::LDRSH_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRH_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRB_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRSB_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDR_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STRB_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STRH_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STR_reg {
-            rt,
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRSH_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRSB_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::MOV_imm {
-            rd,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::SUB_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::SUB_reg {
-            rm,
-            rn,
-            rd,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STRH_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::UXTH {
-            rd,
-            rm,
-            rotation,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::UXTB {
-            rd,
-            rm,
-            rotation,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::UXTAB {
-            rd,
-            rn,
-            rm,
-            rotation,
-        } => 4,
-        Instruction::SXTH {
-            rd,
-            rm,
-            rotation,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::SXTB {
-            rd,
-            rm,
-            rotation,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRB_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STRB_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDRH_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::MSR_reg { rn, spec_reg } => 4,
-        Instruction::MRS { rd, spec_reg } => 4,
-        Instruction::MLA { rd, rn, rm, ra } => 4,
-        Instruction::MLS { rd, rn, rm, ra } => 4,
-        Instruction::BL { imm32 } => 4,
-        Instruction::B_t13 {
-            cond,
-            imm32,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::B_t24 { imm32, thumb32 } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::BFI {
-            rn,
-            rd,
-            lsbit,
-            msbit,
-        } => 4,
-
-        Instruction::TBB { rn, rm } => 4,
-        Instruction::TBH { rn, rm } => 4,
-        Instruction::UDIV { rd, rn, rm } => 4,
-        Instruction::SDIV { rd, rn, rm } => 4,
-        Instruction::AND_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-        } => 4,
-        Instruction::TST_imm { rn, imm32 } => 4,
-        Instruction::UBFX {
-            rd,
-            rn,
-            lsb,
-            widthminus1,
-        } => 4,
-        Instruction::EOR_reg {
-            rd,
-            rn,
-            rm,
-            setflags,
-            thumb32,
-            shift_t,
-            shift_n,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::ORR_reg {
-            rd,
-            rn,
-            rm,
-            setflags,
-            thumb32,
-            shift_t,
-            shift_n,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::ORN_reg {
-            rd,
-            rn,
-            rm,
-            setflags,
-            shift_t,
-            shift_n,
-        } => 4,
-        Instruction::BIC_reg {
-            rd,
-            rn,
-            rm,
-            setflags,
-            thumb32,
-            shift_t,
-            shift_n,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::MVN_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-            shift_t,
-            shift_n,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::AND_reg {
-            rd,
-            rn,
-            rm,
-            setflags,
-            thumb32,
-            shift_t,
-            shift_n,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LSL_imm {
-            rd,
-            rm,
-            shift_n,
-            thumb32,
-            setflags,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LSR_imm {
-            rd,
-            rm,
-            shift_n,
-            thumb32,
-            setflags,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LSR_reg {
-            rd,
-            rm,
-            rn,
-            thumb32,
-            setflags,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::ASR_imm {
-            rd,
-            rm,
-            shift_n,
-            thumb32,
-            setflags,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::ROR_imm {
-            rd,
-            rm,
-            shift_n,
-            setflags,
-        } => 4,
-        Instruction::MUL {
-            rd,
-            rm,
-            rn,
-            thumb32,
-            setflags,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::CMN_reg {
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::TST_reg {
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::CMP_reg {
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::TEQ_reg {
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-        } => 4,
-
+        Instruction::CBZ { .. } => 2,
+        //CDP
+        //CLREX
+        Instruction::CLZ { .. } => 4,
         Instruction::CMN_imm { rn, imm32 } => 4,
-        Instruction::MVN_imm {
-            rd,
-            imm32,
-            setflags,
-        } => 4,
-        Instruction::ORR_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-        } => 4,
-        Instruction::EOR_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-        } => 4,
-        Instruction::ADR { rd, imm32, thumb32 } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::UMLAL { rm, rdlo, rdhi, rn } => 4,
-        Instruction::UMULL { rm, rdlo, rdhi, rn } => 4,
-        Instruction::SMULL { rm, rdlo, rdhi, rn } => 4,
-        Instruction::RSB_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
+        Instruction::CMN_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::CMP_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::CMP_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::CPS { .. } => 2,
+
+        Instruction::DMB { .. } => 4,
+        Instruction::DSB { .. } => 4,
+
+        Instruction::EOR_imm { .. } => 4,
+        Instruction::EOR_reg { thumb32, .. } => isize_t(*thumb32),
+
+        Instruction::ISB { .. } => 4,
+        Instruction::IT { .. } => 2,
+
+        Instruction::LDC_imm { .. } => 4,
+        Instruction::LDC2_imm { .. } => 4,
+        Instruction::LDM { thumb32, .. } => isize_t(*thumb32),
+        //LDMDB
+        Instruction::LDR_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LDR_lit { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LDR_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LDRB_imm { thumb32, .. } => isize_t(*thumb32),
+        //LDRB_lit
+        Instruction::LDRB_reg { thumb32, .. } => isize_t(*thumb32),
+        //LDRBT
+        Instruction::LDRD_imm { .. } => 4,
+        //LDRD_lit
+        //LDREX
+        //LDREXB
+        //LDREXH
+        Instruction::LDRH_imm { thumb32, .. } => isize_t(*thumb32),
+        //LDRH_lit
+        Instruction::LDRH_reg { thumb32, .. } => isize_t(*thumb32),
+        //LDRHT
+        Instruction::LDRSB_imm { thumb32, .. } => isize_t(*thumb32),
+        //LDRSB_lit
+        Instruction::LDRSB_reg { thumb32, .. } => isize_t(*thumb32),
+        //LDRSBT
+        Instruction::LDRSH_imm { thumb32, .. } => isize_t(*thumb32),
+        //LDRSH_lit
+        Instruction::LDRSH_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LSL_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LSL_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LSR_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::LSR_reg { thumb32, .. } => isize_t(*thumb32),
+
+        Instruction::MCR { .. } => 4,
+        Instruction::MCR2 { .. } => 4,
+        Instruction::MLA { .. } => 4,
+        Instruction::MLS { .. } => 4,
+        Instruction::MOV_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::MOV_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::MOVT { .. } => 4,
+        //MRC, MRC2
+        //MRRC, MRRC2
+        Instruction::MRS { .. } => 4,
+        Instruction::MSR_reg { .. } => 4,
+        Instruction::MUL { thumb32, .. } => isize_t(*thumb32),
+        Instruction::MVN_imm { .. } => 4,
+        Instruction::MVN_reg { thumb32, .. } => isize_t(*thumb32),
+
+        Instruction::NOP { thumb32, .. } => isize_t(*thumb32),
+
+        //ORN_imm
+        Instruction::ORN_reg { .. } => 4,
+        Instruction::ORR_imm { .. } => 4,
+        Instruction::ORR_reg { thumb32, .. } => isize_t(*thumb32),
+
+        //PKHBT, PKHTB
+        Instruction::PLD_imm { .. } => 4,
+        Instruction::PLD_lit { .. } => 4,
+        Instruction::PLD_reg { .. } => 4,
+        //PLI_imm,
+        //PLI_reg
+        Instruction::POP { thumb32, .. } => isize_t(*thumb32),
+        Instruction::PUSH { thumb32, .. } => isize_t(*thumb32),
+
+        //QADD
+        //QADD16
+        //QADD8
+        //QASX
+        //QDADD
+        //QDSUB
+        //QSAX
+        //QSUB
+        //QSUB16
+        //QSUB8
+
+        //RBIT
+        Instruction::REV { thumb32, .. } => isize_t(*thumb32),
+        Instruction::REV16 { thumb32, .. } => isize_t(*thumb32),
+        Instruction::REVSH { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ROR_imm { .. } => 4,
+        Instruction::ROR_reg { thumb32, .. } => isize_t(*thumb32),
         Instruction::RRX { rd, rm, setflags } => 4,
-        Instruction::SBC_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-        } => 4,
-        Instruction::ADC_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-        } => 4,
-        Instruction::SBC_reg {
-            rm,
-            rn,
-            rd,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::STMDB {
-            rn,
-            wback,
-            registers,
-        } => 4,
-        Instruction::STM {
-            rn,
-            wback,
-            registers,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::LDM {
-            rn,
-            registers,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::BIC_imm {
-            rd,
-            rn,
-            ref imm32,
-            setflags,
-        } => 4,
-        Instruction::TEQ_imm { rn, ref imm32 } => 4,
+        Instruction::RSB_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::RSB_reg { thumb32, .. } => 4,
+        //SADD16
+        //SADD8
+        //SASX
+        Instruction::SBC_imm { .. } => 4,
+        Instruction::SBC_reg { thumb32, .. } => isize_t(*thumb32),
+        //SBFX
+        Instruction::SDIV { .. } => 4,
+        Instruction::SEL { .. } => 4,
+        Instruction::SEV { thumb32, .. } => isize_t(*thumb32),
+        //SHADD16
+        //SHADD8
+        //SHASX
+        //SHSAX
+        //SHSUB16
+        //SHSUB8
+        Instruction::SMLA { .. } => 4,
+        //SMLAD
+        Instruction::SMLAL { .. } => 4,
+        //SMLAL second variant?
+        //SMLALD
+        //SMLAW
+        //SMLSD
+        //SMLSLD
+        //SMMLA
+        //SMMLS
+        //SMMUL
+        //SMUAD
+        Instruction::SMUL { .. } => 4,
+        Instruction::SMULL { .. } => 4,
+        //SMULW
+        //SMUSD
+        //SSAT
+        //SSAT16
+        //SSAX
+        //SSUB16
+        //SSUB8
+        //STC, STC2
+        Instruction::STM { thumb32, .. } => isize_t(*thumb32),
+        Instruction::STMDB { .. } => 4,
+        Instruction::STR_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::STR_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::STRB_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::STRB_reg { thumb32, .. } => isize_t(*thumb32),
+        //STRBT
+        Instruction::STRD_imm { .. } => 4,
+        //STREX
+        //STREXB
+        //STREXH
+        Instruction::STRH_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::STRH_reg { thumb32, .. } => isize_t(*thumb32),
+        //STRHT
+        //STRT
+        Instruction::SUB_imm { thumb32, .. } => isize_t(*thumb32),
+        Instruction::SUB_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::SVC { .. } => 2,
+        //SXTAB
+        //SXTAB16
+        //SXTAH
+        Instruction::SXTB { thumb32, .. } => isize_t(*thumb32),
+        //SXTB16
+        Instruction::SXTH { thumb32, .. } => isize_t(*thumb32),
 
-        Instruction::RSB_reg {
-            rd,
-            rn,
-            rm,
-            ref shift_t,
-            shift_n,
-            setflags,
-            thumb32,
-        } => 4,
-        Instruction::CLZ { rd, rm } => 4,
 
-        Instruction::SMUL {
-            rd,
-            rn,
-            rm,
-            m_high,
-            n_high,
-        } => 4,
-        Instruction::SMLA {
-            rd,
-            rn,
-            rm,
-            ra,
-            m_high,
-            n_high,
-        } => 4,
-        Instruction::POP { registers, thumb32 } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::PLD_imm { rn, imm32, add } => 4,
-        Instruction::PLD_lit { imm32, add } => 4,
-        Instruction::PLD_reg {
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-        } => 4,
-        Instruction::LSL_reg {
-            rd,
-            rn,
-            rm,
-            ref setflags,
-            thumb32,
-        } => {
-            if *thumb32 {
-                4
-            } else {
-                2
-            }
-        }
-        Instruction::UADD8 { rd, rn, rm } => 4,
-        Instruction::SEL { rd, rn, rm } => 4,
-        Instruction::MOVT { rd, imm16 } => 4,
-        _ => 2,
+        Instruction::TBB { .. } => 4,
+        Instruction::TBH { .. } => 4,
+        Instruction::TEQ_imm { rn, .. } => 4,
+        Instruction::TEQ_reg { .. } => 4,
+        Instruction::TST_imm { .. } => 4,
+        Instruction::TST_reg { thumb32, .. } => isize_t(*thumb32),
+
+
+        Instruction::UADD8 { .. } => 4,
+        //UADD16
+        //UASX
+        Instruction::UBFX { .. } => 4,
+        Instruction::UDF { thumb32, .. } => isize_t(*thumb32),
+        Instruction::UDIV { .. } => 4,
+        //UHADD16
+        //UHADD8
+        //UHASX
+        //UHSAX
+        //UHSUB16
+        //UHSUB8
+        //UMAAL
+        Instruction::UMLAL { .. } => 4,
+        Instruction::UMULL { .. } => 4,
+        //UQADD16
+        //UQADD8
+        //UQASX
+        //UQSAX
+        //UQSUB16
+        //UQSUB8
+        //USAD8
+        //USADA8
+        //USAT
+        //USAT16
+        //USAX
+        //USUB16
+        //USUB8
+        Instruction::UXTAB { .. } => 4,
+        //UXTAB16
+        //UXTAH
+        Instruction::UXTB { thumb32, .. } => isize_t(*thumb32),
+        Instruction::UXTH { thumb32, .. } => isize_t(*thumb32),
+
+        //VABS
+        //VADD
+        //VCMP
+        //VCVTX
+        //VCVT
+        //VCVTB
+        //VCVTT
+        //VDIV
+        //VFMA
+        //VFMS
+        //VFNMA
+        //VFNMS
+        //VLDM
+        //VLDR
+        //VMAXNM
+        //VMINNM
+        //VMLA
+        //VMLS
+        //VMOV_imm
+        //VMON_reg
+        //VMOVX
+        //VMRS
+        //VMSR
+        //VMUL
+        //VNEG
+        //VNMLA,VNMLS, VNMUL
+        //VPOP
+        //VPUSH
+        //VRINTA, VRINTN, VRINTP, VRiNTM
+        //VRINTX,
+        //VRINTZ, VRINTR
+        //VSEL
+        //VSQRT
+        //VSTM
+        //VSTR
+        //VSUB
+
+        Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
+        Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
+        Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),
+    }
+}
+
+#[inline(always)]
+fn isize_t(thumb32: bool) -> usize {
+    if thumb32 {
+        4
+    } else {
+        2
     }
 }

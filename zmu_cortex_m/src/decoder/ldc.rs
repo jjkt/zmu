@@ -29,6 +29,7 @@ pub fn decode_LDC_lit_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -37,5 +38,6 @@ pub fn decode_LDC2_lit_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }

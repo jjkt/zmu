@@ -79,5 +79,6 @@ pub fn decode_LDRH_lit_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }

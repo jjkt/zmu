@@ -5,5 +5,6 @@ pub fn decode_BFC_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }

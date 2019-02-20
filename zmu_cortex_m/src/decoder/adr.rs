@@ -19,6 +19,7 @@ pub fn decode_ADR_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 

@@ -117,6 +117,7 @@ pub fn decode_LDRBT_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -138,6 +139,7 @@ pub fn decode_LDRD_lit_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -146,6 +148,7 @@ pub fn decode_LDREXB_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -154,6 +157,7 @@ pub fn decode_LDREXH_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -162,6 +166,7 @@ pub fn decode_LDREX_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -170,6 +175,7 @@ pub fn decode_LDRHT_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -178,6 +184,7 @@ pub fn decode_LDRSBT_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -186,6 +193,7 @@ pub fn decode_LDRSHT(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }
 
@@ -194,5 +202,6 @@ pub fn decode_LDRT_t1(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }

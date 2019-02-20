@@ -503,7 +503,7 @@ where
             ExecuteResult::Taken { cycles: 1 }
         }
 
-        Instruction::NOP => ExecuteResult::Taken { cycles: 1 },
+        Instruction::NOP { .. } => ExecuteResult::Taken { cycles: 1 },
 
         Instruction::MUL {
             rd,
@@ -2085,7 +2085,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::REV { rd, rm } => {
+        Instruction::REV { rd, rm, .. } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
                 core.set_r(
@@ -2099,7 +2099,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::REV16 { rd, rm } => {
+        Instruction::REV16 { rd, rm, .. } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
                 core.set_r(
@@ -2113,7 +2113,7 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::REVSH { rd, rm } => {
+        Instruction::REVSH { rd, rm, .. } => {
             if core.condition_passed() {
                 let rm_ = core.get_r(*rm);
                 core.set_r(
@@ -2129,6 +2129,7 @@ where
             rn,
             rm,
             setflags,
+            ..
         } => {
             if core.condition_passed() {
                 let shift_n = core.get_r(*rm) & 0xff;
@@ -2168,28 +2169,28 @@ where
             }
             ExecuteResult::NotTaken
         }
-        Instruction::SEV => {
+        Instruction::SEV { .. } => {
             if core.condition_passed() {
                 println!("SEV");
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
         }
-        Instruction::WFE => {
+        Instruction::WFE { .. } => {
             if core.condition_passed() {
                 //TODO
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
         }
-        Instruction::WFI => {
+        Instruction::WFI { .. } => {
             if core.condition_passed() {
                 //TODO
                 return ExecuteResult::Taken { cycles: 1 };
             }
             ExecuteResult::NotTaken
         }
-        Instruction::YIELD => {
+        Instruction::YIELD { .. } => {
             if core.condition_passed() {
                 println!("YIELD");
                 return ExecuteResult::Taken { cycles: 1 };
@@ -2415,7 +2416,7 @@ where
         // ARMv7-M
         Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
 
-        Instruction::UDF { imm32, opcode } => {
+        Instruction::UDF { imm32, opcode, .. } => {
             println!("UDF {}, {}", imm32, opcode);
             panic!("undefined");
             //Some(Fault::UndefinedInstruction)

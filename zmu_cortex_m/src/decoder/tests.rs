@@ -779,7 +779,9 @@ fn test_decode_str_reg() {
 fn test_decode_nop() {
     // NOP
     match decode_16(0xbf00) {
-        Instruction::NOP => {}
+        Instruction::NOP { thumb32 } => {
+            assert_eq!(thumb32, false);
+        }
         _ => {
             assert!(false);
         }
