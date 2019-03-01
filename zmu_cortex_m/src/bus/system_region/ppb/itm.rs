@@ -1,8 +1,11 @@
-use crate::bus::BusStepResult;
-use std::io;
+use crate::bus::system_region::ppb::PrivatePeripheralBus;
 
-pub struct InstrumentationTraceMacrocell {
-    file: Option<Box<io::Write + 'static>>,
+pub trait InstrumentationTraceMacrocell {
+    fn write_itm_packet(&mut self, packet: Vec<u8>);
+    fn read_stim0(&self) -> u32;
+    fn write_stim_u32(&mut self, port: u8, value: u32);
+    fn write_stim_u16(&mut self, port: u8, value: u16);
+    fn write_stim_u8(&mut self, port: u8, value: u8);
 }
 
 fn make_header(port: u8, payload_size: usize) -> u8 {
@@ -30,44 +33,36 @@ fn make_instrumentation_packet(port: u8, payload: &[u8]) -> Vec<u8> {
     packet
 }
 
-impl InstrumentationTraceMacrocell {
-    pub fn new(itm_file: Option<Box<io::Write + 'static>>) -> InstrumentationTraceMacrocell {
-        InstrumentationTraceMacrocell { file: itm_file }
-    }
-
-    fn write_packet(&mut self, packet: Vec<u8>) {
-        if let Some(f) = &mut self.file {
+impl InstrumentationTraceMacrocell for PrivatePeripheralBus {
+    fn write_itm_packet(&mut self, packet: Vec<u8>) {
+        if let Some(f) = &mut self.itm_file {
             f.write_all(packet.as_slice()).unwrap();
             f.flush().unwrap();
         }
     }
 
-    pub fn read_stim0(&self) -> u32 {
+    fn read_stim0(&self) -> u32 {
         // return 0 if fifo is full, 1 otherwise
         1
     }
 
-    pub fn write_stim_u32(&mut self, port: u8, value: u32) {
+    fn write_stim_u32(&mut self, port: u8, value: u32) {
         let payload: [u8; 4] = [
             (value & 0xff) as u8,
             ((value & 0xff00) >> 8) as u8,
             ((value & 0xff_0000) >> 16) as u8,
             ((value & 0xff00_0000) >> 24) as u8,
         ];
-        self.write_packet(make_instrumentation_packet(port, &payload));
+        self.write_itm_packet(make_instrumentation_packet(port, &payload));
     }
 
-    pub fn write_stim_u16(&mut self, port: u8, value: u16) {
+    fn write_stim_u16(&mut self, port: u8, value: u16) {
         let payload: [u8; 2] = [(value & 0xff) as u8, ((value & 0xff00) >> 8) as u8];
-        self.write_packet(make_instrumentation_packet(port, &payload));
+        self.write_itm_packet(make_instrumentation_packet(port, &payload));
     }
 
-    pub fn write_stim_u8(&mut self, port: u8, value: u8) {
+    fn write_stim_u8(&mut self, port: u8, value: u8) {
         let payload: [u8; 1] = [value];
-        self.write_packet(make_instrumentation_packet(port, &payload));
-    }
-
-    pub fn step(&mut self) -> BusStepResult {
-        BusStepResult::Nothing
+        self.write_itm_packet(make_instrumentation_packet(port, &payload));
     }
 }

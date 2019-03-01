@@ -748,4 +748,4 @@ pub fn decode_32(opcode: u32) -> Instruction {
 }
 
 #[cfg(test)]
-mod tests;
+mod decoder_tests;

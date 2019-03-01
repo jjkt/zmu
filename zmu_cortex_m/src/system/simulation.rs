@@ -1,6 +1,6 @@
 use crate::bus::ahblite::AHBLite;
 use crate::bus::busmatrix::BusMatrix;
-use crate::bus::internal::InternalBus;
+use crate::bus::system_region::SystemRegion;
 use crate::core::instruction::instruction_size;
 use crate::core::instruction::Instruction;
 use crate::core::Core;
@@ -33,7 +33,7 @@ where
 
     flash_memory.load(code);
 
-    let mut internal_bus = InternalBus::new(itm_file);
+    let mut internal_bus = SystemRegion::new(itm_file);
     let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
     let mut bus = BusMatrix::new(&mut internal_bus, &mut ahb);
 
@@ -90,7 +90,7 @@ where
 
     flash_memory.load(code);
 
-    let mut internal_bus = InternalBus::new(itm_file);
+    let mut internal_bus = SystemRegion::new(itm_file);
     let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
     let mut bus = BusMatrix::new(&mut internal_bus, &mut ahb);
 

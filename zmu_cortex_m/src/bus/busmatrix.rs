@@ -62,7 +62,7 @@ where
         } else if self.intr.in_range(addr) {
             self.intr.write32(addr, value);
         } else {
-            panic!("write32 out of bus range");
+            panic!("write32 out of bus range (addr= 0x{:X})", addr);
         }
     }
     fn write8(&mut self, addr: u32, value: u8) {

@@ -291,7 +291,7 @@ where
         Instruction::MRS { rd, spec_reg } => {
             if core.condition_passed() {
                 match spec_reg {
-                    //APSR => {core.set_r(*rd, core.psr.value & 0xf000_0000),
+                    SpecialReg::APSR => core.set_r(*rd, core.psr.value & 0x1f00_0000),
                     SpecialReg::IPSR => {
                         let ipsr_val = u32::from(core.psr.get_exception_number());
                         core.set_r(*rd, ipsr_val);
@@ -303,7 +303,7 @@ where
                         core.set_r(*rd, primask);
                     }
                     //CONTROL => core.set_r(*rd,core.control as u32),
-                    _ => panic!("unsupported MRS operation"),
+                    _ => panic!("unsupported MRS operation {}", spec_reg),
                 }
                 return ExecuteResult::Taken { cycles: 4 };
             }
@@ -313,7 +313,10 @@ where
         Instruction::MSR_reg { rn, spec_reg } => {
             if core.condition_passed() {
                 match spec_reg {
-                    //APSR => {core.set_r(*rd, core.psr.value & 0xf000_0000),
+                    SpecialReg::APSR => {
+                        let value = core.get_r(*rn);
+                        core.psr.value |= value & 0x1f00_0000;
+                    }
                     /*&SpecialReg::IPSR => {
                         let ipsr_val = core.psr.get_exception_number() as u32;
                         core.set_r(*rd, ipsr_val);
@@ -332,7 +335,7 @@ where
                         core.primask = primask;
                     }
                     //CONTROL => core.set_r(*rd,core.control as u32),
-                    _ => panic!("unsupported MSR operation"),
+                    _ => panic!("unsupported MSR operation {}", spec_reg),
                 }
                 return ExecuteResult::Taken { cycles: 4 };
             }

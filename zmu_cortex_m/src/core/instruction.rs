@@ -2416,14 +2416,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //SXTB16
         Instruction::SXTH { thumb32, .. } => isize_t(*thumb32),
 
-
         Instruction::TBB { .. } => 4,
         Instruction::TBH { .. } => 4,
         Instruction::TEQ_imm { rn, .. } => 4,
         Instruction::TEQ_reg { .. } => 4,
         Instruction::TST_imm { .. } => 4,
         Instruction::TST_reg { thumb32, .. } => isize_t(*thumb32),
-
 
         Instruction::UADD8 { .. } => 4,
         //UADD16
@@ -2495,7 +2493,6 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //VSTM
         //VSTR
         //VSUB
-
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),

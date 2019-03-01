@@ -5,6 +5,5 @@ pub mod bus;
 pub mod core;
 pub mod decoder;
 pub mod memory;
-pub mod peripheral;
 pub mod semihosting;
 pub mod system;

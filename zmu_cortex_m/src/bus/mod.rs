@@ -1,8 +1,9 @@
 pub mod ahblite;
 pub mod busmatrix;
-pub mod internal;
+pub mod system_region;
 use crate::core::exception::Exception;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BusStepResult {
     Nothing,
     Exception { exception: Exception },
