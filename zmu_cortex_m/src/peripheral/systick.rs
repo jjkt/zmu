@@ -1,6 +1,6 @@
-use crate::bus::system_region::ppb::PrivatePeripheralBus;
 use crate::bus::BusStepResult;
 use crate::core::exception::Exception;
+use crate::core::Core;
 
 pub trait SysTick {
     fn write_syst_rvr(&mut self, value: u32);
@@ -17,7 +17,7 @@ const SYST_ENABLE: u32 = 1;
 const SYST_TICKINT: u32 = 1 << 1;
 const SYST_COUNTFLAG: u32 = 1 << 16;
 
-impl SysTick for PrivatePeripheralBus {
+impl SysTick for Core {
     fn write_syst_rvr(&mut self, value: u32) {
         self.syst_rvr = value & 0x00ff_ffff;
     }

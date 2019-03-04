@@ -1,5 +1,4 @@
 use crate::bus::Bus;
-use crate::bus::BusStepResult;
 use byteorder::{ByteOrder, LittleEndian};
 
 pub struct RAM {
@@ -64,9 +63,6 @@ impl Bus for RAM {
             return true;
         }
         false
-    }
-    fn step(&mut self) -> BusStepResult {
-        BusStepResult::Nothing
     }
 }
 

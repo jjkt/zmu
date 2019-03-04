@@ -1,5 +1,5 @@
-use crate::bus::system_region::ppb::PrivatePeripheralBus;
 use crate::core::bits::Bits;
+use crate::core::Core;
 
 pub trait SystemControlBlock {
     fn read_icsr(&self) -> u32;
@@ -15,7 +15,7 @@ pub trait SystemControlBlock {
     fn read_demcr(&self) -> u32;
 }
 
-impl SystemControlBlock for PrivatePeripheralBus {
+impl SystemControlBlock for Core {
     fn read_icsr(&self) -> u32 {
         self.icsr
     }

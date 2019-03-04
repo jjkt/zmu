@@ -1,5 +1,4 @@
 use crate::bus::Bus;
-use crate::bus::BusStepResult;
 use byteorder::{ByteOrder, LittleEndian};
 
 pub struct FlashMemory {
@@ -62,9 +61,6 @@ impl Bus for FlashMemory {
             return true;
         }
         false
-    }
-    fn step(&mut self) -> BusStepResult {
-        BusStepResult::Nothing
     }
 }
 

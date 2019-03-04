@@ -7,8 +7,8 @@ pub mod instruction;
 pub mod operation;
 pub mod register;
 
-use crate::bus::system_region::SystemRegion;
 use crate::bus::Bus;
+use crate::bus::BusStepResult;
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::Exception;
@@ -20,6 +20,7 @@ use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use crate::decoder::{decode_16, decode_32, is_thumb32};
 use crate::memory::flash::FlashMemory;
 use crate::memory::ram::RAM;
+use crate::peripheral::systick::SysTick;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
@@ -67,9 +68,6 @@ pub struct Core {
     lr: u32,
     pc: u32,
 
-    // TODO, vtor is in SCS
-    vtor: u32,
-
     pub cycle_count: u64,
 
     /* Processor state register, status flags. */
@@ -96,9 +94,52 @@ pub struct Core {
 
     pub code: FlashMemory,
     pub sram: RAM,
-    pub system_region: SystemRegion,
 
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
+
+    pub cpuid: u32,
+    pub icsr: u32,
+    pub vtor: u32,
+    pub aircr: u32,
+    pub scr: u32,
+    pub ccr: u32,
+    pub shpr1: u32,
+    pub shpr2: u32,
+    pub shpr3: u32,
+    pub shcsr: u32,
+    pub cfsr: u32,
+    pub hfsr: u32,
+    pub dfsr: u32,
+    pub mmfar: u32,
+    pub bfar: u32,
+    pub afsr: u32,
+    pub cpacr: u32,
+
+    pub fpccr: u32,
+    pub fpcar: u32,
+    pub fpdscr: u32,
+
+    pub mvfr0: u32,
+    pub mvfr1: u32,
+    pub mvfr2: u32,
+
+    pub ictr: u32,
+    pub actlr: u32,
+
+    pub nvic_interrupt_enabled: [u32; 16],
+    pub nvic_interrupt_pending: [u32; 16],
+    pub nvic_interrupt_active: [u32; 16],
+
+    pub nvic_interrupt_priority: [u8; 124 * 4],
+
+    pub dwt_ctrl: u32,
+    pub dwt_cyccnt: u32,
+
+    pub syst_rvr: u32,
+    pub syst_cvr: u32,
+    pub syst_csr: u32,
+
+    pub itm_file: Option<Box<io::Write + 'static>>,
 }
 
 impl Core {
@@ -123,12 +164,52 @@ impl Core {
             lr: 0,
             code: FlashMemory::new(0, 65536),
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
-            system_region: SystemRegion::new(itm_file),
+            itm_file: itm_file,
             running: true,
             cycle_count: 0,
             exception_active: [false; 64],
             itstate: 0,
             semihost_func: semihost_func,
+            cpuid: 0,
+            icsr: 0,
+            aircr: 0,
+            scr: 0,
+            ccr: 0,
+            shpr1: 0,
+            shpr2: 0,
+            shpr3: 0,
+            shcsr: 0,
+            cfsr: 0,
+            dfsr: 0,
+            hfsr: 0,
+            mmfar: 0,
+            bfar: 0,
+            afsr: 0,
+            cpacr: 0,
+
+            fpccr: 0,
+            fpcar: 0,
+            fpdscr: 0,
+            mvfr0: 0,
+            mvfr1: 0,
+            mvfr2: 0,
+
+            ictr: 0,
+            actlr: 0,
+
+            dwt_ctrl: 0x4000_0000,
+            dwt_cyccnt: 0,
+
+            nvic_interrupt_enabled: [0; 16],
+            nvic_interrupt_pending: [0; 16],
+            nvic_interrupt_active: [0; 16],
+            nvic_interrupt_priority: [0; 124 * 4],
+
+            //nvic_exception_pending: 0,
+            //nvic_exception_active: 0,
+            syst_rvr: 0,
+            syst_cvr: 0,
+            syst_csr: 0,
         };
         core.code.load(code);
 
@@ -821,13 +902,12 @@ impl Core {
         // Resolve first the need
         //
 
-        //if let BusStepResult::Exception { exception } = self.step() {
-        /*let pc = self.get_pc();
-        self.exception_entry(exception, pc);*/
+        if let BusStepResult::Exception { exception } = self.syst_step() {
+            let pc = self.get_pc();
+            self.exception_entry(exception, pc);
 
-        //self.set_exception_pending(exception);
-
-        //}
+            //self.set_exception_pending(exception);
+        }
     }
 }
 
@@ -884,9 +964,11 @@ mod tests {
         let mut core = Core::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
 
         // arrange
@@ -933,9 +1015,11 @@ mod tests {
         let mut core = Core::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
 
         core.control.sp_sel = true;

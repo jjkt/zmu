@@ -1,4 +1,4 @@
-use crate::bus::system_region::ppb::PrivatePeripheralBus;
+use crate::core::Core;
 
 pub trait InstrumentationTraceMacrocell {
     fn write_itm_packet(&mut self, packet: Vec<u8>);
@@ -33,7 +33,7 @@ fn make_instrumentation_packet(port: u8, payload: &[u8]) -> Vec<u8> {
     packet
 }
 
-impl InstrumentationTraceMacrocell for PrivatePeripheralBus {
+impl InstrumentationTraceMacrocell for Core {
     fn write_itm_packet(&mut self, packet: Vec<u8>) {
         if let Some(f) = &mut self.itm_file {
             f.write_all(packet.as_slice()).unwrap();

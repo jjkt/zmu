@@ -7,3 +7,4 @@ pub mod decoder;
 pub mod memory;
 pub mod semihosting;
 pub mod system;
+pub mod peripheral;

@@ -1,4 +1,4 @@
-use crate::bus::system_region::ppb::PrivatePeripheralBus;
+use crate::core::Core;
 use crate::bus::BusStepResult;
 use crate::core::bits::Bits;
 
@@ -39,7 +39,7 @@ fn clear_bits_array(array: &mut [u32; 16], index: usize, value: u32) {
     }
 }
 
-impl NVIC for PrivatePeripheralBus {
+impl NVIC for Core {
     fn nvic_write_iser(&mut self, index: usize, value: u32) {
         set_bits_array(&mut self.nvic_interrupt_enabled, index, value);
     }
