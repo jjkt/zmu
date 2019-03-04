@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::Core;
+use crate::core::Processor;
 
 pub trait SystemControlBlock {
     fn read_icsr(&self) -> u32;
@@ -15,7 +15,7 @@ pub trait SystemControlBlock {
     fn read_demcr(&self) -> u32;
 }
 
-impl SystemControlBlock for Core {
+impl SystemControlBlock for Processor {
     fn read_icsr(&self) -> u32 {
         self.icsr
     }

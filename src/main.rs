@@ -64,7 +64,7 @@ fn run_bin(
     let trace_start = option_trace_start.unwrap_or(0);
 
     let start = Instant::now();
-    let semihost_func = get_semihost_func(start);
+    let semihost_func = Box::new(get_semihost_func(start));
 
     let instruction_count = if trace {
         let mut symboltable = HashMap::new();

@@ -1,7 +1,12 @@
+use crate::core::executor::Executor;
+use crate::core::fetch::Fetch;
 use crate::core::instruction::instruction_size;
 use crate::core::instruction::Instruction;
-use crate::core::Core;
-use crate::core::ThumbCode;
+use crate::core::register::BaseReg;
+use crate::core::reset::Reset;
+use crate::core::thumb::ThumbCode;
+use crate::core::Processor;
+use crate::decoder::Decoder;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use std::io;
@@ -20,8 +25,7 @@ pub fn simulate(
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
 ) -> u64 {
-    
-    let mut core = Core::new(itm_file, code, semihost_func);
+    let mut core = Processor::new(itm_file, code, semihost_func);
     let mut count = 0;
     core.reset();
 
@@ -62,7 +66,7 @@ pub fn simulate_trace<F>(
 where
     F: FnMut(&TraceData),
 {
-    let mut core = Core::new(itm_file, code, semihost_func);
+    let mut core = Processor::new(itm_file, code, semihost_func);
     let mut count = 0;
     core.reset();
 

@@ -1,7 +1,7 @@
 use crate::core::condition::Condition;
 use crate::core::register::Reg;
 use crate::core::register::SpecialReg;
-use crate::core::ThumbCode;
+use crate::core::thumb::ThumbCode;
 use enum_set::EnumSet;
 
 #[derive(Debug, PartialEq, Copy, Clone)]

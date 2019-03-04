@@ -1,6 +1,5 @@
-use crate::bus::BusStepResult;
 use crate::core::exception::Exception;
-use crate::core::Core;
+use crate::core::Processor;
 
 pub trait SysTick {
     fn write_syst_rvr(&mut self, value: u32);
@@ -10,14 +9,14 @@ pub trait SysTick {
     fn read_syst_rvr(&self) -> u32;
     fn read_syst_cvr(&self) -> u32;
     fn read_syst_calib(&self) -> u32;
-    fn syst_step(&mut self) -> BusStepResult;
+    fn syst_step(&mut self) -> Option<Exception>;
 }
 
 const SYST_ENABLE: u32 = 1;
 const SYST_TICKINT: u32 = 1 << 1;
 const SYST_COUNTFLAG: u32 = 1 << 16;
 
-impl SysTick for Core {
+impl SysTick for Processor {
     fn write_syst_rvr(&mut self, value: u32) {
         self.syst_rvr = value & 0x00ff_ffff;
     }
@@ -54,7 +53,7 @@ impl SysTick for Core {
         0
     }
 
-    fn syst_step(&mut self) -> BusStepResult {
+    fn syst_step(&mut self) -> Option<Exception> {
         if (self.syst_csr & SYST_ENABLE) == SYST_ENABLE {
             self.syst_cvr = self.syst_cvr.saturating_sub(1);
             self.syst_cvr &= 0x00ff_ffff;
@@ -65,12 +64,10 @@ impl SysTick for Core {
                 self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
                 self.syst_csr |= SYST_COUNTFLAG;
                 if (self.syst_csr & SYST_TICKINT) == SYST_TICKINT {
-                    return BusStepResult::Exception {
-                        exception: Exception::SysTick,
-                    };
+                    return Some(Exception::SysTick);
                 }
             }
         }
-        BusStepResult::Nothing
+        None
     }
 }

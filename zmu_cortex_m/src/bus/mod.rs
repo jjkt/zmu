@@ -1,12 +1,11 @@
 use crate::core::exception::Exception;
-use crate::core::Core;
+use crate::core::Processor;
 
-use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::dwt::Dwt;
-use crate::peripheral::systick::SysTick;
+use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
-
+use crate::peripheral::systick::SysTick;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BusStepResult {
@@ -42,7 +41,6 @@ pub trait Bus {
     /// Checks if given address can be reached via the bus.
     ///
     fn in_range(&self, addr: u32) -> bool;
-
 }
 
 /*const PPB_START: u32 = 0xE000_0000;
@@ -51,7 +49,7 @@ const SYSTEM_REGION_START: u32 = 0xE000_0000;
 const SYSTEM_REGION_END: u32 = 0xF000_0000 - 1;
 */
 
-impl Bus for Core {
+impl Bus for Processor {
     fn read8(&self, addr: u32) -> u8 {
         if self.code.in_range(addr) {
             self.code.read8(addr)
@@ -228,5 +226,4 @@ impl Bus for Core {
     fn in_range(&self, addr: u32) -> bool {
         self.code.in_range(addr) || self.sram.in_range(addr)
     }
-
 }

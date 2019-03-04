@@ -1,6 +1,6 @@
-use crate::core::Core;
 use crate::bus::BusStepResult;
 use crate::core::bits::Bits;
+use crate::core::Processor;
 
 pub trait NVIC {
     fn nvic_write_iser(&mut self, index: usize, value: u32);
@@ -39,7 +39,7 @@ fn clear_bits_array(array: &mut [u32; 16], index: usize, value: u32) {
     }
 }
 
-impl NVIC for Core {
+impl NVIC for Processor {
     fn nvic_write_iser(&mut self, index: usize, value: u32) {
         set_bits_array(&mut self.nvic_interrupt_enabled, index, value);
     }

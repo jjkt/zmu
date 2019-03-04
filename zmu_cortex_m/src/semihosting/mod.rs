@@ -1,6 +1,7 @@
 use crate::bus::Bus;
+use crate::core::register::BaseReg;
 use crate::core::register::Reg;
-use crate::core::Core;
+use crate::core::Processor;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum SysExceptionReason {
@@ -141,7 +142,7 @@ const SYS_ERRNO: u32 = 0x13;
 const SYS_EXIT: u32 = 0x18;
 const SYS_EXIT_EXTENDED: u32 = 0x20;
 
-pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Core) -> SemihostingCommand {
+pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> SemihostingCommand {
     match r0 {
         SYS_OPEN => {
             let argument_block = r1;
@@ -242,7 +243,7 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Core) -> SemihostingComma
 }
 
 #[allow(unused)]
-pub fn semihost_return(core: &mut Core, response: &SemihostingResponse) {
+pub fn semihost_return(core: &mut Processor, response: &SemihostingResponse) {
     match *response {
         SemihostingResponse::SysOpen { result } => match result {
             Ok(handle) => core.set_r(Reg::R0, handle),

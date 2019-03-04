@@ -216,6 +216,22 @@ use crate::decoder::wfe::*;
 use crate::decoder::wfi::*;
 use crate::decoder::yield_::*;
 
+use crate::core::thumb::ThumbCode;
+use crate::core::Processor;
+
+pub trait Decoder {
+    fn decode(&self, code: ThumbCode) -> Instruction;
+}
+
+impl Decoder for Processor {
+    // Decode ThumbCode into Instruction
+    fn decode(&self, code: ThumbCode) -> Instruction {
+        match code {
+            ThumbCode::Thumb32 { opcode } => decode_32(opcode),
+            ThumbCode::Thumb16 { half_word } => decode_16(half_word),
+        }
+    }
+}
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11..16) {
         0b11101 | 0b11110 | 0b11111 => true,

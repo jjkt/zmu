@@ -1,15 +1,31 @@
 use crate::bus::Bus;
 use crate::core::bits::Bits;
+use crate::core::exception::Exception;
+use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
 use crate::core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType, SetFlags};
+use crate::core::operation::condition_test;
 use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
-use crate::core::register::{Apsr, Ipsr, Reg, SpecialReg};
-use crate::core::Core;
+use crate::core::register::{Apsr, BaseReg, Ipsr, Reg, SpecialReg};
+use crate::core::Condition;
+use crate::core::Processor;
+use crate::peripheral::systick::SysTick;
 use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 
 pub trait Executor {
+    fn step(&mut self, instruction: &Instruction, instruction_size: usize);
     fn execute(&mut self, instruction: &Instruction) -> ExecuteResult;
+    fn condition_passed(&mut self) -> bool;
+    fn condition_passed_b(&mut self, cond: Condition) -> bool;
+    fn integer_zero_divide_trapping_enabled(&mut self) -> bool;
+
+    fn set_itstate(&mut self, state: u8);
+
+    fn it_advance(&mut self);
+
+    fn in_it_block(&mut self) -> bool;
+    fn last_in_it_block(&mut self) -> bool;
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -53,7 +69,96 @@ fn conditional_setflags(setflags: SetFlags, in_it_block: bool) -> bool {
     }
 }
 
-impl Executor for Core {
+impl Executor for Processor {
+    fn set_itstate(&mut self, state: u8) {
+        self.itstate = state;
+    }
+
+    fn it_advance(&mut self) {
+        if self.itstate != 0 {
+            if self.itstate.get_bits(0..3) == 0 {
+                self.itstate = 0;
+            } else {
+                let it = self.itstate.get_bits(0..5);
+                self.itstate.set_bits(0..5, (it << 1) & 0b11111);
+            }
+        }
+    }
+
+    fn in_it_block(&mut self) -> bool {
+        self.itstate.get_bits(0..4) != 0
+    }
+
+    fn last_in_it_block(&mut self) -> bool {
+        self.itstate.get_bits(0..4) == 0b1000
+    }
+
+    // Run single instruction on core
+    fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
+        let in_it_block = self.in_it_block();
+
+        match self.execute(instruction) {
+            ExecuteResult::Fault { .. } => {
+                // all faults are mapped to hardfaults on armv6m
+                let pc = self.get_pc();
+
+                //TODO: set pending, not exception entry directly
+                self.exception_entry(Exception::HardFault, pc);
+            }
+            ExecuteResult::NotTaken => {
+                self.add_pc(instruction_size as u32);
+                self.cycle_count += 1;
+                if in_it_block {
+                    self.it_advance();
+                }
+            }
+            ExecuteResult::Branched { cycles } => {
+                self.cycle_count += cycles;
+            }
+            ExecuteResult::Taken { cycles } => {
+                self.add_pc(instruction_size as u32);
+                self.cycle_count += cycles;
+                if in_it_block {
+                    self.it_advance();
+                }
+            }
+        }
+
+        if let Some(exception) = self.syst_step() {
+            //let pc = self.get_pc();
+            //self.exception_entry(exception, pc);
+
+            self.set_exception_pending(exception);
+        }
+
+        if let Some(exception) = self.get_pending_exception() {
+            let pc = self.get_pc();
+            self.exception_entry(exception, pc);
+        }
+    }
+
+    fn integer_zero_divide_trapping_enabled(&mut self) -> bool {
+        true
+    }
+
+    fn condition_passed(&mut self) -> bool {
+        let itstate = self.itstate;
+
+        if itstate != 0 {
+            let cond = u16::from(itstate.get_bits(4..8));
+            condition_test(
+                Condition::from_u16(cond).unwrap_or(Condition::AL),
+                &self.psr,
+            )
+        } else {
+            true
+        }
+    }
+
+    fn condition_passed_b(&mut self, cond: Condition) -> bool {
+        condition_test(cond, &self.psr)
+    }
+
     #[allow(unused_variables)]
     #[allow(clippy::cyclomatic_complexity)]
     fn execute(&mut self, instruction: &Instruction) -> ExecuteResult {
@@ -2450,12 +2555,14 @@ mod tests {
     fn test_udiv() {
         // arrange
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.set_r(Reg::R0, 0x7d0);
         core.set_r(Reg::R1, 0x3);
@@ -2480,12 +2587,14 @@ mod tests {
     fn test_mla() {
         // arrange
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.set_r(Reg::R7, 0x2);
         core.set_r(Reg::R2, 0x29a);
@@ -2511,12 +2620,14 @@ mod tests {
     fn test_it_block() {
         // arrange
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.set_r(Reg::R5, 0x49);
         core.set_r(Reg::R4, 0x01);
@@ -2557,12 +2668,14 @@ mod tests {
     fn test_b_cond() {
         // arrange
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.psr.value = 0;
 
@@ -2582,12 +2695,14 @@ mod tests {
     fn test_bfi() {
         // arrange
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.psr.value = 0;
 
@@ -2612,12 +2727,14 @@ mod tests {
     fn test_sub() {
         // arrange
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.psr.value = 0;
 
@@ -2658,12 +2775,14 @@ mod tests {
 
         //itm_file, &code, semihost_func
         let code = [0; 65536];
-        let mut core = Core::new(
+        let mut core = Processor::new(
             Some(Box::new(TestWriter {})),
             &code,
-            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                panic!("shoud not happen")
-            }),
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
         );
         core.psr.value = 0;
 
