@@ -1,4 +1,4 @@
-use crate::bus::system_region::ppb::nvic::NVIC;
+/*use crate::bus::system_region::ppb::nvic::NVIC;
 use crate::bus::system_region::ppb::PrivatePeripheralBus;
 use crate::bus::BusStepResult;
 use crate::core::exception::Exception;
@@ -64,59 +64,54 @@ fn test_nvic_set_pend_hardfault() {
     );
 }
 
-/*#[test]
-fn test_nvic_set_pend() {
+#[test]
+fn test_nvic_set_pend_reset_hf_nmi_priority() {
+    let mut ppb = PrivatePeripheralBus::new(Some(Box::new(TestWriter {})));;
+    ppb.nvic_set_pend(Exception::Reset);
+    ppb.nvic_set_pend(Exception::NMI);
+    ppb.nvic_set_pend(Exception::HardFault);
+    assert_eq!(
+        ppb.nvic_step(),
+        BusStepResult::Exception {
+            exception: Exception::Reset
+        }
+    );
+}
 
-    ppb.nvic_set_pend(Exception::MemoryManagementFault);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
+#[test]
+fn test_nvic_set_pend_nmi_hf_priority() {
+    let mut ppb = PrivatePeripheralBus::new(Some(Box::new(TestWriter {})));;
+    ppb.nvic_set_pend(Exception::NMI);
+    ppb.nvic_set_pend(Exception::HardFault);
+    assert_eq!(
+        ppb.nvic_step(),
+        BusStepResult::Exception {
+            exception: Exception::NMI
+        }
+    );
+}
 
-    ppb.nvic_set_pend(Exception::BusFault);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
+#[test]
+fn test_nvic_set_pend_reset_hr_priority() {
+    let mut ppb = PrivatePeripheralBus::new(Some(Box::new(TestWriter {})));;
+    ppb.nvic_set_pend(Exception::Reset);
+    ppb.nvic_set_pend(Exception::HardFault);
+    assert_eq!(
+        ppb.nvic_step(),
+        BusStepResult::Exception {
+            exception: Exception::Reset
+        }
+    );
+}
 
-    ppb.nvic_set_pend(Exception::UsageFault);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
+#[test]
+fn test_nvic_set_pend_do_not_activate_again() {
+    let mut ppb = PrivatePeripheralBus::new(Some(Box::new(TestWriter {})));;
+    ppb.nvic_set_pend(Exception::Reset);
+    ppb.nvic_step();
 
-    ppb.nvic_set_pend(Exception::Reserved4);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::Reserved5);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::Reserved6);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::DebugMonitor);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::SVCall);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::Reserved8);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::Reserved9);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::PendSV);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::SysTick);
-    // TODO: cannot be masked away?
-    assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
-
-    ppb.nvic_set_pend(Exception::Interrupt { n: 0 });
-    // TODO: cannot be masked away?
+    // should not trigger again before irq is handled
     assert_eq!(ppb.nvic_step(), BusStepResult::Nothing);
 }
+
 */

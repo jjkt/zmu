@@ -7,20 +7,24 @@ pub mod instruction;
 pub mod operation;
 pub mod register;
 
+use crate::bus::system_region::SystemRegion;
 use crate::bus::Bus;
-use crate::bus::BusStepResult;
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::Exception;
-use crate::core::executor::execute;
 use crate::core::executor::ExecuteResult;
+use crate::core::executor::Executor;
 use crate::core::instruction::Instruction;
 use crate::core::operation::condition_test;
 use crate::core::register::{Apsr, Control, Epsr, Ipsr, Reg, PSR};
 use crate::decoder::{decode_16, decode_32, is_thumb32};
+use crate::memory::flash::FlashMemory;
+use crate::memory::ram::RAM;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
+
 use std::fmt;
+use std::io;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ProcessorMode {
@@ -54,7 +58,7 @@ impl fmt::Display for ThumbCode {
     }
 }
 
-pub struct Core<'a, T: Bus> {
+pub struct Core {
     /* 13 of 32-bit general purpose registers. */
     pub r0_12: [u32; 13],
 
@@ -81,9 +85,6 @@ pub struct Core<'a, T: Bus> {
     /* Processor mode: either handler or thread mode. */
     mode: ProcessorMode,
 
-    /* Bus to which the core is connected. */
-    pub bus: &'a mut T,
-
     /* Is the core simulation currently running or not.*/
     pub running: bool,
 
@@ -92,11 +93,21 @@ pub struct Core<'a, T: Bus> {
     pub exception_active: [bool; 64],
 
     itstate: u8,
+
+    pub code: FlashMemory,
+    pub sram: RAM,
+    pub system_region: SystemRegion,
+
+    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
 }
 
-impl<'a, T: Bus> Core<'a, T> {
-    pub fn new(bus: &'a mut T) -> Core<'a, T> {
-        Core {
+impl Core {
+    pub fn new(
+        itm_file: Option<Box<io::Write + 'static>>,
+        code: &[u8],
+        semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
+    ) -> Core {
+        let mut core = Core {
             mode: ProcessorMode::ThreadMode,
             vtor: 0,
             psr: PSR { value: 0 },
@@ -110,12 +121,22 @@ impl<'a, T: Bus> Core<'a, T> {
             msp: 0,
             psp: 0,
             lr: 0,
-            bus,
+            code: FlashMemory::new(0, 65536),
+            sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
+            system_region: SystemRegion::new(itm_file),
             running: true,
             cycle_count: 0,
             exception_active: [false; 64],
             itstate: 0,
-        }
+            semihost_func: semihost_func,
+        };
+        core.code.load(code);
+
+        /*let mut internal_bus = SystemRegion::new(itm_file);
+        let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
+        let mut bussi = BusMatrix::new(&mut internal_bus, &mut ahb);*/
+
+        core
     }
 
     pub fn condition_passed(&mut self) -> bool {
@@ -349,7 +370,7 @@ impl<'a, T: Bus> Core<'a, T> {
 
         // Main stack pointer is read via vector table
         let vtor = self.vtor;
-        let sp = self.bus.read32(vtor) & 0xffff_fffc;
+        let sp = self.read32(vtor) & 0xffff_fffc;
         self.set_msp(sp);
 
         // Process stack pointer to zero
@@ -374,7 +395,7 @@ impl<'a, T: Bus> Core<'a, T> {
 
         self.itstate = 0;
 
-        let reset_vector = self.bus.read32(vtor + 4);
+        let reset_vector = self.read32(vtor + 4);
 
         self.blx_write_pc(reset_vector);
     }
@@ -447,16 +468,16 @@ impl<'a, T: Bus> Core<'a, T> {
 
         let ret_addr = self.return_address(exception_type, return_address);
 
-        self.bus.write32(frameptr, r0);
-        self.bus.write32(frameptr + 0x4, r1);
-        self.bus.write32(frameptr + 0x8, r2);
-        self.bus.write32(frameptr + 0xc, r3);
-        self.bus.write32(frameptr + 0x10, r12);
-        self.bus.write32(frameptr + 0x14, lr);
-        self.bus.write32(frameptr + 0x18, ret_addr);
+        self.write32(frameptr, r0);
+        self.write32(frameptr + 0x4, r1);
+        self.write32(frameptr + 0x8, r2);
+        self.write32(frameptr + 0xc, r3);
+        self.write32(frameptr + 0x10, r12);
+        self.write32(frameptr + 0x14, lr);
+        self.write32(frameptr + 0x18, ret_addr);
         let xpsr = (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111)
             | (frameptralign << 9) as u32;
-        self.bus.write32(frameptr + 0x1c, xpsr);
+        self.write32(frameptr + 0x1c, xpsr);
 
         if self.mode == ProcessorMode::HandlerMode {
             self.lr = 0xFFFF_FFF1;
@@ -475,14 +496,14 @@ impl<'a, T: Bus> Core<'a, T> {
         //let forcealign = ccr.stkalign;
         let forcealign = true;
 
-        self.set_r(Reg::R0, self.bus.read32(frameptr));
-        self.set_r(Reg::R1, self.bus.read32(frameptr + 0x4));
-        self.set_r(Reg::R2, self.bus.read32(frameptr + 0x8));
-        self.set_r(Reg::R3, self.bus.read32(frameptr + 0xc));
-        self.set_r(Reg::R12, self.bus.read32(frameptr + 0x10));
-        self.set_r(Reg::LR, self.bus.read32(frameptr + 0x14));
-        let pc = self.bus.read32(frameptr + 0x18);
-        let psr = self.bus.read32(frameptr + 0x1c);
+        self.set_r(Reg::R0, self.read32(frameptr));
+        self.set_r(Reg::R1, self.read32(frameptr + 0x4));
+        self.set_r(Reg::R2, self.read32(frameptr + 0x8));
+        self.set_r(Reg::R3, self.read32(frameptr + 0xc));
+        self.set_r(Reg::R12, self.read32(frameptr + 0x10));
+        self.set_r(Reg::LR, self.read32(frameptr + 0x14));
+        let pc = self.read32(frameptr + 0x18);
+        let psr = self.read32(frameptr + 0x1c);
 
         self.branch_write_pc(pc);
 
@@ -517,7 +538,7 @@ impl<'a, T: Bus> Core<'a, T> {
         // InstructionSynchronizationBarrier();
         let vtor = self.vtor;
         let offset = u32::from(u8::from(exception)) * 4;
-        let start = self.bus.read32(vtor + offset);
+        let start = self.read32(vtor + offset);
         self.blx_write_pc(start);
     }
 
@@ -628,10 +649,10 @@ impl<'a, T: Bus> Core<'a, T> {
     // PC location. Depending on instruction type, fetches
     // one or two half-words.
     pub fn fetch(&mut self) -> ThumbCode {
-        let hw = self.bus.read16(self.pc);
+        let hw = self.read16(self.pc);
 
         if is_thumb32(hw) {
-            let hw2 = self.bus.read16(self.pc + 2);
+            let hw2 = self.read16(self.pc + 2);
             ThumbCode::Thumb32 {
                 opcode: (u32::from(hw) << 16) + u32::from(hw2),
             }
@@ -648,17 +669,126 @@ impl<'a, T: Bus> Core<'a, T> {
         }
     }
 
+    /*    fn set_pend(&mut self, exception: Exception) {
+            match exception {
+                Exception::Reset => {
+                    self.nvic_exception_pending.set_bit(0, true);
+                }
+                Exception::NMI => {
+                    self.nvic_exception_pending.set_bit(1, true);
+                }
+                Exception::HardFault => {
+                    self.nvic_exception_pending.set_bit(2, true);
+                }
+                Exception::MemoryManagementFault => {
+                    self.nvic_exception_pending.set_bit(3, true);
+                }
+                Exception::BusFault => {
+                    self.nvic_exception_pending.set_bit(4, true);
+                }
+                Exception::UsageFault => {
+                    self.nvic_exception_pending.set_bit(5, true);
+                }
+                Exception::Reserved4 => {
+                    self.nvic_exception_pending.set_bit(6, true);
+                }
+                Exception::Reserved5 => {
+                    self.nvic_exception_pending.set_bit(7, true);
+                }
+                Exception::Reserved6 => {
+                    self.nvic_exception_pending.set_bit(8, true);
+                }
+                Exception::DebugMonitor => {
+                    self.nvic_exception_pending.set_bit(9, true);
+                }
+                Exception::SVCall => {
+                    self.nvic_exception_pending.set_bit(10, true);
+                }
+                Exception::Reserved8 => {
+                    self.nvic_exception_pending.set_bit(11, true);
+                }
+                Exception::Reserved9 => {
+                    self.nvic_exception_pending.set_bit(12, true);
+                }
+                Exception::PendSV => {
+                    self.nvic_exception_pending.set_bit(13, true);
+                }
+                Exception::SysTick => {
+                    self.nvic_exception_pending.set_bit(14, true);
+                }
+                Exception::Interrupt { n } => {
+                    let index = n / 32;
+                    let bit = n % 32;
+                    self.nvic_interrupt_pending[index as usize].set_bit(bit as usize, true);
+                }
+            }
+        }
+    */
+
+    /*
+            // setting PRIMASK to 1 raises execution priority to "0"
+            // setting BASEPRI changes the priority level required for exception pre-emption
+            // Has effect only if BASEPRI < current unmasked priority
+            // FAULTMASK 1 raises masked execution priority to "-1"
+
+
+            // When no exception is active, software in Thread or handler mode is executing
+            // at a execution priority (max supported priority + 1)
+            // this is the "base level of execution"
+
+            // from base level, the execution priority is the greatest urgency of:
+            // - base level of execution priority
+            // - greatest urgency of all active exceptions, including any that the current exception pre-empted
+            // - the impact of PRIMASK, FAULTMASK, BASEPRI
+
+            // Reset, NMI or HardFault pending?
+            if (self.nvic_exception_pending & 0b111) != 0 {
+                if self.nvic_exception_active.get_bit(0) {
+                    return BusStepResult::Nothing;
+                }
+
+                if self.nvic_exception_pending.get_bit(0) {
+                    self.nvic_exception_active.set_bit(0, true);
+                    return BusStepResult::Exception {
+                        exception: Exception::Reset,
+                    };
+                }
+
+                if self.nvic_exception_active.get_bit(1) {
+                    return BusStepResult::Nothing;
+                }
+
+                if self.nvic_exception_pending.get_bit(1) {
+                    self.nvic_exception_active.set_bit(1, true);
+                    return BusStepResult::Exception {
+                        exception: Exception::NMI,
+                    };
+                }
+                if self.nvic_exception_active.get_bit(2) {
+                    return BusStepResult::Nothing;
+                }
+
+                if self.nvic_exception_pending.get_bit(2) {
+                    self.nvic_exception_active.set_bit(2, true);
+                    return BusStepResult::Exception {
+                        exception: Exception::HardFault,
+                    };
+                }
+            }
+
+            // check the priorities from shrp1, shrp2, shrp3
+
+    */
     // Run single instruction on core
-    pub fn step<F>(&mut self, instruction: &Instruction, instruction_size: usize, semihost_func: F)
-    where
-        F: FnMut(&SemihostingCommand) -> SemihostingResponse,
-    {
+    pub fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
         let in_it_block = self.in_it_block();
 
-        match execute(self, instruction, semihost_func) {
+        match self.execute(instruction) {
             ExecuteResult::Fault { .. } => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
+
+                //TODO: set pending, not exception entry directly
                 self.exception_entry(Exception::HardFault, pc);
             }
             ExecuteResult::NotTaken => {
@@ -683,14 +813,25 @@ impl<'a, T: Bus> Core<'a, T> {
         //
         // run bus connected devices forward
         //
-        if let BusStepResult::Exception { exception } = self.bus.step() {
-            let pc = self.get_pc();
-            self.exception_entry(exception, pc);
-        }
+        // FIXME: Bus->Nvic needs also to see exception_active array?
+        // or actually better: resolve the exception taking here, just utilize
+        // nvic information?
+
+        //
+        // Resolve first the need
+        //
+
+        //if let BusStepResult::Exception { exception } = self.step() {
+        /*let pc = self.get_pc();
+        self.exception_entry(exception, pc);*/
+
+        //self.set_exception_pending(exception);
+
+        //}
     }
 }
 
-impl<'a, T: Bus> fmt::Display for Core<'a, T> {
+impl fmt::Display for Core {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "PC:{:08X} {}{}{}{}{} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
                   R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X}",
@@ -722,14 +863,34 @@ impl<'a, T: Bus> fmt::Display for Core<'a, T> {
 mod tests {
 
     use super::*;
-    use crate::memory::ram::*;
+    use crate::bus::Bus;
+    use std::io::Result;
+    use std::io::Write;
+    struct TestWriter {}
+
+    impl Write for TestWriter {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn test_push_stack() {
+        const STACK_START: u32 = 0x2000_0100;
+        let code = [0; 65536];
+        let mut core = Core::new(
+            Some(Box::new(TestWriter {})),
+            &code,
+            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("shoud not happen")
+            }),
+        );
+
         // arrange
-        let mut bus = RAM::new(0, 1000);
         let lr = {
-            let mut core = Core::new(&mut bus);
             //    if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
             core.control.sp_sel = false;
             //core.mode = ProcessorMode::ThreadMode;
@@ -740,26 +901,26 @@ mod tests {
             core.set_r(Reg::R12, 46);
             core.set_r(Reg::LR, 47);
             core.set_psp(0);
-            core.set_msp(0x100);
+            core.set_msp(STACK_START);
             core.psr.value = 0xffff_ffff;
 
             // act
             core.push_stack(Exception::HardFault, 99);
 
-            assert_eq!(core.msp, 0xe0);
+            assert_eq!(core.msp, STACK_START - 32);
             core.get_r(Reg::LR)
         };
 
         // values pushed on to stack
-        assert_eq!(bus.read32(0x100 - 0x20), 42);
-        assert_eq!(bus.read32(0x100 - 0x20 + 4), 43);
-        assert_eq!(bus.read32(0x100 - 0x20 + 8), 44);
-        assert_eq!(bus.read32(0x100 - 0x20 + 12), 45);
-        assert_eq!(bus.read32(0x100 - 0x20 + 16), 46);
-        assert_eq!(bus.read32(0x100 - 0x20 + 20), 47);
-        assert_eq!(bus.read32(0x100 - 0x20 + 24), 99);
+        assert_eq!(core.read32(STACK_START - 0x20), 42);
+        assert_eq!(core.read32(STACK_START - 0x20 + 4), 43);
+        assert_eq!(core.read32(STACK_START - 0x20 + 8), 44);
+        assert_eq!(core.read32(STACK_START - 0x20 + 12), 45);
+        assert_eq!(core.read32(STACK_START - 0x20 + 16), 46);
+        assert_eq!(core.read32(STACK_START - 0x20 + 20), 47);
+        assert_eq!(core.read32(STACK_START - 0x20 + 24), 99);
         assert_eq!(
-            bus.read32(0x100 - 0x20 + 28),
+            core.read32(STACK_START - 0x20 + 28),
             0b1111_1111_1111_1111_1111_1101_1111_1111
         );
         assert_eq!(lr, 0xffff_fff9);
@@ -768,8 +929,14 @@ mod tests {
     #[test]
     fn test_exception_taken() {
         // Arrange
-        let mut bus = RAM::new(0, 1000);
-        let mut core = Core::new(&mut bus);
+        let code = [0; 65536];
+        let mut core = Core::new(
+            Some(Box::new(TestWriter {})),
+            &code,
+            Box::new(|_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                panic!("shoud not happen")
+            }),
+        );
 
         core.control.sp_sel = true;
         core.mode = ProcessorMode::ThreadMode;

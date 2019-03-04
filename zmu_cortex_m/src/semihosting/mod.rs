@@ -141,18 +141,18 @@ const SYS_ERRNO: u32 = 0x13;
 const SYS_EXIT: u32 = 0x18;
 const SYS_EXIT_EXTENDED: u32 = 0x20;
 
-pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> SemihostingCommand {
+pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Core) -> SemihostingCommand {
     match r0 {
         SYS_OPEN => {
             let argument_block = r1;
 
-            let mut string_ptr = core.bus.read32(argument_block);
-            let mode = core.bus.read32(argument_block + 4);
-            let mut filename_len = core.bus.read32(argument_block + 8);
+            let mut string_ptr = core.read32(argument_block);
+            let mode = core.read32(argument_block + 4);
+            let mut filename_len = core.read32(argument_block + 8);
             let mut string_bytes: Vec<u8> = Vec::new();
 
             while filename_len > 0 {
-                string_bytes.push(core.bus.read8(string_ptr));
+                string_bytes.push(core.read8(string_ptr));
                 string_ptr += 1;
                 filename_len -= 1;
             }
@@ -164,20 +164,20 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
         }
         SYS_CLOSE => {
             let params_ptr = r1;
-            let handle = core.bus.read32(params_ptr);
+            let handle = core.read32(params_ptr);
             SemihostingCommand::SysClose { handle: handle }
         }
         SYS_WRITE => {
             let params_ptr = r1;
-            let handle = core.bus.read32(params_ptr);
-            let mut memoryptr = core.bus.read32(params_ptr + 4);
-            let mut len = core.bus.read32(params_ptr + 8);
+            let handle = core.read32(params_ptr);
+            let mut memoryptr = core.read32(params_ptr + 4);
+            let mut len = core.read32(params_ptr + 8);
 
             let mut data: Vec<u8> = Vec::new();
 
             // :tt console output
             while len > 0 {
-                data.push(core.bus.read8(memoryptr));
+                data.push(core.read8(memoryptr));
                 memoryptr += 1;
                 len -= 1;
             }
@@ -188,9 +188,9 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
         }
         SYS_READ => {
             let params_ptr = r1;
-            let handle = core.bus.read32(params_ptr);
-            let memoryptr = core.bus.read32(params_ptr + 4);
-            let len = core.bus.read32(params_ptr + 8);
+            let handle = core.read32(params_ptr);
+            let memoryptr = core.read32(params_ptr + 4);
+            let len = core.read32(params_ptr + 8);
 
             SemihostingCommand::SysRead {
                 handle: handle,
@@ -200,20 +200,20 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
         }
         SYS_FLEN => {
             let params_ptr = r1;
-            let handle = core.bus.read32(params_ptr);
+            let handle = core.read32(params_ptr);
 
             SemihostingCommand::SysFlen { handle: handle }
         }
         SYS_ISTTY => {
             let params_ptr = r1;
-            let handle = core.bus.read32(params_ptr);
+            let handle = core.read32(params_ptr);
 
             SemihostingCommand::SysIstty { handle: handle }
         }
         SYS_SEEK => {
             let params_ptr = r1;
-            let handle = core.bus.read32(params_ptr);
-            let position = core.bus.read32(params_ptr + 4);
+            let handle = core.read32(params_ptr);
+            let position = core.read32(params_ptr + 4);
 
             SemihostingCommand::SysSeek {
                 handle: handle,
@@ -224,8 +224,8 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
         SYS_ERRNO => SemihostingCommand::SysErrno,
         SYS_EXIT_EXTENDED => {
             let params_ptr = r1;
-            let reason = SysExceptionReason::from_u32(core.bus.read32(params_ptr));
-            let subcode = core.bus.read32(params_ptr + 4);
+            let reason = SysExceptionReason::from_u32(core.read32(params_ptr));
+            let subcode = core.read32(params_ptr + 4);
 
             SemihostingCommand::SysExitExtended {
                 reason: reason,
@@ -242,7 +242,7 @@ pub fn decode_semihostcmd<T: Bus>(r0: u32, r1: u32, core: &mut Core<T>) -> Semih
 }
 
 #[allow(unused)]
-pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingResponse) {
+pub fn semihost_return(core: &mut Core, response: &SemihostingResponse) {
     match *response {
         SemihostingResponse::SysOpen { result } => match result {
             Ok(handle) => core.set_r(Reg::R0, handle),
@@ -288,7 +288,7 @@ pub fn semihost_return<T: Bus>(core: &mut Core<T>, response: &SemihostingRespons
             Ok((memoryptr, data, diff)) => {
                 let mut addr = *memoryptr;
                 for x in data {
-                    core.bus.write8(addr, *x);
+                    core.write8(addr, *x);
                     addr += 1;
                 }
                 core.set_r(Reg::R0, *diff);
