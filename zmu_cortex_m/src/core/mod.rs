@@ -54,8 +54,13 @@ pub struct Processor {
     pub running: bool,
 
     /* One boolean per exception on the system: fixed priority system exceptions,
-    configurable priority system exceptions and external exceptions. */
+    configurable priority system exceptions and external exceptions. 
+    index is by exception number. (Reset exception = 1)
+    */
     pub exception_active: [bool; 64],
+    pub exception_pending: [bool; 64],
+    pub exception_priority: [i16; 64],
+    pub pending_exception_count: u32,
 
     itstate: u8,
 
@@ -135,6 +140,9 @@ impl Processor {
             running: true,
             cycle_count: 0,
             exception_active: [false; 64],
+            exception_pending: [false; 64],
+            exception_priority: [0; 64],
+            pending_exception_count: 0,
             itstate: 0,
             semihost_func: semihost_func,
             cpuid: 0,
@@ -214,8 +222,8 @@ mod tests {
 
     use super::*;
     use crate::bus::Bus;
-    use crate::core::exception::ExceptionHandling;
     use crate::core::exception::Exception;
+    use crate::core::exception::ExceptionHandling;
     use crate::core::register::Ipsr;
     use std::io::Result;
     use std::io::Write;

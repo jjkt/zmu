@@ -10,6 +10,8 @@ use crate::core::Processor;
 use crate::core::ProcessorMode;
 
 pub trait ExceptionHandling {
+    fn execution_priority(&self) -> i16;
+
     fn set_exception_pending(&mut self, exception: Exception);
     fn get_pending_exception(&mut self) -> Option<Exception>;
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32;
@@ -23,6 +25,7 @@ pub trait ExceptionHandling {
     fn deactivate(&mut self, returning_exception_number: u8);
     fn invalid_exception_return(&mut self, returning_exception_number: u8, exc_return: u32);
     fn exception_return(&mut self, exc_return: u32);
+    fn clear_pending_exception(&mut self, exception: Exception);
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -46,9 +49,83 @@ pub enum Exception {
 }
 
 impl ExceptionHandling for Processor {
-    fn set_exception_pending(&mut self, exception: Exception) {}
+    fn execution_priority(&self) -> i16 {
+        /*        let mut highestpri = 256;
+        let boostedpri = 256;
+        let subgroupshift = self.aircr.prigroup;
+        let groupvalue = 2 << subgroupshift;
+        let active_exceptions = self
+            .exception_active
+            .iter()
+            .enumerate()
+            .filter(|&(i, _)| i > 1 && self.exception_active[i])
+            .map(|(i, _)| i)
+            .collect();
+        for active_exception in active_exceptions {
+            if self.exception_priority[i] < highestpri {
+                highestpri = self.exception_priority[i];
+                subgroupvalue = highestpri % groupvalue;
+                highestpri = highestpri - subgroupvalue;
+            }
+        }
+        if self.basepri != 0 {
+            boostedpri = self.basepri;
+            subgroupvalue = boostedpri % groupvalue;
+            boostedpri = boostedpri - subgroupvalue;
+        }
+        if self.primask {
+            boostedpri = 0;
+        }
+        if self.faultmask {
+            boostedpri = -1;
+        }
+
+        if boostedpri < highestpri {
+            boostedpri
+        } else {
+            highestpri
+        }*/
+        0
+    }
+
+    fn set_exception_pending(&mut self, exception: Exception) {
+        let index: u8 = exception.into();
+        if !self.exception_pending[index as usize] {
+            self.exception_pending[index as usize] = true;
+            self.pending_exception_count += 1;
+        }
+    }
+
     fn get_pending_exception(&mut self) -> Option<Exception> {
+        if self.pending_exception_count > 0 {
+            // fixed priority exceptions
+            if self.exception_pending[1] {
+                return Some(Exception::Reset);
+            }
+            if self.exception_pending[2] {
+                return Some(Exception::NMI);
+            }
+            if self.exception_pending[3] {
+                return Some(Exception::HardFault);
+            }
+
+            //TODO: should have the exceptions sorted by priority?
+            //exception_priority[]
+            // execution_priority() should be updated whenever any of it's
+            // inputs have been changed.
+
+            let index = u8::from(Exception::SysTick) as usize;
+            if self.exception_pending[index] {
+                return Some(Exception::SysTick);
+            }
+        }
         None
+    }
+
+    fn clear_pending_exception(&mut self, exception: Exception) {
+        let index: u8 = exception.into();
+        self.exception_pending[index as usize] = false;
+        self.pending_exception_count -= 1;
     }
 
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32 {

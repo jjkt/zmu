@@ -19,11 +19,8 @@ pub trait Executor {
     fn condition_passed(&mut self) -> bool;
     fn condition_passed_b(&mut self, cond: Condition) -> bool;
     fn integer_zero_divide_trapping_enabled(&mut self) -> bool;
-
     fn set_itstate(&mut self, state: u8);
-
     fn it_advance(&mut self);
-
     fn in_it_block(&mut self) -> bool;
     fn last_in_it_block(&mut self) -> bool;
 }
@@ -43,7 +40,6 @@ pub enum ExecuteResult {
 #[inline(always)]
 fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32) {
     let offset_address = if add { rn + imm32 } else { rn - imm32 };
-
     let address = if index { offset_address } else { rn };
     (address, offset_address)
 }
@@ -125,13 +121,11 @@ impl Executor for Processor {
         }
 
         if let Some(exception) = self.syst_step() {
-            //let pc = self.get_pc();
-            //self.exception_entry(exception, pc);
-
             self.set_exception_pending(exception);
         }
 
         if let Some(exception) = self.get_pending_exception() {
+            self.clear_pending_exception(exception);
             let pc = self.get_pc();
             self.exception_entry(exception, pc);
         }
