@@ -11,12 +11,15 @@ pub mod reset;
 pub mod thumb;
 
 use crate::core::condition::Condition;
+use crate::core::exception::Exception;
 use crate::core::register::{Apsr, BaseReg, Control, Reg, PSR};
 use crate::memory::flash::FlashMemory;
 use crate::memory::ram::RAM;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
+use crate::core::exception::ExceptionState;
+use std::collections::HashMap;
 use std::fmt;
 use std::io;
 
@@ -43,6 +46,8 @@ pub struct Processor {
     /* interrupt primary mask, a 1 bit mask register for
     global interrupt masking. */
     primask: bool,
+    faultmask: bool,
+    basepri: u8,
 
     /* Control bits: currently used stack and execution privilege if core.mode == ThreadMode */
     control: Control,
@@ -54,13 +59,13 @@ pub struct Processor {
     pub running: bool,
 
     /* One boolean per exception on the system: fixed priority system exceptions,
-    configurable priority system exceptions and external exceptions. 
+    configurable priority system exceptions and external exceptions.
     index is by exception number. (Reset exception = 1)
     */
-    pub exception_active: [bool; 64],
-    pub exception_pending: [bool; 64],
-    pub exception_priority: [i16; 64],
+    pub exception: HashMap<usize, ExceptionState>,
     pub pending_exception_count: u32,
+
+    pub execution_priority: i16,
 
     itstate: u8,
 
@@ -114,6 +119,60 @@ pub struct Processor {
     pub itm_file: Option<Box<io::Write + 'static>>,
 }
 
+fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
+    let mut priorities = HashMap::new();
+
+    priorities.insert(
+        usize::from(u8::from(Exception::Reset)),
+        ExceptionState::new(Exception::Reset, -3),
+    );
+    priorities.insert(
+        usize::from(u8::from(Exception::NMI)),
+        ExceptionState::new(Exception::NMI, -2),
+    );
+    priorities.insert(
+        usize::from(u8::from(Exception::HardFault)),
+        ExceptionState::new(Exception::HardFault, -1),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::MemoryManagementFault)),
+        ExceptionState::new(Exception::MemoryManagementFault, 0),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::BusFault)),
+        ExceptionState::new(Exception::BusFault, 0),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::UsageFault)),
+        ExceptionState::new(Exception::UsageFault, 0),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::DebugMonitor)),
+        ExceptionState::new(Exception::DebugMonitor, 0),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::SVCall)),
+        ExceptionState::new(Exception::SVCall, 0),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::PendSV)),
+        ExceptionState::new(Exception::PendSV, 0),
+    );
+
+    priorities.insert(
+        usize::from(u8::from(Exception::SysTick)),
+        ExceptionState::new(Exception::SysTick, 0),
+    );
+
+    priorities
+}
+
 impl Processor {
     pub fn new(
         itm_file: Option<Box<io::Write + 'static>>,
@@ -125,6 +184,8 @@ impl Processor {
             vtor: 0,
             psr: PSR { value: 0 },
             primask: false,
+            faultmask: false,
+            basepri: 0,
             control: Control {
                 n_priv: false,
                 sp_sel: false,
@@ -139,9 +200,8 @@ impl Processor {
             itm_file: itm_file,
             running: true,
             cycle_count: 0,
-            exception_active: [false; 64],
-            exception_pending: [false; 64],
-            exception_priority: [0; 64],
+            exception: make_default_exception_priorities(),
+            execution_priority: 0,
             pending_exception_count: 0,
             itstate: 0,
             semihost_func: semihost_func,

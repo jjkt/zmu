@@ -2,6 +2,7 @@ use crate::bus::Bus;
 use crate::core::register::{BaseReg, PSR};
 use crate::core::Processor;
 use crate::core::ProcessorMode;
+use crate::core::exception::ExceptionHandling;
 
 pub trait Reset {
     fn reset(&mut self);
@@ -43,6 +44,8 @@ impl Reset for Processor {
         // Apsr, ipsr
         self.psr = PSR { value: 0 };
         self.primask = false;
+        self.faultmask = false;
+        self.basepri = 0;
         self.control.sp_sel = false;
         self.control.n_priv = false;
 
@@ -54,6 +57,8 @@ impl Reset for Processor {
         self.itstate = 0;
 
         let reset_vector = self.read32(vtor + 4);
+
+        self.execution_priority = self.get_execution_priority();
 
         self.blx_write_pc(reset_vector);
     }
