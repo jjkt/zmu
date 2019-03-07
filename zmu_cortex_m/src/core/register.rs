@@ -257,8 +257,8 @@ pub trait Apsr {
 }
 
 pub trait Ipsr {
-    fn get_exception_number(&self) -> u8;
-    fn set_exception_number(&mut self, exception_number: u8);
+    fn get_exception_number(&self) -> usize;
+    fn set_exception_number(&mut self, exception_number: usize);
 }
 
 // Execution Program Status register
@@ -355,12 +355,12 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
-    fn get_exception_number(&self) -> u8 {
+    fn get_exception_number(&self) -> usize {
         //TODO: diff between cortex m0 and m3+
-        (*self).value.get_bits(0..6) as u8
+        (*self).value.get_bits(0..6) as usize
     }
-    fn set_exception_number(&mut self, exception_number: u8) {
-        self.value = (self.value & 0xffff_ffc0) | u32::from(exception_number & 0b11_1111);
+    fn set_exception_number(&mut self, exception_number: usize) {
+        self.value = (self.value & 0xffff_ffc0) | (exception_number as u32 & 0b11_1111);
     }
 }
 

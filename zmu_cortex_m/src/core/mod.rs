@@ -58,11 +58,7 @@ pub struct Processor {
     /* Is the core simulation currently running or not.*/
     pub running: bool,
 
-    /* One boolean per exception on the system: fixed priority system exceptions,
-    configurable priority system exceptions and external exceptions.
-    index is by exception number. (Reset exception = 1)
-    */
-    pub exception: HashMap<usize, ExceptionState>,
+    pub exceptions: HashMap<usize, ExceptionState>,
     pub pending_exception_count: u32,
 
     pub execution_priority: i16,
@@ -105,7 +101,6 @@ pub struct Processor {
 
     pub nvic_interrupt_enabled: [u32; 16],
     pub nvic_interrupt_pending: [u32; 16],
-    pub nvic_interrupt_active: [u32; 16],
 
     pub nvic_interrupt_priority: [u8; 124 * 4],
 
@@ -123,52 +118,57 @@ fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
     let mut priorities = HashMap::new();
 
     priorities.insert(
-        usize::from(u8::from(Exception::Reset)),
+        Exception::Reset.into(),
         ExceptionState::new(Exception::Reset, -3),
     );
     priorities.insert(
-        usize::from(u8::from(Exception::NMI)),
+        Exception::NMI.into(),
         ExceptionState::new(Exception::NMI, -2),
     );
     priorities.insert(
-        usize::from(u8::from(Exception::HardFault)),
+        Exception::HardFault.into(),
         ExceptionState::new(Exception::HardFault, -1),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::MemoryManagementFault)),
+        Exception::MemoryManagementFault.into(),
         ExceptionState::new(Exception::MemoryManagementFault, 0),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::BusFault)),
+        Exception::BusFault.into(),
         ExceptionState::new(Exception::BusFault, 0),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::UsageFault)),
+        Exception::UsageFault.into(),
         ExceptionState::new(Exception::UsageFault, 0),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::DebugMonitor)),
+        Exception::DebugMonitor.into(),
         ExceptionState::new(Exception::DebugMonitor, 0),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::SVCall)),
+        Exception::SVCall.into(),
         ExceptionState::new(Exception::SVCall, 0),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::PendSV)),
+        Exception::PendSV.into(),
         ExceptionState::new(Exception::PendSV, 0),
     );
 
     priorities.insert(
-        usize::from(u8::from(Exception::SysTick)),
+        Exception::SysTick.into(),
         ExceptionState::new(Exception::SysTick, 0),
     );
+
+    for irqn in 0..20 {
+        let irq = Exception::Interrupt { n: irqn };
+        priorities.insert(irq.into(), ExceptionState::new(irq, 0));
+    }
 
     priorities
 }
@@ -200,7 +200,7 @@ impl Processor {
             itm_file: itm_file,
             running: true,
             cycle_count: 0,
-            exception: make_default_exception_priorities(),
+            exceptions: make_default_exception_priorities(),
             execution_priority: 0,
             pending_exception_count: 0,
             itstate: 0,
@@ -237,7 +237,6 @@ impl Processor {
 
             nvic_interrupt_enabled: [0; 16],
             nvic_interrupt_pending: [0; 16],
-            nvic_interrupt_active: [0; 16],
             nvic_interrupt_priority: [0; 124 * 4],
 
             //nvic_exception_pending: 0,
@@ -275,109 +274,4 @@ impl fmt::Display for Processor {
                  self.get_r(Reg::SP),
                  self.get_r(Reg::LR))
     }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::bus::Bus;
-    use crate::core::exception::Exception;
-    use crate::core::exception::ExceptionHandling;
-    use crate::core::register::Ipsr;
-    use std::io::Result;
-    use std::io::Write;
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn test_push_stack() {
-        const STACK_START: u32 = 0x2000_0100;
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
-
-        // arrange
-        let lr = {
-            //    if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
-            core.control.sp_sel = false;
-            //core.mode = ProcessorMode::ThreadMode;
-            core.set_r(Reg::R0, 42);
-            core.set_r(Reg::R1, 43);
-            core.set_r(Reg::R2, 44);
-            core.set_r(Reg::R3, 45);
-            core.set_r(Reg::R12, 46);
-            core.set_r(Reg::LR, 47);
-            core.set_psp(0);
-            core.set_msp(STACK_START);
-            core.psr.value = 0xffff_ffff;
-
-            // act
-            core.push_stack(Exception::HardFault, 99);
-
-            assert_eq!(core.msp, STACK_START - 32);
-            core.get_r(Reg::LR)
-        };
-
-        // values pushed on to stack
-        assert_eq!(core.read32(STACK_START - 0x20), 42);
-        assert_eq!(core.read32(STACK_START - 0x20 + 4), 43);
-        assert_eq!(core.read32(STACK_START - 0x20 + 8), 44);
-        assert_eq!(core.read32(STACK_START - 0x20 + 12), 45);
-        assert_eq!(core.read32(STACK_START - 0x20 + 16), 46);
-        assert_eq!(core.read32(STACK_START - 0x20 + 20), 47);
-        assert_eq!(core.read32(STACK_START - 0x20 + 24), 99);
-        assert_eq!(
-            core.read32(STACK_START - 0x20 + 28),
-            0b1111_1111_1111_1111_1111_1101_1111_1111
-        );
-        assert_eq!(lr, 0xffff_fff9);
-    }
-
-    #[test]
-    fn test_exception_taken() {
-        // Arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
-
-        core.control.sp_sel = true;
-        core.mode = ProcessorMode::ThreadMode;
-        core.psr.value = 0xffff_ffff;
-
-        // Act
-        core.exception_taken(Exception::BusFault);
-
-        // Assert
-        assert_eq!(core.control.sp_sel, false);
-        assert_eq!(core.mode, ProcessorMode::HandlerMode);
-        assert_eq!(core.psr.get_exception_number(), Exception::BusFault.into());
-        assert_eq!(
-            core.exception_active[u8::from(Exception::BusFault) as usize],
-            true
-        );
-    }
-
 }

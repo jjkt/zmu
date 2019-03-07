@@ -1,4 +1,3 @@
-use crate::core::exception::Exception;
 use crate::core::Processor;
 
 use crate::peripheral::dwt::Dwt;
@@ -6,12 +5,6 @@ use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum BusStepResult {
-    Nothing,
-    Exception { exception: Exception },
-}
 
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.

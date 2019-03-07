@@ -1,4 +1,5 @@
 use crate::core::exception::Exception;
+use crate::core::exception::ExceptionHandling;
 use crate::core::Processor;
 
 pub trait SysTick {
@@ -9,7 +10,7 @@ pub trait SysTick {
     fn read_syst_rvr(&self) -> u32;
     fn read_syst_cvr(&self) -> u32;
     fn read_syst_calib(&self) -> u32;
-    fn syst_step(&mut self) -> Option<Exception>;
+    fn syst_step(&mut self);
 }
 
 const SYST_ENABLE: u32 = 1;
@@ -53,7 +54,7 @@ impl SysTick for Processor {
         0
     }
 
-    fn syst_step(&mut self) -> Option<Exception> {
+    fn syst_step(&mut self) {
         if (self.syst_csr & SYST_ENABLE) == SYST_ENABLE {
             self.syst_cvr = self.syst_cvr.saturating_sub(1);
             self.syst_cvr &= 0x00ff_ffff;
@@ -64,10 +65,9 @@ impl SysTick for Processor {
                 self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
                 self.syst_csr |= SYST_COUNTFLAG;
                 if (self.syst_csr & SYST_TICKINT) == SYST_TICKINT {
-                    return Some(Exception::SysTick);
+                    self.set_exception_pending(Exception::SysTick);
                 }
             }
         }
-        None
     }
 }

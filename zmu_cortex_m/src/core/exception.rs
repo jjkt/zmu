@@ -20,7 +20,7 @@ pub struct ExceptionState {
 impl ExceptionState {
     pub fn new(exception: Exception, priority: i16) -> Self {
         ExceptionState {
-            exception: usize::from(u8::from(exception)),
+            exception: usize::from(exception),
             priority,
             pending: false,
             active: false,
@@ -33,18 +33,24 @@ pub trait ExceptionHandling {
 
     fn set_exception_pending(&mut self, exception: Exception);
     fn get_pending_exception(&mut self) -> Option<Exception>;
+    fn clear_pending_exception(&mut self, exception: Exception);
+
+    fn exception_entry(&mut self, exception: Exception, return_address: u32);
+    fn exception_return(&mut self, exc_return: u32);
+
+    fn exception_active(&self, exception: Exception) -> bool;
+
+    fn set_exception_priority(&mut self, exception: Exception, priority: u8);
+}
+
+trait ExceptionHandlingHelpers {
+    fn exception_taken(&mut self, exception: Exception);
+    fn deactivate(&mut self, returning_exception_number: usize);
+    fn invalid_exception_return(&mut self, returning_exception_number: usize, exc_return: u32);
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32;
     fn push_stack(&mut self, exception_type: Exception, return_address: u32);
     fn pop_stack(&mut self, frameptr: u32, exc_return: u32);
-
-    fn exception_taken(&mut self, exception: Exception);
-
-    fn exception_entry(&mut self, exception: Exception, return_address: u32);
     fn exception_active_bit_count(&self) -> usize;
-    fn deactivate(&mut self, returning_exception_number: u8);
-    fn invalid_exception_return(&mut self, returning_exception_number: u8, exc_return: u32);
-    fn exception_return(&mut self, exc_return: u32);
-    fn clear_pending_exception(&mut self, exception: Exception);
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -64,79 +70,50 @@ pub enum Exception {
     Reserved9,
     PendSV,
     SysTick,
-    Interrupt { n: u8 },
+    Interrupt { n: usize },
 }
 
-impl ExceptionHandling for Processor {
-    fn get_execution_priority(&self) -> i16 {
-        let mut highestpri: i16 = 256;
-        let mut boostedpri: i16 = 256;
-        let subgroupshift = self.aircr.get_bits(8..11);
-        let groupvalue = 2 << subgroupshift;
+impl ExceptionHandlingHelpers for Processor {
+    fn exception_taken(&mut self, exception: Exception) {
+        self.control.sp_sel = false;
+        self.mode = ProcessorMode::HandlerMode;
+        self.psr.set_exception_number(exception.into());
+        self.exceptions.get_mut(&exception.into()).unwrap().active = true;
 
-        for (_, exp) in self.exception.iter().filter(|&(_, e)| e.active) {
-            if exp.priority < highestpri {
-                highestpri = exp.priority;
-                let subgroupvalue = highestpri % groupvalue;
-                highestpri -= subgroupvalue;
-            }
-        }
-        if self.basepri != 0 {
-            boostedpri = i16::from(self.basepri);
-            let subgroupvalue = boostedpri % groupvalue;
-            boostedpri -= subgroupvalue;
-        }
-        if self.primask {
-            boostedpri = 0;
-        }
-        if self.faultmask {
-            boostedpri = -1;
-        }
+        self.execution_priority = self.get_execution_priority();
 
-        if boostedpri < highestpri {
-            boostedpri
-        } else {
-            highestpri
+        // SetEventRegister();
+        // InstructionSynchronizationBarrier();
+        let vtor = self.vtor;
+        let offset: u32 = usize::from(exception) as u32 * 4;
+        let start = self.read32(vtor + offset);
+        self.blx_write_pc(start);
+    }
+    fn deactivate(&mut self, returning_exception_number: usize) {
+        self.exceptions
+            .get_mut(&returning_exception_number)
+            .unwrap()
+            .active = false;
+        if self.psr.get_exception_number() != 0b10 {
+            //TODO
+            //self.faultmask0 = 0;
         }
+        self.execution_priority = self.get_execution_priority();
     }
 
-    fn set_exception_pending(&mut self, exception: Exception) {
-        let index: u8 = exception.into();
-        let mut exp = self.exception.get_mut(&(index as usize)).unwrap();
-
-        if !exp.pending {
-            exp.pending = true;
-            self.pending_exception_count += 1;
-        }
+    fn invalid_exception_return(&mut self, returning_exception_number: usize, exc_return: u32) {
+        self.deactivate(returning_exception_number);
+        //ufsr.invpc = true;
+        self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
+        self.exception_taken(Exception::UsageFault);
     }
 
-    fn get_pending_exception(&mut self) -> Option<Exception> {
-        if self.pending_exception_count > 0 {
-            // self.execution_priority
-            let mut possible_exceptions: Vec<ExceptionState> = self
-                .exception
-                .iter()
-                .filter(|&(_, e)| e.pending && e.priority < self.execution_priority)
-                .map(|(&_, &e)| e)
-                .collect();
-
-            if !possible_exceptions.is_empty() {
-                possible_exceptions.sort_by(|a, b| b.priority.cmp(&a.priority));
-                return Some(Exception::from(possible_exceptions[0].exception as u8));
-            }
-        }
-        None
+    fn exception_active_bit_count(&self) -> usize {
+        self.exceptions
+            .iter()
+            .filter(|&(_, exp)| exp.active)
+            .fold(0, |acc, _| acc + 1)
     }
-
-    fn clear_pending_exception(&mut self, exception: Exception) {
-        let index: u8 = exception.into();
-        let exp = self.exception.get_mut(&(index as usize)).unwrap();
-        if exp.pending {
-            exp.pending = false;
-            self.pending_exception_count -= 1;
-        }
-    }
-
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32 {
         match exception_type {
             Exception::NMI => return_address,
@@ -152,7 +129,6 @@ impl ExceptionHandling for Processor {
             _ => panic!("unsupported exception"),
         }
     }
-
     fn push_stack(&mut self, exception_type: Exception, return_address: u32) {
         const FRAME_SIZE: u32 = 0x20;
 
@@ -241,55 +217,86 @@ impl ExceptionHandling for Processor {
         self.psr.value.set_bits(10..16, psr.get_bits(10..16));
         self.psr.value.set_bits(24..27, psr.get_bits(24..27));
     }
+}
 
-    fn exception_taken(&mut self, exception: Exception) {
-        self.control.sp_sel = false;
-        self.mode = ProcessorMode::HandlerMode;
-        self.psr.set_exception_number(exception.into());
-        self.exception
-            .get_mut(&usize::from(u8::from(exception)))
-            .unwrap()
-            .active = true;
+impl ExceptionHandling for Processor {
+    fn exception_active(&self, exception: Exception) -> bool {
+        self.exceptions[&usize::from(exception)].active
+    }
 
-        self.execution_priority = self.get_execution_priority();
+    fn set_exception_priority(&mut self, exception: Exception, priority: u8) {
+        self.exceptions.get_mut(&exception.into()).unwrap().priority = i16::from(priority);
+    }
 
-        // SetEventRegister();
-        // InstructionSynchronizationBarrier();
-        let vtor = self.vtor;
-        let offset = u32::from(u8::from(exception)) * 4;
-        let start = self.read32(vtor + offset);
-        self.blx_write_pc(start);
+    fn get_execution_priority(&self) -> i16 {
+        let mut highestpri: i16 = 256;
+        let mut boostedpri: i16 = 256;
+        let subgroupshift = self.aircr.get_bits(8..11);
+        let groupvalue = 2 << subgroupshift;
+
+        for (_, exp) in self.exceptions.iter().filter(|&(_, e)| e.active) {
+            if exp.priority < highestpri {
+                highestpri = exp.priority;
+                let subgroupvalue = highestpri % groupvalue;
+                highestpri -= subgroupvalue;
+            }
+        }
+        if self.basepri != 0 {
+            boostedpri = i16::from(self.basepri);
+            let subgroupvalue = boostedpri % groupvalue;
+            boostedpri -= subgroupvalue;
+        }
+        if self.primask {
+            boostedpri = 0;
+        }
+        if self.faultmask {
+            boostedpri = -1;
+        }
+
+        if boostedpri < highestpri {
+            boostedpri
+        } else {
+            highestpri
+        }
+    }
+
+    fn set_exception_pending(&mut self, exception: Exception) {
+        let mut exp = self.exceptions.get_mut(&exception.into()).unwrap();
+
+        if !exp.pending {
+            exp.pending = true;
+            self.pending_exception_count += 1;
+        }
+    }
+
+    fn get_pending_exception(&mut self) -> Option<Exception> {
+        if self.pending_exception_count > 0 {
+            let mut possible_exceptions: Vec<ExceptionState> = self
+                .exceptions
+                .iter()
+                .filter(|&(_, e)| e.pending && e.priority < self.execution_priority)
+                .map(|(&_, &e)| e)
+                .collect();
+
+            if !possible_exceptions.is_empty() {
+                possible_exceptions.sort_by(|a, b| b.priority.cmp(&a.priority));
+                return Some(possible_exceptions[0].exception.into());
+            }
+        }
+        None
+    }
+
+    fn clear_pending_exception(&mut self, exception: Exception) {
+        let exp = self.exceptions.get_mut(&exception.into()).unwrap();
+        if exp.pending {
+            exp.pending = false;
+            self.pending_exception_count -= 1;
+        }
     }
 
     fn exception_entry(&mut self, exception: Exception, return_address: u32) {
         self.push_stack(exception, return_address);
         self.exception_taken(exception);
-    }
-
-    fn exception_active_bit_count(&self) -> usize {
-        self.exception
-            .iter()
-            .filter(|&(_, exp)| exp.active)
-            .fold(0, |acc, _| acc + 1)
-    }
-
-    fn deactivate(&mut self, returning_exception_number: u8) {
-        self.exception
-            .get_mut(&usize::from(returning_exception_number))
-            .unwrap()
-            .active = false;
-        if self.psr.get_exception_number() != 0b10 {
-            //TODO
-            //self.faultmask0 = 0;
-        }
-        self.execution_priority = self.get_execution_priority();
-    }
-
-    fn invalid_exception_return(&mut self, returning_exception_number: u8, exc_return: u32) {
-        self.deactivate(returning_exception_number);
-        //ufsr.invpc = true;
-        self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-        self.exception_taken(Exception::UsageFault);
     }
 
     fn exception_return(&mut self, exc_return: u32) {
@@ -298,7 +305,7 @@ impl ExceptionHandling for Processor {
         let returning_exception_number = self.psr.get_exception_number();
         let nested_activation = self.exception_active_bit_count();
 
-        if !self.exception[&usize::from(returning_exception_number)].active {
+        if !self.exceptions[&returning_exception_number].active {
             self.invalid_exception_return(returning_exception_number, exc_return);
             return;
         } else {
@@ -370,7 +377,7 @@ impl ExceptionHandling for Processor {
     }
 }
 
-impl From<Exception> for u8 {
+impl From<Exception> for usize {
     fn from(value: Exception) -> Self {
         match value {
             Exception::Reset => 1,
@@ -393,8 +400,8 @@ impl From<Exception> for u8 {
     }
 }
 
-impl From<u8> for Exception {
-    fn from(value: u8) -> Self {
+impl From<usize> for Exception {
+    fn from(value: usize) -> Self {
         match value {
             1 => Exception::Reset,
             2 => Exception::NMI,
@@ -416,112 +423,106 @@ impl From<u8> for Exception {
     }
 }
 
-/*    fn set_pend(&mut self, exception: Exception) {
-        match exception {
-            Exception::Reset => {
-                self.nvic_exception_pending.set_bit(0, true);
-            }
-            Exception::NMI => {
-                self.nvic_exception_pending.set_bit(1, true);
-            }
-            Exception::HardFault => {
-                self.nvic_exception_pending.set_bit(2, true);
-            }
-            Exception::MemoryManagementFault => {
-                self.nvic_exception_pending.set_bit(3, true);
-            }
-            Exception::BusFault => {
-                self.nvic_exception_pending.set_bit(4, true);
-            }
-            Exception::UsageFault => {
-                self.nvic_exception_pending.set_bit(5, true);
-            }
-            Exception::Reserved4 => {
-                self.nvic_exception_pending.set_bit(6, true);
-            }
-            Exception::Reserved5 => {
-                self.nvic_exception_pending.set_bit(7, true);
-            }
-            Exception::Reserved6 => {
-                self.nvic_exception_pending.set_bit(8, true);
-            }
-            Exception::DebugMonitor => {
-                self.nvic_exception_pending.set_bit(9, true);
-            }
-            Exception::SVCall => {
-                self.nvic_exception_pending.set_bit(10, true);
-            }
-            Exception::Reserved8 => {
-                self.nvic_exception_pending.set_bit(11, true);
-            }
-            Exception::Reserved9 => {
-                self.nvic_exception_pending.set_bit(12, true);
-            }
-            Exception::PendSV => {
-                self.nvic_exception_pending.set_bit(13, true);
-            }
-            Exception::SysTick => {
-                self.nvic_exception_pending.set_bit(14, true);
-            }
-            Exception::Interrupt { n } => {
-                let index = n / 32;
-                let bit = n % 32;
-                self.nvic_interrupt_pending[index as usize].set_bit(bit as usize, true);
-            }
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::bus::Bus;
+    use crate::core::exception::Exception;
+    use crate::core::exception::ExceptionHandling;
+    use crate::core::register::Ipsr;
+    use crate::semihosting::SemihostingCommand;
+    use crate::semihosting::SemihostingResponse;
+    use std::io::Result;
+    use std::io::Write;
+    struct TestWriter {}
+
+    impl Write for TestWriter {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> Result<()> {
+            Ok(())
         }
     }
-*/
 
-/*
-            // setting PRIMASK to 1 raises execution priority to "0"
-            // setting BASEPRI changes the priority level required for exception pre-emption
-            // Has effect only if BASEPRI < current unmasked priority
-            // FAULTMASK 1 raises masked execution priority to "-1"
+    #[test]
+    fn test_push_stack() {
+        const STACK_START: u32 = 0x2000_0100;
+        let code = [0; 65536];
+        let mut core = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &code,
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
 
+        // arrange
+        let lr = {
+            //    if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
+            core.control.sp_sel = false;
+            //core.mode = ProcessorMode::ThreadMode;
+            core.set_r(Reg::R0, 42);
+            core.set_r(Reg::R1, 43);
+            core.set_r(Reg::R2, 44);
+            core.set_r(Reg::R3, 45);
+            core.set_r(Reg::R12, 46);
+            core.set_r(Reg::LR, 47);
+            core.set_psp(0);
+            core.set_msp(STACK_START);
+            core.psr.value = 0xffff_ffff;
 
-            // When no exception is active, software in Thread or handler mode is executing
-            // at a execution priority (max supported priority + 1)
-            // this is the "base level of execution"
+            // act
+            core.push_stack(Exception::HardFault, 99);
 
-            // from base level, the execution priority is the greatest urgency of:
-            // - base level of execution priority
-            // - greatest urgency of all active exceptions, including any that the current exception pre-empted
-            // - the impact of PRIMASK, FAULTMASK, BASEPRI
+            assert_eq!(core.msp, STACK_START - 32);
+            core.get_r(Reg::LR)
+        };
 
-            // Reset, NMI or HardFault pending?
-            if (self.nvic_exception_pending & 0b111) != 0 {
-                if self.nvic_exception_active.get_bit(0) {
-                    return BusStepResult::Nothing;
-                }
+        // values pushed on to stack
+        assert_eq!(core.read32(STACK_START - 0x20), 42);
+        assert_eq!(core.read32(STACK_START - 0x20 + 4), 43);
+        assert_eq!(core.read32(STACK_START - 0x20 + 8), 44);
+        assert_eq!(core.read32(STACK_START - 0x20 + 12), 45);
+        assert_eq!(core.read32(STACK_START - 0x20 + 16), 46);
+        assert_eq!(core.read32(STACK_START - 0x20 + 20), 47);
+        assert_eq!(core.read32(STACK_START - 0x20 + 24), 99);
+        assert_eq!(
+            core.read32(STACK_START - 0x20 + 28),
+            0b1111_1111_1111_1111_1111_1101_1111_1111
+        );
+        assert_eq!(lr, 0xffff_fff9);
+    }
 
-                if self.nvic_exception_pending.get_bit(0) {
-                    self.nvic_exception_active.set_bit(0, true);
-                    return BusStepResult::Exception {
-                        exception: Exception::Reset,
-                    };
-                }
+    #[test]
+    fn test_exception_taken() {
+        // Arrange
+        let code = [0; 65536];
+        let mut core = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &code,
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
 
-                if self.nvic_exception_active.get_bit(1) {
-                    return BusStepResult::Nothing;
-                }
+        core.control.sp_sel = true;
+        core.mode = ProcessorMode::ThreadMode;
+        core.psr.value = 0xffff_ffff;
 
-                if self.nvic_exception_pending.get_bit(1) {
-                    self.nvic_exception_active.set_bit(1, true);
-                    return BusStepResult::Exception {
-                        exception: Exception::NMI,
-                    };
-                }
-                if self.nvic_exception_active.get_bit(2) {
-                    return BusStepResult::Nothing;
-                }
+        // Act
+        core.exception_taken(Exception::BusFault);
 
-                if self.nvic_exception_pending.get_bit(2) {
-                    self.nvic_exception_active.set_bit(2, true);
-                    return BusStepResult::Exception {
-                        exception: Exception::HardFault,
-                    };
-                }
-            }
+        // Assert
+        assert_eq!(core.control.sp_sel, false);
+        assert_eq!(core.mode, ProcessorMode::HandlerMode);
+        assert_eq!(core.psr.get_exception_number(), Exception::BusFault.into());
+        assert_eq!(core.exception_active(Exception::BusFault), true);
+    }
 
-            // check the priorities from shrp1, shrp2, shrp3
-*/
+}

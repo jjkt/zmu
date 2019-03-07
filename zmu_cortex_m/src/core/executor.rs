@@ -120,9 +120,7 @@ impl Executor for Processor {
             }
         }
 
-        if let Some(exception) = self.syst_step() {
-            self.set_exception_pending(exception);
-        }
+        self.syst_step();
 
         if let Some(exception) = self.get_pending_exception() {
             self.clear_pending_exception(exception);
@@ -334,6 +332,7 @@ impl Executor for Processor {
                 } else {
                     self.primask = true;
                 }
+                self.execution_priority = self.get_execution_priority();
                 ExecuteResult::Taken { cycles: 1 }
             }
             Instruction::CBZ { rn, nonzero, imm32 } => {
@@ -389,8 +388,8 @@ impl Executor for Processor {
                     match spec_reg {
                         SpecialReg::APSR => self.set_r(*rd, self.psr.value & 0x1f00_0000),
                         SpecialReg::IPSR => {
-                            let ipsr_val = u32::from(self.psr.get_exception_number());
-                            self.set_r(*rd, ipsr_val);
+                            let ipsr_val = self.psr.get_exception_number();
+                            self.set_r(*rd, ipsr_val as u32);
                         }
                         //MSP => self.set_r(*rd, self.get_r(Reg::MSP)),
                         //PSP => self.set_r(*rd, self.get_r(Reg::PSP),
@@ -429,6 +428,7 @@ impl Executor for Processor {
                         SpecialReg::PRIMASK => {
                             let primask = self.get_r(*rn) & 1 == 1;
                             self.primask = primask;
+                            self.execution_priority = self.get_execution_priority();
                         }
                         //CONTROL => self.set_r(*rd,self.control as u32),
                         _ => panic!("unsupported MSR operation {}", spec_reg),

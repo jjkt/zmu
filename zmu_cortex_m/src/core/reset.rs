@@ -1,8 +1,8 @@
 use crate::bus::Bus;
+use crate::core::exception::ExceptionHandling;
 use crate::core::register::{BaseReg, PSR};
 use crate::core::Processor;
 use crate::core::ProcessorMode;
-use crate::core::exception::ExceptionHandling;
 
 pub trait Reset {
     fn reset(&mut self);
