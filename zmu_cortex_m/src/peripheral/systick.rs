@@ -1,71 +1,73 @@
-use crate::bus::BusStepResult;
 use crate::core::exception::Exception;
+use crate::core::exception::ExceptionHandling;
+use crate::core::Processor;
 
-#[derive(Default)]
-pub struct SysTick {
-    rvr: u32,
-    cvr: u32,
-    csr: u32,
+pub trait SysTick {
+    fn write_syst_rvr(&mut self, value: u32);
+    fn write_syst_cvr(&mut self, _value: u32);
+    fn write_syst_csr(&mut self, value: u32);
+    fn read_syst_csr(&self) -> u32;
+    fn read_syst_rvr(&self) -> u32;
+    fn read_syst_cvr(&self) -> u32;
+    fn read_syst_calib(&self) -> u32;
+    fn syst_step(&mut self);
 }
 
 const SYST_ENABLE: u32 = 1;
 const SYST_TICKINT: u32 = 1 << 1;
 const SYST_COUNTFLAG: u32 = 1 << 16;
 
-impl SysTick {
-    pub fn write_syst_rvr(&mut self, value: u32) {
-        self.rvr = value & 0x00ff_ffff;
+impl SysTick for Processor {
+    fn write_syst_rvr(&mut self, value: u32) {
+        self.syst_rvr = value & 0x00ff_ffff;
     }
 
-    pub fn write_syst_cvr(&mut self, _value: u32) {
-        self.cvr = 0;
-        self.csr &= SYST_COUNTFLAG ^ 0xffff_ffff;
+    fn write_syst_cvr(&mut self, _value: u32) {
+        self.syst_cvr = 0;
+        self.syst_csr &= SYST_COUNTFLAG ^ 0xffff_ffff;
     }
 
-    pub fn write_syst_csr(&mut self, value: u32) {
+    fn write_syst_csr(&mut self, value: u32) {
         // is it an activation?
-        if (self.csr & SYST_ENABLE == 0) && (value & SYST_ENABLE == SYST_ENABLE) {
+        if (self.syst_csr & SYST_ENABLE == 0) && (value & SYST_ENABLE == SYST_ENABLE) {
             // reload value -> counter value
-            self.cvr = self.rvr & 0x00ff_ffff;
+            self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
         }
 
-        self.csr &= 0b_111 ^ 0xffff_ffff;
-        self.csr |= value & 0b_111;
+        self.syst_csr &= 0b_111 ^ 0xffff_ffff;
+        self.syst_csr |= value & 0b_111;
     }
 
-    pub fn read_syst_csr(&self) -> u32 {
-        self.csr
+    fn read_syst_csr(&self) -> u32 {
+        self.syst_csr
     }
 
-    pub fn read_syst_rvr(&self) -> u32 {
-        self.rvr
+    fn read_syst_rvr(&self) -> u32 {
+        self.syst_rvr
     }
 
-    pub fn read_syst_cvr(&self) -> u32 {
-        self.cvr
+    fn read_syst_cvr(&self) -> u32 {
+        self.syst_cvr
     }
 
-    pub fn read_syst_calib(&self) -> u32 {
+    fn read_syst_calib(&self) -> u32 {
         0
     }
 
-    pub fn step(&mut self) -> BusStepResult {
-        if (self.csr & SYST_ENABLE) == SYST_ENABLE {
-            self.cvr = self.cvr.saturating_sub(1);
-            self.cvr &= 0x00ff_ffff;
+    fn syst_step(&mut self) {
+        if (self.syst_csr & SYST_ENABLE) == SYST_ENABLE {
+            self.syst_cvr = self.syst_cvr.saturating_sub(1);
+            self.syst_cvr &= 0x00ff_ffff;
 
             // reach 0?
-            if self.cvr == 0 {
+            if self.syst_cvr == 0 {
                 // reload -> to counter value
-                self.cvr = self.rvr & 0x00ff_ffff;
-                self.csr |= SYST_COUNTFLAG;
-                if (self.csr & SYST_TICKINT) == SYST_TICKINT {
-                    return BusStepResult::Exception {
-                        exception: Exception::SysTick,
-                    };
+                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
+                self.syst_csr |= SYST_COUNTFLAG;
+                if (self.syst_csr & SYST_TICKINT) == SYST_TICKINT {
+                    self.set_exception_pending(Exception::SysTick);
                 }
             }
         }
-        BusStepResult::Nothing
     }
 }

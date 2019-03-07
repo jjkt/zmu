@@ -18,6 +18,7 @@ pub fn decode_B_t1_SVC_t1(opcode: u16) -> Instruction {
         return Instruction::UDF {
             imm32: 0,
             opcode: opcode.into(),
+            thumb32: false,
         };
     }
 

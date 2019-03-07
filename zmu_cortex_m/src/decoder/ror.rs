@@ -12,6 +12,7 @@ pub fn decode_ROR_reg_t1(opcode: u16) -> Instruction {
         rn: Reg::from(opcode.get_bits(0..3) as u8),
         rm: Reg::from(opcode.get_bits(3..6) as u8),
         setflags: SetFlags::NotInITBlock,
+        thumb32: false,
     }
 }
 
@@ -39,5 +40,6 @@ pub fn decode_ROR_reg_t2(opcode: u32) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
+        thumb32: true,
     }
 }

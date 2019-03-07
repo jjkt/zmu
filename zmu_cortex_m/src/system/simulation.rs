@@ -1,12 +1,12 @@
-use crate::bus::ahblite::AHBLite;
-use crate::bus::busmatrix::BusMatrix;
-use crate::bus::internal::InternalBus;
+use crate::core::executor::Executor;
+use crate::core::fetch::Fetch;
 use crate::core::instruction::instruction_size;
 use crate::core::instruction::Instruction;
-use crate::core::Core;
-use crate::core::ThumbCode;
-use crate::memory::flash::FlashMemory;
-use crate::memory::ram::RAM;
+use crate::core::register::BaseReg;
+use crate::core::reset::Reset;
+use crate::core::thumb::ThumbCode;
+use crate::core::Processor;
+use crate::decoder::Decoder;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use std::io;
@@ -20,24 +20,12 @@ pub struct TraceData {
     pub psr_value: u32,
 }
 
-pub fn simulate<F>(
+pub fn simulate(
     code: &[u8],
-    mut semihost_func: F,
+    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-) -> u64
-where
-    F: FnMut(&SemihostingCommand) -> SemihostingResponse,
-{
-    let mut flash_memory = FlashMemory::new(0, 65536);
-    let mut ram_memory = RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd);
-
-    flash_memory.load(code);
-
-    let mut internal_bus = InternalBus::new(itm_file);
-    let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
-    let mut bus = BusMatrix::new(&mut internal_bus, &mut ahb);
-
-    let mut core = Core::new(&mut bus);
+) -> u64 {
+    let mut core = Processor::new(itm_file, code, semihost_func);
     let mut count = 0;
     core.reset();
 
@@ -61,13 +49,7 @@ where
     while core.running {
         let pc = core.get_pc();
         let (instruction, instruction_size) = &instruction_cache[(pc >> 1) as usize];
-        core.step(
-            instruction,
-            *instruction_size,
-            |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                semihost_func(semihost_cmd)
-            },
-        );
+        core.step(instruction, *instruction_size);
 
         count += 1;
     }
@@ -75,26 +57,16 @@ where
     count
 }
 
-pub fn simulate_trace<F, G>(
+pub fn simulate_trace<F>(
     code: &[u8],
     mut trace_func: F,
-    mut semihost_func: G,
+    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
 ) -> u64
 where
     F: FnMut(&TraceData),
-    G: FnMut(&SemihostingCommand) -> SemihostingResponse,
 {
-    let mut flash_memory = FlashMemory::new(0, 65536);
-    let mut ram_memory = RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd);
-
-    flash_memory.load(code);
-
-    let mut internal_bus = InternalBus::new(itm_file);
-    let mut ahb = AHBLite::new(&mut flash_memory, &mut ram_memory);
-    let mut bus = BusMatrix::new(&mut internal_bus, &mut ahb);
-
-    let mut core = Core::new(&mut bus);
+    let mut core = Processor::new(itm_file, code, semihost_func);
     let mut count = 0;
     core.reset();
 
@@ -118,13 +90,7 @@ where
     while core.running {
         let pc = core.get_pc();
         let (opcode, instruction, instruction_size) = &instruction_cache[(pc >> 1) as usize];
-        core.step(
-            instruction,
-            *instruction_size,
-            |semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                semihost_func(semihost_cmd)
-            },
-        );
+        core.step(instruction, *instruction_size);
 
         let trace_data = TraceData {
             opcode: *opcode,

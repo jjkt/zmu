@@ -1,7 +1,228 @@
 use crate::core::bits::Bits;
+use crate::core::exception::ExceptionHandling;
+use crate::core::Processor;
+use crate::core::ProcessorMode;
 use enum_set::CLike;
 use std::fmt;
 use std::mem;
+
+pub trait BaseReg {
+    fn branch_write_pc(&mut self, address: u32);
+
+    fn blx_write_pc(&mut self, address: u32);
+
+    fn bx_write_pc(&mut self, address: u32);
+    fn load_write_pc(&mut self, address: u32);
+
+    fn get_r(&self, r: Reg) -> u32;
+    fn set_r(&mut self, r: Reg, value: u32);
+
+    fn set_msp(&mut self, value: u32);
+
+    fn set_psp(&mut self, value: u32);
+    fn get_msp(&self) -> u32;
+
+    fn get_psp(&self) -> u32;
+
+    fn add_pc(&mut self, value: u32);
+
+    fn get_pc(&mut self) -> u32;
+
+    fn set_pc(&mut self, value: u32);
+    fn add_r(&mut self, r: Reg, value: u32);
+    fn sub_r(&mut self, r: Reg, value: u32);
+}
+
+impl BaseReg for Processor {
+    fn branch_write_pc(&mut self, address: u32) {
+        self.set_pc(address & 0xffff_fffe);
+    }
+
+    //
+    // interworking branch
+    //
+    fn blx_write_pc(&mut self, address: u32) {
+        self.psr.set_t((address & 1) == 1);
+        self.branch_write_pc(address);
+    }
+
+    //
+    // interworking branch
+    //
+    fn bx_write_pc(&mut self, address: u32) {
+        if self.mode == ProcessorMode::HandlerMode && (address.get_bits(28..32) == 0b1111) {
+            self.exception_return(address.get_bits(0..28));
+        } else {
+            self.blx_write_pc(address);
+        }
+    }
+
+    //
+    // alias for bx_write_pc
+    //
+    fn load_write_pc(&mut self, address: u32) {
+        self.bx_write_pc(address);
+    }
+
+    //
+    // Getter for registers
+    //
+    fn get_r(&self, r: Reg) -> u32 {
+        match r {
+            Reg::R0
+            | Reg::R1
+            | Reg::R2
+            | Reg::R3
+            | Reg::R4
+            | Reg::R5
+            | Reg::R6
+            | Reg::R7
+            | Reg::R8
+            | Reg::R9
+            | Reg::R10
+            | Reg::R11
+            | Reg::R12 => {
+                let reg: usize = From::from(r);
+                self.r0_12[reg]
+            }
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp
+                } else {
+                    self.msp
+                }
+            }
+            Reg::LR => self.lr,
+            Reg::PC => self.pc + 4,
+        }
+    }
+    //
+    // Setter for registers
+    //
+    fn set_r(&mut self, r: Reg, value: u32) {
+        match r {
+            Reg::R0
+            | Reg::R1
+            | Reg::R2
+            | Reg::R3
+            | Reg::R4
+            | Reg::R5
+            | Reg::R6
+            | Reg::R7
+            | Reg::R8
+            | Reg::R9
+            | Reg::R10
+            | Reg::R11
+            | Reg::R12 => {
+                let reg: usize = From::from(r);
+                self.r0_12[reg] = value;
+            }
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.set_psp(value)
+                } else {
+                    self.set_msp(value)
+                }
+            }
+            Reg::LR => {
+                self.lr = value;
+            }
+            Reg::PC => panic!("use branch commands instead"),
+        };
+    }
+
+    fn set_msp(&mut self, value: u32) {
+        self.msp = value;
+    }
+
+    fn set_psp(&mut self, value: u32) {
+        self.psp = value;
+    }
+    fn get_msp(&self) -> u32 {
+        self.msp
+    }
+
+    fn get_psp(&self) -> u32 {
+        self.psp
+    }
+
+    fn add_pc(&mut self, value: u32) {
+        self.pc += value;
+    }
+
+    fn get_pc(&mut self) -> u32 {
+        self.pc
+    }
+
+    fn set_pc(&mut self, value: u32) {
+        self.pc = value
+    }
+
+    //
+    // Add value to register
+    //
+    fn add_r(&mut self, r: Reg, value: u32) {
+        match r {
+            Reg::R0
+            | Reg::R1
+            | Reg::R2
+            | Reg::R3
+            | Reg::R4
+            | Reg::R5
+            | Reg::R6
+            | Reg::R7
+            | Reg::R8
+            | Reg::R9
+            | Reg::R10
+            | Reg::R11
+            | Reg::R12 => {
+                let reg: usize = From::from(r);
+                self.r0_12[reg] += value;
+            }
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp += value
+                } else {
+                    self.msp += value
+                }
+            }
+            Reg::LR => self.lr += value,
+            Reg::PC => self.pc += value,
+        };
+    }
+    //
+    // Substract value from register
+    //
+    fn sub_r(&mut self, r: Reg, value: u32) {
+        match r {
+            Reg::R0
+            | Reg::R1
+            | Reg::R2
+            | Reg::R3
+            | Reg::R4
+            | Reg::R5
+            | Reg::R6
+            | Reg::R7
+            | Reg::R8
+            | Reg::R9
+            | Reg::R10
+            | Reg::R11
+            | Reg::R12 => {
+                let reg: usize = From::from(r);
+                self.r0_12[reg] -= value;
+            }
+            Reg::SP => {
+                if self.control.sp_sel {
+                    self.psp -= value
+                } else {
+                    self.msp -= value
+                }
+            }
+            Reg::LR => self.lr -= value,
+            Reg::PC => self.pc -= value,
+        };
+    }
+}
 
 pub struct PSR {
     pub value: u32,
@@ -36,8 +257,8 @@ pub trait Apsr {
 }
 
 pub trait Ipsr {
-    fn get_exception_number(&self) -> u8;
-    fn set_exception_number(&mut self, exception_number: u8);
+    fn get_exception_number(&self) -> usize;
+    fn set_exception_number(&mut self, exception_number: usize);
 }
 
 // Execution Program Status register
@@ -134,12 +355,12 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
-    fn get_exception_number(&self) -> u8 {
+    fn get_exception_number(&self) -> usize {
         //TODO: diff between cortex m0 and m3+
-        (*self).value.get_bits(0..6) as u8
+        (*self).value.get_bits(0..6) as usize
     }
-    fn set_exception_number(&mut self, exception_number: u8) {
-        self.value = (self.value & 0xffff_ffc0) | u32::from(exception_number & 0b11_1111);
+    fn set_exception_number(&mut self, exception_number: usize) {
+        self.value = (self.value & 0xffff_ffc0) | (exception_number as u32 & 0b11_1111);
     }
 }
 

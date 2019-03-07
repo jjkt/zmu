@@ -3,7 +3,7 @@ extern crate zmu_cortex_m;
 use pad::PadStr;
 use std::collections::HashMap;
 use zmu_cortex_m::core::register::{Apsr, PSR};
-use zmu_cortex_m::core::ThumbCode;
+use zmu_cortex_m::core::thumb::ThumbCode;
 use zmu_cortex_m::system::simulation::TraceData;
 
 pub fn format_trace_entry(trace_data: &TraceData, symboltable: &HashMap<u32, &str>) -> String {
