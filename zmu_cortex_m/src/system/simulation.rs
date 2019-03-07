@@ -5,7 +5,7 @@ use crate::core::instruction::Instruction;
 use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
 use crate::core::thumb::ThumbCode;
-use crate::core::Processor;
+use crate::Processor;
 use crate::decoder::Decoder;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;

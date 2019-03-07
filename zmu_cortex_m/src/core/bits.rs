@@ -1,15 +1,36 @@
+//!
+//! Bit level memory manipulation
+//! 
+
 use core::ops::Range;
 
+///
+/// Trait for low level bit twiddling operations
+///
 pub trait Bits {
+    ///
+    /// Get a range of bits from source
+    ///
     fn get_bits(&self, range: Range<usize>) -> Self;
+    ///
+    /// Get value of single bit in source word
+    ///
     fn get_bit(&self, bit: usize) -> bool;
+    ///
+    /// Set value of single bit
+    ///
     fn set_bit(&mut self, bit: usize, value: bool);
 
-    /// 0) count = (range.end - range.start)
-    /// 1) set lowest count bits to 1
+    ///
+    /// Set range of bits to a value.
+    ///
+    /// # Algorithm
+    ///
+    /// 1. count = (range.end - range.start)
+    /// 2. set lowest count bits to 1
     ///   (1 << count) - 1                               |  0000 1111
-    /// 2) left shift by range.start                     |  0001 1110
-    /// 3) invert                                        |  1110 0001
+    /// 3. left shift by range.start                     |  0001 1110
+    /// 4. invert                                        |  1110 0001
     fn set_bits(&mut self, range: Range<usize>, value: Self);
 }
 

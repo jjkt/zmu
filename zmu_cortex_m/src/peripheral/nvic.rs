@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
-use crate::core::Processor;
+use crate::Processor;
 
 pub trait NVIC {
     fn nvic_write_iser(&mut self, index: usize, value: u32);

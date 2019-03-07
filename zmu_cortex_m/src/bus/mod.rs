@@ -1,4 +1,8 @@
-use crate::core::Processor;
+//!
+//! Processor Bus related operations
+//! 
+
+use crate::Processor;
 
 use crate::peripheral::dwt::Dwt;
 use crate::peripheral::itm::InstrumentationTraceMacrocell;
@@ -6,6 +10,9 @@ use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
 
+///
+/// Trait for reading and writing via a memory bus.
+/// 
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.
     ///

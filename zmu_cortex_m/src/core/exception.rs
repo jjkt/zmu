@@ -1,15 +1,19 @@
 //!
-//! A Trait for representing a Cortex armv6-m exceptions.
+//! Functionality for representing Cortex Exceptions.
 //!
 //!
 
 use crate::bus::Bus;
 use crate::core::bits::Bits;
 use crate::core::register::{BaseReg, Ipsr, Reg};
-use crate::core::Processor;
-use crate::core::ProcessorMode;
+use crate::core::reset::Reset;
+use crate::Processor;
+use crate::ProcessorMode;
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Copy, Clone)]
+///
+/// Status information for an exception
+///
 pub struct ExceptionState {
     priority: i16,
     pending: bool,
@@ -18,6 +22,9 @@ pub struct ExceptionState {
 }
 
 impl ExceptionState {
+    ///
+    /// Create a state information for specific exception with given priority
+    ///
     pub fn new(exception: Exception, priority: i16) -> Self {
         ExceptionState {
             exception: usize::from(exception),
@@ -28,18 +35,56 @@ impl ExceptionState {
     }
 }
 
+///
+/// Trait for interacting with exceptions
+///
 pub trait ExceptionHandling {
+    ///
+    /// Get the current processor execution priority (EP). Execution priority determines which
+    /// exceptions can pre-empt the current execution. Lower priority number has higher urgency.
+    ///
     fn get_execution_priority(&self) -> i16;
 
+    ///
+    /// Set exception pending if it is not already pending
+    ///
     fn set_exception_pending(&mut self, exception: Exception);
+
+    ///
+    /// Get the currently highest priority pending exception
+    ///
     fn get_pending_exception(&mut self) -> Option<Exception>;
+
+    ///
+    /// Clear the pending status of an exception
+    ///
     fn clear_pending_exception(&mut self, exception: Exception);
 
+    ///
+    /// Enter an exception.
+    ///
+    /// Return adress is the address to which the execution should return when this exception is returned from.
+    ///
     fn exception_entry(&mut self, exception: Exception, return_address: u32);
+
+    ///
+    /// Return from an exception.
+    ///     
+    /// exc_return determines the mode to which to return to.
+    ///
+    /// Exception return happens when processor is in HandlerMode and exc_return value is loaded to PC using
+    /// LDM, POP, LDR, or BX instructions
+    ///
     fn exception_return(&mut self, exc_return: u32);
 
+    ///
+    /// Check if given exception is currently active
+    ///          
     fn exception_active(&self, exception: Exception) -> bool;
 
+    ///
+    /// Set priority of an exception. Smaller priority number has higher urgency.
+    ///          
     fn set_exception_priority(&mut self, exception: Exception, priority: u8);
 }
 
@@ -54,23 +99,50 @@ trait ExceptionHandlingHelpers {
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
+///
+/// List of supported Exceptions
+///
+/// Interrupts are controlled by NVIC, but still are generally handled like other exceptions (being sorted by priority)
+///
 pub enum Exception {
+    /// Special exception to reset the processor
     Reset,
+    /// Highest priority exception (for except the reset) that cannot be ever masked away.
+    /// Can be triggered by a peripheral or triggered by software.
     NMI,
+    /// Denotes a error during exception processing, or because an exception cannot be
+    /// handled by any other exception handling mechanism.
     HardFault,
+    /// Memory protection related fault
     MemoryManagementFault,
+    /// Memory related fault (bus access error either for instructions or data)
     BusFault,
+    /// Instruction execution faults for multiple underlying reasons. Example: undefined instructions.
     UsageFault,
+    /// Reserved for future
     Reserved4,
+    /// Reserved for future
     Reserved5,
+    /// Reserved for future
     Reserved6,
+    /// Debugging related exceptions
     DebugMonitor,
+    /// Supervisor call exception, used typically for OS supervisor API handling.
+    /// SVC instruction triggers SVCall exception.
     SVCall,
+    /// Reserved for future
     Reserved8,
+    /// Reserved for future
     Reserved9,
+    /// Request for system level service, used typically for context switching in OS.
     PendSV,
+    /// System timer exception, used for generating timer ticks.
     SysTick,
-    Interrupt { n: usize },
+    /// Exception from a peripheral or software triggered interrupt
+    Interrupt {
+        /// Interrupt number, 0..
+        n: usize,
+    },
 }
 
 impl ExceptionHandlingHelpers for Processor {
@@ -295,8 +367,12 @@ impl ExceptionHandling for Processor {
     }
 
     fn exception_entry(&mut self, exception: Exception, return_address: u32) {
-        self.push_stack(exception, return_address);
-        self.exception_taken(exception);
+        if exception == Exception::Reset {
+            self.reset();
+        } else {
+            self.push_stack(exception, return_address);
+            self.exception_taken(exception);
+        }
     }
 
     fn exception_return(&mut self, exc_return: u32) {

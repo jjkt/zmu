@@ -1,25 +1,50 @@
+//!
+//! Instruction conditionals
+//!
+
 use std::fmt;
 
+///
+/// Condition variants used for conditional execution
+///
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Condition {
-    EQ, // Equal
-    NE, // Not Equal
-    CS, // Carry Set
-    CC, // Carry clear
-    MI, // Minus, negative
-    PL, // Plus, positive or zero
-    VS, // Overflow
-    VC, // No overflow
-    HI, // Unsigned higher
-    LS, // Unsigned lower or same
-    GE, // Signer greater than or equal
-    LT, // Signed less than
-    GT, // Signed greater than
-    LE, // Signed less than or equal
-    AL, // None or (AL = optional mnemonic extension for always)
+    /// Equal
+    EQ,
+    /// Not Equal
+    NE,
+    /// Carry Set
+    CS,
+    /// Carry clear
+    CC,
+    /// Minus, negative
+    MI,
+    /// Plus, positive or zero
+    PL,
+    /// Overflow
+    VS,
+    /// No overflow
+    VC,
+    /// Unsigned higher
+    HI,
+    /// Unsigned lower or same
+    LS,
+    /// Signed greater than or equal
+    GE,
+    /// Signed less than
+    LT,
+    /// Signed greater than
+    GT,
+    /// Signed less than or equal
+    LE,
+    /// None or (AL = optional mnemonic extension for always)
+    AL,
 }
 
 impl Condition {
+    ///
+    /// Condition encoding as bitvalue
+    ///
     pub fn value(self) -> usize {
         match self {
             Condition::EQ => 0b0000,
@@ -40,6 +65,9 @@ impl Condition {
         }
     }
 
+    ///
+    /// bitvalue conversion to Condition
+    ///
     pub fn from_u16(n: u16) -> Option<Condition> {
         match n {
             0 => Some(Condition::EQ),

@@ -1,6 +1,6 @@
 use crate::bus::Bus;
 use crate::core::thumb::ThumbCode;
-use crate::core::Processor;
+use crate::Processor;
 use crate::decoder::is_thumb32;
 
 pub trait Fetch {

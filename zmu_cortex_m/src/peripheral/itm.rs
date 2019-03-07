@@ -1,4 +1,4 @@
-use crate::core::Processor;
+use crate::Processor;
 
 pub trait InstrumentationTraceMacrocell {
     fn write_itm_packet(&mut self, packet: Vec<u8>);

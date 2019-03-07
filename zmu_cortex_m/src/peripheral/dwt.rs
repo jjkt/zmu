@@ -1,4 +1,4 @@
-use crate::core::Processor;
+use crate::Processor;
 
 pub trait Dwt {
     fn write_ctrl(&mut self, value: u32);

@@ -1,6 +1,6 @@
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
-use crate::core::Processor;
+use crate::Processor;
 
 pub trait SysTick {
     fn write_syst_rvr(&mut self, value: u32);

@@ -217,7 +217,7 @@ use crate::decoder::wfi::*;
 use crate::decoder::yield_::*;
 
 use crate::core::thumb::ThumbCode;
-use crate::core::Processor;
+use crate::Processor;
 
 pub trait Decoder {
     fn decode(&self, code: ThumbCode) -> Instruction;

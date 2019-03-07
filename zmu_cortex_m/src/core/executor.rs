@@ -1,5 +1,10 @@
+//!
+//! Functionality for running instructions on a Processor.
+//!
+
 use crate::bus::Bus;
 use crate::core::bits::Bits;
+use crate::core::condition::Condition;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
@@ -7,11 +12,10 @@ use crate::core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType, SetFl
 use crate::core::operation::condition_test;
 use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
 use crate::core::register::{Apsr, BaseReg, Ipsr, Reg, SpecialReg};
-use crate::core::Condition;
-use crate::core::Processor;
 use crate::peripheral::systick::SysTick;
 use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
+use crate::Processor;
 
 pub trait Executor {
     fn step(&mut self, instruction: &Instruction, instruction_size: usize);
@@ -27,13 +31,13 @@ pub trait Executor {
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ExecuteResult {
-    // Instruction execution resulted in a fault.
+    /// Instruction execution resulted in a fault.
     Fault { fault: Fault },
-    // The instruction was taken normally
+    /// The instruction was taken normally
     Taken { cycles: u64 },
-    // The instruction was not taken as the condition did not pass
+    /// The instruction was not taken as the condition did not pass
     NotTaken,
-    // The execution branched to a new address, pc was set accordingly
+    /// The execution branched to a new address, pc was set accordingly
     Branched { cycles: u64 },
 }
 
