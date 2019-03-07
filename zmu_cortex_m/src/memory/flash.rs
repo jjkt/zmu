@@ -1,13 +1,20 @@
+//!
+//! Flash Memory simulation
+//!
+//!
+
 use crate::bus::Bus;
 use byteorder::{ByteOrder, LittleEndian};
 
 #[derive(Debug)]
+/// Flash memory with configurable start address and data content
 pub struct FlashMemory {
     start_address: u32,
     data: Box<[u8]>,
 }
 
 impl FlashMemory {
+    /// make a flash data instance with given start address, size and data content
     pub fn new(start_address: u32, size: usize, new_data: &[u8]) -> FlashMemory {
         let mut data = vec![0u8; size].into_boxed_slice();
         data.copy_from_slice(new_data);

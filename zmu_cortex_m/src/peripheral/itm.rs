@@ -1,11 +1,39 @@
+//!
+//! Cortex Instruction Trace Macrocell simulation
+//!
+
 use crate::Processor;
 
+///
+/// ITM peripheral API via register access
+///
 pub trait InstrumentationTraceMacrocell {
-    fn write_itm_packet(&mut self, packet: Vec<u8>);
+    ///
+    /// read value of stim0 register
+    ///
     fn read_stim0(&self) -> u32;
+
+    ///
+    /// write value with 32 bit width to given STIM port
+    /// data is sent in little endian order
+    ///
     fn write_stim_u32(&mut self, port: u8, value: u32);
+
+    ///
+    /// write value with 16 bit width to given STIM port
+    /// data is sent in little endian order
+    ///
     fn write_stim_u16(&mut self, port: u8, value: u16);
+
+    ///
+    /// write value with 8 bit width to given STIM port
+    /// data is sent in little endian order
+    ///
     fn write_stim_u8(&mut self, port: u8, value: u8);
+}
+
+trait InstrumentationTraceMacrocellHelper {
+    fn write_itm_packet(&mut self, packet: Vec<u8>);
 }
 
 fn make_header(port: u8, payload_size: usize) -> u8 {
@@ -33,14 +61,16 @@ fn make_instrumentation_packet(port: u8, payload: &[u8]) -> Vec<u8> {
     packet
 }
 
-impl InstrumentationTraceMacrocell for Processor {
+impl InstrumentationTraceMacrocellHelper for Processor {
     fn write_itm_packet(&mut self, packet: Vec<u8>) {
         if let Some(f) = &mut self.itm_file {
             f.write_all(packet.as_slice()).unwrap();
             f.flush().unwrap();
         }
     }
+}
 
+impl InstrumentationTraceMacrocell for Processor {
     fn read_stim0(&self) -> u32 {
         // return 0 if fifo is full, 1 otherwise
         1

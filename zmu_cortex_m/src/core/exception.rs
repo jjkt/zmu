@@ -86,6 +86,11 @@ pub trait ExceptionHandling {
     /// Set priority of an exception. Smaller priority number has higher urgency.
     ///          
     fn set_exception_priority(&mut self, exception: Exception, priority: u8);
+
+    ///
+    /// Clear exceptions to reset state
+    ///
+    fn exceptions_reset(&mut self);
 }
 
 trait ExceptionHandlingHelpers {
@@ -149,7 +154,7 @@ impl ExceptionHandlingHelpers for Processor {
     fn exception_taken(&mut self, exception: Exception) {
         self.control.sp_sel = false;
         self.mode = ProcessorMode::HandlerMode;
-        self.psr.set_exception_number(exception.into());
+        self.psr.set_isr_number(exception.into());
         self.exceptions.get_mut(&exception.into()).unwrap().active = true;
 
         self.execution_priority = self.get_execution_priority();
@@ -166,7 +171,7 @@ impl ExceptionHandlingHelpers for Processor {
             .get_mut(&returning_exception_number)
             .unwrap()
             .active = false;
-        if self.psr.get_exception_number() != 0b10 {
+        if self.psr.get_isr_number() != 0b10 {
             //TODO
             //self.faultmask0 = 0;
         }
@@ -292,6 +297,16 @@ impl ExceptionHandlingHelpers for Processor {
 }
 
 impl ExceptionHandling for Processor {
+    fn exceptions_reset(&mut self) {
+        for exception in self.exceptions.values_mut() {
+            exception.pending = false;
+            exception.active = false;
+
+            if exception.exception > Exception::HardFault.into() {
+                exception.priority = 0;
+            }
+        }
+    }
     fn exception_active(&self, exception: Exception) -> bool {
         self.exceptions[&usize::from(exception)].active
     }
@@ -378,7 +393,7 @@ impl ExceptionHandling for Processor {
     fn exception_return(&mut self, exc_return: u32) {
         assert!(self.mode == ProcessorMode::HandlerMode);
 
-        let returning_exception_number = self.psr.get_exception_number();
+        let returning_exception_number = self.psr.get_isr_number();
         let nested_activation = self.exception_active_bit_count();
 
         if !self.exceptions[&returning_exception_number].active {
@@ -427,7 +442,7 @@ impl ExceptionHandling for Processor {
 
             self.deactivate(returning_exception_number);
             self.pop_stack(frameptr, exc_return);
-            if self.mode == ProcessorMode::HandlerMode && self.psr.get_exception_number() == 0 {
+            if self.mode == ProcessorMode::HandlerMode && self.psr.get_isr_number() == 0 {
                 //ufsr.invpc = true;
                 self.push_stack(Exception::UsageFault, exc_return); // to negate pop_stack
                 self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
@@ -435,7 +450,7 @@ impl ExceptionHandling for Processor {
                 return;
             }
 
-            if self.mode == ProcessorMode::ThreadMode && self.psr.get_exception_number() != 0 {
+            if self.mode == ProcessorMode::ThreadMode && self.psr.get_isr_number() != 0 {
                 //ufsr.invpc = true;
                 self.push_stack(Exception::UsageFault, exc_return); // to negate pop_stack
                 self.set_r(Reg::LR, (0b1111 << 28) + exc_return);

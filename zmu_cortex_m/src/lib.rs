@@ -1,12 +1,10 @@
-//! Utilities for random number generation
 //!
 //! Processor simulator for ARM Cortex-M processors.
 //!
-//! 
-//#![warn(missing_docs)]
+//!
+#![warn(missing_docs)]
 //#![warn(missing_debug_implementations)]
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
-
 
 extern crate byteorder;
 extern crate enum_set;
@@ -32,51 +30,90 @@ use std::fmt;
 use std::io;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
+/// Main execution mode of the processor
 pub enum ProcessorMode {
+    /// Thread mode
     ThreadMode,
+    /// Handler mode
     HandlerMode,
 }
 
+///
+/// Representation of all Processor related data
+///
 pub struct Processor {
-    /* 13 of 32-bit general purpose registers. */
+    /// 13 of 32-bit general purpose registers.
     pub r0_12: [u32; 13],
 
-    msp: u32, //MSP, virtual reg r[13]
-    psp: u32, //PSP, virtual reg r[13]
+    /// MSP, virtual reg r[13]
+    msp: u32, 
+    /// PSP, virtual reg r[13]
+    psp: u32,     
     lr: u32,
     pc: u32,
 
+    /// number of processor clock cycles run
     pub cycle_count: u64,
 
-    /* Processor state register, status flags. */
+    /// Processor state register, status flags.
     pub psr: PSR,
 
-    /* interrupt primary mask, a 1 bit mask register for
-    global interrupt masking. */
+    ///
+    /// interrupt primary mask, a 1 bit mask register for
+    /// global interrupt masking
+    ///
     primask: bool,
+    ///
+    /// interrupt fault mask, a 1 bit mask register for
+    /// global interrupt masking
+    ///
     faultmask: bool,
+    ///
+    /// basepri for selection of executed interrupt priorities
+    ///
     basepri: u8,
 
-    /* Control bits: currently used stack and execution privilege if core.mode == ThreadMode */
+    ///
+    /// Control bits: currently used stack and execution privilege if core.mode == ThreadMode
+    ///
     control: Control,
 
-    /* Processor mode: either handler or thread mode. */
+    ///
+    /// Processor mode: either handler or thread mode.
+    ///
     mode: ProcessorMode,
 
-    /* Is the core simulation currently running or not.*/
+    ///
+    /// Is the core simulation currently running or not.
+    ///
     pub running: bool,
 
+    ///
+    /// lookup table for exceptions and their states
+    ///
     pub exceptions: HashMap<usize, ExceptionState>,
+
+    ///
+    /// number of exceptions currently pending, used for optimization purposes
+    ///
     pub pending_exception_count: u32,
 
+    ///
+    /// cached current execution priority, used for optimization
+    /// of exception activation rule resolving
+    ///
     pub execution_priority: i16,
 
     itstate: u8,
 
+    ///
+    /// flash memory data
+    ///
     pub code: FlashMemory,
+    ///
+    /// ram data
+    ///
     pub sram: RAM,
-
-    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
 
     pub cpuid: u32,
     pub icsr: u32,
@@ -109,7 +146,6 @@ pub struct Processor {
 
     pub nvic_interrupt_enabled: [u32; 16],
     pub nvic_interrupt_pending: [u32; 16],
-
     pub nvic_interrupt_priority: [u8; 124 * 4],
 
     pub dwt_ctrl: u32,
@@ -119,7 +155,15 @@ pub struct Processor {
     pub syst_cvr: u32,
     pub syst_csr: u32,
 
+    ///
+    /// file handle to which to write ITM data
+    ///
     pub itm_file: Option<Box<io::Write + 'static>>,
+
+    ///
+    /// semihosting plug
+    ///
+    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -182,6 +226,9 @@ fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
 }
 
 impl Processor {
+    ///
+    /// Create processor with default data
+    ///
     pub fn new(
         itm_file: Option<Box<io::Write + 'static>>,
         code: &[u8],
@@ -203,7 +250,9 @@ impl Processor {
             msp: 0,
             psp: 0,
             lr: 0,
+            // TODO make code size configurable
             code: FlashMemory::new(0, 65536, code),
+            // TODO make RAM size configurable
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
             itm_file: itm_file,
             running: true,

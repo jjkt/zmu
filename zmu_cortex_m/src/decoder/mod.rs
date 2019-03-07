@@ -1,3 +1,8 @@
+//!
+//! Thumb-2 instruction set decoder
+//!
+//!
+
 use crate::core::bits::*;
 use crate::core::instruction::Instruction;
 
@@ -219,19 +224,26 @@ use crate::decoder::yield_::*;
 use crate::core::thumb::ThumbCode;
 use crate::Processor;
 
+///
+/// Generic Thumbcode to instruction decoder trait
+///
 pub trait Decoder {
+    ///
+    /// Resolve the instruction from a thumb code
+    ///
     fn decode(&self, code: ThumbCode) -> Instruction;
 }
 
 impl Decoder for Processor {
-    // Decode ThumbCode into Instruction
     fn decode(&self, code: ThumbCode) -> Instruction {
         match code {
             ThumbCode::Thumb32 { opcode } => decode_32(opcode),
-            ThumbCode::Thumb16 { half_word } => decode_16(half_word),
+            ThumbCode::Thumb16 { opcode } => decode_16(opcode),
         }
     }
 }
+
+/// determine if 16 bit word is start of 32 thumb value
 pub fn is_thumb32(word: u16) -> bool {
     match word.get_bits(11..16) {
         0b11101 | 0b11110 | 0b11111 => true,
@@ -258,6 +270,9 @@ fn decode_UDF_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(clippy::cyclomatic_complexity)]
+///
+/// Decode 16 bit thumb opcode into an instruction
+///
 pub fn decode_16(opcode: u16) -> Instruction {
     if opcode == 0xbf20 {
         decode_WFE_t1(opcode)
@@ -419,6 +434,9 @@ pub fn decode_16(opcode: u16) -> Instruction {
 }
 
 #[allow(clippy::cyclomatic_complexity, clippy::unreadable_literal)]
+///
+/// Decode 32 bit thumb opcode into an instruction
+///
 pub fn decode_32(opcode: u32) -> Instruction {
     if opcode == 0xf3af8000 {
         decode_NOP_t2(opcode)

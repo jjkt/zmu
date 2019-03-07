@@ -14,6 +14,9 @@ use std::mem;
 /// Base register manipulation
 ///
 pub trait BaseReg {
+    ///
+    /// set PC without touching the T bit
+    ///
     fn branch_write_pc(&mut self, address: u32);
 
     ///
@@ -40,19 +43,48 @@ pub trait BaseReg {
     ///
     fn set_r(&mut self, r: Reg, value: u32);
 
+    ///
+    /// Setter for MSP
+    ///
     fn set_msp(&mut self, value: u32);
 
+    ///
+    /// Setter for PSP
+    ///
     fn set_psp(&mut self, value: u32);
+
+    ///
+    /// Getter for MSP
     fn get_msp(&self) -> u32;
 
+    ///
+    /// Getter for PSP
+    ///
     fn get_psp(&self) -> u32;
 
+    ///
+    /// Increment PC by a value
+    ///
     fn add_pc(&mut self, value: u32);
 
+    ///
+    /// Get current PC value
+    ///
     fn get_pc(&mut self) -> u32;
 
+    ///
+    /// Set current PC value with no side effects
+    ///
     fn set_pc(&mut self, value: u32);
+
+    ///
+    /// add value to register
+    ///
     fn add_r(&mut self, r: Reg, value: u32);
+
+    ///
+    /// substract value from a register
+    ///
     fn sub_r(&mut self, r: Reg, value: u32);
 }
 
@@ -234,48 +266,116 @@ impl BaseReg for Processor {
 }
 
 #[derive(Debug)]
+///
+/// Processor Status Registers
+/// A combination of multiple sub registers: APSR, IPSR, EPSR
 pub struct PSR {
+    /// raw register content
     pub value: u32,
 }
 
+/// Trait for accessing the sub parts of Application Program Status Register
 pub trait Apsr {
+    ///
+    /// Get "N"egative flag value
+    ///
     fn get_n(&self) -> bool;
+
+    ///
+    /// Set "N"egative flag value
+    ///
     fn set_n(&mut self, result: u32);
 
+    ///
+    /// Get "Z"ero flag value
+    ///
     fn get_z(&self) -> bool;
+    ///
+    /// Set "Z"ero flag value
+    ///
     fn set_z(&mut self, result: u32);
 
+    ///
+    /// Get "C"arry flag value
+    ///
     fn get_c(&self) -> bool;
+    ///
+    /// Set "C"arry flag value
+    ///
     fn set_c(&mut self, c: bool);
 
+    ///
+    /// Get Overflow flag value
+    ///
     fn get_v(&self) -> bool;
+    ///
+    /// Set Overflow flag value
+    ///
     fn set_v(&mut self, v: bool);
 
+    ///
+    /// Get Saturation flag value
+    ///
     fn get_q(&self) -> bool;
+    ///
+    /// Set Saturation flag value
+    ///
     fn set_q(&mut self, q: bool);
 
-    //DSP extensions: GE
+    ///
+    /// DSP extensions: set GE0 value
+    ///
     fn set_ge0(&mut self, bit: bool);
+    ///
+    /// DSP extensions: set GE1 value
+    ///
     fn set_ge1(&mut self, bit: bool);
+    ///
+    /// DSP extensions: set GE2 value
+    ///
     fn set_ge2(&mut self, bit: bool);
+    ///
+    /// DSP extensions: set GE3 value
+    ///
     fn set_ge3(&mut self, bit: bool);
 
+    ///
+    /// DSP extensions: get GE0 value
+    ///
     fn get_ge0(&self) -> bool;
+    ///
+    /// DSP extensions: get GE1 value
+    ///
     fn get_ge1(&self) -> bool;
+    ///
+    /// DSP extensions: get GE2 value
+    ///
     fn get_ge2(&self) -> bool;
+    ///
+    /// DSP extensions: get GE3 value
+    ///
     fn get_ge3(&self) -> bool;
 }
 
+/// Trait for accessing Interrupt Program Status Register subparts
 pub trait Ipsr {
-    fn get_exception_number(&self) -> usize;
-    fn set_exception_number(&mut self, exception_number: usize);
+    /// get the exception type number of current interrupt service routine
+    fn get_isr_number(&self) -> usize;
+    /// set the exception type number of current interrupt service routine
+    fn set_isr_number(&mut self, exception_number: usize);
 }
 
-// Execution Program Status register
-//
-// A view to PSR register containing the data.
+/// Execution Program Status register
+///
+/// A view to PSR register containing the data.
 pub trait Epsr {
+    ///
+    /// Set thumb state bit
+    ///
     fn set_t(&mut self, t: bool);
+    ///
+    /// Get thumb state bit
+    ///
     fn get_t(&self) -> bool;
 }
 
@@ -365,49 +465,90 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
-    fn get_exception_number(&self) -> usize {
+    fn get_isr_number(&self) -> usize {
         //TODO: diff between cortex m0 and m3+
         (*self).value.get_bits(0..6) as usize
     }
-    fn set_exception_number(&mut self, exception_number: usize) {
+    fn set_isr_number(&mut self, exception_number: usize) {
         self.value = (self.value & 0xffff_ffc0) | (exception_number as u32 & 0b11_1111);
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
+///
+/// Basic registers
+///
 pub enum Reg {
+    /// General purpose register 0, also known as a1 (argument 1 register)
     R0,
+    /// General purpose register 1, also known as a2 (argument 2 register)
     R1,
+    /// General purpose register 2, also known as a3 (argument 3 register)
     R2,
+    /// General purpose register 3, also known as a4 (argument 4 register)
     R3,
+    /// General purpose register 4, also known as v1 (variable 1 register)
     R4,
+    /// General purpose register 5, also known as v2 (variable 2 register)
     R5,
+    /// General purpose register 6, also known as v3 (variable 3 register)
     R6,
+    /// General purpose register 7, also known as v4 (variable 4 register)
     R7,
+    /// General purpose register 8, also known as v5 (variable 5 register)
     R8,
+    /// General purpose register 9, also known as v6 (variable 6 register)
+    /// Another alias is "sb", static base, used for relocatable code base register.
     R9,
+    /// General purpose register 10, also known as v7 (variable 7 register)
     R10,
+    /// General purpose register 11, also known as v8 (variable 8 register)
     R11,
+    /// General purpose register 12,
+    /// also known as IP (Intra procedure call scratch register)
     R12,
+    ///
+    /// Stack Pointer, alias for R13
+    ///
     SP,
+    ///
+    /// Link Register, alias for R14
+    ///
     LR,
+    ///
+    /// Program Counter, alias for R15
+    ///
     PC,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
+/// Declarations of Special registers, of which some are overlays of same contents
 pub enum SpecialReg {
+    /// Application Program Status Register
     APSR,
+    ///
     IAPSR,
+    ///
     EAPSR,
+    ///
     XPSR,
+    /// Interrupt Program Status Register
     IPSR,
+    /// Execution Program Status Register
     EPSR,
+    ///
     IEPSR,
+    /// Refers to Master Stack Pointer
     MSP,
+    /// Refers to Process Stack Pointer
     PSP,
+    /// Priority Mask Register
     PRIMASK,
+    /// Fault Mask Register
+    FAULTMASK,
+    /// CONTROL Register
     CONTROL,
 }
 
@@ -422,6 +563,7 @@ impl CLike for Reg {
 }
 
 impl Reg {
+    /// convert register to numeric index value
     pub fn value(self) -> usize {
         match self {
             Reg::R0 => 0,
@@ -443,6 +585,7 @@ impl Reg {
         }
     }
 
+    /// convert numeric representation to register
     pub fn from_u16(n: u16) -> Option<Reg> {
         match n {
             0 => Some(Reg::R0),
@@ -585,6 +728,7 @@ impl From<Reg> for usize {
 }
 
 impl SpecialReg {
+    /// decode 16 bit value to Special Register designator
     pub fn from_u16(n: u16) -> Option<SpecialReg> {
         match n {
             0 => Some(SpecialReg::APSR),
@@ -658,14 +802,18 @@ impl fmt::Display for SpecialReg {
             SpecialReg::MSP => write!(f, "MSP"),
             SpecialReg::PSP => write!(f, "PSP"),
             SpecialReg::PRIMASK => write!(f, "PRIMASK"),
+            SpecialReg::FAULTMASK => write!(f, "FAULTMASK"),
             SpecialReg::CONTROL => write!(f, "CONTROL"),
         }
     }
 }
 
 #[derive(Debug)]
+/// CONTROL register parts
 pub struct Control {
+    /// Thread mode priviledge level
     pub n_priv: bool,
+    /// selection of current active stack pointer, true = PSP, false = MSP
     pub sp_sel: bool,
 }
 

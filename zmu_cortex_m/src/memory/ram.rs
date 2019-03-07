@@ -1,13 +1,20 @@
+//!
+//! RAM simulation
+//!
+//!
+
 use crate::bus::Bus;
 use byteorder::{ByteOrder, LittleEndian};
 
 #[derive(Debug)]
+/// RAM memory with configurable start address
 pub struct RAM {
     start_address: u32,
     data: Box<[u8]>,
 }
 
 impl RAM {
+    /// Create RAM memory data struct with configurable start address and size
     pub fn new(start_address: u32, size: usize) -> RAM {
         let data = vec![0u8; size].into_boxed_slice();
 
@@ -16,6 +23,7 @@ impl RAM {
             data: data,
         }
     }
+    /// 
     pub fn new_with_fill(start_address: u32, size: usize, fill: u8) -> RAM {
         let data = vec![fill; size].into_boxed_slice();
 

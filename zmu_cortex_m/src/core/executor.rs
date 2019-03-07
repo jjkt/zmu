@@ -19,7 +19,7 @@ use crate::Processor;
 
 ///
 /// Stepping processor with instructions
-/// 
+///
 pub trait Executor {
     ///
     /// step processor forward with given instruction
@@ -359,14 +359,12 @@ impl ExecutorHelper for Processor {
                     match spec_reg {
                         SpecialReg::APSR => self.set_r(*rd, self.psr.value & 0x1f00_0000),
                         SpecialReg::IPSR => {
-                            let ipsr_val = self.psr.get_exception_number();
-                            self.set_r(*rd, ipsr_val as u32);
+                            self.set_r(*rd, self.psr.get_isr_number() as u32);
                         }
                         //MSP => self.set_r(*rd, self.get_r(Reg::MSP)),
                         //PSP => self.set_r(*rd, self.get_r(Reg::PSP),
                         SpecialReg::PRIMASK => {
-                            let primask = self.primask as u32;
-                            self.set_r(*rd, primask);
+                            self.set_r(*rd, self.primask as u32);
                         }
                         //CONTROL => self.set_r(*rd,self.control as u32),
                         _ => panic!("unsupported MRS operation {}", spec_reg),

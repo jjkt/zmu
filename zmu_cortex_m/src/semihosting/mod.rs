@@ -1,3 +1,7 @@
+//!
+//! Cortex Semihosting simulation
+//!
+
 use crate::bus::Bus;
 use crate::core::register::BaseReg;
 use crate::core::register::Reg;
@@ -142,18 +146,21 @@ const SYS_ERRNO: u32 = 0x13;
 const SYS_EXIT: u32 = 0x18;
 const SYS_EXIT_EXTENDED: u32 = 0x20;
 
-pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> SemihostingCommand {
+///
+/// Decode semihosting command based on register values
+///
+pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> SemihostingCommand {
     match r0 {
         SYS_OPEN => {
             let argument_block = r1;
 
-            let mut string_ptr = core.read32(argument_block);
-            let mode = core.read32(argument_block + 4);
-            let mut filename_len = core.read32(argument_block + 8);
+            let mut string_ptr = processor.read32(argument_block);
+            let mode = processor.read32(argument_block + 4);
+            let mut filename_len = processor.read32(argument_block + 8);
             let mut string_bytes: Vec<u8> = Vec::new();
 
             while filename_len > 0 {
-                string_bytes.push(core.read8(string_ptr));
+                string_bytes.push(processor.read8(string_ptr));
                 string_ptr += 1;
                 filename_len -= 1;
             }
@@ -165,20 +172,20 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> Semihosting
         }
         SYS_CLOSE => {
             let params_ptr = r1;
-            let handle = core.read32(params_ptr);
+            let handle = processor.read32(params_ptr);
             SemihostingCommand::SysClose { handle: handle }
         }
         SYS_WRITE => {
             let params_ptr = r1;
-            let handle = core.read32(params_ptr);
-            let mut memoryptr = core.read32(params_ptr + 4);
-            let mut len = core.read32(params_ptr + 8);
+            let handle = processor.read32(params_ptr);
+            let mut memoryptr = processor.read32(params_ptr + 4);
+            let mut len = processor.read32(params_ptr + 8);
 
             let mut data: Vec<u8> = Vec::new();
 
             // :tt console output
             while len > 0 {
-                data.push(core.read8(memoryptr));
+                data.push(processor.read8(memoryptr));
                 memoryptr += 1;
                 len -= 1;
             }
@@ -189,9 +196,9 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> Semihosting
         }
         SYS_READ => {
             let params_ptr = r1;
-            let handle = core.read32(params_ptr);
-            let memoryptr = core.read32(params_ptr + 4);
-            let len = core.read32(params_ptr + 8);
+            let handle = processor.read32(params_ptr);
+            let memoryptr = processor.read32(params_ptr + 4);
+            let len = processor.read32(params_ptr + 8);
 
             SemihostingCommand::SysRead {
                 handle: handle,
@@ -201,20 +208,20 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> Semihosting
         }
         SYS_FLEN => {
             let params_ptr = r1;
-            let handle = core.read32(params_ptr);
+            let handle = processor.read32(params_ptr);
 
             SemihostingCommand::SysFlen { handle: handle }
         }
         SYS_ISTTY => {
             let params_ptr = r1;
-            let handle = core.read32(params_ptr);
+            let handle = processor.read32(params_ptr);
 
             SemihostingCommand::SysIstty { handle: handle }
         }
         SYS_SEEK => {
             let params_ptr = r1;
-            let handle = core.read32(params_ptr);
-            let position = core.read32(params_ptr + 4);
+            let handle = processor.read32(params_ptr);
+            let position = processor.read32(params_ptr + 4);
 
             SemihostingCommand::SysSeek {
                 handle: handle,
@@ -225,8 +232,8 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> Semihosting
         SYS_ERRNO => SemihostingCommand::SysErrno,
         SYS_EXIT_EXTENDED => {
             let params_ptr = r1;
-            let reason = SysExceptionReason::from_u32(core.read32(params_ptr));
-            let subcode = core.read32(params_ptr + 4);
+            let reason = SysExceptionReason::from_u32(processor.read32(params_ptr));
+            let subcode = processor.read32(params_ptr + 4);
 
             SemihostingCommand::SysExitExtended {
                 reason: reason,
@@ -243,65 +250,68 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, core: &mut Processor) -> Semihosting
 }
 
 #[allow(unused)]
-pub fn semihost_return(core: &mut Processor, response: &SemihostingResponse) {
+///
+/// Handle semihosting response received from semihosting implementation
+///
+pub fn semihost_return(processor: &mut Processor, response: &SemihostingResponse) {
     match *response {
         SemihostingResponse::SysOpen { result } => match result {
-            Ok(handle) => core.set_r(Reg::R0, handle),
-            Err(error_code) => core.set_r(Reg::R0, error_code as u32),
+            Ok(handle) => processor.set_r(Reg::R0, handle),
+            Err(error_code) => processor.set_r(Reg::R0, error_code as u32),
         },
         SemihostingResponse::SysFlen { result } => match result {
-            Ok(size) => core.set_r(Reg::R0, size),
-            Err(error_code) => core.set_r(Reg::R0, error_code as u32),
+            Ok(size) => processor.set_r(Reg::R0, size),
+            Err(error_code) => processor.set_r(Reg::R0, error_code as u32),
         },
         SemihostingResponse::SysIstty { result } => match result {
-            Ok(response) => core.set_r(Reg::R0, response),
-            Err(error_code) => core.set_r(Reg::R0, error_code as u32),
+            Ok(response) => processor.set_r(Reg::R0, response),
+            Err(error_code) => processor.set_r(Reg::R0, error_code as u32),
         },
         SemihostingResponse::SysException { success, stop } => {
             if success {
-                core.running = !stop
+                processor.running = !stop
             }
         }
         SemihostingResponse::SysExitExtended { success, stop } => {
             if success {
-                core.running = !stop
+                processor.running = !stop
             }
         }
         SemihostingResponse::SysClose { success } => {
             if success {
-                core.set_r(Reg::R0, 0);
+                processor.set_r(Reg::R0, 0);
             } else {
-                core.set_r(Reg::R0, (-1_i32) as u32);
+                processor.set_r(Reg::R0, (-1_i32) as u32);
             }
         }
         SemihostingResponse::SysSeek { success } => {
             if success {
-                core.set_r(Reg::R0, 0);
+                processor.set_r(Reg::R0, 0);
             } else {
-                core.set_r(Reg::R0, (-1_i32) as u32);
+                processor.set_r(Reg::R0, (-1_i32) as u32);
             }
         }
         SemihostingResponse::SysWrite { result } => match result {
-            Ok(_) => core.set_r(Reg::R0, 0),
-            Err(unwritten_bytes) => core.set_r(Reg::R0, unwritten_bytes as u32),
+            Ok(_) => processor.set_r(Reg::R0, 0),
+            Err(unwritten_bytes) => processor.set_r(Reg::R0, unwritten_bytes as u32),
         },
         SemihostingResponse::SysRead { ref result } => match result {
             Ok((memoryptr, data, diff)) => {
                 let mut addr = *memoryptr;
                 for x in data {
-                    core.write8(addr, *x);
+                    processor.write8(addr, *x);
                     addr += 1;
                 }
-                core.set_r(Reg::R0, *diff);
+                processor.set_r(Reg::R0, *diff);
             }
-            Err(error_code) => core.set_r(Reg::R0, *error_code as u32),
+            Err(error_code) => processor.set_r(Reg::R0, *error_code as u32),
         },
         SemihostingResponse::SysClock { result } => match result {
-            Ok(centiseconds) => core.set_r(Reg::R0, centiseconds),
-            Err(error_code) => core.set_r(Reg::R0, error_code as u32),
+            Ok(centiseconds) => processor.set_r(Reg::R0, centiseconds),
+            Err(error_code) => processor.set_r(Reg::R0, error_code as u32),
         },
         SemihostingResponse::SysErrno { result } => {
-            core.set_r(Reg::R0, result);
+            processor.set_r(Reg::R0, result);
         }
     }
 }

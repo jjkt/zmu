@@ -1,6 +1,11 @@
+//!
+//! Cortex System Control Block Simulation
+//!
+
 use crate::core::bits::Bits;
 use crate::Processor;
 
+/// Register based API to SCB
 pub trait SystemControlBlock {
     fn read_icsr(&self) -> u32;
     fn write_icsr(&mut self, value: u32);

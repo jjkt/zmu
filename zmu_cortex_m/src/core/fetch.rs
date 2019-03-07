@@ -28,7 +28,7 @@ impl Fetch for Processor {
                 opcode: (u32::from(hw) << 16) + u32::from(hw2),
             }
         } else {
-            ThumbCode::Thumb16 { half_word: hw }
+            ThumbCode::Thumb16 { opcode: hw }
         }
     }
 }

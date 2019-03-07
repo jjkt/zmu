@@ -40,9 +40,10 @@ pub enum ITCondition {
 pub enum Imm32Carry {
     /// precalculated value carry value was not relevant
     /// for the decoding
-    NoCarry { 
+    NoCarry {
         /// imm32 original value
-        imm32: u32 },
+        imm32: u32,
+    },
     /// precalculated values for cases ASPR.C == 0 and ASPR.C ==1
     /// if carry was relevant for the decoding
     /// tuple of (immediate value, carry)
@@ -65,8 +66,11 @@ pub enum SetFlags {
     NotInITBlock,
 }
 
-#[allow(non_camel_case_types)]
+#[allow(non_camel_case_types, missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+///
+/// List of acknowledged instrctions
+///
 pub enum Instruction {
     ADC_reg {
         rd: Reg,
@@ -855,10 +859,12 @@ pub enum Instruction {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
+/// variant of CPS call
 pub enum CpsEffect {
+    /// Interrupt enable
     IE,
-    // Interrupt enable
-    ID, // Interrupt disable
+    /// Interrupt disable
+    ID,
 }
 
 impl fmt::Display for CpsEffect {
@@ -2253,6 +2259,7 @@ impl fmt::Display for ITCondition {
 
 #[allow(clippy::cyclomatic_complexity)]
 #[allow(unused_variables)]
+/// Get the size of an instruction in bytes
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
         Instruction::ADC_imm { .. } => 4,

@@ -1,31 +1,27 @@
+//!
+//! Processor Reset logic
+//!
+
 use crate::bus::Bus;
 use crate::core::exception::ExceptionHandling;
 use crate::core::register::{BaseReg, PSR};
 use crate::Processor;
 use crate::ProcessorMode;
 
+/// Trait for processor reset
 pub trait Reset {
+    ///
+    /// Reset Processor
+    ///
     fn reset(&mut self);
 }
 
 impl Reset for Processor {
-    //
-    // Reset Exception
-    //
     fn reset(&mut self) {
         // All basic registers to zero.
-        self.r0_12[0] = 0;
-        self.r0_12[1] = 0;
-        self.r0_12[2] = 0;
-        self.r0_12[3] = 0;
-        self.r0_12[4] = 0;
-        self.r0_12[5] = 0;
-        self.r0_12[6] = 0;
-        self.r0_12[7] = 0;
-        self.r0_12[8] = 0;
-        self.r0_12[9] = 0;
-        self.r0_12[10] = 0;
-        self.r0_12[11] = 0;
+        for r in self.r0_12.iter_mut() {
+            *r = 0;
+        }
 
         // Main stack pointer is read via vector table
         let vtor = self.vtor;
@@ -50,16 +46,14 @@ impl Reset for Processor {
         self.control.n_priv = false;
 
         //TODO self.scs.reset();
-        //TODOself.exceptions.clear();
+        self.exceptions_reset();
 
         //self.event_reg.clear();
 
         self.itstate = 0;
-
-        let reset_vector = self.read32(vtor + 4);
-
         self.execution_priority = self.get_execution_priority();
 
+        let reset_vector = self.read32(vtor + 4);
         self.blx_write_pc(reset_vector);
     }
 }

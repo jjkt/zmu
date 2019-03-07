@@ -9,7 +9,7 @@ use zmu_cortex_m::system::simulation::TraceData;
 pub fn format_trace_entry(trace_data: &TraceData, symboltable: &HashMap<u32, &str>) -> String {
     let opcode_str = match trace_data.opcode {
         ThumbCode::Thumb32 { opcode } => format!("{:08X}", opcode).with_exact_width(8),
-        ThumbCode::Thumb16 { half_word } => format!("{:04X}", half_word).with_exact_width(8),
+        ThumbCode::Thumb16 { opcode } => format!("{:04X}", opcode).with_exact_width(8),
     };
 
     let instruction_str = format!("{}", trace_data.instruction).with_exact_width(32);

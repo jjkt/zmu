@@ -1,7 +1,14 @@
+//!
+//! Cortex SysTick Simulation
+//!
+
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::Processor;
 
+///
+/// Register API for SysTick peripheral
+///
 pub trait SysTick {
     fn write_syst_rvr(&mut self, value: u32);
     fn write_syst_cvr(&mut self, _value: u32);
