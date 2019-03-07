@@ -2,8 +2,7 @@
 //! Processor simulator for ARM Cortex-M processors.
 //!
 //!
-#![warn(missing_docs)]
-//#![warn(missing_debug_implementations)]
+#![deny(missing_docs)]
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
 
 extern crate byteorder;
@@ -41,6 +40,7 @@ pub enum ProcessorMode {
 ///
 /// Representation of all Processor related data
 ///
+#[allow(missing_docs)]
 pub struct Processor {
     /// 13 of 32-bit general purpose registers.
     pub r0_12: [u32; 13],

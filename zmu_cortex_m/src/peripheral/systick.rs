@@ -10,13 +10,44 @@ use crate::Processor;
 /// Register API for SysTick peripheral
 ///
 pub trait SysTick {
+    ///
+    /// write to SYST_RVR, reload value register
+    ///
     fn write_syst_rvr(&mut self, value: u32);
+
+    ///
+    /// write to current value register
+    ///
     fn write_syst_cvr(&mut self, _value: u32);
+
+    ///
+    /// write to control and status register
+    ///
     fn write_syst_csr(&mut self, value: u32);
+
+    ///
+    /// Read control and status register
+    ///
     fn read_syst_csr(&self) -> u32;
+
+    ///
+    /// Read reload value register
+    ///
     fn read_syst_rvr(&self) -> u32;
+
+    ///
+    /// Read current value register
+    ///
     fn read_syst_cvr(&self) -> u32;
+
+    ///
+    /// Read calibration register value
+    ///
     fn read_syst_calib(&self) -> u32;
+
+    ///
+    /// Step systick one clock cycle forward
+    ///
     fn syst_step(&mut self);
 }
 

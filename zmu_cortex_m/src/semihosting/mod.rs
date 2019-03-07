@@ -8,6 +8,7 @@ use crate::core::register::Reg;
 use crate::Processor;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
+#[allow(missing_docs)]
 pub enum SysExceptionReason {
     ADPStoppedBranchThroughZero,
     ADPStoppedUndefinedInstr,
@@ -31,6 +32,9 @@ pub enum SysExceptionReason {
 }
 
 impl SysExceptionReason {
+    ///
+    /// Convert reason code to reason enum value
+    ///
     pub fn from_u32(reason: u32) -> SysExceptionReason {
         match reason {
             0x20000 => SysExceptionReason::ADPStoppedBranchThroughZero,
@@ -57,79 +61,167 @@ impl SysExceptionReason {
 }
 
 #[derive(PartialEq, Debug)]
+///
+/// Semihosting commands
+///
 pub enum SemihostingCommand {
+    ///
+    /// Open a file handle
+    ///
     SysOpen {
+        /// name of the handle
         name: String,
+        /// opening mode
         mode: u32,
     },
+    ///
+    /// Close a file handle
+    ///
     SysClose {
+        /// handle to close
         handle: u32,
     },
+    ///
+    /// Seek a file handle
+    ///
     SysSeek {
+        /// handle to seek
         handle: u32,
+        /// position to seek
         position: u32,
     },
+    ///
+    /// Get a length of file by handle
+    ///
     SysFlen {
+        /// handle for which the length is calculated
         handle: u32,
     },
+    ///
+    /// Check if file handle is interactive tty console
+    ///
     SysIstty {
+        /// handle for which the property is checked for
         handle: u32,
     },
+    ///
+    /// Write data to open file handle
+    ///
     SysWrite {
+        ///
+        /// Handle to which the data is written to
+        ///
         handle: u32,
+        ///
+        /// data to be writtemn
+        ///
         data: Vec<u8>,
     },
+    ///
+    /// Read data from open file handle
+    ///
     SysRead {
+        ///
+        /// handle from which to read the data
+        ///
         handle: u32,
+        ///
+        /// location in memory to which the data is read
+        ///
         memoryptr: u32,
+        ///
+        /// length of read in bytes
+        ///
         len: u32,
     },
+    ///
+    /// Trigger an exception
+    ///
     SysException {
+        /// reason code for the exception
         reason: SysExceptionReason,
     },
+    ///
+    /// perform system exit
+    ///
     SysExitExtended {
+        /// reason code for the exit
         reason: SysExceptionReason,
+        /// subcode of the exit, dependant of the reason
         subcode: u32,
     },
+    ///
+    /// Get the value of sysclock
+    ///
     SysClock,
+    ///
+    /// Get the value of errno
+    ///
     SysErrno,
 }
 
 #[derive(PartialEq, Debug, Clone)]
+///
+/// Responses for the semihosting commands
+///
 pub enum SemihostingResponse {
+    /// open command response
     SysOpen {
+        /// result Ok(handle), error code
         result: Result<u32, i32>,
     },
+    /// close command response
     SysClose {
+        /// result
         success: bool,
     },
+    /// flen command response
     SysFlen {
+        /// result Ok(file length), Err = errorcode
         result: Result<u32, i32>,
     },
+    /// istty command response
     SysIstty {
+        /// result Ok(istty), Err = errorcode
         result: Result<u32, i32>,
     },
+    /// seek command response
     SysSeek {
+        /// result
         success: bool,
     },
+    /// syswrite command response
     SysWrite {
+        /// result Ok = bytes written, Err = error code
         result: Result<u32, i32>,
     },
+    /// sysread command response
     SysRead {
+        /// result Ok = data, Err = error code
         result: Result<(u32, Vec<u8>, u32), i32>,
     },
+    /// sysexception command response
     SysException {
+        /// result
         success: bool,
+        /// system is stopping
         stop: bool,
     },
+    /// sysexitextended command response
     SysExitExtended {
+        /// result
         success: bool,
+        /// system is stopping
         stop: bool,
     },
+    /// sysclock command response
     SysClock {
+        /// result Ok = value, Err = error code
         result: Result<u32, i32>,
     },
+    /// syserrno command response
     SysErrno {
+        /// result
         result: u32,
     },
 }

@@ -7,21 +7,61 @@ use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::Processor;
 
+///
+/// Register API for NVIC
+///
 pub trait NVIC {
+    ///
+    /// Write Interrupt Set Enable
+    ///
     fn nvic_write_iser(&mut self, index: usize, value: u32);
+    ///
+    /// Read Interrupt Set Enable
+    ///
     fn nvic_read_iser(&self, index: usize) -> u32;
+
+    ///
+    /// Write Interrupt Clear Enable
+    ///
     fn nvic_write_icer(&mut self, index: usize, value: u32);
+    ///
+    /// Read Interrupt Clear Enable
+    ///
     fn nvic_read_icer(&self, index: usize) -> u32;
 
+    ///
+    /// Write interrupt Set Pending
+    ///
     fn nvic_write_ispr(&mut self, index: usize, value: u32);
+    ///
+    /// Read interrupt Set Pending
+    ///
     fn nvic_read_ispr(&self, index: usize) -> u32;
+    ///
+    /// Write interrupt Clear Pending
+    ///
     fn nvic_write_icpr(&mut self, index: usize, value: u32);
+    ///
+    /// Read interrupt Clear Pending
+    ///
     fn nvic_read_icpr(&self, index: usize) -> u32;
 
+    ///
+    /// Read Interrupt Active Bit Register
+    ///
     fn nvic_read_iabr(&self, index: usize) -> u32;
 
+    ///
+    /// 32bit write to interrupt priority register
+    ///
     fn nvic_write_ipr(&mut self, index: usize, value: u32);
+    ///
+    /// 32bit read from interrupt priority register
+    ///
     fn nvic_read_ipr(&mut self, index: usize) -> u32;
+    ///
+    /// 8bit write to interrupt priority register
+    ///
     fn nvic_write_ipr_u8(&mut self, index: usize, value: u8);
 }
 
