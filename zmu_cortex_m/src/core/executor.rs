@@ -17,9 +17,17 @@ use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::Processor;
 
+///
+/// Stepping processor with instructions
+/// 
 pub trait Executor {
+    ///
+    /// step processor forward with given instruction
+    ///
     fn step(&mut self, instruction: &Instruction, instruction_size: usize);
-    fn execute(&mut self, instruction: &Instruction) -> ExecuteResult;
+}
+
+trait ExecutorHelper {
     fn condition_passed(&mut self) -> bool;
     fn condition_passed_b(&mut self, cond: Condition) -> bool;
     fn integer_zero_divide_trapping_enabled(&mut self) -> bool;
@@ -27,10 +35,11 @@ pub trait Executor {
     fn it_advance(&mut self);
     fn in_it_block(&mut self) -> bool;
     fn last_in_it_block(&mut self) -> bool;
+    fn execute(&mut self, instruction: &Instruction) -> ExecuteResult;
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum ExecuteResult {
+enum ExecuteResult {
     /// Instruction execution resulted in a fault.
     Fault { fault: Fault },
     /// The instruction was taken normally
@@ -69,7 +78,7 @@ fn conditional_setflags(setflags: SetFlags, in_it_block: bool) -> bool {
     }
 }
 
-impl Executor for Processor {
+impl ExecutorHelper for Processor {
     fn set_itstate(&mut self, state: u8) {
         self.itstate = state;
     }
@@ -92,47 +101,6 @@ impl Executor for Processor {
     fn last_in_it_block(&mut self) -> bool {
         self.itstate.get_bits(0..4) == 0b1000
     }
-
-    // Run single instruction on core
-    fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
-        let in_it_block = self.in_it_block();
-
-        match self.execute(instruction) {
-            ExecuteResult::Fault { .. } => {
-                // all faults are mapped to hardfaults on armv6m
-                let pc = self.get_pc();
-
-                //TODO: set pending, not exception entry directly
-                self.exception_entry(Exception::HardFault, pc);
-            }
-            ExecuteResult::NotTaken => {
-                self.add_pc(instruction_size as u32);
-                self.cycle_count += 1;
-                if in_it_block {
-                    self.it_advance();
-                }
-            }
-            ExecuteResult::Branched { cycles } => {
-                self.cycle_count += cycles;
-            }
-            ExecuteResult::Taken { cycles } => {
-                self.add_pc(instruction_size as u32);
-                self.cycle_count += cycles;
-                if in_it_block {
-                    self.it_advance();
-                }
-            }
-        }
-
-        self.syst_step();
-
-        if let Some(exception) = self.get_pending_exception() {
-            self.clear_pending_exception(exception);
-            let pc = self.get_pc();
-            self.exception_entry(exception, pc);
-        }
-    }
-
     fn integer_zero_divide_trapping_enabled(&mut self) -> bool {
         true
     }
@@ -154,7 +122,6 @@ impl Executor for Processor {
     fn condition_passed_b(&mut self, cond: Condition) -> bool {
         condition_test(cond, &self.psr)
     }
-
     #[allow(unused_variables)]
     #[allow(clippy::cyclomatic_complexity)]
     fn execute(&mut self, instruction: &Instruction) -> ExecuteResult {
@@ -2534,6 +2501,47 @@ impl Executor for Processor {
                 panic!("undefined");
                 //Some(Fault::UndefinedInstruction)
             }
+        }
+    }
+}
+
+impl Executor for Processor {
+    fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
+        let in_it_block = self.in_it_block();
+
+        match self.execute(instruction) {
+            ExecuteResult::Fault { .. } => {
+                // all faults are mapped to hardfaults on armv6m
+                let pc = self.get_pc();
+
+                //TODO: set pending, not exception entry directly
+                self.exception_entry(Exception::HardFault, pc);
+            }
+            ExecuteResult::NotTaken => {
+                self.add_pc(instruction_size as u32);
+                self.cycle_count += 1;
+                if in_it_block {
+                    self.it_advance();
+                }
+            }
+            ExecuteResult::Branched { cycles } => {
+                self.cycle_count += cycles;
+            }
+            ExecuteResult::Taken { cycles } => {
+                self.add_pc(instruction_size as u32);
+                self.cycle_count += cycles;
+                if in_it_block {
+                    self.it_advance();
+                }
+            }
+        }
+
+        self.syst_step();
+
+        if let Some(exception) = self.get_pending_exception() {
+            self.clear_pending_exception(exception);
+            let pc = self.get_pc();
+            self.exception_entry(exception, pc);
         }
     }
 }

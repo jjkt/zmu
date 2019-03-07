@@ -1,3 +1,6 @@
+//!
+//! Helper operations commonly used for instruction execution
+//!
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::instruction::SRType;
@@ -6,6 +9,9 @@ use crate::core::register::Reg;
 use crate::core::register::PSR;
 use enum_set::EnumSet;
 
+///
+/// Convert a bit pattern to set of registers
+///
 pub fn get_reglist(pattern: u16) -> EnumSet<Reg> {
     let mut regs: EnumSet<Reg> = EnumSet::new();
 
@@ -61,6 +67,9 @@ pub fn get_reglist(pattern: u16) -> EnumSet<Reg> {
     regs
 }
 
+///
+/// Sign extend a u32 value, with given topbit to u64 value
+///
 pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
     if word & (1 << topbit) == (1 << topbit) {
         return u64::from(word) | ((1_u64 << (size - topbit)) - 1) << topbit;
@@ -68,13 +77,13 @@ pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
     u64::from(word)
 }
 
-//
-// Add two numbers and carry
-//
-// x + y + carry
-//
-// return tuple of (result, carry, overflow)
-//
+///
+/// Add two numbers and carry
+///
+/// x + y + carry
+///
+/// return tuple of (result, carry, overflow)
+///
 pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     let unsigned_sum = u64::from(x) + u64::from(y) + (carry_in as u64);
     let signed_sum = (x as i32)
@@ -87,11 +96,11 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     (result, carry_out, overflow)
 }
 
-//
-// This function performs the condition test for an instruction, based on:
-// • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction
-// • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
-//
+///
+/// This function performs the condition test for an instruction, based on:
+/// • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction
+/// • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
+///
 pub fn condition_test(condition: Condition, psr: &PSR) -> bool {
     match condition {
         Condition::EQ => psr.get_z(),
@@ -117,10 +126,10 @@ pub fn condition_test(condition: Condition, psr: &PSR) -> bool {
     }
 }
 
-// Decode immedate shift type
-// input: bits[2], immedate
-// output: (shitft type, immedate to use)
-//
+/// Decode immedate shift type
+/// input: bits[2], immedate
+/// output: (shitft type, immedate to use)
+///
 pub fn decode_imm_shift(typebits: u8, imm5: u8) -> (SRType, u8) {
     match typebits.get_bits(0..3) {
         0b00 => (SRType::LSL, imm5),
@@ -193,6 +202,9 @@ fn ror_c(value: u32, shift: usize) -> (u32, bool) {
     (result, carry_out)
 }
 
+///
+/// rotate value right with given amount of bits
+///
 pub fn ror(value: u32, shift: usize) -> u32 {
     if shift == 0 {
         value
@@ -235,18 +247,27 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u
     }
 }
 
+///
+/// shift value with given shift type, discard carry
+///
 pub fn shift(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> u32 {
     let (result, _) = shift_c(value, shift_t, amount, carry_in);
 
     result
 }
 
+///
+/// expand immediate value from thumb encoding, discard carry
+///
 pub fn thumb_expand_imm(params: &[u8], lengths: &[u8]) -> u32 {
     let (result, _) = thumb_expand_imm_c(params, lengths, false);
 
     result
 }
 
+///
+/// Expand immediate value from thumb encoding, with carry calculation
+///
 pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32, bool) {
     let imm12 = zero_extend(params, lengths);
 
@@ -274,6 +295,9 @@ pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32
     (result, carry_out)
 }
 
+///
+/// zero extend n parameters to n bit lengths
+///
 pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
     assert_eq!(params.len(), lengths.len());
 
@@ -287,6 +311,9 @@ pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
     result
 }
 
+/// 
+/// build signed value from immediate 10/11 representation
+/// 
 pub fn build_imm_10_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;
@@ -308,6 +335,9 @@ pub fn build_imm_10_11(opcode: u32) -> i32 {
     ) as i32
 }
 
+/// 
+/// build signed value from immediate 6/11 representation
+/// 
 pub fn build_imm_6_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;

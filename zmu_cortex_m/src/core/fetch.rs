@@ -1,9 +1,17 @@
+//!
+//! Fetching instructions for execution
+//!
+//!
 use crate::bus::Bus;
 use crate::core::thumb::ThumbCode;
-use crate::Processor;
 use crate::decoder::is_thumb32;
+use crate::Processor;
 
+///
+/// Fetching instructions
 pub trait Fetch {
+    /// Fetch instruction from current PC (Program Counter) position,
+    /// decoding the possible thumb32 variant
     fn fetch(&mut self) -> ThumbCode;
 }
 

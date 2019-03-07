@@ -3,8 +3,8 @@
 //! Processor simulator for ARM Cortex-M processors.
 //!
 //! 
-#![warn(missing_docs)]
-#![warn(missing_debug_implementations)]
+//#![warn(missing_docs)]
+//#![warn(missing_debug_implementations)]
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
 
 

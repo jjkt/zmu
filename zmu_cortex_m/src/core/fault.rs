@@ -1,9 +1,12 @@
 //!
-//! A Trait for representing a Cortex armv6-m fault
+//! A Trait for representing a Cortex-M fault
 //!
 //!
 
 #[derive(PartialEq, Debug, Copy, Clone)]
+///
+/// Fault types
+/// 
 pub enum Fault {
     ///
     /// Bus error happened while reading the vector table entry
@@ -58,5 +61,7 @@ pub enum Fault {
     ///
     PPBUnprivilegedAccess,
 
+    ///
+    /// 
     DivideByZero,
 }

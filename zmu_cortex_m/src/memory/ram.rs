@@ -1,6 +1,7 @@
 use crate::bus::Bus;
 use byteorder::{ByteOrder, LittleEndian};
 
+#[derive(Debug)]
 pub struct RAM {
     start_address: u32,
     data: Box<[u8]>,

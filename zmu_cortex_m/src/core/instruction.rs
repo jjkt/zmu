@@ -1,3 +1,7 @@
+//!
+//! Representation of Cortex M Instruction set
+//!
+
 use crate::core::condition::Condition;
 use crate::core::register::Reg;
 use crate::core::register::SpecialReg;
@@ -5,38 +9,59 @@ use crate::core::thumb::ThumbCode;
 use enum_set::EnumSet;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
+///
+/// Types of shift operations supported
 pub enum SRType {
+    /// logical shift left
     LSL,
+    /// logical shift right
     LSR,
+    /// arithmetic shift right
     ASR,
+    /// rotate right
     RRX,
+    /// rotate right
     ROR,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
+/// IT instruction conditions
 pub enum ITCondition {
+    /// condition normal operation
     Then,
+    /// condition inverted operation
     Else,
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
+///
+/// Coding of imm32+carry variants for more efficient run time behaviour
+///
 pub enum Imm32Carry {
     /// precalculated value carry value was not relevant
     /// for the decoding
-    NoCarry { imm32: u32 },
+    NoCarry { 
+        /// imm32 original value
+        imm32: u32 },
     /// precalculated values for cases ASPR.C == 0 and ASPR.C ==1
     /// if carry was relevant for the decoding
     /// tuple of (immediate value, carry)
     Carry {
+        /// values of imm32 and carry, when carry was originally 0
         imm32_c0: (u32, bool),
+        /// values of imm32 and carry, when carry was originally 1
         imm32_c1: (u32, bool),
     },
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
+/// Instruction flags setting variants
 pub enum SetFlags {
+    /// Set Always
     True,
+    /// Set Never
     False,
+    /// Set when not in "IT" block
     NotInITBlock,
 }
 

@@ -1,3 +1,7 @@
+//!
+//! Cortex core register operations
+//!
+
 use crate::core::bits::Bits;
 use crate::core::exception::ExceptionHandling;
 use crate::Processor;
@@ -6,15 +10,34 @@ use enum_set::CLike;
 use std::fmt;
 use std::mem;
 
+///
+/// Base register manipulation
+///
 pub trait BaseReg {
     fn branch_write_pc(&mut self, address: u32);
 
+    ///
+    /// interworking branch
+    ///
     fn blx_write_pc(&mut self, address: u32);
 
+    ///
+    /// interworking branch
+    ///
     fn bx_write_pc(&mut self, address: u32);
+    ///
+    /// alias for bx_write_pc
+    ///
     fn load_write_pc(&mut self, address: u32);
 
+    ///
+    /// Getter for registers
+    ///
     fn get_r(&self, r: Reg) -> u32;
+
+    ///
+    /// Setter for registers
+    ///
     fn set_r(&mut self, r: Reg, value: u32);
 
     fn set_msp(&mut self, value: u32);
@@ -38,17 +61,11 @@ impl BaseReg for Processor {
         self.set_pc(address & 0xffff_fffe);
     }
 
-    //
-    // interworking branch
-    //
     fn blx_write_pc(&mut self, address: u32) {
         self.psr.set_t((address & 1) == 1);
         self.branch_write_pc(address);
     }
 
-    //
-    // interworking branch
-    //
     fn bx_write_pc(&mut self, address: u32) {
         if self.mode == ProcessorMode::HandlerMode && (address.get_bits(28..32) == 0b1111) {
             self.exception_return(address.get_bits(0..28));
@@ -57,16 +74,10 @@ impl BaseReg for Processor {
         }
     }
 
-    //
-    // alias for bx_write_pc
-    //
     fn load_write_pc(&mut self, address: u32) {
         self.bx_write_pc(address);
     }
 
-    //
-    // Getter for registers
-    //
     fn get_r(&self, r: Reg) -> u32 {
         match r {
             Reg::R0
@@ -96,9 +107,7 @@ impl BaseReg for Processor {
             Reg::PC => self.pc + 4,
         }
     }
-    //
-    // Setter for registers
-    //
+
     fn set_r(&mut self, r: Reg, value: u32) {
         match r {
             Reg::R0
@@ -224,6 +233,7 @@ impl BaseReg for Processor {
     }
 }
 
+#[derive(Debug)]
 pub struct PSR {
     pub value: u32,
 }
@@ -653,6 +663,7 @@ impl fmt::Display for SpecialReg {
     }
 }
 
+#[derive(Debug)]
 pub struct Control {
     pub n_priv: bool,
     pub sp_sel: bool,
