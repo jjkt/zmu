@@ -1181,7 +1181,7 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
 
-                    let data = self.read16(address);
+                    let data = self.read16(address)?;
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
@@ -1314,7 +1314,7 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
 
-                    let data = self.read16(address);
+                    let data = self.read16(address)?;
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
@@ -1343,7 +1343,7 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), offset, *add, *index);
 
-                    let data = u32::from(self.read16(address));
+                    let data = u32::from(self.read16(address)?);
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
@@ -1372,7 +1372,7 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), offset, *add, *index);
 
-                    let data = u32::from(self.read16(address));
+                    let data = u32::from(self.read16(address)?);
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
@@ -1983,7 +1983,7 @@ impl ExecutorHelper for Processor {
                     let r_n = self.get_r(*rn);
                     let r_m = self.get_r(*rm);
                     let pc = self.get_r(Reg::PC);
-                    let halfwords = u32::from(self.read16(r_n + (r_m << 1)));
+                    let halfwords = u32::from(self.read16(r_n + (r_m << 1))?);
 
                     self.branch_write_pc(pc + 2 * halfwords);
 

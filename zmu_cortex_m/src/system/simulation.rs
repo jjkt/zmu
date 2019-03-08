@@ -52,7 +52,7 @@ pub fn simulate(
 
         while pc < (code.len() as u32) {
             processor.set_pc(pc);
-            let thumb = processor.fetch();
+            let thumb = processor.fetch().unwrap();
             let instruction = processor.decode(thumb);
             instruction_cache.push((instruction, instruction_size(&instruction)));
             pc += 2;
@@ -95,7 +95,7 @@ where
 
         while pc < (code.len() as u32) {
             processor.set_pc(pc);
-            let thumb = processor.fetch();
+            let thumb = processor.fetch().unwrap();
             let instruction = processor.decode(thumb);
             instruction_cache.push((thumb, instruction, instruction_size(&instruction)));
             pc += 2;

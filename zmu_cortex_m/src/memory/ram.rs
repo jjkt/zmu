@@ -41,10 +41,10 @@ impl Bus for RAM {
         self.data[a as usize]
     }
 
-    fn read16(&self, addr: u32) -> u16 {
+    fn read16(&self, addr: u32) -> Result<u16, Fault> {
         let a = (addr - self.start_address) as usize;
 
-        LittleEndian::read_u16(&self.data[a..a + 2])
+        Ok(LittleEndian::read_u16(&self.data[a..a + 2]))
     }
 
     fn read32(&self, addr: u32) -> Result<u32, Fault> {

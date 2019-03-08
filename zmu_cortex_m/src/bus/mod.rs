@@ -1,19 +1,19 @@
 //!
 //! Processor Bus related operations
-//! 
+//!
 
 use crate::Processor;
 
+use crate::core::fault::Fault;
 use crate::peripheral::dwt::Dwt;
 use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
-use crate::core::fault::Fault;
 
 ///
 /// Trait for reading and writing via a memory bus.
-/// 
+///
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.
     ///
@@ -21,7 +21,7 @@ pub trait Bus {
 
     /// Reads a 16 bit value via the bus from the given address.
     ///
-    fn read16(&self, addr: u32) -> u16;
+    fn read16(&self, addr: u32) -> Result<u16, Fault>;
 
     /// Reads a 8 bit value via the bus from the given address.
     ///
@@ -61,23 +61,13 @@ impl Bus for Processor {
         }
     }
 
-    fn read16(&self, addr: u32) -> u16 {
-        /*
-        FIXME: LDR{S}H{T}, STRH{T} support non-halfword aligned access.
-        FIXME: TBH support non-hw aligned access
-        FIXME: LDR{T}, STR{T} support non-hw aligned access
-
-        if addr & 1 == 1 {
-            panic!("unaliged read16 addr 0x{:x}", addr);
-        }*/
-
+    fn read16(&self, addr: u32) -> Result<u16, Fault> {
         if self.code.in_range(addr) {
-            self.code.read16(addr)
+            return self.code.read16(addr);
         } else if self.sram.in_range(addr) {
-            self.sram.read16(addr)
-        } else {
-            panic!("bus access fault read16 addr 0x{:x}", addr);
+            return self.sram.read16(addr);
         }
+        Err(Fault::DAccViol)
     }
 
     fn read32(&self, addr: u32) -> Result<u32, Fault> {
