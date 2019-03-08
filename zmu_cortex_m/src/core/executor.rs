@@ -35,13 +35,11 @@ trait ExecutorHelper {
     fn it_advance(&mut self);
     fn in_it_block(&mut self) -> bool;
     fn last_in_it_block(&mut self) -> bool;
-    fn execute(&mut self, instruction: &Instruction) -> ExecuteResult;
+    fn execute(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault>;
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 enum ExecuteResult {
-    /// Instruction execution resulted in a fault.
-    Fault { fault: Fault },
     /// The instruction was taken normally
     Taken { cycles: u64 },
     /// The instruction was not taken as the condition did not pass
@@ -124,7 +122,7 @@ impl ExecutorHelper for Processor {
     }
     #[allow(unused_variables)]
     #[allow(clippy::cyclomatic_complexity)]
-    fn execute(&mut self, instruction: &Instruction) -> ExecuteResult {
+    fn execute(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
             Instruction::ADC_reg {
                 rd,
@@ -148,9 +146,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_v(overflow);
                     }
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ADC_imm {
                 rd,
@@ -171,9 +169,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_v(overflow);
                     }
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::ASR_imm {
@@ -198,9 +196,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ASR_reg {
                 rd,
@@ -224,9 +222,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::BIC_reg {
                 rd,
@@ -251,9 +249,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_n(result);
                         self.psr.set_z(result);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::BIC_imm {
                 rd,
@@ -272,9 +270,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::BFI {
                 rn,
@@ -293,9 +291,9 @@ impl ExecutorHelper for Processor {
                     result.set_bits(0..width, value);
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::CPS { im } => {
                 if im == &CpsEffect::IE {
@@ -304,15 +302,15 @@ impl ExecutorHelper for Processor {
                     self.primask = true;
                 }
                 self.execution_priority = self.get_execution_priority();
-                ExecuteResult::Taken { cycles: 1 }
+                Ok(ExecuteResult::Taken { cycles: 1 })
             }
             Instruction::CBZ { rn, nonzero, imm32 } => {
                 if nonzero ^ (self.get_r(*rn) == 0) {
                     let pc = self.get_r(Reg::PC);
                     self.branch_write_pc(pc + imm32);
-                    ExecuteResult::Branched { cycles: 1 }
+                    Ok(ExecuteResult::Branched { cycles: 1 })
                 } else {
-                    ExecuteResult::Taken { cycles: 1 }
+                    Ok(ExecuteResult::Taken { cycles: 1 })
                 }
             }
             Instruction::CLZ { rd, rm } => {
@@ -321,27 +319,27 @@ impl ExecutorHelper for Processor {
 
                     self.set_r(*rd, rm.leading_zeros());
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::DMB => {
                 if self.condition_passed() {
-                    return ExecuteResult::Taken { cycles: 4 };
+                    return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::DSB => {
                 if self.condition_passed() {
-                    return ExecuteResult::Taken { cycles: 4 };
+                    return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ISB => {
                 if self.condition_passed() {
-                    return ExecuteResult::Taken { cycles: 4 };
+                    return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::IT {
                 x,
@@ -351,7 +349,7 @@ impl ExecutorHelper for Processor {
                 mask,
             } => {
                 self.set_itstate((((firstcond.value() as u32) << 4) + u32::from(*mask)) as u8);
-                ExecuteResult::Taken { cycles: 4 }
+                Ok(ExecuteResult::Taken { cycles: 4 })
             }
 
             Instruction::MRS { rd, spec_reg } => {
@@ -369,10 +367,10 @@ impl ExecutorHelper for Processor {
                         //CONTROL => self.set_r(*rd,self.control as u32),
                         _ => panic!("unsupported MRS operation {}", spec_reg),
                     }
-                    return ExecuteResult::Taken { cycles: 4 };
+                    return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
 
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::MSR_reg { rn, spec_reg } => {
                 if self.condition_passed() {
@@ -402,9 +400,9 @@ impl ExecutorHelper for Processor {
                         //CONTROL => self.set_r(*rd,self.control as u32),
                         _ => panic!("unsupported MSR operation {}", spec_reg),
                     }
-                    return ExecuteResult::Taken { cycles: 4 };
+                    return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::MOV_reg {
                 rd,
@@ -421,24 +419,24 @@ impl ExecutorHelper for Processor {
                             self.psr.set_n(result);
                             self.psr.set_z(result);
                         }
-                        return ExecuteResult::Taken { cycles: 1 };
+                        return Ok(ExecuteResult::Taken { cycles: 1 });
                     } else {
                         self.branch_write_pc(result);
-                        return ExecuteResult::Branched { cycles: 3 };
+                        return Ok(ExecuteResult::Branched { cycles: 3 });
                     }
                 }
 
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::MOVT { rd, imm16 } => {
                 if self.condition_passed() {
                     let mut result: u32 = self.get_r(*rd);
                     result.set_bits(16..32, (*imm16).into());
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
 
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::LSL_imm {
                 rd,
@@ -461,9 +459,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LSL_reg {
@@ -488,9 +486,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LSR_imm {
@@ -514,9 +512,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LSR_reg {
@@ -542,10 +540,10 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
 
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::BL { imm32 } => {
@@ -554,24 +552,24 @@ impl ExecutorHelper for Processor {
                     self.set_r(Reg::LR, pc | 0x01);
                     let target = ((pc as i32) + imm32) as u32;
                     self.branch_write_pc(target);
-                    return ExecuteResult::Branched { cycles: 4 };
+                    return Ok(ExecuteResult::Branched { cycles: 4 });
                 }
 
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::BKPT { imm32 } => {
                 if *imm32 == 0xab {
                     let r0 = self.get_r(Reg::R0);
                     let r1 = self.get_r(Reg::R1);
-                    let semihost_cmd = decode_semihostcmd(r0, r1, self);
+                    let semihost_cmd = decode_semihostcmd(r0, r1, self)?;
                     let semihost_response = (self.semihost_func)(&semihost_cmd);
                     semihost_return(self, &semihost_response);
                 }
-                ExecuteResult::Taken { cycles: 1 }
+                Ok(ExecuteResult::Taken { cycles: 1 })
             }
 
-            Instruction::NOP { .. } => ExecuteResult::Taken { cycles: 1 },
+            Instruction::NOP { .. } => Ok(ExecuteResult::Taken { cycles: 1 }),
 
             Instruction::MUL {
                 rd,
@@ -592,9 +590,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_n(result);
                         self.psr.set_z(result);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SMUL {
                 rd,
@@ -623,9 +621,9 @@ impl ExecutorHelper for Processor {
 
                     self.set_r(*rd, result as u32);
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SMLA {
                 rd,
@@ -660,9 +658,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_q(true);
                     }
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::ORR_reg {
@@ -689,9 +687,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ORR_imm {
                 rd,
@@ -712,9 +710,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ORN_reg {
                 rd,
@@ -739,9 +737,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::EOR_imm {
                 rd,
@@ -762,9 +760,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::EOR_reg {
@@ -792,10 +790,10 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
 
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::AND_reg {
@@ -822,9 +820,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_n(result);
                         self.psr.set_z(result);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::AND_imm {
                 rd,
@@ -845,18 +843,18 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::BX { rm } => {
                 if self.condition_passed() {
                     let r_m = self.get_r(*rm);
                     self.bx_write_pc(r_m);
-                    return ExecuteResult::Branched { cycles: 3 };
+                    return Ok(ExecuteResult::Branched { cycles: 3 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::BLX { rm } => {
@@ -865,9 +863,9 @@ impl ExecutorHelper for Processor {
                     let target = self.get_r(*rm);
                     self.set_r(Reg::LR, (((pc - 2) >> 1) << 1) | 1);
                     self.blx_write_pc(target);
-                    return ExecuteResult::Branched { cycles: 3 };
+                    return Ok(ExecuteResult::Branched { cycles: 3 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDM {
@@ -882,7 +880,7 @@ impl ExecutorHelper for Processor {
 
                     let mut branched = false;
                     for reg in registers.iter() {
-                        let value = self.read32(address);
+                        let value = self.read32(address)?;
                         if reg == Reg::PC {
                             self.load_write_pc(value);
                             branched = true;
@@ -897,11 +895,11 @@ impl ExecutorHelper for Processor {
                     }
                     let cc = 1 + registers.len() as u64;
                     if branched {
-                        return ExecuteResult::Branched { cycles: cc };
+                        return Ok(ExecuteResult::Branched { cycles: cc });
                     }
-                    return ExecuteResult::Taken { cycles: cc };
+                    return Ok(ExecuteResult::Taken { cycles: cc });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::MOV_imm {
                 rd,
@@ -917,9 +915,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::MVN_reg {
@@ -945,9 +943,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::MVN_imm {
                 rd,
@@ -964,9 +962,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::B_t13 {
                 cond,
@@ -977,9 +975,9 @@ impl ExecutorHelper for Processor {
                     let pc = self.get_r(Reg::PC);
                     let target = ((pc as i32) + imm32) as u32;
                     self.branch_write_pc(target);
-                    ExecuteResult::Branched { cycles: 3 }
+                    Ok(ExecuteResult::Branched { cycles: 3 })
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
             Instruction::B_t24 { imm32, thumb32 } => {
@@ -987,9 +985,9 @@ impl ExecutorHelper for Processor {
                     let pc = self.get_r(Reg::PC);
                     let target = ((pc as i32) + imm32) as u32;
                     self.branch_write_pc(target);
-                    ExecuteResult::Branched { cycles: 3 }
+                    Ok(ExecuteResult::Branched { cycles: 3 })
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
 
@@ -1001,9 +999,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
                     self.psr.set_v(overflow);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::CMP_reg {
@@ -1027,9 +1025,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
                     self.psr.set_v(overflow);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::CMN_reg {
@@ -1051,9 +1049,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
                     self.psr.set_v(overflow);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::CMN_imm { rn, imm32 } => {
                 if self.condition_passed() {
@@ -1062,9 +1060,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
                     self.psr.set_v(overflow);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::PUSH { registers, thumb32 } => {
@@ -1080,11 +1078,11 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(Reg::SP, sp - regs_size);
-                    return ExecuteResult::Taken {
+                    return Ok(ExecuteResult::Taken {
                         cycles: 1 + registers.len() as u64,
-                    };
+                    });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::POP { registers, thumb32 } => {
@@ -1097,39 +1095,37 @@ impl ExecutorHelper for Processor {
 
                     for reg in registers.iter() {
                         if reg == Reg::PC {
-                            let target = self.read32(address);
-                            self.bx_write_pc(target);
+                            self.bx_write_pc(self.read32(address)?);
                         } else {
-                            let value = self.read32(address);
-                            self.set_r(reg, value);
+                            self.set_r(reg, self.read32(address)?);
                         }
                         address += 4;
                     }
 
                     if registers.contains(&Reg::PC) {
-                        return ExecuteResult::Branched {
+                        return Ok(ExecuteResult::Branched {
                             cycles: 4 + registers.len() as u64,
-                        };
+                        });
                     } else {
-                        return ExecuteResult::Taken {
+                        return Ok(ExecuteResult::Taken {
                             cycles: 1 + registers.len() as u64,
-                        };
+                        });
                     }
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::PLD_imm { rn, imm32, add } => {
                 if self.condition_passed() {
-                    ExecuteResult::Taken { cycles: 1 }
+                    Ok(ExecuteResult::Taken { cycles: 1 })
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
             Instruction::PLD_lit { imm32, add } => {
                 if self.condition_passed() {
-                    ExecuteResult::Taken { cycles: 1 }
+                    Ok(ExecuteResult::Taken { cycles: 1 })
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
             Instruction::PLD_reg {
@@ -1139,9 +1135,9 @@ impl ExecutorHelper for Processor {
                 shift_n,
             } => {
                 if self.condition_passed() {
-                    ExecuteResult::Taken { cycles: 1 }
+                    Ok(ExecuteResult::Taken { cycles: 1 })
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
             Instruction::LDR_imm {
@@ -1157,20 +1153,20 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
 
-                    let data = self.read32(address);
+                    let data = self.read32(address)?;
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
 
                     if rt == &Reg::PC {
                         self.load_write_pc(data);
-                        return ExecuteResult::Branched { cycles: 1 };
+                        return Ok(ExecuteResult::Branched { cycles: 1 });
                     } else {
                         self.set_r(*rt, data);
-                        return ExecuteResult::Taken { cycles: 1 };
+                        return Ok(ExecuteResult::Taken { cycles: 1 });
                     }
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::LDRSH_imm {
                 rt,
@@ -1191,9 +1187,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, sign_extend(u32::from(data), 15, 32) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::LDRSB_imm {
                 rt,
@@ -1214,9 +1210,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, sign_extend(data.into(), 7, 32) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDR_reg {
@@ -1237,7 +1233,7 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), offset, *add, *index);
 
-                    let data = self.read32(address);
+                    let data = self.read32(address)?;
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
@@ -1248,7 +1244,7 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rt, data);
                     }
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDRB_imm {
@@ -1271,9 +1267,9 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rn, offset_address);
                     }
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDRB_reg {
@@ -1300,9 +1296,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, data);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDRH_imm {
@@ -1324,9 +1320,9 @@ impl ExecutorHelper for Processor {
                     }
                     self.set_r(*rt, u32::from(data));
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDRH_reg {
@@ -1353,9 +1349,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, data);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDRSH_reg {
@@ -1382,9 +1378,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, sign_extend(data, 15, 32) as u32);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDRSB_reg {
@@ -1411,9 +1407,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, sign_extend(data, 7, 32) as u32);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ROR_imm {
                 rd,
@@ -1436,9 +1432,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::SBC_reg {
@@ -1467,9 +1463,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STM {
@@ -1492,11 +1488,11 @@ impl ExecutorHelper for Processor {
                     if *wback {
                         self.add_r(*rn, regs_size);
                     }
-                    return ExecuteResult::Taken {
+                    return Ok(ExecuteResult::Taken {
                         cycles: 1 + registers.len() as u64,
-                    };
+                    });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::STMDB {
                 registers,
@@ -1517,11 +1513,11 @@ impl ExecutorHelper for Processor {
                     if *wback {
                         self.sub_r(*rn, regs_size);
                     }
-                    return ExecuteResult::Taken {
+                    return Ok(ExecuteResult::Taken {
                         cycles: 1 + registers.len() as u64,
-                    };
+                    });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STR_imm {
@@ -1544,9 +1540,9 @@ impl ExecutorHelper for Processor {
 
                     self.write32(address, value);
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::STRD_imm {
                 rt,
@@ -1570,9 +1566,9 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rn, offset_address);
                     }
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::LDRD_imm {
                 rt,
@@ -1587,18 +1583,18 @@ impl ExecutorHelper for Processor {
                     let (address, offset_address) =
                         resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
 
-                    let data = self.read32(address);
+                    let data = self.read32(address)?;
                     self.set_r(*rt, data);
-                    let data2 = self.read32(address + 4);
+                    let data2 = self.read32(address + 4)?;
                     self.set_r(*rt2, data2);
 
                     if *wback {
                         self.set_r(*rn, offset_address);
                     }
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STR_reg {
@@ -1619,9 +1615,9 @@ impl ExecutorHelper for Processor {
                     let value = self.get_r(*rt);
                     self.write32(address, value);
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STRB_reg {
@@ -1642,9 +1638,9 @@ impl ExecutorHelper for Processor {
                     let rt: u32 = self.get_r(*rt);
                     let value = rt.get_bits(0..8);
                     self.write8(address, value as u8);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STRB_imm {
@@ -1667,9 +1663,9 @@ impl ExecutorHelper for Processor {
 
                     self.write8(address, value.get_bits(0..8) as u8);
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STRH_imm {
@@ -1692,9 +1688,9 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rn, offset_address);
                     }
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::STRH_reg {
@@ -1714,9 +1710,9 @@ impl ExecutorHelper for Processor {
                     let address = self.get_r(*rn) + offset;
                     let value = self.get_r(*rt).get_bits(0..16);
                     self.write16(address, value as u16);
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::LDR_lit {
@@ -1728,7 +1724,7 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let base = self.get_r(Reg::PC) & 0xffff_fffc;
                     let address = if *add { base + imm32 } else { base - imm32 };
-                    let data = self.read32(address);
+                    let data = self.read32(address)?;
 
                     if rt == &Reg::PC {
                         self.load_write_pc(data);
@@ -1736,9 +1732,9 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rt, data);
                     }
 
-                    return ExecuteResult::Taken { cycles: 2 };
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::ADD_reg {
@@ -1757,7 +1753,7 @@ impl ExecutorHelper for Processor {
 
                     if rd == &Reg::PC {
                         self.branch_write_pc(result);
-                        ExecuteResult::Branched { cycles: 3 }
+                        Ok(ExecuteResult::Branched { cycles: 3 })
                     } else {
                         if conditional_setflags(*setflags, self.in_it_block()) {
                             self.psr.set_n(result);
@@ -1766,10 +1762,10 @@ impl ExecutorHelper for Processor {
                             self.psr.set_v(overflow);
                         }
                         self.set_r(*rd, result);
-                        ExecuteResult::Taken { cycles: 1 }
+                        Ok(ExecuteResult::Taken { cycles: 1 })
                     }
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
             Instruction::ADD_sp_reg {
@@ -1788,7 +1784,7 @@ impl ExecutorHelper for Processor {
 
                     if rd == &Reg::PC {
                         self.branch_write_pc(result);
-                        ExecuteResult::Branched { cycles: 3 }
+                        Ok(ExecuteResult::Branched { cycles: 3 })
                     } else {
                         if *setflags {
                             self.psr.set_n(result);
@@ -1797,10 +1793,10 @@ impl ExecutorHelper for Processor {
                             self.psr.set_v(overflow);
                         }
                         self.set_r(*rd, result);
-                        ExecuteResult::Taken { cycles: 1 }
+                        Ok(ExecuteResult::Taken { cycles: 1 })
                     }
                 } else {
-                    ExecuteResult::NotTaken
+                    Ok(ExecuteResult::NotTaken)
                 }
             }
 
@@ -1823,18 +1819,18 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::ADR { rd, imm32, thumb32 } => {
                 if self.condition_passed() {
                     let result = (self.get_r(Reg::PC) & 0xffff_fffc) + imm32;
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::RSB_imm {
@@ -1856,9 +1852,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SBC_imm {
                 rd,
@@ -1880,9 +1876,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_v(overflow);
                     }
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::RSB_reg {
@@ -1911,9 +1907,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_c(carry);
                         self.psr.set_v(overflow);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::SUB_imm {
@@ -1935,9 +1931,9 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::SUB_reg {
@@ -1965,9 +1961,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_c(carry);
                         self.psr.set_v(overflow);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::TBB { rn, rm } => {
                 if self.condition_passed() {
@@ -1978,9 +1974,9 @@ impl ExecutorHelper for Processor {
 
                     self.branch_write_pc(pc + 2 * halfwords);
 
-                    return ExecuteResult::Branched { cycles: 1 };
+                    return Ok(ExecuteResult::Branched { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::TBH { rn, rm } => {
                 if self.condition_passed() {
@@ -1991,9 +1987,9 @@ impl ExecutorHelper for Processor {
 
                     self.branch_write_pc(pc + 2 * halfwords);
 
-                    return ExecuteResult::Branched { cycles: 1 };
+                    return Ok(ExecuteResult::Branched { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::TST_reg {
@@ -2016,9 +2012,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_n(result);
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::TST_imm { rn, imm32 } => {
                 if self.condition_passed() {
@@ -2030,9 +2026,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::TEQ_reg {
                 rn,
@@ -2052,9 +2048,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::TEQ_imm { rn, imm32 } => {
                 if self.condition_passed() {
@@ -2066,9 +2062,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             // ARMv7-M
@@ -2087,9 +2083,9 @@ impl ExecutorHelper for Processor {
                         panic!();
                     }
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::UXTB {
@@ -2101,9 +2097,9 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let rotated = ror(self.get_r(*rm), *rotation);
                     self.set_r(*rd, rotated.get_bits(0..8));
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::UXTAB {
                 rd,
@@ -2116,9 +2112,9 @@ impl ExecutorHelper for Processor {
                     let rn = self.get_r(*rn);
                     let result = rn.wrapping_add(rotated.get_bits(0..8));
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::UXTH {
@@ -2130,9 +2126,9 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let rotated = ror(self.get_r(*rm), *rotation);
                     self.set_r(*rd, rotated.get_bits(0..16));
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::SXTB {
@@ -2144,9 +2140,9 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let rotated = ror(self.get_r(*rm), *rotation);
                     self.set_r(*rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             Instruction::SXTH {
@@ -2158,9 +2154,9 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let rotated = ror(self.get_r(*rm), *rotation);
                     self.set_r(*rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::REV { rd, rm, .. } => {
                 if self.condition_passed() {
@@ -2172,9 +2168,9 @@ impl ExecutorHelper for Processor {
                             + ((rm_ & 0xff_0000) >> 8)
                             + ((rm_ & 0xff00_0000) >> 24),
                     );
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::REV16 { rd, rm, .. } => {
                 if self.condition_passed() {
@@ -2186,9 +2182,9 @@ impl ExecutorHelper for Processor {
                             + ((rm_ & 0xff_0000) << 8)
                             + ((rm_ & 0xff00_0000) >> 8),
                     );
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::REVSH { rd, rm, .. } => {
                 if self.condition_passed() {
@@ -2197,9 +2193,9 @@ impl ExecutorHelper for Processor {
                         *rd,
                         ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
                     );
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::ROR_reg {
                 rd,
@@ -2222,9 +2218,9 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::RRX { rd, rm, setflags } => {
                 if self.condition_passed() {
@@ -2236,44 +2232,44 @@ impl ExecutorHelper for Processor {
                         self.psr.set_z(result);
                         self.psr.set_c(carry);
                     }
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SVC { imm32 } => {
                 if self.condition_passed() {
                     println!("SVC {}", imm32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SEV { .. } => {
                 if self.condition_passed() {
                     println!("SEV");
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::WFE { .. } => {
                 if self.condition_passed() {
                     //TODO
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::WFI { .. } => {
                 if self.condition_passed() {
                     //TODO
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::YIELD { .. } => {
                 if self.condition_passed() {
                     println!("YIELD");
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             // ARMv7-M
@@ -2318,9 +2314,7 @@ impl ExecutorHelper for Processor {
                     let rm_ = self.get_r(*rm);
                     let result = if rm_ == 0 {
                         if self.integer_zero_divide_trapping_enabled() {
-                            return ExecuteResult::Fault {
-                                fault: Fault::DivideByZero,
-                            };
+                            return Err(Fault::DivByZero);
                         }
                         0
                     } else {
@@ -2328,9 +2322,9 @@ impl ExecutorHelper for Processor {
                         rn_ / rm_
                     };
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::UADD8 { rd, rn, rm } => {
                 if self.condition_passed() {
@@ -2353,9 +2347,9 @@ impl ExecutorHelper for Processor {
                     self.psr.set_ge2(sum3 >= 0x100);
                     self.psr.set_ge3(sum4 >= 0x100);
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SEL { rd, rn, rm } => {
                 if self.condition_passed() {
@@ -2397,9 +2391,9 @@ impl ExecutorHelper for Processor {
                     );
                     self.set_r(*rd, result);
 
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             // ARMv7-M
             Instruction::SDIV { rd, rn, rm } => {
@@ -2407,9 +2401,7 @@ impl ExecutorHelper for Processor {
                     let rm_ = self.get_r(*rm);
                     let result = if rm_ == 0 {
                         if self.integer_zero_divide_trapping_enabled() {
-                            return ExecuteResult::Fault {
-                                fault: Fault::DivideByZero,
-                            };
+                            return Err(Fault::DivByZero);
                         }
                         0
                     } else {
@@ -2417,9 +2409,9 @@ impl ExecutorHelper for Processor {
                         (rn_ as i32) / (rm_ as i32)
                     };
                     self.set_r(*rd, result as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             // ARMv7-M
             Instruction::MLA { rd, rn, rm, ra } => {
@@ -2430,9 +2422,9 @@ impl ExecutorHelper for Processor {
                     let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             // ARMv7-M
             Instruction::MLS { rd, rn, rm, ra } => {
@@ -2443,9 +2435,9 @@ impl ExecutorHelper for Processor {
                     let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
 
                     self.set_r(*rd, result);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             // ARMv7-M
             Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
@@ -2461,9 +2453,9 @@ impl ExecutorHelper for Processor {
 
                     self.set_r(*rdlo, result.get_bits(0..32) as u32);
                     self.set_r(*rdhi, result.get_bits(32..64) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             // ARMv7-M
             Instruction::UMULL { rdlo, rdhi, rn, rm } => {
@@ -2474,9 +2466,9 @@ impl ExecutorHelper for Processor {
 
                     self.set_r(*rdlo, result.get_bits(0..32) as u32);
                     self.set_r(*rdhi, result.get_bits(32..64) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
             Instruction::SMULL { rdlo, rdhi, rn, rm } => {
                 if self.condition_passed() {
@@ -2486,9 +2478,9 @@ impl ExecutorHelper for Processor {
 
                     self.set_r(*rdlo, result.get_bits(0..32) as u32);
                     self.set_r(*rdhi, result.get_bits(32..64) as u32);
-                    return ExecuteResult::Taken { cycles: 1 };
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
-                ExecuteResult::NotTaken
+                Ok(ExecuteResult::NotTaken)
             }
 
             // ARMv7-M
@@ -2508,24 +2500,24 @@ impl Executor for Processor {
         let in_it_block = self.in_it_block();
 
         match self.execute(instruction) {
-            ExecuteResult::Fault { .. } => {
+            Err(fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
 
                 //TODO: set pending, not exception entry directly
                 self.exception_entry(Exception::HardFault, pc);
             }
-            ExecuteResult::NotTaken => {
+            Ok(ExecuteResult::NotTaken) => {
                 self.add_pc(instruction_size as u32);
                 self.cycle_count += 1;
                 if in_it_block {
                     self.it_advance();
                 }
             }
-            ExecuteResult::Branched { cycles } => {
+            Ok(ExecuteResult::Branched { cycles }) => {
                 self.cycle_count += cycles;
             }
-            ExecuteResult::Taken { cycles } => {
+            Ok(ExecuteResult::Taken { cycles }) => {
                 self.add_pc(instruction_size as u32);
                 self.cycle_count += cycles;
                 if in_it_block {
@@ -2581,7 +2573,7 @@ mod tests {
         // act
         let result = core.execute(&instruction);
 
-        assert_eq!(result, ExecuteResult::Taken { cycles: 1 });
+        assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 1 }));
 
         assert_eq!(core.get_r(Reg::R0), 0x29a);
         assert_eq!(core.get_r(Reg::R1), 0x3);
@@ -2615,7 +2607,7 @@ mod tests {
         // act
         let result = core.execute(&instruction);
 
-        assert_eq!(result, ExecuteResult::Taken { cycles: 1 });
+        assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 1 }));
 
         assert_eq!(core.get_r(Reg::R1), 0x20000DD0);
     }
@@ -2692,7 +2684,7 @@ mod tests {
         // act
         let result = core.execute(&instruction);
 
-        assert_eq!(result, ExecuteResult::NotTaken);
+        assert_eq!(result, Ok(ExecuteResult::NotTaken));
     }
 
     #[test]

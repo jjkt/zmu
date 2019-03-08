@@ -6,6 +6,7 @@ use crate::bus::Bus;
 use crate::core::register::BaseReg;
 use crate::core::register::Reg;
 use crate::Processor;
+use crate::core::fault::Fault;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 #[allow(missing_docs)]
@@ -241,14 +242,18 @@ const SYS_EXIT_EXTENDED: u32 = 0x20;
 ///
 /// Decode semihosting command based on register values
 ///
-pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> SemihostingCommand {
-    match r0 {
+pub fn decode_semihostcmd(
+    r0: u32,
+    r1: u32,
+    processor: &mut Processor,
+) -> Result<SemihostingCommand, Fault> {
+    let result = match r0 {
         SYS_OPEN => {
             let argument_block = r1;
 
-            let mut string_ptr = processor.read32(argument_block);
-            let mode = processor.read32(argument_block + 4);
-            let mut filename_len = processor.read32(argument_block + 8);
+            let mut string_ptr = processor.read32(argument_block)?;
+            let mode = processor.read32(argument_block + 4)?;
+            let mut filename_len = processor.read32(argument_block + 8)?;
             let mut string_bytes: Vec<u8> = Vec::new();
 
             while filename_len > 0 {
@@ -264,14 +269,14 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> Semiho
         }
         SYS_CLOSE => {
             let params_ptr = r1;
-            let handle = processor.read32(params_ptr);
+            let handle = processor.read32(params_ptr)?;
             SemihostingCommand::SysClose { handle: handle }
         }
         SYS_WRITE => {
             let params_ptr = r1;
-            let handle = processor.read32(params_ptr);
-            let mut memoryptr = processor.read32(params_ptr + 4);
-            let mut len = processor.read32(params_ptr + 8);
+            let handle = processor.read32(params_ptr)?;
+            let mut memoryptr = processor.read32(params_ptr + 4)?;
+            let mut len = processor.read32(params_ptr + 8)?;
 
             let mut data: Vec<u8> = Vec::new();
 
@@ -288,9 +293,9 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> Semiho
         }
         SYS_READ => {
             let params_ptr = r1;
-            let handle = processor.read32(params_ptr);
-            let memoryptr = processor.read32(params_ptr + 4);
-            let len = processor.read32(params_ptr + 8);
+            let handle = processor.read32(params_ptr)?;
+            let memoryptr = processor.read32(params_ptr + 4)?;
+            let len = processor.read32(params_ptr + 8)?;
 
             SemihostingCommand::SysRead {
                 handle: handle,
@@ -300,20 +305,20 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> Semiho
         }
         SYS_FLEN => {
             let params_ptr = r1;
-            let handle = processor.read32(params_ptr);
+            let handle = processor.read32(params_ptr)?;
 
             SemihostingCommand::SysFlen { handle: handle }
         }
         SYS_ISTTY => {
             let params_ptr = r1;
-            let handle = processor.read32(params_ptr);
+            let handle = processor.read32(params_ptr)?;
 
             SemihostingCommand::SysIstty { handle: handle }
         }
         SYS_SEEK => {
             let params_ptr = r1;
-            let handle = processor.read32(params_ptr);
-            let position = processor.read32(params_ptr + 4);
+            let handle = processor.read32(params_ptr)?;
+            let position = processor.read32(params_ptr + 4)?;
 
             SemihostingCommand::SysSeek {
                 handle: handle,
@@ -324,8 +329,8 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> Semiho
         SYS_ERRNO => SemihostingCommand::SysErrno,
         SYS_EXIT_EXTENDED => {
             let params_ptr = r1;
-            let reason = SysExceptionReason::from_u32(processor.read32(params_ptr));
-            let subcode = processor.read32(params_ptr + 4);
+            let reason = SysExceptionReason::from_u32(processor.read32(params_ptr)?);
+            let subcode = processor.read32(params_ptr + 4)?;
 
             SemihostingCommand::SysExitExtended {
                 reason: reason,
@@ -338,7 +343,8 @@ pub fn decode_semihostcmd(r0: u32, r1: u32, processor: &mut Processor) -> Semiho
         _ => {
             panic!("unknown semihosting command {}", r0);
         }
-    }
+    };
+    Ok(result)
 }
 
 #[allow(unused)]

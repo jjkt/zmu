@@ -5,6 +5,7 @@
 
 use crate::bus::Bus;
 use crate::core::bits::Bits;
+use crate::core::fault::Fault;
 use crate::core::register::{BaseReg, Ipsr, Reg};
 use crate::core::reset::Reset;
 use crate::Processor;
@@ -94,12 +95,12 @@ pub trait ExceptionHandling {
 }
 
 trait ExceptionHandlingHelpers {
-    fn exception_taken(&mut self, exception: Exception);
+    fn exception_taken(&mut self, exception: Exception) -> Result<(), Fault>;
     fn deactivate(&mut self, returning_exception_number: usize);
     fn invalid_exception_return(&mut self, returning_exception_number: usize, exc_return: u32);
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32;
     fn push_stack(&mut self, exception_type: Exception, return_address: u32);
-    fn pop_stack(&mut self, frameptr: u32, exc_return: u32);
+    fn pop_stack(&mut self, frameptr: u32, exc_return: u32) -> Result<(), Fault>;
     fn exception_active_bit_count(&self) -> usize;
 }
 
@@ -151,7 +152,7 @@ pub enum Exception {
 }
 
 impl ExceptionHandlingHelpers for Processor {
-    fn exception_taken(&mut self, exception: Exception) {
+    fn exception_taken(&mut self, exception: Exception) -> Result<(), Fault> {
         self.control.sp_sel = false;
         self.mode = ProcessorMode::HandlerMode;
         self.psr.set_isr_number(exception.into());
@@ -163,9 +164,11 @@ impl ExceptionHandlingHelpers for Processor {
         // InstructionSynchronizationBarrier();
         let vtor = self.vtor;
         let offset: u32 = usize::from(exception) as u32 * 4;
-        let start = self.read32(vtor + offset);
+        let start = self.read32(vtor + offset)?;
         self.blx_write_pc(start);
+        Ok(())
     }
+
     fn deactivate(&mut self, returning_exception_number: usize) {
         self.exceptions
             .get_mut(&returning_exception_number)
@@ -255,7 +258,7 @@ impl ExceptionHandlingHelpers for Processor {
         }
     }
 
-    fn pop_stack(&mut self, frameptr: u32, exc_return: u32) {
+    fn pop_stack(&mut self, frameptr: u32, exc_return: u32) -> Result<(), Fault> {
         //TODO: fp extensions
 
         const FRAME_SIZE: u32 = 0x20;
@@ -263,14 +266,14 @@ impl ExceptionHandlingHelpers for Processor {
         //let forcealign = ccr.stkalign;
         let forcealign = true;
 
-        self.set_r(Reg::R0, self.read32(frameptr));
-        self.set_r(Reg::R1, self.read32(frameptr + 0x4));
-        self.set_r(Reg::R2, self.read32(frameptr + 0x8));
-        self.set_r(Reg::R3, self.read32(frameptr + 0xc));
-        self.set_r(Reg::R12, self.read32(frameptr + 0x10));
-        self.set_r(Reg::LR, self.read32(frameptr + 0x14));
-        let pc = self.read32(frameptr + 0x18);
-        let psr = self.read32(frameptr + 0x1c);
+        self.set_r(Reg::R0, self.read32(frameptr)?);
+        self.set_r(Reg::R1, self.read32(frameptr + 0x4)?);
+        self.set_r(Reg::R2, self.read32(frameptr + 0x8)?);
+        self.set_r(Reg::R3, self.read32(frameptr + 0xc)?);
+        self.set_r(Reg::R12, self.read32(frameptr + 0x10)?);
+        self.set_r(Reg::LR, self.read32(frameptr + 0x14)?);
+        let pc = self.read32(frameptr + 0x18)?;
+        let psr = self.read32(frameptr + 0x1c)?;
 
         self.branch_write_pc(pc);
 
@@ -293,6 +296,7 @@ impl ExceptionHandlingHelpers for Processor {
         self.psr.value.set_bits(0..9, psr.get_bits(0..9));
         self.psr.value.set_bits(10..16, psr.get_bits(10..16));
         self.psr.value.set_bits(24..27, psr.get_bits(24..27));
+        Ok(())
     }
 }
 

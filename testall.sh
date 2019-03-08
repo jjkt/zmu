@@ -56,6 +56,36 @@ echo "----------------------------------------"
 ./target/release/zmu-armv7m run tests/pi/pi-cm4.elf
 #./target/release/zmu run tests/pi/pi-cm4f.elf
 
+
+
+#
+# RustBook examples
+#
+echo ""
+echo "========================================"
+echo "TEST: Rustbook examples, compiled with Rust"
+echo "========================================"
+cd tests/rustbook
+cargo build --example hello
+cargo build --example exception
+cargo build --example itm
+cargo build --example crash
+
+cd ../..
+echo "armv7m->hello"
+echo "----------------------------------------"
+./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/hello
+echo "armv7m->itm"
+echo "----------------------------------------"
+timeout 1s ./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
+echo "armv7m->exception"
+echo "----------------------------------------"
+timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception
+echo "armv7m->crash"
+echo "----------------------------------------"
+timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/crash
+
+
 #
 # coremark
 # 
@@ -72,29 +102,6 @@ echo "----------------------------------------"
 echo "armv7m->cm4"
 echo "----------------------------------------"
 ./target/release/zmu-armv7m run tests/coremark/coremark-iar-cm4.elf
-
-
-#
-# rust hello world
-#
-echo ""
-echo "========================================"
-echo "TEST: Rustbook examples, compiled with Rust"
-echo "========================================"
-cd tests/rustbook
-cargo build --example hello
-cargo build --example exception
-cargo build --example itm
-cd ../..
-echo "armv7m->hello"
-echo "----------------------------------------"
-./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/hello
-echo "armv7m->itm"
-echo "----------------------------------------"
-timeout 1s ./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
-echo "armv7m->exception"
-echo "----------------------------------------"
-timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception
 
 echo ""
 echo "all done"

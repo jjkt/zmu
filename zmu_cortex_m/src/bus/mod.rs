@@ -9,6 +9,7 @@ use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
+use crate::core::fault::Fault;
 
 ///
 /// Trait for reading and writing via a memory bus.
@@ -16,7 +17,7 @@ use crate::peripheral::systick::SysTick;
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.
     ///
-    fn read32(&self, addr: u32) -> u32;
+    fn read32(&self, addr: u32) -> Result<u32, Fault>;
 
     /// Reads a 16 bit value via the bus from the given address.
     ///
@@ -79,8 +80,8 @@ impl Bus for Processor {
         }
     }
 
-    fn read32(&self, addr: u32) -> u32 {
-        match addr {
+    fn read32(&self, addr: u32) -> Result<u32, Fault> {
+        let result = match addr {
             0xE000_0000 => self.read_stim0(),
 
             0xE000_1004 => self.dwt_cyccnt,
@@ -125,14 +126,16 @@ impl Bus for Processor {
             0xE000_1000 => self.dwt_ctrl,
             _ => {
                 if self.code.in_range(addr) {
-                    self.code.read32(addr)
+                    self.code.read32(addr)?
                 } else if self.sram.in_range(addr) {
-                    self.sram.read32(addr)
+                    self.sram.read32(addr)?
                 } else {
-                    panic!("bus access fault read32 addr 0x{:x}", addr);
+                    //panic!("bus access fault read32 addr 0x{:x}", addr);
+                    return Err(Fault::DAccViol);
                 }
             }
-        }
+        };
+        Ok(result)
         /*
         FIXME: LDR{S}H{T}, STRH{T} support non-halfword aligned access.
         FIXME: TBH support non-hw aligned access

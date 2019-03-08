@@ -4,6 +4,7 @@
 //!
 
 use crate::bus::Bus;
+use crate::core::fault::Fault;
 use byteorder::{ByteOrder, LittleEndian};
 
 #[derive(Debug)]
@@ -37,9 +38,9 @@ impl Bus for FlashMemory {
         LittleEndian::read_u16(&self.data[a..a + 2])
     }
 
-    fn read32(&self, addr: u32) -> u32 {
+    fn read32(&self, addr: u32) -> Result<u32, Fault> {
         let a = (addr - self.start_address) as usize;
-        LittleEndian::read_u32(&self.data[a..a + 4])
+        Ok(LittleEndian::read_u32(&self.data[a..a + 4]))
     }
 
     fn write32(&mut self, addr: u32, value: u32) {

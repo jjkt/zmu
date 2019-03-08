@@ -11,57 +11,42 @@ pub enum Fault {
     ///
     /// Bus error happened while reading the vector table entry
     ///
-    VectorReadError,
+    VectorTable,
     ///
-    /// SVCall while handler group priority is <= excecution group priority
+    /// 
     ///
-    FaultEscalation,
+    Forced,
     ///
-    /// Bus error while saving context in hardware
+    /// 
     ///
-    MemoryFaultOnStackEntry,
+    IAccViol,
     ///
-    /// Bus error while restoring context in hardware
+    /// 
     ///
-    MemoryFaultOnStackReturn,
+    DAccViol,
     ///
-    /// Bus error on instruction fetch or attempt to execute from XN memory
+    /// 
     ///
-    MemoryFaultOnInstructionAccess,
+    Mstkerr,
     ///
-    /// Precise error on explicit memory access
+    /// 
     ///
-    PreciseDataAccess,
+    Msunskerr,
     ///
-    /// Imprecise error on explicit memory access
+    /// 
     ///
-    ImpreciseDataAccess,
+    Stkerr,
     ///
     /// Unknown instruction was tried to be executed.
     ///
-    UndefinedInstruction,
+    UndefInstr,
     ///
-    /// Attempt to execute instruction when ESPR.T == 0
+    Invstate,
     ///
-    InvalidThumbState,
+    InvPc,
     ///
-    /// Any load-store instruction tried to access non-aligned location
-    ///
-    UnalignedLoadStore,
-    ///
-    /// Permission fault, mem access not matching all access conditions of region address match.
-    ///
-    MPUIllegalMemoryAccess,
-    ///
-    /// Attempt to execute illegal instruction from XN memory
-    ///
-    MPUIllegalInstructionXN,
-    ///
-    /// PPB access is not permitted.
-    ///
-    PPBUnprivilegedAccess,
-
+    Unaligned,
     ///
     /// 
-    DivideByZero,
+    DivByZero,
 }
