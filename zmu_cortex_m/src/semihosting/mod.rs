@@ -257,7 +257,7 @@ pub fn decode_semihostcmd(
             let mut string_bytes: Vec<u8> = Vec::new();
 
             while filename_len > 0 {
-                string_bytes.push(processor.read8(string_ptr));
+                string_bytes.push(processor.read8(string_ptr)?);
                 string_ptr += 1;
                 filename_len -= 1;
             }
@@ -282,7 +282,7 @@ pub fn decode_semihostcmd(
 
             // :tt console output
             while len > 0 {
-                data.push(processor.read8(memoryptr));
+                data.push(processor.read8(memoryptr)?);
                 memoryptr += 1;
                 len -= 1;
             }

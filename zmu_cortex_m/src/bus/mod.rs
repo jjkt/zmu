@@ -25,7 +25,7 @@ pub trait Bus {
 
     /// Reads a 8 bit value via the bus from the given address.
     ///
-    fn read8(&self, addr: u32) -> u8;
+    fn read8(&self, addr: u32) -> Result<u8, Fault>;
 
     /// Writes a 32 bit value to the bus targeting the given address.
     ///
@@ -51,14 +51,13 @@ const SYSTEM_REGION_END: u32 = 0xF000_0000 - 1;
 */
 
 impl Bus for Processor {
-    fn read8(&self, addr: u32) -> u8 {
+    fn read8(&self, addr: u32) -> Result<u8, Fault> {
         if self.code.in_range(addr) {
-            self.code.read8(addr)
+            return self.code.read8(addr);
         } else if self.sram.in_range(addr) {
-            self.sram.read8(addr)
-        } else {
-            panic!("bus access fault read8 addr 0x{:x}", addr);
+            return self.sram.read8(addr);
         }
+        Err(Fault::DAccViol)
     }
 
     fn read16(&self, addr: u32) -> Result<u16, Fault> {

@@ -36,9 +36,9 @@ impl RAM {
 }
 
 impl Bus for RAM {
-    fn read8(&self, addr: u32) -> u8 {
+    fn read8(&self, addr: u32) -> Result<u8, Fault> {
         let a = addr - self.start_address;
-        self.data[a as usize]
+        Ok(self.data[a as usize])
     }
 
     fn read16(&self, addr: u32) -> Result<u16, Fault> {
