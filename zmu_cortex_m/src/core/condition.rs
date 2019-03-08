@@ -68,7 +68,7 @@ impl Condition {
     ///
     /// bitvalue conversion to Condition
     ///
-    pub fn from_u16(n: u16) -> Option<Condition> {
+    pub fn from_u16(n: u16) -> Option<Self> {
         match n {
             0 => Some(Condition::EQ),
             1 => Some(Condition::NE),

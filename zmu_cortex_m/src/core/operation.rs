@@ -225,9 +225,9 @@ fn rrx_c(value: u32, carry_in: bool) -> (u32, bool) {
 ///
 /// Parameters:
 /// - value is the number on which to apply the shifting on
-/// - shift_t selects the shift type to use
-/// - amount declares number of bits to shift and
-/// - carry_in gives the input carry bit. Carry in is only used for RRX type shifting.
+/// - ```shift_t``` selects the shift type to use
+/// - ```amount``` declares number of bits to shift and
+/// - ```carry_in``` gives the input carry bit. Carry in is only used for RRX type shifting.
 ///
 /// Returns:
 /// - shifted value

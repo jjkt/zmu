@@ -891,11 +891,11 @@ fn format_adressing_mode(
     thumb32: bool,
 ) -> fmt::Result {
     if index {
-        if !wback {
-            // Offset
+        if wback {
+            // Pre-indexed
             write!(
                 f,
-                "{}{} {}, [{} {{, #{}{}}}]",
+                "{}{} {}, [{} , #{}{}]!",
                 name,
                 if thumb32 { ".W" } else { "" },
                 rt,
@@ -904,10 +904,10 @@ fn format_adressing_mode(
                 imm32
             )
         } else {
-            // Pre-indexed
+            // Offset
             write!(
                 f,
-                "{}{} {}, [{} , #{}{}]!",
+                "{}{} {}, [{} {{, #{}{}}}]",
                 name,
                 if thumb32 { ".W" } else { "" },
                 rt,
@@ -945,11 +945,11 @@ fn format_adressing_mode2(
     thumb32: bool,
 ) -> fmt::Result {
     if index {
-        if !wback {
-            // Offset
+        if wback {
+            // Pre-indexed
             write!(
                 f,
-                "{}{} {}, {}, [{} {{, #{}{}}}]",
+                "{}{} {}, {}, [{} , #{}{}]!",
                 name,
                 if thumb32 { ".W" } else { "" },
                 rt,
@@ -959,10 +959,10 @@ fn format_adressing_mode2(
                 imm32
             )
         } else {
-            // Pre-indexed
+            // Offset
             write!(
                 f,
-                "{}{} {}, {}, [{} , #{}{}]!",
+                "{}{} {}, {}, [{} {{, #{}{}}}]",
                 name,
                 if thumb32 { ".W" } else { "" },
                 rt,
@@ -991,8 +991,7 @@ fn format_adressing_mode2(
 fn setflags_to_str(setflags: SetFlags) -> &'static str {
     match setflags {
         SetFlags::True => "s",
-        SetFlags::False => "",
-        SetFlags::NotInITBlock => "",
+        SetFlags::False | SetFlags::NotInITBlock => "",
     }
 }
 

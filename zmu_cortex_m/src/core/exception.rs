@@ -27,7 +27,7 @@ impl ExceptionState {
     /// Create a state information for specific exception with given priority
     ///
     pub fn new(exception: Exception, priority: i16) -> Self {
-        ExceptionState {
+        Self {
             exception: usize::from(exception),
             priority,
             pending: false,
@@ -204,16 +204,16 @@ impl ExceptionHandlingHelpers for Processor {
     }
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32 {
         match exception_type {
-            Exception::NMI => return_address,
-            Exception::HardFault => return_address,
-            Exception::MemoryManagementFault => return_address,
-            Exception::BusFault => return_address,
+            Exception::NMI
+            | Exception::HardFault
+            | Exception::MemoryManagementFault
+            | Exception::BusFault
+            | Exception::SVCall
+            | Exception::DebugMonitor
+            | Exception::PendSV
+            | Exception::SysTick
+            | Exception::Interrupt { .. } => return_address,
             Exception::UsageFault => return_address - 4,
-            Exception::SVCall => return_address,
-            Exception::DebugMonitor => return_address,
-            Exception::PendSV => return_address,
-            Exception::SysTick => return_address,
-            Exception::Interrupt { .. } => return_address,
             _ => panic!("unsupported exception"),
         }
     }
@@ -259,10 +259,10 @@ impl ExceptionHandlingHelpers for Processor {
 
         if self.mode == ProcessorMode::HandlerMode {
             self.lr = 0xFFFF_FFF1;
-        } else if !self.control.sp_sel {
-            self.lr = 0xFFFF_FFF9;
-        } else {
+        } else if self.control.sp_sel {
             self.lr = 0xFFFF_FFFD;
+        } else {
+            self.lr = 0xFFFF_FFF9;
         }
         Ok(())
     }
@@ -409,9 +409,7 @@ impl ExceptionHandling for Processor {
         let returning_exception_number = self.psr.get_isr_number();
         let nested_activation = self.exception_active_bit_count();
 
-        if !self.exceptions[&returning_exception_number].active {
-            self.invalid_exception_return(returning_exception_number, exc_return)
-        } else {
+        if self.exceptions[&returning_exception_number].active {
             let frameptr;
             match exc_return.get_bits(0..4) {
                 0b0001 => {
@@ -474,6 +472,8 @@ impl ExceptionHandling for Processor {
                 self.sleep_on_exit();
             }*/
             Ok(())
+        } else {
+            self.invalid_exception_return(returning_exception_number, exc_return)
         }
     }
 }

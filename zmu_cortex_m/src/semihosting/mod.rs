@@ -36,7 +36,7 @@ impl SysExceptionReason {
     ///
     /// Convert reason code to reason enum value
     ///
-    pub fn from_u32(reason: u32) -> SysExceptionReason {
+    pub fn from_u32(reason: u32) -> Self {
         match reason {
             0x20000 => SysExceptionReason::ADPStoppedBranchThroughZero,
             0x20001 => SysExceptionReason::ADPStoppedUndefinedInstr,
@@ -365,24 +365,13 @@ pub fn semihost_return(processor: &mut Processor, response: &SemihostingResponse
             Ok(response) => processor.set_r(Reg::R0, response),
             Err(error_code) => processor.set_r(Reg::R0, error_code as u32),
         },
-        SemihostingResponse::SysException { success, stop } => {
+        SemihostingResponse::SysException { success, stop }
+        | SemihostingResponse::SysExitExtended { success, stop } => {
             if success {
                 processor.running = !stop
             }
         }
-        SemihostingResponse::SysExitExtended { success, stop } => {
-            if success {
-                processor.running = !stop
-            }
-        }
-        SemihostingResponse::SysClose { success } => {
-            if success {
-                processor.set_r(Reg::R0, 0);
-            } else {
-                processor.set_r(Reg::R0, (-1_i32) as u32);
-            }
-        }
-        SemihostingResponse::SysSeek { success } => {
+        SemihostingResponse::SysClose { success } | SemihostingResponse::SysSeek { success } => {
             if success {
                 processor.set_r(Reg::R0, 0);
             } else {

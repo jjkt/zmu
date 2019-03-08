@@ -560,7 +560,7 @@ impl CLike for Reg {
         *self as u32
     }
 
-    unsafe fn from_u32(v: u32) -> Reg {
+    unsafe fn from_u32(v: u32) -> Self {
         mem::transmute(v)
     }
 }
@@ -589,7 +589,7 @@ impl Reg {
     }
 
     /// convert numeric representation to register
-    pub fn from_u16(n: u16) -> Option<Reg> {
+    pub fn from_u16(n: u16) -> Option<Self> {
         match n {
             0 => Some(Reg::R0),
             1 => Some(Reg::R1),
@@ -732,7 +732,7 @@ impl From<Reg> for usize {
 
 impl SpecialReg {
     /// decode 16 bit value to Special Register designator
-    pub fn from_u16(n: u16) -> Option<SpecialReg> {
+    pub fn from_u16(n: u16) -> Option<Self> {
         match n {
             0 => Some(SpecialReg::APSR),
             1 => Some(SpecialReg::IAPSR),
@@ -822,6 +822,6 @@ pub struct Control {
 
 impl From<Control> for u8 {
     fn from(control: Control) -> Self {
-        control.n_priv as u8 + ((control.sp_sel as u8) << 1)
+        control.n_priv as Self + ((control.sp_sel as Self) << 1)
     }
 }

@@ -4,6 +4,19 @@
 //!
 #![deny(missing_docs)]
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![allow(clippy::stutter)]
+#![allow(clippy::pub_enum_variant_names)]
+#![allow(clippy::inline_always)]
+// TODO: check these case by case, add unit tests
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+// TODO: check these case by case, there might be need to add more error handling
+#![allow(clippy::match_same_arms)]
+// TODO check if some filtering can be simplified
+#![allow(clippy::filter_map)]
 
 extern crate byteorder;
 extern crate enum_set;
@@ -233,8 +246,8 @@ impl Processor {
         itm_file: Option<Box<io::Write + 'static>>,
         code: &[u8],
         semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
-    ) -> Processor {
-        Processor {
+    ) -> Self {
+        Self {
             mode: ProcessorMode::ThreadMode,
             vtor: 0,
             psr: PSR { value: 0 },

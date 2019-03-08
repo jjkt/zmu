@@ -16,11 +16,11 @@ pub struct FlashMemory {
 
 impl FlashMemory {
     /// make a flash data instance with given start address, size and data content
-    pub fn new(start_address: u32, size: usize, new_data: &[u8]) -> FlashMemory {
-        let mut data = vec![0u8; size].into_boxed_slice();
+    pub fn new(start_address: u32, size: usize, new_data: &[u8]) -> Self {
+        let mut data = vec![0_u8; size].into_boxed_slice();
         data.copy_from_slice(new_data);
 
-        FlashMemory {
+        Self {
             start_address: start_address,
             data: data,
         }

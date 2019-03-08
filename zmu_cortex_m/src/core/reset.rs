@@ -20,7 +20,7 @@ pub trait Reset {
 impl Reset for Processor {
     fn reset(&mut self) -> Result<(), Fault> {
         // All basic registers to zero.
-        for r in self.r0_12.iter_mut() {
+        for r in &mut self.r0_12 {
             *r = 0;
         }
 

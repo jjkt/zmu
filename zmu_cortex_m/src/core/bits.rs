@@ -62,7 +62,7 @@ impl Bits for u32 {
 
 impl Bits for u64 {
     #[inline(always)]
-    fn get_bits(&self, range: Range<usize>) -> u64 {
+    fn get_bits(&self, range: Range<usize>) -> Self {
         let bits = *self << (64 - range.end) >> (64 - range.end);
         bits >> range.start
     }
@@ -85,7 +85,7 @@ impl Bits for u64 {
 
 impl Bits for u16 {
     #[inline(always)]
-    fn get_bits(&self, range: Range<usize>) -> u16 {
+    fn get_bits(&self, range: Range<usize>) -> Self {
         let bits = *self << (16 - range.end) >> (16 - range.end);
         bits >> range.start
     }
@@ -109,7 +109,7 @@ impl Bits for u16 {
 
 impl Bits for u8 {
     #[inline(always)]
-    fn get_bits(&self, range: Range<usize>) -> u8 {
+    fn get_bits(&self, range: Range<usize>) -> Self {
         let bits = *self << (8 - range.end) >> (8 - range.end);
         bits >> range.start
     }

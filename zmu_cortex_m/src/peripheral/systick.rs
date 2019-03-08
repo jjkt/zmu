@@ -1,5 +1,5 @@
 //!
-//! Cortex SysTick Simulation
+//! Cortex System Tick Simulation
 //!
 
 use crate::core::exception::Exception;
@@ -7,7 +7,7 @@ use crate::core::exception::ExceptionHandling;
 use crate::Processor;
 
 ///
-/// Register API for SysTick peripheral
+/// Register API for ```SysTick``` peripheral
 ///
 pub trait SysTick {
     ///

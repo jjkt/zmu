@@ -106,14 +106,14 @@ impl ExecutorHelper for Processor {
     fn condition_passed(&mut self) -> bool {
         let itstate = self.itstate;
 
-        if itstate != 0 {
+        if itstate == 0 {
+            true
+        } else {
             let cond = u16::from(itstate.get_bits(4..8));
             condition_test(
                 Condition::from_u16(cond).unwrap_or(Condition::AL),
                 &self.psr,
             )
-        } else {
-            true
         }
     }
 
@@ -323,19 +323,7 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::DMB => {
-                if self.condition_passed() {
-                    return Ok(ExecuteResult::Taken { cycles: 4 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::DSB => {
-                if self.condition_passed() {
-                    return Ok(ExecuteResult::Taken { cycles: 4 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::ISB => {
+            Instruction::DMB | Instruction::DSB | Instruction::ISB => {
                 if self.condition_passed() {
                     return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
@@ -413,16 +401,16 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let result = self.get_r(*rm);
 
-                    if *rd != Reg::PC {
+                    if *rd == Reg::PC {
+                        self.branch_write_pc(result);
+                        return Ok(ExecuteResult::Branched { cycles: 3 });
+                    } else {
                         self.set_r(*rd, result);
                         if *setflags {
                             self.psr.set_n(result);
                             self.psr.set_z(result);
                         }
                         return Ok(ExecuteResult::Taken { cycles: 1 });
-                    } else {
-                        self.branch_write_pc(result);
-                        return Ok(ExecuteResult::Branched { cycles: 3 });
                     }
                 }
 
@@ -1894,8 +1882,7 @@ impl ExecutorHelper for Processor {
                     let r_n = self.get_r(*rn);
                     let r_m = self.get_r(*rm);
 
-                    let (shifted, carry) =
-                        shift_c(r_m, *shift_t, *shift_n as usize, self.psr.get_c());
+                    let shifted = shift(r_m, *shift_t, *shift_n as usize, self.psr.get_c());
                     let (result, carry, overflow) =
                         add_with_carry(r_n ^ 0xFFFF_FFFF, shifted, true);
 
@@ -2251,23 +2238,9 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::WFE { .. } => {
+            Instruction::WFE { .. } | Instruction::WFI { .. } | Instruction::YIELD { .. } => {
                 if self.condition_passed() {
                     //TODO
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::WFI { .. } => {
-                if self.condition_passed() {
-                    //TODO
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::YIELD { .. } => {
-                if self.condition_passed() {
-                    println!("YIELD");
                     return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
                 Ok(ExecuteResult::NotTaken)

@@ -16,19 +16,19 @@ pub struct RAM {
 
 impl RAM {
     /// Create RAM memory data struct with configurable start address and size
-    pub fn new(start_address: u32, size: usize) -> RAM {
-        let data = vec![0u8; size].into_boxed_slice();
+    pub fn new(start_address: u32, size: usize) -> Self {
+        let data = vec![0_u8; size].into_boxed_slice();
 
-        RAM {
+        Self {
             start_address: start_address,
             data: data,
         }
     }
     ///
-    pub fn new_with_fill(start_address: u32, size: usize, fill: u8) -> RAM {
+    pub fn new_with_fill(start_address: u32, size: usize, fill: u8) -> Self {
         let data = vec![fill; size].into_boxed_slice();
 
-        RAM {
+        Self {
             start_address: start_address,
             data: data,
         }

@@ -52,19 +52,19 @@ const SYSTEM_REGION_END: u32 = 0xF000_0000 - 1;
 
 impl Bus for Processor {
     fn read8(&self, addr: u32) -> Result<u8, Fault> {
-        if self.code.in_range(addr) {
-            return self.code.read8(addr);
-        } else if self.sram.in_range(addr) {
+        if self.sram.in_range(addr) {
             return self.sram.read8(addr);
+        } else if self.code.in_range(addr) {
+            return self.code.read8(addr);
         }
         Err(Fault::DAccViol)
     }
 
     fn read16(&self, addr: u32) -> Result<u16, Fault> {
-        if self.code.in_range(addr) {
-            return self.code.read16(addr);
-        } else if self.sram.in_range(addr) {
+        if self.sram.in_range(addr) {
             return self.sram.read16(addr);
+        } else if self.code.in_range(addr) {
+            return self.code.read16(addr);
         }
         Err(Fault::DAccViol)
     }
@@ -114,25 +114,16 @@ impl Bus for Processor {
             // DWT
             0xE000_1000 => self.dwt_ctrl,
             _ => {
-                if self.code.in_range(addr) {
-                    self.code.read32(addr)?
-                } else if self.sram.in_range(addr) {
+                if self.sram.in_range(addr) {
                     self.sram.read32(addr)?
+                } else if self.code.in_range(addr) {
+                    self.code.read32(addr)?
                 } else {
-                    //panic!("bus access fault read32 addr 0x{:x}", addr);
                     return Err(Fault::DAccViol);
                 }
             }
         };
         Ok(result)
-        /*
-        FIXME: LDR{S}H{T}, STRH{T} support non-halfword aligned access.
-        FIXME: TBH support non-hw aligned access
-        FIXME: LDR{T}, STR{T} support non-hw aligned access
-        if addr & 3 != 0 {
-            panic!("unaliged read32 addr 0x{:x}", addr);
-        }
-        */
     }
 
     fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault> {
@@ -164,10 +155,10 @@ impl Bus for Processor {
                 self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value)
             }
             _ => {
-                if self.code.in_range(addr) {
-                    return self.code.write32(addr, value);
-                } else if self.sram.in_range(addr) {
+                if self.sram.in_range(addr) {
                     return self.sram.write32(addr, value);
+                } else if self.code.in_range(addr) {
+                    return self.code.write32(addr, value);
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -182,10 +173,10 @@ impl Bus for Processor {
                 self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value)
             }
             _ => {
-                if self.code.in_range(addr) {
-                    return self.code.write16(addr, value);
-                } else if self.sram.in_range(addr) {
+                if self.sram.in_range(addr) {
                     return self.sram.write16(addr, value);
+                } else if self.code.in_range(addr) {
+                    return self.code.write16(addr, value);
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -205,10 +196,10 @@ impl Bus for Processor {
             0xE000_ED20..=0xE000_ED23 => self.write_shpr3_u8((addr - 0xE000_ED20) as u8, value),
 
             _ => {
-                if self.code.in_range(addr) {
-                    return self.code.write8(addr, value);
-                } else if self.sram.in_range(addr) {
+                if self.sram.in_range(addr) {
                     return self.sram.write8(addr, value);
+                } else if self.code.in_range(addr) {
+                    return self.code.write8(addr, value);
                 } else {
                     return Err(Fault::DAccViol);
                 }
