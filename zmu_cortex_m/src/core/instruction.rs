@@ -878,6 +878,7 @@ impl fmt::Display for CpsEffect {
 
 use std::fmt;
 
+#[allow(clippy::too_many_arguments)]
 fn format_adressing_mode(
     name: &str,
     f: &mut fmt::Formatter,
@@ -930,6 +931,7 @@ fn format_adressing_mode(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn format_adressing_mode2(
     name: &str,
     f: &mut fmt::Formatter,

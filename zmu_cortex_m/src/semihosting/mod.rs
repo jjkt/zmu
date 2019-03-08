@@ -3,10 +3,10 @@
 //!
 
 use crate::bus::Bus;
+use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::register::Reg;
 use crate::Processor;
-use crate::core::fault::Fault;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 #[allow(missing_docs)]

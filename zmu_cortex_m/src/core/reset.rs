@@ -4,8 +4,8 @@
 
 use crate::bus::Bus;
 use crate::core::exception::ExceptionHandling;
-use crate::core::register::{BaseReg, PSR};
 use crate::core::fault::Fault;
+use crate::core::register::{BaseReg, PSR};
 use crate::Processor;
 use crate::ProcessorMode;
 

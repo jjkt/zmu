@@ -29,15 +29,15 @@ pub trait Bus {
 
     /// Writes a 32 bit value to the bus targeting the given address.
     ///
-    fn write32(&mut self, addr: u32, value: u32);
+    fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault>;
 
     /// Writes a 16 bit value to the bus targeting the given address.
     ///
-    fn write16(&mut self, addr: u32, value: u16);
+    fn write16(&mut self, addr: u32, value: u16) -> Result<(), Fault>;
 
     /// Writes a 8 bit value to the bus targeting the given address.
     ///
-    fn write8(&mut self, addr: u32, value: u8);
+    fn write8(&mut self, addr: u32, value: u8) -> Result<(), Fault>;
 
     /// Checks if given address can be reached via the bus.
     ///
@@ -135,7 +135,7 @@ impl Bus for Processor {
         */
     }
 
-    fn write32(&mut self, addr: u32, value: u32) {
+    fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault> {
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u32(((addr - 0xE000_0000) >> 2) as u8, value)
@@ -165,34 +165,36 @@ impl Bus for Processor {
             }
             _ => {
                 if self.code.in_range(addr) {
-                    self.code.write32(addr, value);
+                    return self.code.write32(addr, value);
                 } else if self.sram.in_range(addr) {
-                    self.sram.write32(addr, value);
+                    return self.sram.write32(addr, value);
                 } else {
-                    panic!("bus access fault write addr 0x{:x}", addr);
+                    return Err(Fault::DAccViol);
                 }
             }
         }
+        Ok(())
     }
 
-    fn write16(&mut self, addr: u32, value: u16) {
+    fn write16(&mut self, addr: u32, value: u16) -> Result<(), Fault> {
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value)
             }
             _ => {
                 if self.code.in_range(addr) {
-                    self.code.write16(addr, value);
+                    return self.code.write16(addr, value);
                 } else if self.sram.in_range(addr) {
-                    self.sram.write16(addr, value);
+                    return self.sram.write16(addr, value);
                 } else {
-                    panic!("bus access fault write addr 0x{:x}", addr);
+                    return Err(Fault::DAccViol);
                 }
             }
         }
+        Ok(())
     }
 
-    fn write8(&mut self, addr: u32, value: u8) {
+    fn write8(&mut self, addr: u32, value: u8) -> Result<(), Fault> {
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value)
@@ -204,14 +206,15 @@ impl Bus for Processor {
 
             _ => {
                 if self.code.in_range(addr) {
-                    self.code.write8(addr, value);
+                    return self.code.write8(addr, value);
                 } else if self.sram.in_range(addr) {
-                    self.sram.write8(addr, value);
+                    return self.sram.write8(addr, value);
                 } else {
-                    panic!("bus access fault write addr 0x{:x}", addr);
+                    return Err(Fault::DAccViol);
                 }
             }
         }
+        Ok(())
     }
 
     #[allow(unused)]

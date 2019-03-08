@@ -43,7 +43,7 @@ pub fn simulate(
 ) -> u64 {
     let mut processor = Processor::new(itm_file, code, semihost_func);
     let mut count = 0;
-    processor.reset();
+    processor.reset().unwrap();
 
     let mut instruction_cache = Vec::new();
     // pre-cache the decoded instructions
@@ -59,7 +59,7 @@ pub fn simulate(
         }
     }
 
-    processor.reset();
+    processor.reset().unwrap();
 
     while processor.running {
         let pc = processor.get_pc();
@@ -85,7 +85,7 @@ where
 {
     let mut processor = Processor::new(itm_file, code, semihost_func);
     let mut count = 0;
-    processor.reset();
+    processor.reset().unwrap();
 
     let mut instruction_cache = Vec::new();
     // pre-cache the decoded instructions
@@ -102,7 +102,7 @@ where
         }
     }
 
-    processor.reset();
+    processor.reset().unwrap();
 
     while processor.running {
         let pc = processor.get_pc();

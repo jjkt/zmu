@@ -43,23 +43,15 @@ impl Bus for FlashMemory {
         Ok(LittleEndian::read_u32(&self.data[a..a + 4]))
     }
 
-    fn write32(&mut self, addr: u32, value: u32) {
-        panic!(
-            "trying to write to flash memory add 0x{:x} = 0x{}",
-            addr, value
-        );
+    fn write32(&mut self, _addr: u32, _value: u32) -> Result<(), Fault> {
+        Err(Fault::DAccViol)
     }
-    fn write16(&mut self, addr: u32, value: u16) {
-        panic!(
-            "trying to write to flash memory add 0x{:x} = 0x{}",
-            addr, value
-        );
+
+    fn write16(&mut self, _addr: u32, _value: u16) -> Result<(), Fault> {
+        Err(Fault::DAccViol)
     }
-    fn write8(&mut self, addr: u32, value: u8) {
-        panic!(
-            "trying to write to flash memory add 0x{:x} = 0x{}",
-            addr, value
-        );
+    fn write8(&mut self, _addr: u32, _value: u8) -> Result<(), Fault> {
+        Err(Fault::DAccViol)
     }
 
     fn in_range(&self, addr: u32) -> bool {
@@ -80,9 +72,12 @@ fn test_new() {
 #[test]
 fn test_load() {
     let mem = FlashMemory::new(0, 1024, &vec![42u8; 1024]);
-    assert_eq!(mem.read8(0), 42);
-    assert_eq!(mem.read16(0), (42 << 8) + 42);
-    assert_eq!(mem.read32(0), (42 << 24) + (42 << 16) + (42 << 8) + 42);
+    assert_eq!(mem.read8(0).unwrap(), 42);
+    assert_eq!(mem.read16(0).unwrap(), (42 << 8) + 42);
+    assert_eq!(
+        mem.read32(0).unwrap(),
+        (42 << 24) + (42 << 16) + (42 << 8) + 42
+    );
 }
 
 #[test]

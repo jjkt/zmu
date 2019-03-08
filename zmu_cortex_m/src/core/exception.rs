@@ -66,7 +66,7 @@ pub trait ExceptionHandling {
     ///
     /// Return adress is the address to which the execution should return when this exception is returned from.
     ///
-    fn exception_entry(&mut self, exception: Exception, return_address: u32);
+    fn exception_entry(&mut self, exception: Exception, return_address: u32) -> Result<(), Fault>;
 
     ///
     /// Return from an exception.
@@ -76,7 +76,7 @@ pub trait ExceptionHandling {
     /// Exception return happens when processor is in HandlerMode and exc_return value is loaded to PC using
     /// LDM, POP, LDR, or BX instructions
     ///
-    fn exception_return(&mut self, exc_return: u32);
+    fn exception_return(&mut self, exc_return: u32) -> Result<(), Fault>;
 
     ///
     /// Check if given exception is currently active
@@ -97,9 +97,13 @@ pub trait ExceptionHandling {
 trait ExceptionHandlingHelpers {
     fn exception_taken(&mut self, exception: Exception) -> Result<(), Fault>;
     fn deactivate(&mut self, returning_exception_number: usize);
-    fn invalid_exception_return(&mut self, returning_exception_number: usize, exc_return: u32);
+    fn invalid_exception_return(
+        &mut self,
+        returning_exception_number: usize,
+        exc_return: u32,
+    ) -> Result<(), Fault>;
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32;
-    fn push_stack(&mut self, exception_type: Exception, return_address: u32);
+    fn push_stack(&mut self, exception_type: Exception, return_address: u32) -> Result<(), Fault>;
     fn pop_stack(&mut self, frameptr: u32, exc_return: u32) -> Result<(), Fault>;
     fn exception_active_bit_count(&self) -> usize;
 }
@@ -181,11 +185,15 @@ impl ExceptionHandlingHelpers for Processor {
         self.execution_priority = self.get_execution_priority();
     }
 
-    fn invalid_exception_return(&mut self, returning_exception_number: usize, exc_return: u32) {
+    fn invalid_exception_return(
+        &mut self,
+        returning_exception_number: usize,
+        exc_return: u32,
+    ) -> Result<(), Fault> {
         self.deactivate(returning_exception_number);
         //ufsr.invpc = true;
         self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-        self.exception_taken(Exception::UsageFault);
+        self.exception_taken(Exception::UsageFault)
     }
 
     fn exception_active_bit_count(&self) -> usize {
@@ -209,7 +217,7 @@ impl ExceptionHandlingHelpers for Processor {
             _ => panic!("unsupported exception"),
         }
     }
-    fn push_stack(&mut self, exception_type: Exception, return_address: u32) {
+    fn push_stack(&mut self, exception_type: Exception, return_address: u32) -> Result<(), Fault> {
         const FRAME_SIZE: u32 = 0x20;
 
         //TODO FP extensions
@@ -238,16 +246,16 @@ impl ExceptionHandlingHelpers for Processor {
 
         let ret_addr = self.return_address(exception_type, return_address);
 
-        self.write32(frameptr, r0);
-        self.write32(frameptr + 0x4, r1);
-        self.write32(frameptr + 0x8, r2);
-        self.write32(frameptr + 0xc, r3);
-        self.write32(frameptr + 0x10, r12);
-        self.write32(frameptr + 0x14, lr);
-        self.write32(frameptr + 0x18, ret_addr);
+        self.write32(frameptr, r0)?;
+        self.write32(frameptr + 0x4, r1)?;
+        self.write32(frameptr + 0x8, r2)?;
+        self.write32(frameptr + 0xc, r3)?;
+        self.write32(frameptr + 0x10, r12)?;
+        self.write32(frameptr + 0x14, lr)?;
+        self.write32(frameptr + 0x18, ret_addr)?;
         let xpsr = (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111)
             | (frameptralign << 9) as u32;
-        self.write32(frameptr + 0x1c, xpsr);
+        self.write32(frameptr + 0x1c, xpsr)?;
 
         if self.mode == ProcessorMode::HandlerMode {
             self.lr = 0xFFFF_FFF1;
@@ -256,6 +264,7 @@ impl ExceptionHandlingHelpers for Processor {
         } else {
             self.lr = 0xFFFF_FFFD;
         }
+        Ok(())
     }
 
     fn pop_stack(&mut self, frameptr: u32, exc_return: u32) -> Result<(), Fault> {
@@ -385,24 +394,23 @@ impl ExceptionHandling for Processor {
         }
     }
 
-    fn exception_entry(&mut self, exception: Exception, return_address: u32) {
+    fn exception_entry(&mut self, exception: Exception, return_address: u32) -> Result<(), Fault> {
         if exception == Exception::Reset {
-            self.reset();
+            self.reset()
         } else {
-            self.push_stack(exception, return_address);
-            self.exception_taken(exception);
+            self.push_stack(exception, return_address)?;
+            self.exception_taken(exception)
         }
     }
 
-    fn exception_return(&mut self, exc_return: u32) {
+    fn exception_return(&mut self, exc_return: u32) -> Result<(), Fault> {
         assert!(self.mode == ProcessorMode::HandlerMode);
 
         let returning_exception_number = self.psr.get_isr_number();
         let nested_activation = self.exception_active_bit_count();
 
         if !self.exceptions[&returning_exception_number].active {
-            self.invalid_exception_return(returning_exception_number, exc_return);
-            return;
+            self.invalid_exception_return(returning_exception_number, exc_return)
         } else {
             let frameptr;
             match exc_return.get_bits(0..4) {
@@ -417,8 +425,8 @@ impl ExceptionHandling for Processor {
                     if nested_activation == 0
                     /*&& !self.ccr.nonbasethreadena*/
                     {
-                        self.invalid_exception_return(returning_exception_number, exc_return);
-                        return;
+                        return self
+                            .invalid_exception_return(returning_exception_number, exc_return);
                     } else {
                         frameptr = self.get_msp();
                         self.mode = ProcessorMode::ThreadMode;
@@ -430,8 +438,8 @@ impl ExceptionHandling for Processor {
                     if nested_activation == 0
                     /*&& !self.ccr.nonbasethreadena*/
                     {
-                        self.invalid_exception_return(returning_exception_number, exc_return);
-                        return;
+                        return self
+                            .invalid_exception_return(returning_exception_number, exc_return);
                     } else {
                         frameptr = self.get_psp();
                         self.mode = ProcessorMode::ThreadMode;
@@ -439,27 +447,24 @@ impl ExceptionHandling for Processor {
                     }
                 }
                 _ => {
-                    self.invalid_exception_return(returning_exception_number, exc_return);
-                    return;
+                    return self.invalid_exception_return(returning_exception_number, exc_return);
                 }
             }
 
             self.deactivate(returning_exception_number);
-            self.pop_stack(frameptr, exc_return);
+            self.pop_stack(frameptr, exc_return)?;
             if self.mode == ProcessorMode::HandlerMode && self.psr.get_isr_number() == 0 {
                 //ufsr.invpc = true;
-                self.push_stack(Exception::UsageFault, exc_return); // to negate pop_stack
+                self.push_stack(Exception::UsageFault, exc_return)?; // to negate pop_stack
                 self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-                self.exception_taken(Exception::UsageFault);
-                return;
+                return self.exception_taken(Exception::UsageFault);
             }
 
             if self.mode == ProcessorMode::ThreadMode && self.psr.get_isr_number() != 0 {
                 //ufsr.invpc = true;
-                self.push_stack(Exception::UsageFault, exc_return); // to negate pop_stack
+                self.push_stack(Exception::UsageFault, exc_return)?; // to negate pop_stack
                 self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-                self.exception_taken(Exception::UsageFault);
-                return;
+                return self.exception_taken(Exception::UsageFault);
             }
 
             //self.clear_exclusive_local(processor_id());
@@ -468,6 +473,7 @@ impl ExceptionHandling for Processor {
             /*if self.mode == ProcessorMode::ThreadMode && !nested_activation && scr.sleeponexit{
                 self.sleep_on_exit();
             }*/
+            Ok(())
         }
     }
 }
@@ -571,22 +577,22 @@ mod tests {
             core.psr.value = 0xffff_ffff;
 
             // act
-            core.push_stack(Exception::HardFault, 99);
+            core.push_stack(Exception::HardFault, 99).unwrap();
 
             assert_eq!(core.msp, STACK_START - 32);
             core.get_r(Reg::LR)
         };
 
         // values pushed on to stack
-        assert_eq!(core.read32(STACK_START - 0x20), 42);
-        assert_eq!(core.read32(STACK_START - 0x20 + 4), 43);
-        assert_eq!(core.read32(STACK_START - 0x20 + 8), 44);
-        assert_eq!(core.read32(STACK_START - 0x20 + 12), 45);
-        assert_eq!(core.read32(STACK_START - 0x20 + 16), 46);
-        assert_eq!(core.read32(STACK_START - 0x20 + 20), 47);
-        assert_eq!(core.read32(STACK_START - 0x20 + 24), 99);
+        assert_eq!(core.read32(STACK_START - 0x20).unwrap(), 42);
+        assert_eq!(core.read32(STACK_START - 0x20 + 4).unwrap(), 43);
+        assert_eq!(core.read32(STACK_START - 0x20 + 8).unwrap(), 44);
+        assert_eq!(core.read32(STACK_START - 0x20 + 12).unwrap(), 45);
+        assert_eq!(core.read32(STACK_START - 0x20 + 16).unwrap(), 46);
+        assert_eq!(core.read32(STACK_START - 0x20 + 20).unwrap(), 47);
+        assert_eq!(core.read32(STACK_START - 0x20 + 24).unwrap(), 99);
         assert_eq!(
-            core.read32(STACK_START - 0x20 + 28),
+            core.read32(STACK_START - 0x20 + 28).unwrap(),
             0b1111_1111_1111_1111_1111_1101_1111_1111
         );
         assert_eq!(lr, 0xffff_fff9);
@@ -611,12 +617,12 @@ mod tests {
         core.psr.value = 0xffff_ffff;
 
         // Act
-        core.exception_taken(Exception::BusFault);
+        core.exception_taken(Exception::BusFault).unwrap();
 
         // Assert
         assert_eq!(core.control.sp_sel, false);
         assert_eq!(core.mode, ProcessorMode::HandlerMode);
-        assert_eq!(core.psr.get_exception_number(), Exception::BusFault.into());
+        assert_eq!(core.psr.get_isr_number(), Exception::BusFault.into());
         assert_eq!(core.exception_active(Exception::BusFault), true);
     }
 

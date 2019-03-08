@@ -6,12 +6,15 @@ zmu supports Linux and Windows operating systems.
 
 ## Supported features
 - Loading of ELF binaries
+- Relatively efficient Simulation
+    - Intel Core i7-2630QM @ 2.8 Ghz can simulate 40-50 Mhz Cortex-m4 in realtime
 - Architectures: 
     - arm-v6m, 
     - arm-v7m (partial support)
     - arm-v7me (partial support)
-- Cores (in progress): Cortex-m0/m0+, Cortex-m3, Cortex-m4, Cortex-m4f
-    - notably missing: full exception and interrupt support
+- Cores (in progress): Cortex-m0/m0+, Cortex-m3, Cortex-m4
+    - pre-decoding of instructions
+    - Exception and fault handling
 - ARM semihosting, supported semihosting extensions:
     - open, close (streams only)
     - FLEN 
@@ -25,15 +28,16 @@ zmu supports Linux and Windows operating systems.
 - instruction trace
 
 ## Missing / Planned features
-- Time simulation / sync
+- Time simulation / sync to real time
 - Some instructions are not yet properly supported
-    - WFI, WFE
+    - WFI, WFE, SVC, ...
     - Full v7m + DSP
-    - Full v7me + floats
+    - Full v7me + floats (m4f)
 - ARM Cortex peripherals
-    - NVIC
+    - NVIC (partial support available)
     - MPU
     - DWT
+- Semihosting: filesystem access
 - Configurability of the simulated HW via device profiles
 
 ## Usage

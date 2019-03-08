@@ -24,7 +24,7 @@ impl RAM {
             data: data,
         }
     }
-    /// 
+    ///
     pub fn new_with_fill(start_address: u32, size: usize, fill: u8) -> RAM {
         let data = vec![fill; size].into_boxed_slice();
 
@@ -52,20 +52,23 @@ impl Bus for RAM {
         Ok(LittleEndian::read_u32(&self.data[a..a + 4]))
     }
 
-    fn write8(&mut self, addr: u32, value: u8) {
+    fn write8(&mut self, addr: u32, value: u8) -> Result<(), Fault> {
         let a = addr - self.start_address;
-        self.data[a as usize] = value
+        self.data[a as usize] = value;
+        Ok(())
     }
 
-    fn write16(&mut self, addr: u32, value: u16) {
+    fn write16(&mut self, addr: u32, value: u16) -> Result<(), Fault> {
         let a = (addr - self.start_address) as usize;
 
-        LittleEndian::write_u16(&mut self.data[a..a + 2], value)
+        LittleEndian::write_u16(&mut self.data[a..a + 2], value);
+        Ok(())
     }
 
-    fn write32(&mut self, addr: u32, value: u32) {
+    fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault> {
         let a = (addr - self.start_address) as usize;
-        LittleEndian::write_u32(&mut self.data[a..a + 4], value)
+        LittleEndian::write_u32(&mut self.data[a..a + 4], value);
+        Ok(())
     }
 
     fn in_range(&self, addr: u32) -> bool {
@@ -107,25 +110,25 @@ fn test_in_range() {
 fn test_write_read() {
     {
         let mut mem = RAM::new(0, 1024);
-        mem.write32(0, 0xAABBCCDD);
-        assert_eq!(mem.read32(0), 0xAABBCCDD);
-        mem.write32(1020, 0xAABBCCDD);
-        assert_eq!(mem.read32(1020), 0xAABBCCDD);
+        mem.write32(0, 0xAABBCCDD).unwrap();
+        assert_eq!(mem.read32(0).unwrap(), 0xAABBCCDD);
+        mem.write32(1020, 0xAABBCCDD).unwrap();
+        assert_eq!(mem.read32(1020).unwrap(), 0xAABBCCDD);
     }
 
     {
         let mut mem = RAM::new(0, 1024);
-        mem.write16(0, 0xAABB);
-        assert_eq!(mem.read16(0), 0xAABB);
-        mem.write16(1022, 0xCCDD);
-        assert_eq!(mem.read16(1022), 0xCCDD);
+        mem.write16(0, 0xAABB).unwrap();
+        assert_eq!(mem.read16(0).unwrap(), 0xAABB);
+        mem.write16(1022, 0xCCDD).unwrap();
+        assert_eq!(mem.read16(1022).unwrap(), 0xCCDD);
     }
 
     {
         let mut mem = RAM::new(0, 1024);
-        mem.write8(0, 0xAA);
-        assert_eq!(mem.read8(0), 0xAA);
-        mem.write8(1022, 0xCC);
-        assert_eq!(mem.read8(1022), 0xCC);
+        mem.write8(0, 0xAA).unwrap();
+        assert_eq!(mem.read8(0).unwrap(), 0xAA);
+        mem.write8(1022, 0xCC).unwrap();
+        assert_eq!(mem.read8(1022).unwrap(), 0xCC);
     }
 }

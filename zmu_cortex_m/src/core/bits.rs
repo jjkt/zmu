@@ -1,6 +1,6 @@
 //!
 //! Bit level memory manipulation
-//! 
+//!
 
 use core::ops::Range;
 

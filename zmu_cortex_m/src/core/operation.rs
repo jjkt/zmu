@@ -311,9 +311,9 @@ pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
     result
 }
 
-/// 
+///
 /// build signed value from immediate 10/11 representation
-/// 
+///
 pub fn build_imm_10_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;
@@ -335,9 +335,9 @@ pub fn build_imm_10_11(opcode: u32) -> i32 {
     ) as i32
 }
 
-/// 
+///
 /// build signed value from immediate 6/11 representation
-/// 
+///
 pub fn build_imm_6_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;

@@ -1,6 +1,6 @@
 //!
 //! Processor Core functionality
-//! 
+//!
 
 pub mod bits;
 pub mod condition;
@@ -13,4 +13,3 @@ pub mod operation;
 pub mod register;
 pub mod reset;
 pub mod thumb;
-

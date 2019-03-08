@@ -6,34 +6,34 @@
 #[derive(PartialEq, Debug, Copy, Clone)]
 ///
 /// Fault types
-/// 
+///
 pub enum Fault {
     ///
     /// Bus error happened while reading the vector table entry
     ///
     VectorTable,
     ///
-    /// 
+    ///
     ///
     Forced,
     ///
-    /// 
+    ///
     ///
     IAccViol,
     ///
-    /// 
+    ///
     ///
     DAccViol,
     ///
-    /// 
+    ///
     ///
     Mstkerr,
     ///
-    /// 
+    ///
     ///
     Msunskerr,
     ///
-    /// 
+    ///
     ///
     Stkerr,
     ///
@@ -47,6 +47,6 @@ pub enum Fault {
     ///
     Unaligned,
     ///
-    /// 
+    ///
     DivByZero,
 }

@@ -46,9 +46,9 @@ pub struct Processor {
     pub r0_12: [u32; 13],
 
     /// MSP, virtual reg r[13]
-    msp: u32, 
+    msp: u32,
     /// PSP, virtual reg r[13]
-    psp: u32,     
+    psp: u32,
     lr: u32,
     pc: u32,
 

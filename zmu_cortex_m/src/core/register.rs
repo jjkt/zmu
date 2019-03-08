@@ -4,6 +4,7 @@
 
 use crate::core::bits::Bits;
 use crate::core::exception::ExceptionHandling;
+use crate::core::fault::Fault;
 use crate::Processor;
 use crate::ProcessorMode;
 use enum_set::CLike;
@@ -27,11 +28,12 @@ pub trait BaseReg {
     ///
     /// interworking branch
     ///
-    fn bx_write_pc(&mut self, address: u32);
+    fn bx_write_pc(&mut self, address: u32) -> Result<(), Fault>;
+
     ///
     /// alias for bx_write_pc
     ///
-    fn load_write_pc(&mut self, address: u32);
+    fn load_write_pc(&mut self, address: u32) -> Result<(), Fault>;
 
     ///
     /// Getter for registers
@@ -98,16 +100,17 @@ impl BaseReg for Processor {
         self.branch_write_pc(address);
     }
 
-    fn bx_write_pc(&mut self, address: u32) {
+    fn bx_write_pc(&mut self, address: u32) -> Result<(), Fault> {
         if self.mode == ProcessorMode::HandlerMode && (address.get_bits(28..32) == 0b1111) {
-            self.exception_return(address.get_bits(0..28));
+            self.exception_return(address.get_bits(0..28))
         } else {
             self.blx_write_pc(address);
+            Ok(())
         }
     }
 
-    fn load_write_pc(&mut self, address: u32) {
-        self.bx_write_pc(address);
+    fn load_write_pc(&mut self, address: u32) -> Result<(), Fault> {
+        self.bx_write_pc(address)
     }
 
     fn get_r(&self, r: Reg) -> u32 {

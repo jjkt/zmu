@@ -359,8 +359,8 @@ impl ExecutorHelper for Processor {
                         SpecialReg::IPSR => {
                             self.set_r(*rd, self.psr.get_isr_number() as u32);
                         }
-                        //MSP => self.set_r(*rd, self.get_r(Reg::MSP)),
-                        //PSP => self.set_r(*rd, self.get_r(Reg::PSP),
+                        SpecialReg::MSP => self.set_r(*rd, self.msp),
+                        SpecialReg::PSP => self.set_r(*rd, self.psp),
                         SpecialReg::PRIMASK => {
                             self.set_r(*rd, self.primask as u32);
                         }
@@ -851,7 +851,7 @@ impl ExecutorHelper for Processor {
             Instruction::BX { rm } => {
                 if self.condition_passed() {
                     let r_m = self.get_r(*rm);
-                    self.bx_write_pc(r_m);
+                    self.bx_write_pc(r_m)?;
                     return Ok(ExecuteResult::Branched { cycles: 3 });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -882,7 +882,7 @@ impl ExecutorHelper for Processor {
                     for reg in registers.iter() {
                         let value = self.read32(address)?;
                         if reg == Reg::PC {
-                            self.load_write_pc(value);
+                            self.load_write_pc(value)?;
                             branched = true;
                         } else {
                             self.set_r(reg, value);
@@ -1073,7 +1073,7 @@ impl ExecutorHelper for Processor {
 
                     for reg in registers.iter() {
                         let value = self.get_r(reg);
-                        self.write32(address, value);
+                        self.write32(address, value)?;
                         address += 4;
                     }
 
@@ -1095,7 +1095,7 @@ impl ExecutorHelper for Processor {
 
                     for reg in registers.iter() {
                         if reg == Reg::PC {
-                            self.bx_write_pc(self.read32(address)?);
+                            self.bx_write_pc(self.read32(address)?)?;
                         } else {
                             self.set_r(reg, self.read32(address)?);
                         }
@@ -1159,7 +1159,7 @@ impl ExecutorHelper for Processor {
                     }
 
                     if rt == &Reg::PC {
-                        self.load_write_pc(data);
+                        self.load_write_pc(data)?;
                         return Ok(ExecuteResult::Branched { cycles: 1 });
                     } else {
                         self.set_r(*rt, data);
@@ -1239,7 +1239,7 @@ impl ExecutorHelper for Processor {
                     }
 
                     if rt == &Reg::PC {
-                        self.load_write_pc(data);
+                        self.load_write_pc(data)?;
                     } else {
                         self.set_r(*rt, data);
                     }
@@ -1481,7 +1481,7 @@ impl ExecutorHelper for Processor {
 
                     for reg in registers.iter() {
                         let r = self.get_r(reg);
-                        self.write32(address, r);
+                        self.write32(address, r)?;
                         address += 4;
                     }
 
@@ -1506,7 +1506,7 @@ impl ExecutorHelper for Processor {
 
                     for reg in registers.iter() {
                         let r = self.get_r(reg);
-                        self.write32(address, r);
+                        self.write32(address, r)?;
                         address += 4;
                     }
 
@@ -1538,7 +1538,7 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rn, offset_address);
                     }
 
-                    self.write32(address, value);
+                    self.write32(address, value)?;
 
                     return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
@@ -1558,9 +1558,9 @@ impl ExecutorHelper for Processor {
                         resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
 
                     let value1 = self.get_r(*rt);
-                    self.write32(address, value1);
+                    self.write32(address, value1)?;
                     let value2 = self.get_r(*rt2);
-                    self.write32(address + 4, value2);
+                    self.write32(address + 4, value2)?;
 
                     if *wback {
                         self.set_r(*rn, offset_address);
@@ -1613,7 +1613,7 @@ impl ExecutorHelper for Processor {
                     let offset = shift(self.get_r(*rm), *shift_t, *shift_n as usize, c);
                     let address = self.get_r(*rn) + offset;
                     let value = self.get_r(*rt);
-                    self.write32(address, value);
+                    self.write32(address, value)?;
 
                     return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
@@ -1637,7 +1637,7 @@ impl ExecutorHelper for Processor {
                     let address = self.get_r(*rn) + offset;
                     let rt: u32 = self.get_r(*rt);
                     let value = rt.get_bits(0..8);
-                    self.write8(address, value as u8);
+                    self.write8(address, value as u8)?;
                     return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -1661,7 +1661,7 @@ impl ExecutorHelper for Processor {
                         self.set_r(*rn, offset_address);
                     }
 
-                    self.write8(address, value.get_bits(0..8) as u8);
+                    self.write8(address, value.get_bits(0..8) as u8)?;
 
                     return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
@@ -1682,7 +1682,7 @@ impl ExecutorHelper for Processor {
                         resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
 
                     let value = self.get_r(*rt);
-                    self.write16(address, value.get_bits(0..16) as u16);
+                    self.write16(address, value.get_bits(0..16) as u16)?;
 
                     if *wback {
                         self.set_r(*rn, offset_address);
@@ -1709,7 +1709,7 @@ impl ExecutorHelper for Processor {
                     let offset = shift(self.get_r(*rm), *shift_t, *shift_n as usize, c);
                     let address = self.get_r(*rn) + offset;
                     let value = self.get_r(*rt).get_bits(0..16);
-                    self.write16(address, value as u16);
+                    self.write16(address, value as u16)?;
                     return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -1727,7 +1727,7 @@ impl ExecutorHelper for Processor {
                     let data = self.read32(address)?;
 
                     if rt == &Reg::PC {
-                        self.load_write_pc(data);
+                        self.load_write_pc(data)?;
                     } else {
                         self.set_r(*rt, data);
                     }
@@ -2077,7 +2077,8 @@ impl ExecutorHelper for Processor {
                 if self.condition_passed() {
                     let msbit = lsb + widthminus1;
                     if msbit <= 31 {
-                        let data = self.get_r(*rn).get_bits(*lsb..(msbit + 1));
+                        let upper = msbit + 1;
+                        let data = self.get_r(*rn).get_bits(*lsb..upper);
                         self.set_r(*rd, data);
                     } else {
                         panic!();
@@ -2500,12 +2501,13 @@ impl Executor for Processor {
         let in_it_block = self.in_it_block();
 
         match self.execute(instruction) {
-            Err(fault) => {
+            Err(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let pc = self.get_pc();
 
-                //TODO: set pending, not exception entry directly
-                self.exception_entry(Exception::HardFault, pc);
+                //TODO: map to correct exception
+                self.exception_entry(Exception::HardFault, pc)
+                    .expect("error handling on exception entry not implemented");
             }
             Ok(ExecuteResult::NotTaken) => {
                 self.add_pc(instruction_size as u32);
@@ -2531,7 +2533,9 @@ impl Executor for Processor {
         if let Some(exception) = self.get_pending_exception() {
             self.clear_pending_exception(exception);
             let pc = self.get_pc();
-            self.exception_entry(exception, pc);
+            // TODO: handle failure to enter exception
+            self.exception_entry(exception, pc)
+                .expect("error handling on exception entry not implemented");
         }
     }
 }
