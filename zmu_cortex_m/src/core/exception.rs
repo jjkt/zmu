@@ -465,12 +465,6 @@ impl ExceptionHandling for Processor {
                 return self.exception_taken(Exception::UsageFault);
             }
 
-            //self.clear_exclusive_local(processor_id());
-            //self.set_event_register();
-            //self.instruction_synchronization_barrier();
-            /*if self.mode == ProcessorMode::ThreadMode && !nested_activation && scr.sleeponexit{
-                self.sleep_on_exit();
-            }*/
             Ok(())
         } else {
             self.invalid_exception_return(returning_exception_number, exc_return)

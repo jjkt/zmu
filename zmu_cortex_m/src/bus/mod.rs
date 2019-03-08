@@ -44,12 +44,6 @@ pub trait Bus {
     fn in_range(&self, addr: u32) -> bool;
 }
 
-/*const PPB_START: u32 = 0xE000_0000;
-const PPB_END: u32 = 0xE00F_FFFF;
-const SYSTEM_REGION_START: u32 = 0xE000_0000;
-const SYSTEM_REGION_END: u32 = 0xF000_0000 - 1;
-*/
-
 impl Bus for Processor {
     fn read8(&self, addr: u32) -> Result<u8, Fault> {
         if self.sram.in_range(addr) {
