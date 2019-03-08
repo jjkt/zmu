@@ -379,7 +379,7 @@ impl ExceptionHandling for Processor {
                 .collect();
 
             if !possible_exceptions.is_empty() {
-                possible_exceptions.sort_by(|a, b| b.priority.cmp(&a.priority));
+                possible_exceptions.sort_by(|a, b| a.priority.cmp(&b.priority));
                 return Some(possible_exceptions[0].exception.into());
             }
         }
@@ -465,12 +465,6 @@ impl ExceptionHandling for Processor {
                 return self.exception_taken(Exception::UsageFault);
             }
 
-            //self.clear_exclusive_local(processor_id());
-            //self.set_event_register();
-            //self.instruction_synchronization_barrier();
-            /*if self.mode == ProcessorMode::ThreadMode && !nested_activation && scr.sleeponexit{
-                self.sleep_on_exit();
-            }*/
             Ok(())
         } else {
             self.invalid_exception_return(returning_exception_number, exc_return)
@@ -624,6 +618,30 @@ mod tests {
         assert_eq!(core.mode, ProcessorMode::HandlerMode);
         assert_eq!(core.psr.get_isr_number(), Exception::BusFault.into());
         assert_eq!(core.exception_active(Exception::BusFault), true);
+    }
+
+    #[test]
+    fn test_exception_priority() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        // Act
+        processor.set_exception_pending(Exception::Reset);
+        processor.set_exception_pending(Exception::NMI);
+        processor.set_exception_pending(Exception::HardFault);
+
+        // Assert
+        assert_eq!(processor.get_pending_exception(), Some(Exception::Reset));
     }
 
 }
