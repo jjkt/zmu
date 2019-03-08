@@ -1358,10 +1358,25 @@ fn test_decode_mrs() {
     );
 }
 
+#[cfg(any(armv6m))]
 #[test]
 fn test_decode_cpsid() {
     // CPSID i
-    assert_eq!(decode_16(0xB672), Instruction::CPS { im: CpsEffect::ID });
+    assert_eq!(decode_16(0xB672), Instruction::CPS { im: true });
+}
+
+#[cfg(any(armv7m, armv7em))]
+#[test]
+fn test_decode_cpsid() {
+    // CPSID i
+    assert_eq!(
+        decode_16(0xB672),
+        Instruction::CPS {
+            im: true,
+            affect_pri: true,
+            affect_fault: false
+        }
+    );
 }
 
 #[test]

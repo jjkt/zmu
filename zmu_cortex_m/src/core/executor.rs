@@ -8,7 +8,7 @@ use crate::core::condition::Condition;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
-use crate::core::instruction::{CpsEffect, Imm32Carry, Instruction, SRType, SetFlags};
+use crate::core::instruction::{Imm32Carry, Instruction, SRType, SetFlags};
 use crate::core::operation::condition_test;
 use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
 use crate::core::register::{Apsr, BaseReg, Ipsr, Reg, SpecialReg};
@@ -295,11 +295,37 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
+            #[cfg(armv6m)]
             Instruction::CPS { im } => {
-                if im == &CpsEffect::IE {
+                if !im {
                     self.primask = false;
                 } else {
                     self.primask = true;
+                }
+                self.execution_priority = self.get_execution_priority();
+                Ok(ExecuteResult::Taken { cycles: 1 })
+            }
+
+            #[cfg(any(armv7m, armv7em))]
+            Instruction::CPS {
+                im,
+                affect_pri,
+                affect_fault,
+            } => {
+                if *im {
+                    if *affect_pri {
+                        self.primask = true;
+                    }
+                    if *affect_fault && self.execution_priority > -1 {
+                        self.faultmask = true;
+                    }
+                } else {
+                    if *affect_pri {
+                        self.primask = false;
+                    }
+                    if *affect_fault {
+                        self.faultmask = false;
+                    }
                 }
                 self.execution_priority = self.get_execution_priority();
                 Ok(ExecuteResult::Taken { cycles: 1 })

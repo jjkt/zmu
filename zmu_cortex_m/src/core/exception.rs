@@ -349,8 +349,11 @@ impl ExceptionHandling for Processor {
         if self.primask {
             boostedpri = 0;
         }
-        if self.faultmask {
-            boostedpri = -1;
+        #[cfg(any(armv7m, armv7em))]
+        {
+            if self.faultmask {
+                boostedpri = -1;
+            }
         }
 
         if boostedpri < highestpri {
@@ -523,8 +526,12 @@ mod tests {
 
     use super::*;
     use crate::bus::Bus;
+    #[cfg(any(armv7m, armv7em))]
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
+    use crate::core::executor::Executor;
+    #[cfg(any(armv7m, armv7em))]
+    use crate::core::instruction::Instruction;
     use crate::core::register::Ipsr;
     use crate::semihosting::SemihostingCommand;
     use crate::semihosting::SemihostingResponse;
@@ -642,6 +649,38 @@ mod tests {
 
         // Assert
         assert_eq!(processor.get_pending_exception(), Some(Exception::Reset));
+    }
+
+    #[cfg(any(armv7m, armv7em))]
+    #[test]
+    fn test_faultmask_priority() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        // Act
+        processor.set_exception_pending(Exception::HardFault);
+
+        processor.step(
+            &Instruction::CPS {
+                im: true,
+                affect_pri: false,
+                affect_fault: true,
+            },
+            2,
+        );
+
+        // Assert
+        assert_eq!(processor.get_pending_exception(), None);
     }
 
 }

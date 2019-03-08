@@ -41,7 +41,11 @@ impl Reset for Processor {
         // Apsr, ipsr
         self.psr = PSR { value: 0 };
         self.primask = false;
-        self.faultmask = false;
+
+        #[cfg(any(armv7m, armv7em))]
+        {
+            self.faultmask = false;
+        }
         self.basepri = 0;
         self.control.sp_sel = false;
         self.control.n_priv = false;

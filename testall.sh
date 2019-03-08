@@ -4,6 +4,14 @@
 echo "building..."
 ./buildall.sh
 
+echo "running library tests..."
+cd zmu_cortex_m
+cargo test --features armv6m
+cargo test --features armv7m
+cargo test --features armv7em
+cd ..
+
+
 #
 # hello world
 #

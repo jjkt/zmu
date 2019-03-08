@@ -1,14 +1,14 @@
 use crate::core::bits::*;
-use crate::core::instruction::{CpsEffect, Instruction};
+use crate::core::instruction::Instruction;
 
 #[allow(non_snake_case)]
 #[inline(always)]
 pub fn decode_CPS_t1(opcode: u16) -> Instruction {
     Instruction::CPS {
-        im: if opcode.get_bit(4) {
-            CpsEffect::ID
-        } else {
-            CpsEffect::IE
-        },
+        im: opcode.get_bit(4),
+        #[cfg(any(armv7m, armv7em))]
+        affect_fault: opcode.get_bit(0),
+        #[cfg(any(armv7m, armv7em))]
+        affect_pri: opcode.get_bit(1),
     }
 }
