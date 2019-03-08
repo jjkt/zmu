@@ -221,7 +221,11 @@ pub enum Instruction {
         thumb32: bool,
     },
     CPS {
-        im: CpsEffect,
+        im: bool,
+        #[cfg(any(armv7m, armv7em))]
+        affect_pri: bool,
+        #[cfg(any(armv7m, armv7em))]
+        affect_fault: bool,
     },
     DMB,
     DSB,
@@ -857,25 +861,6 @@ pub enum Instruction {
     },
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[repr(u32)]
-/// variant of CPS call
-pub enum CpsEffect {
-    /// Interrupt enable
-    IE,
-    /// Interrupt disable
-    ID,
-}
-
-impl fmt::Display for CpsEffect {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            CpsEffect::IE => write!(f, "IE"),
-            CpsEffect::ID => write!(f, "ID"),
-        }
-    }
-}
-
 use std::fmt;
 
 #[allow(clippy::too_many_arguments)]
@@ -1315,7 +1300,21 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::CPS { im } => write!(f, "cps{}", im),
+
+            #[cfg(any(armv6m))]
+            Instruction::CPS { im } => write!(f, "cps{} i", if im { "ID" } else { "IE" }),
+            #[cfg(any(armv7m, armv7em))]
+            Instruction::CPS {
+                im,
+                affect_pri,
+                affect_fault,
+            } => write!(
+                f,
+                "cps{} {}{}",
+                if im { "ID" } else { "IE" },
+                if affect_pri { "i" } else { "" },
+                if affect_fault { "f" } else { "" }
+            ),
             Instruction::DMB => write!(f, "dmb"),
             Instruction::DSB => write!(f, "dsb"),
             Instruction::EOR_reg {
