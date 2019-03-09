@@ -4,12 +4,6 @@
 echo "building..."
 ./buildall.sh
 
-echo "running library tests..."
-cd zmu_cortex_m
-cargo test --features armv6m
-cargo test --features armv7m
-cargo test --features armv7em
-cd ..
 
 
 #
@@ -92,6 +86,27 @@ timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-e
 echo "armv7m->crash"
 echo "----------------------------------------"
 timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/crash
+
+echo ""
+echo "========================================"
+echo "TEST: cortex-m-rtfm crate examples"
+echo "========================================"
+
+declare -a arr=("baseline")
+cd tests/cortex-m-rtfm
+cargo build
+for i in "${arr[@]}"
+do
+   cargo build --features="timer-queue" --example $i
+done
+cd ../..
+
+for i in "${arr[@]}"
+do
+   echo "armv7m->cortex-m-rtfm examples/$i"
+   timeout 1s ./target/release/zmu-armv7m run tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/$i
+done
+
 
 
 #

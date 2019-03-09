@@ -523,12 +523,12 @@ impl From<usize> for Exception {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use crate::bus::Bus;
     #[cfg(any(armv7m, armv7em))]
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
+    #[cfg(any(armv7m, armv7em))]
     use crate::core::executor::Executor;
     #[cfg(any(armv7m, armv7em))]
     use crate::core::instruction::Instruction;
