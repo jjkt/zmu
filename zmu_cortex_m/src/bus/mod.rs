@@ -51,13 +51,13 @@ impl Bus for Processor {
                 self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 4) as usize)
             }
             _ => {
-        if self.sram.in_range(addr) {
-            return self.sram.read8(addr);
-        } else if self.code.in_range(addr) {
-            return self.code.read8(addr);
+                if self.sram.in_range(addr) {
+                    return self.sram.read8(addr);
+                } else if self.code.in_range(addr) {
+                    return self.code.read8(addr);
                 } else {
                     return Err(Fault::DAccViol);
-        }
+                }
             }
         };
         Ok(result)
@@ -157,6 +157,8 @@ impl Bus for Processor {
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value)
             }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_EF00 => self.write_stir(value),
             _ => {
                 if self.sram.in_range(addr) {
                     return self.sram.write32(addr, value);

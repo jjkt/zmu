@@ -3,6 +3,8 @@
 //!
 
 use crate::core::bits::Bits;
+use crate::core::exception::Exception;
+use crate::core::exception::ExceptionHandling;
 use crate::Processor;
 
 ///
@@ -63,6 +65,12 @@ pub trait SystemControlBlock {
     /// Read System Control Register
     ///
     fn read_scr(&self) -> u32;
+
+    ///
+    /// Write "Software Triggered Interrupt Register"
+    ///
+    #[cfg(any(armv7m, armv7em))]
+    fn write_stir(&mut self, value: u32);
 }
 
 impl SystemControlBlock for Processor {
@@ -105,5 +113,12 @@ impl SystemControlBlock for Processor {
 
     fn read_demcr(&self) -> u32 {
         0
+    }
+
+    #[cfg(any(armv7m, armv7em))]
+    fn write_stir(&mut self, value: u32) {
+        self.set_exception_pending(Exception::Interrupt {
+            n: value.get_bits(0..9) as usize,
+        });
     }
 }
