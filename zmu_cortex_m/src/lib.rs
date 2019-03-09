@@ -160,7 +160,6 @@ pub struct Processor {
 
     pub nvic_interrupt_enabled: [u32; 16],
     pub nvic_interrupt_pending: [u32; 16],
-    pub nvic_interrupt_priority: [u8; 124 * 4],
 
     pub dwt_ctrl: u32,
     pub dwt_cyccnt: u32,
@@ -309,10 +308,6 @@ impl Processor {
 
             nvic_interrupt_enabled: [0; 16],
             nvic_interrupt_pending: [0; 16],
-            nvic_interrupt_priority: [0; 124 * 4],
-
-            //nvic_exception_pending: 0,
-            //nvic_exception_active: 0,
             syst_rvr: 0,
             syst_cvr: 0,
             syst_csr: 0,

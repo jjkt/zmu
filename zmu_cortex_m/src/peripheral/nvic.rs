@@ -55,14 +55,21 @@ pub trait NVIC {
     /// 32bit write to interrupt priority register
     ///
     fn nvic_write_ipr(&mut self, index: usize, value: u32);
+
     ///
     /// 32bit read from interrupt priority register
     ///
-    fn nvic_read_ipr(&mut self, index: usize) -> u32;
+    fn nvic_read_ipr(&self, index: usize) -> u32;
+
     ///
     /// 8bit write to interrupt priority register
     ///
     fn nvic_write_ipr_u8(&mut self, index: usize, value: u8);
+
+    ///
+    /// 8bit read from interrupt priority register
+    ///
+    fn nvic_read_ipr_u8(&self, index: usize) -> u8;
 }
 
 trait NVICHelper {
@@ -148,16 +155,20 @@ impl NVIC for Processor {
         self.nvic_write_ipr_u8(index + 3, value.get_bits(24..32) as u8);
     }
 
-    fn nvic_read_ipr(&mut self, index: usize) -> u32 {
-        u32::from(self.nvic_interrupt_priority[index])
-            + (u32::from(self.nvic_interrupt_priority[index + 1]) << 8)
-            + (u32::from(self.nvic_interrupt_priority[index + 2]) << 16)
-            + (u32::from(self.nvic_interrupt_priority[index + 3]) << 24)
+    fn nvic_read_ipr(&self, index: usize) -> u32 {
+        u32::from(self.nvic_read_ipr_u8(index))
+            + (u32::from(self.nvic_read_ipr_u8(index + 1)) << 8)
+            + (u32::from(self.nvic_read_ipr_u8(index + 2)) << 16)
+            + (u32::from(self.nvic_read_ipr_u8(index + 3)) << 24)
+    }
+
+    fn nvic_read_ipr_u8(&self, index: usize) -> u8 {
+        let priority = self.get_exception_priority(Exception::Interrupt { n: index });
+        assert!(priority > 0 && priority < 256);
+        priority as u8
     }
 
     fn nvic_write_ipr_u8(&mut self, index: usize, value: u8) {
-        self.nvic_interrupt_priority[index] = value;
-
         self.set_exception_priority(Exception::Interrupt { n: index }, value);
     }
 }

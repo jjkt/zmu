@@ -89,6 +89,11 @@ pub trait ExceptionHandling {
     fn set_exception_priority(&mut self, exception: Exception, priority: u8);
 
     ///
+    /// Get priority of an exception. Smaller priority number has higher urgency.
+    ///          
+    fn get_exception_priority(&self, exception: Exception) -> i16;
+
+    ///
     /// Clear exceptions to reset state
     ///
     fn exceptions_reset(&mut self);
@@ -326,6 +331,10 @@ impl ExceptionHandling for Processor {
 
     fn set_exception_priority(&mut self, exception: Exception, priority: u8) {
         self.exceptions.get_mut(&exception.into()).unwrap().priority = i16::from(priority);
+    }
+
+    fn get_exception_priority(&self, exception: Exception) -> i16 {
+        self.exceptions[&exception.into()].priority
     }
 
     fn get_execution_priority(&self) -> i16 {

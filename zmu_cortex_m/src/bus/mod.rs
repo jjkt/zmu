@@ -46,12 +46,21 @@ pub trait Bus {
 
 impl Bus for Processor {
     fn read8(&self, addr: u32) -> Result<u8, Fault> {
+        let result = match addr {
+            0xE000_E400..=0xE000_E5EC => {
+                self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 4) as usize)
+            }
+            _ => {
         if self.sram.in_range(addr) {
             return self.sram.read8(addr);
         } else if self.code.in_range(addr) {
             return self.code.read8(addr);
+                } else {
+                    return Err(Fault::DAccViol);
         }
-        Err(Fault::DAccViol)
+            }
+        };
+        Ok(result)
     }
 
     fn read16(&self, addr: u32) -> Result<u16, Fault> {
