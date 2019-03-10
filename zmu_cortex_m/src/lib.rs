@@ -227,7 +227,7 @@ fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
         ExceptionState::new(Exception::SysTick, 0),
     );
 
-    for irqn in 0..20 {
+    for irqn in 0..32 {
         let irq = Exception::Interrupt { n: irqn };
         priorities.insert(irq.into(), ExceptionState::new(irq, 0));
     }

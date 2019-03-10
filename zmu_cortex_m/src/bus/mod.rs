@@ -48,7 +48,7 @@ impl Bus for Processor {
     fn read8(&self, addr: u32) -> Result<u8, Fault> {
         let result = match addr {
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 4) as usize)
+                self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 2) as usize)
             }
             #[cfg(any(armv7m, armv7em))]
             0xE000_ED18..=0xE000_ED1B => self.read_shpr1_u8(((addr - 0xE000_ED18) >> 2) as usize),
@@ -83,6 +83,9 @@ impl Bus for Processor {
             #[cfg(any(armv7m, armv7em))]
             0xE000_ED20..=0xE000_ED23 => {
                 Ok(self.read_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize))
+            }
+            0xE000_E400..=0xE000_E5EC => {
+                Ok(self.nvic_read_ipr_u16(((addr - 0xE000_E400) >> 1) as usize))
             }
 
             _ => {
@@ -235,6 +238,9 @@ impl Bus for Processor {
             0xE000_ED20..=0xE000_ED23 => {
                 self.write_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize, value)
             }
+            0xE000_E400..=0xE000_E5EC => {
+                self.nvic_write_ipr_u16(((addr - 0xE000_E400) >> 1) as usize, value)
+            }
             _ => {
                 if self.sram.in_range(addr) {
                     return self.sram.write16(addr, value);
@@ -254,7 +260,7 @@ impl Bus for Processor {
                 self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value)
             }
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_write_ipr_u8(((addr - 0xE000_E400) >> 4) as usize, value)
+                self.nvic_write_ipr_u8(((addr - 0xE000_E400) >> 2) as usize, value)
             }
             #[cfg(any(armv7m, armv7em))]
             0xE000_ED18..=0xE000_ED1B => {
