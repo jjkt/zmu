@@ -135,9 +135,6 @@ pub struct Processor {
     pub aircr: u32,
     pub scr: u32,
     pub ccr: u32,
-    pub shpr1: u32,
-    pub shpr2: u32,
-    pub shpr3: u32,
     pub shcsr: u32,
     pub cfsr: u32,
     pub hfsr: u32,
@@ -160,7 +157,6 @@ pub struct Processor {
 
     pub nvic_interrupt_enabled: [u32; 16],
     pub nvic_interrupt_pending: [u32; 16],
-    pub nvic_interrupt_priority: [u8; 124 * 4],
 
     pub dwt_ctrl: u32,
     pub dwt_cyccnt: u32,
@@ -231,7 +227,7 @@ fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
         ExceptionState::new(Exception::SysTick, 0),
     );
 
-    for irqn in 0..20 {
+    for irqn in 0..32 {
         let irq = Exception::Interrupt { n: irqn };
         priorities.insert(irq.into(), ExceptionState::new(irq, 0));
     }
@@ -282,9 +278,6 @@ impl Processor {
             aircr: 0,
             scr: 0,
             ccr: 0,
-            shpr1: 0,
-            shpr2: 0,
-            shpr3: 0,
             shcsr: 0,
             cfsr: 0,
             dfsr: 0,
@@ -309,10 +302,6 @@ impl Processor {
 
             nvic_interrupt_enabled: [0; 16],
             nvic_interrupt_pending: [0; 16],
-            nvic_interrupt_priority: [0; 124 * 4],
-
-            //nvic_exception_pending: 0,
-            //nvic_exception_active: 0,
             syst_rvr: 0,
             syst_cvr: 0,
             syst_csr: 0,

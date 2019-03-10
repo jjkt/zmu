@@ -46,21 +46,58 @@ pub trait Bus {
 
 impl Bus for Processor {
     fn read8(&self, addr: u32) -> Result<u8, Fault> {
-        if self.sram.in_range(addr) {
-            return self.sram.read8(addr);
-        } else if self.code.in_range(addr) {
-            return self.code.read8(addr);
-        }
-        Err(Fault::DAccViol)
+        let result = match addr {
+            0xE000_E400..=0xE000_E5EC => {
+                self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 2) as usize)
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED18..=0xE000_ED1B => self.read_shpr1_u8(((addr - 0xE000_ED18) >> 2) as usize),
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED1C..=0xE000_ED1F => self.read_shpr2_u8(((addr - 0xE000_ED1C) >> 2) as usize),
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED20..=0xE000_ED23 => self.read_shpr3_u8(((addr - 0xE000_ED20) >> 2) as usize),
+
+            _ => {
+                if self.sram.in_range(addr) {
+                    return self.sram.read8(addr);
+                } else if self.code.in_range(addr) {
+                    return self.code.read8(addr);
+                } else {
+                    return Err(Fault::DAccViol);
+                }
+            }
+        };
+        Ok(result)
     }
 
     fn read16(&self, addr: u32) -> Result<u16, Fault> {
-        if self.sram.in_range(addr) {
-            return self.sram.read16(addr);
-        } else if self.code.in_range(addr) {
-            return self.code.read16(addr);
+        match addr {
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED18..=0xE000_ED1B => {
+                Ok(self.read_shpr1_u16(((addr - 0xE000_ED18) >> 1) as usize))
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED1C..=0xE000_ED1F => {
+                Ok(self.read_shpr2_u16(((addr - 0xE000_ED1C) >> 1) as usize))
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED20..=0xE000_ED23 => {
+                Ok(self.read_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize))
+            }
+            0xE000_E400..=0xE000_E5EC => {
+                Ok(self.nvic_read_ipr_u16(((addr - 0xE000_E400) >> 1) as usize))
+            }
+
+            _ => {
+                if self.sram.in_range(addr) {
+                    self.sram.read16(addr)
+                } else if self.code.in_range(addr) {
+                    self.code.read16(addr)
+                } else {
+                    Err(Fault::DAccViol)
+                }
+            }
         }
-        Err(Fault::DAccViol)
     }
 
     fn read32(&self, addr: u32) -> Result<u32, Fault> {
@@ -75,6 +112,12 @@ impl Bus for Processor {
             0xE000_E014 => self.read_syst_rvr(),
             0xE000_E018 => self.read_syst_cvr(),
             0xE000_E01C => self.read_syst_calib(),
+            0xE000_E100..=0xE000_E13C => self.nvic_read_iser(((addr - 0xE000_E100) >> 5) as usize),
+            0xE000_E180..=0xE000_E1BC => self.nvic_read_icer(((addr - 0xE000_E180) >> 5) as usize),
+            0xE000_E200..=0xE000_E23C => self.nvic_read_ispr(((addr - 0xE000_E200) >> 5) as usize),
+            0xE000_E280..=0xE000_E2BC => self.nvic_read_icpr(((addr - 0xE000_E280) >> 5) as usize),
+            0xE000_E300..=0xE000_E33C => self.nvic_read_iabr(((addr - 0xE000_E300) >> 5) as usize),
+            0xE000_E400..=0xE000_E5EC => self.nvic_read_ipr(((addr - 0xE000_E400) >> 2) as usize),
 
             0xE000_ED00 => self.cpuid,
             0xE000_ED04 => self.read_icsr(),
@@ -82,8 +125,11 @@ impl Bus for Processor {
             0xE000_ED0C => self.aircr,
             0xE000_ED10 => self.read_scr(),
             0xE000_ED14 => self.ccr,
-            0xE000_ED18 => self.shpr1,
-            0xE000_ED1C => self.shpr2,
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED18 => self.read_shpr1(),
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED1C => self.read_shpr2(),
+            #[cfg(any(armv7m, armv7em))]
             0xE000_ED20 => self.read_shpr3(),
             0xE000_ED24 => self.shcsr,
             0xE000_ED28 => self.cfsr,
@@ -132,6 +178,11 @@ impl Bus for Processor {
             0xE000_ED04 => self.write_icsr(value),
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED10 => self.write_scr(value),
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED18 => self.write_shpr1(value),
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED1C => self.write_shpr2(value),
+            #[cfg(any(armv7m, armv7em))]
             0xE000_ED20 => self.write_shpr3(value),
 
             0xE000_EDFC => self.write_demcr(value),
@@ -140,14 +191,23 @@ impl Bus for Processor {
             0xE000_E014 => self.write_syst_rvr(value),
             0xE000_E018 => self.write_syst_cvr(value),
             0xE000_E100..=0xE000_E13C => {
-                self.nvic_write_iser(((addr - 0xE000_E100) >> 2) as usize, value)
+                self.nvic_write_iser(((addr - 0xE000_E100) >> 5) as usize, value)
+            }
+            0xE000_E180..=0xE000_E1BC => {
+                self.nvic_write_icer(((addr - 0xE000_E180) >> 5) as usize, value)
             }
             0xE000_E200..=0xE000_E23C => {
-                self.nvic_write_ispr(((addr - 0xE000_E200) >> 2) as usize, value)
+                self.nvic_write_ispr(((addr - 0xE000_E200) >> 5) as usize, value)
+            }
+            0xE000_E280..=0xE000_E2BC => {
+                self.nvic_write_icpr(((addr - 0xE000_E280) >> 5) as usize, value)
             }
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value)
             }
+
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_EF00 => self.write_stir(value),
             _ => {
                 if self.sram.in_range(addr) {
                     return self.sram.write32(addr, value);
@@ -165,6 +225,21 @@ impl Bus for Processor {
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value)
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED18..=0xE000_ED1B => {
+                self.write_shpr1_u16(((addr - 0xE000_ED18) >> 1) as usize, value)
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED1C..=0xE000_ED1F => {
+                self.write_shpr2_u16(((addr - 0xE000_ED1C) >> 1) as usize, value)
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED20..=0xE000_ED23 => {
+                self.write_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize, value)
+            }
+            0xE000_E400..=0xE000_E5EC => {
+                self.nvic_write_ipr_u16(((addr - 0xE000_E400) >> 1) as usize, value)
             }
             _ => {
                 if self.sram.in_range(addr) {
@@ -185,9 +260,20 @@ impl Bus for Processor {
                 self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value)
             }
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_write_ipr_u8(((addr - 0xE000_E400) >> 4) as usize, value)
+                self.nvic_write_ipr_u8(((addr - 0xE000_E400) >> 2) as usize, value)
             }
-            0xE000_ED20..=0xE000_ED23 => self.write_shpr3_u8((addr - 0xE000_ED20) as u8, value),
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED18..=0xE000_ED1B => {
+                self.write_shpr1_u8(((addr - 0xE000_ED18) >> 2) as usize, value)
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED1C..=0xE000_ED1F => {
+                self.write_shpr2_u8(((addr - 0xE000_ED1C) >> 2) as usize, value)
+            }
+            #[cfg(any(armv7m, armv7em))]
+            0xE000_ED20..=0xE000_ED23 => {
+                self.write_shpr3_u8(((addr - 0xE000_ED20) >> 2) as usize, value)
+            }
 
             _ => {
                 if self.sram.in_range(addr) {

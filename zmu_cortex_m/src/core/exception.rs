@@ -89,6 +89,11 @@ pub trait ExceptionHandling {
     fn set_exception_priority(&mut self, exception: Exception, priority: u8);
 
     ///
+    /// Get priority of an exception. Smaller priority number has higher urgency.
+    ///          
+    fn get_exception_priority(&self, exception: Exception) -> i16;
+
+    ///
     /// Clear exceptions to reset state
     ///
     fn exceptions_reset(&mut self);
@@ -229,11 +234,11 @@ impl ExceptionHandlingHelpers for Processor {
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
                 let align = (self.psp.get_bit(2) & forcealign) as u32;
-                self.set_psp((self.psp - FRAME_SIZE) & spmask);
+                self.set_psp((self.psp.wrapping_sub(FRAME_SIZE)) & spmask);
                 (self.psp, align)
             } else {
                 let align = self.msp.get_bit(2) as u32;
-                self.set_msp((self.msp - FRAME_SIZE) & spmask);
+                self.set_msp((self.msp.wrapping_sub(FRAME_SIZE)) & spmask);
                 (self.msp, align)
             };
 
@@ -247,15 +252,15 @@ impl ExceptionHandlingHelpers for Processor {
         let ret_addr = self.return_address(exception_type, return_address);
 
         self.write32(frameptr, r0)?;
-        self.write32(frameptr + 0x4, r1)?;
-        self.write32(frameptr + 0x8, r2)?;
-        self.write32(frameptr + 0xc, r3)?;
-        self.write32(frameptr + 0x10, r12)?;
-        self.write32(frameptr + 0x14, lr)?;
-        self.write32(frameptr + 0x18, ret_addr)?;
+        self.write32(frameptr.wrapping_add(0x4), r1)?;
+        self.write32(frameptr.wrapping_add(0x8), r2)?;
+        self.write32(frameptr.wrapping_add(0xc), r3)?;
+        self.write32(frameptr.wrapping_add(0x10), r12)?;
+        self.write32(frameptr.wrapping_add(0x14), lr)?;
+        self.write32(frameptr.wrapping_add(0x18), ret_addr)?;
         let xpsr = (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111)
             | (frameptralign << 9) as u32;
-        self.write32(frameptr + 0x1c, xpsr)?;
+        self.write32(frameptr.wrapping_add(0x1c), xpsr)?;
 
         if self.mode == ProcessorMode::HandlerMode {
             self.lr = 0xFFFF_FFF1;
@@ -276,13 +281,13 @@ impl ExceptionHandlingHelpers for Processor {
         let forcealign = true;
 
         self.set_r(Reg::R0, self.read32(frameptr)?);
-        self.set_r(Reg::R1, self.read32(frameptr + 0x4)?);
-        self.set_r(Reg::R2, self.read32(frameptr + 0x8)?);
-        self.set_r(Reg::R3, self.read32(frameptr + 0xc)?);
-        self.set_r(Reg::R12, self.read32(frameptr + 0x10)?);
-        self.set_r(Reg::LR, self.read32(frameptr + 0x14)?);
-        let pc = self.read32(frameptr + 0x18)?;
-        let psr = self.read32(frameptr + 0x1c)?;
+        self.set_r(Reg::R1, self.read32(frameptr.wrapping_add(0x4))?);
+        self.set_r(Reg::R2, self.read32(frameptr.wrapping_add(0x8))?);
+        self.set_r(Reg::R3, self.read32(frameptr.wrapping_add(0xc))?);
+        self.set_r(Reg::R12, self.read32(frameptr.wrapping_add(0x10))?);
+        self.set_r(Reg::LR, self.read32(frameptr.wrapping_add(0x14))?);
+        let pc = self.read32(frameptr.wrapping_add(0x18))?;
+        let psr = self.read32(frameptr.wrapping_add(0x1c))?;
 
         self.branch_write_pc(pc);
 
@@ -291,11 +296,11 @@ impl ExceptionHandlingHelpers for Processor {
         match exc_return.get_bits(0..4) {
             0b0001 | 0b1001 => {
                 let msp = self.get_msp();
-                self.set_msp((msp + FRAME_SIZE) | spmask);
+                self.set_msp((msp.wrapping_add(FRAME_SIZE)) | spmask);
             }
             0b1101 => {
                 let psp = self.get_psp();
-                self.set_psp((psp + FRAME_SIZE) | spmask);
+                self.set_psp((psp.wrapping_add(FRAME_SIZE)) | spmask);
             }
             _ => {
                 panic!("wrong exc return");
@@ -326,6 +331,10 @@ impl ExceptionHandling for Processor {
 
     fn set_exception_priority(&mut self, exception: Exception, priority: u8) {
         self.exceptions.get_mut(&exception.into()).unwrap().priority = i16::from(priority);
+    }
+
+    fn get_exception_priority(&self, exception: Exception) -> i16 {
+        self.exceptions[&exception.into()].priority
     }
 
     fn get_execution_priority(&self) -> i16 {
