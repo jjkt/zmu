@@ -47,7 +47,8 @@ pub trait NVIC {
     fn nvic_read_icpr(&self, index: usize) -> u32;
 
     ///
-    /// Read Interrupt Active Bit Register
+    /// Read Interrupt Active Bit Register.
+    /// ```index``` is the 32 bit set of irqs to list. Value 0 means irqs 0..=31.
     ///
     fn nvic_read_iabr(&self, index: usize) -> u32;
 
@@ -143,9 +144,16 @@ impl NVIC for Processor {
         self.nvic_interrupt_pending[index] ^ 0xFFFF_FFFF
     }
 
-    fn nvic_read_iabr(&self, _index: usize) -> u32 {
-        //TODO: redirect to exceptions
-        0
+    fn nvic_read_iabr(&self, index: usize) -> u32 {
+        let first_irqn = index * 32;
+        let mut active = 0;
+        for irqn in first_irqn..first_irqn + 32 {
+            if self.exception_active(Exception::Interrupt { n: irqn }) {
+                active |= 1;
+            }
+            active <<= 1;
+        }
+        active
     }
 
     fn nvic_write_ipr(&mut self, index: usize, value: u32) {

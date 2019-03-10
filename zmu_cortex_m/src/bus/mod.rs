@@ -84,6 +84,12 @@ impl Bus for Processor {
             0xE000_E014 => self.read_syst_rvr(),
             0xE000_E018 => self.read_syst_cvr(),
             0xE000_E01C => self.read_syst_calib(),
+            0xE000_E100..=0xE000_E13C => self.nvic_read_iser(((addr - 0xE000_E100) >> 5) as usize),
+            0xE000_E180..=0xE000_E1BC => self.nvic_read_icer(((addr - 0xE000_E180) >> 5) as usize),
+            0xE000_E200..=0xE000_E23C => self.nvic_read_ispr(((addr - 0xE000_E200) >> 5) as usize),
+            0xE000_E280..=0xE000_E2BC => self.nvic_read_icpr(((addr - 0xE000_E280) >> 5) as usize),
+            0xE000_E300..=0xE000_E33C => self.nvic_read_iabr(((addr - 0xE000_E300) >> 5) as usize),
+            0xE000_E400..=0xE000_E5EC => self.nvic_read_ipr(((addr - 0xE000_E400) >> 2) as usize),
 
             0xE000_ED00 => self.cpuid,
             0xE000_ED04 => self.read_icsr(),
@@ -149,14 +155,21 @@ impl Bus for Processor {
             0xE000_E014 => self.write_syst_rvr(value),
             0xE000_E018 => self.write_syst_cvr(value),
             0xE000_E100..=0xE000_E13C => {
-                self.nvic_write_iser(((addr - 0xE000_E100) >> 2) as usize, value)
+                self.nvic_write_iser(((addr - 0xE000_E100) >> 5) as usize, value)
+            }
+            0xE000_E180..=0xE000_E1BC => {
+                self.nvic_write_icer(((addr - 0xE000_E180) >> 5) as usize, value)
             }
             0xE000_E200..=0xE000_E23C => {
-                self.nvic_write_ispr(((addr - 0xE000_E200) >> 2) as usize, value)
+                self.nvic_write_ispr(((addr - 0xE000_E200) >> 5) as usize, value)
+            }
+            0xE000_E280..=0xE000_E2BC => {
+                self.nvic_write_icpr(((addr - 0xE000_E280) >> 5) as usize, value)
             }
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value)
             }
+
             #[cfg(any(armv7m, armv7em))]
             0xE000_EF00 => self.write_stir(value),
             _ => {
