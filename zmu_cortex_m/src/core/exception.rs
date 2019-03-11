@@ -19,7 +19,7 @@ pub struct ExceptionState {
     priority: i16,
     pending: bool,
     active: bool,
-    exception: usize,
+    exception_number: usize,
 }
 
 impl ExceptionState {
@@ -28,7 +28,7 @@ impl ExceptionState {
     ///
     pub fn new(exception: Exception, priority: i16) -> Self {
         Self {
-            exception: usize::from(exception),
+            exception_number: usize::from(exception),
             priority,
             pending: false,
             active: false,
@@ -320,7 +320,7 @@ impl ExceptionHandling for Processor {
             exception.pending = false;
             exception.active = false;
 
-            if exception.exception > Exception::HardFault.into() {
+            if exception.exception_number > Exception::HardFault.into() {
                 exception.priority = 0;
             }
         }
@@ -391,8 +391,14 @@ impl ExceptionHandling for Processor {
                 .collect();
 
             if !possible_exceptions.is_empty() {
-                possible_exceptions.sort_by(|a, b| a.priority.cmp(&b.priority));
-                return Some(possible_exceptions[0].exception.into());
+                possible_exceptions.sort_by(|a, b| {
+                    if a.priority == b.priority {
+                        a.exception_number.cmp(&b.exception_number)
+                    } else {
+                        a.priority.cmp(&b.priority)
+                    }
+                });
+                return Some(possible_exceptions[0].exception_number.into());
             }
         }
         None
@@ -658,6 +664,33 @@ mod tests {
 
         // Assert
         assert_eq!(processor.get_pending_exception(), Some(Exception::Reset));
+    }
+
+    #[test]
+    fn test_exception_priority_same_priority_setting() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        // Act
+        processor.set_exception_pending(Exception::MemoryManagementFault);
+        processor.set_exception_pending(Exception::UsageFault);
+        processor.set_exception_pending(Exception::BusFault);
+
+        // Assert (exception number should define the priority for same priority setting)
+        assert_eq!(
+            processor.get_pending_exception(),
+            Some(Exception::MemoryManagementFault)
+        );
     }
 
     #[cfg(any(armv7m, armv7em))]
