@@ -4,7 +4,6 @@
 
 use crate::core::condition::Condition;
 use crate::core::register::Reg;
-use crate::core::register::SpecialReg;
 use crate::core::thumb::ThumbCode;
 use enum_set::EnumSet;
 
@@ -455,11 +454,12 @@ pub enum Instruction {
     },
     MRS {
         rd: Reg,
-        spec_reg: SpecialReg,
+        sysm: u8,
     },
     MSR_reg {
         rn: Reg,
-        spec_reg: SpecialReg,
+        sysm: u8,
+        mask: u8,
     },
     MUL {
         rd: Reg,
@@ -1561,8 +1561,8 @@ impl fmt::Display for Instruction {
                 rm,
                 shift_n
             ),
-            Instruction::MSR_reg { spec_reg, rn } => write!(f, "msr {}, {}", spec_reg, rn),
-            Instruction::MRS { rd, spec_reg } => write!(f, "mrs {}, {}", rd, spec_reg),
+            Instruction::MSR_reg { sysm, rn, mask } => write!(f, "msr {}, {}", sysm, rn),
+            Instruction::MRS { rd, sysm } => write!(f, "mrs {}, {}", rd, sysm),
             Instruction::MUL {
                 rd,
                 rn,

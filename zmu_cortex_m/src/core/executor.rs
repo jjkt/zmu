@@ -366,54 +366,115 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::Taken { cycles: 4 })
             }
 
-            Instruction::MRS { rd, spec_reg } => {
+            Instruction::MRS { rd, sysm } => {
                 if self.condition_passed() {
-                    match spec_reg {
-                        SpecialReg::APSR => self.set_r(*rd, self.psr.value & 0x1f00_0000),
-                        SpecialReg::IPSR => {
-                            self.set_r(*rd, self.psr.get_isr_number() as u32);
+                    let mut value: u32 = 0;
+                    match sysm.get_bits(3..8) {
+                        0b00000 => {
+                            if sysm.get_bit(0) {
+                                value.set_bits(0..9, self.psr.value.get_bits(0..9));
                         }
-                        SpecialReg::MSP => self.set_r(*rd, self.msp),
-                        SpecialReg::PSP => self.set_r(*rd, self.psp),
-                        SpecialReg::PRIMASK => {
-                            self.set_r(*rd, self.primask as u32);
+                            if sysm.get_bit(1) {
+                                value.set_bits(24..27, 0);
+                                value.set_bits(10..16, 0);
                         }
-                        //CONTROL => self.set_r(*rd,self.control as u32),
-                        _ => panic!("unsupported MRS operation {}", spec_reg),
+                            if sysm.get_bit(2) {
+                                value.set_bits(27..32, self.psr.value.get_bits(27..32));
                     }
+                        }
+                        0b00001 => match sysm.get_bits(0..3) {
+                            0 => {
+                                value = self.msp;
+                            }
+                            1 => {
+                                value = self.psp;
+                            }
+                            _ => (),
+                        },
+                        0b00010 => match sysm.get_bits(0..3) {
+                            0b000 => {
+                                value.set_bit(0, self.primask);
+                            }
+                            0b001 => {
+                                value.set_bits(0..8, u32::from(self.basepri));
+                            }
+                            0b010 => {
+                                value.set_bits(0..8, u32::from(self.basepri));
+                            }
+                            #[cfg(any(armv7m, armv7em))]
+                            0b011 => {
+                                value.set_bit(0, self.faultmask);
+                            }
+                            0b100 => {
+                                //let ctrl = u8::from(self.control) as u32;
+                                //value.set_bits(0..2, ctrl);
+                                panic!("unimplemented CONTROL");
+                            }
+                            _ => (),
+                        },
+                        _ => (),
+                    }
+                    self.set_r(*rd, value);
                     return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
 
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::MSR_reg { rn, spec_reg } => {
+            Instruction::MSR_reg { rn, sysm, mask } => {
                 if self.condition_passed() {
-                    match spec_reg {
-                        SpecialReg::APSR => {
-                            let value = self.get_r(*rn);
-                            self.psr.value |= value & 0x1f00_0000;
+                    let r_n = self.get_r(*rn);
+                    match sysm.get_bits(3..8) {
+                        0b00000 => {
+                            if !sysm.get_bit(2) {
+                                if mask.get_bit(0) {
+                                    //GE extensions
+                                    self.psr.value.set_bits(16..20, r_n.get_bits(16..20));
+                                }
+                                if mask.get_bit(1) {
+                                    // N, Z, C, V, Q
+                                    self.psr.value.set_bits(27..32, r_n.get_bits(27..32));
+                                }
+                            }
                         }
-                        /*&SpecialReg::IPSR => {
-                            let ipsr_val = self.psr.get_exception_number() as u32;
-                            self.set_r(*rd, ipsr_val);
-                        }*/
-                        SpecialReg::MSP => {
-                            let msp = self.get_r(*rn);
-                            self.set_msp(msp);
+                        0b00001 => match sysm.get_bits(0..3) {
+                            0 => self.msp = r_n,
+                            1 => self.psp = r_n,
+                            _ => (),
+                        },
+                        0b00010 => match sysm.get_bits(0..3) {
+                            0b000 => {
+                                self.primask = r_n.get_bit(0);
+                                self.execution_priority = self.get_execution_priority();
+                            }
+                            0b001 => {
+                                self.basepri = r_n.get_bits(0..8) as u8;
+                                self.execution_priority = self.get_execution_priority();
                         }
-                        SpecialReg::PSP => {
-                            let psp = self.get_r(*rn);
-                            self.set_psp(psp);
+                            0b010 => {
+                                let low_rn = r_n.get_bits(0..8) as u8;
+                                if low_rn != 0 && low_rn < self.basepri || self.basepri == 0 {
+                                    self.basepri = low_rn;
+                                    self.execution_priority = self.get_execution_priority();
                         }
-                        //PSP => self.set_r(*rd, self.get_r(Reg::PSP),
-                        SpecialReg::PRIMASK => {
-                            let primask = self.get_r(*rn) & 1 == 1;
-                            self.primask = primask;
+                        }
+                            #[cfg(any(armv7m, armv7em))]
+                            0b011 => {
+                                if self.execution_priority > -1 {
+                                    self.faultmask = r_n.get_bit(0);
                             self.execution_priority = self.get_execution_priority();
                         }
-                        //CONTROL => self.set_r(*rd,self.control as u32),
-                        _ => panic!("unsupported MSR operation {}", spec_reg),
+                            }
+                            0b100 => {
+                                self.control.n_priv = r_n.get_bit(0);
+                                if self.mode == ProcessorMode::ThreadMode {
+                                    self.control.sp_sel = r_n.get_bit(1);
+                                }
+                            }
+                            _ => (),
+                        },
+                        _ => (),
                     }
+
                     return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
                 Ok(ExecuteResult::NotTaken)
