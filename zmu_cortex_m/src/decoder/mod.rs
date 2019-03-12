@@ -6,8 +6,8 @@
 use crate::core::bits::*;
 use crate::core::instruction::Instruction;
 
-#[cfg(test)]
-use crate::core::register::SpecialReg;
+//#[cfg(test)]
+//use crate::core::register::SpecialReg;
 
 #[cfg(test)]
 use crate::core::condition::Condition;

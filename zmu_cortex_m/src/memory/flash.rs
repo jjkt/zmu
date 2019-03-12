@@ -25,6 +25,16 @@ impl FlashMemory {
             data: data,
         }
     }
+
+    ///
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    ///
+    pub fn is_empty(&self) -> bool {
+        self.data.len() == 0
+    }
 }
 
 impl Bus for FlashMemory {

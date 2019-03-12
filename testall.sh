@@ -92,7 +92,15 @@ echo "========================================"
 echo "TEST: cortex-m-rtfm crate examples"
 echo "========================================"
 
-declare -a arr=("baseline")
+#
+# TODO: not yet working examples: 
+# - "capacity" => sometimes randomly panics
+# - "late" => "0xf3bf8f5f" instruction not decoded correctly
+# - "ramfunc" => ramfuncs currently not supported by the emulator because of the caching
+# - "singleton" => sometimes randomly panics
+# - "static" => randomly triggers one or two prints (priority issue?)
+
+declare -a arr=("baseline" "binds" "generics" "idle" "init" "interrupt" "lock" "message" "not-send" "not-sync" "resource" "smallest" "task" "schedule" "periodic")
 cd tests/cortex-m-rtfm
 cargo build
 for i in "${arr[@]}"
@@ -104,7 +112,7 @@ cd ../..
 for i in "${arr[@]}"
 do
    echo "armv7m->cortex-m-rtfm examples/$i"
-   timeout 1s ./target/release/zmu-armv7m run tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/$i
+   timeout 2s ./target/release/zmu-armv7m run tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/$i
 done
 
 

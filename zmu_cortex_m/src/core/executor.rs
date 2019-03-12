@@ -11,18 +11,30 @@ use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SRType, SetFlags};
 use crate::core::operation::condition_test;
 use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
-use crate::core::register::{Apsr, BaseReg, Ipsr, Reg, SpecialReg};
+use crate::core::register::{Apsr, BaseReg, Reg};
+use crate::peripheral::dwt::Dwt;
 use crate::peripheral::systick::SysTick;
 use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::Processor;
+use crate::ProcessorMode;
 
 ///
 /// Stepping processor with instructions
 ///
 pub trait Executor {
     ///
-    /// step processor forward with given instruction
+    /// Run processor forward with core not sleeping
+    ///
+    fn tick(&mut self);
+
+    ///
+    /// Run processor forward with core sleeping (peripherals)
+    ///
+    fn sleep_tick(&mut self);
+
+    ///
+    /// Step processor forward with given instruction
     ///
     fn step(&mut self, instruction: &Instruction, instruction_size: usize);
 }
@@ -33,8 +45,8 @@ trait ExecutorHelper {
     fn integer_zero_divide_trapping_enabled(&mut self) -> bool;
     fn set_itstate(&mut self, state: u8);
     fn it_advance(&mut self);
-    fn in_it_block(&mut self) -> bool;
-    fn last_in_it_block(&mut self) -> bool;
+    fn in_it_block(&self) -> bool;
+    fn last_in_it_block(&self) -> bool;
     fn execute(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault>;
 }
 
@@ -92,11 +104,11 @@ impl ExecutorHelper for Processor {
         }
     }
 
-    fn in_it_block(&mut self) -> bool {
+    fn in_it_block(&self) -> bool {
         self.itstate.get_bits(0..4) != 0
     }
 
-    fn last_in_it_block(&mut self) -> bool {
+    fn last_in_it_block(&self) -> bool {
         self.itstate.get_bits(0..4) == 0b1000
     }
     fn integer_zero_divide_trapping_enabled(&mut self) -> bool {
@@ -366,54 +378,115 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::Taken { cycles: 4 })
             }
 
-            Instruction::MRS { rd, spec_reg } => {
+            Instruction::MRS { rd, sysm } => {
                 if self.condition_passed() {
-                    match spec_reg {
-                        SpecialReg::APSR => self.set_r(*rd, self.psr.value & 0x1f00_0000),
-                        SpecialReg::IPSR => {
-                            self.set_r(*rd, self.psr.get_isr_number() as u32);
+                    let mut value: u32 = 0;
+                    match sysm.get_bits(3..8) {
+                        0b00000 => {
+                            if sysm.get_bit(0) {
+                                value.set_bits(0..9, self.psr.value.get_bits(0..9));
+                            }
+                            if sysm.get_bit(1) {
+                                value.set_bits(24..27, 0);
+                                value.set_bits(10..16, 0);
+                            }
+                            if sysm.get_bit(2) {
+                                value.set_bits(27..32, self.psr.value.get_bits(27..32));
+                            }
                         }
-                        SpecialReg::MSP => self.set_r(*rd, self.msp),
-                        SpecialReg::PSP => self.set_r(*rd, self.psp),
-                        SpecialReg::PRIMASK => {
-                            self.set_r(*rd, self.primask as u32);
-                        }
-                        //CONTROL => self.set_r(*rd,self.control as u32),
-                        _ => panic!("unsupported MRS operation {}", spec_reg),
+                        0b00001 => match sysm.get_bits(0..3) {
+                            0 => {
+                                value = self.msp;
+                            }
+                            1 => {
+                                value = self.psp;
+                            }
+                            _ => (),
+                        },
+                        0b00010 => match sysm.get_bits(0..3) {
+                            0b000 => {
+                                value.set_bit(0, self.primask);
+                            }
+                            0b001 => {
+                                value.set_bits(0..8, u32::from(self.basepri));
+                            }
+                            0b010 => {
+                                value.set_bits(0..8, u32::from(self.basepri));
+                            }
+                            #[cfg(any(armv7m, armv7em))]
+                            0b011 => {
+                                value.set_bit(0, self.faultmask);
+                            }
+                            0b100 => {
+                                //let ctrl = u8::from(self.control) as u32;
+                                //value.set_bits(0..2, ctrl);
+                                panic!("unimplemented CONTROL");
+                            }
+                            _ => (),
+                        },
+                        _ => (),
                     }
+                    self.set_r(*rd, value);
                     return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
 
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::MSR_reg { rn, spec_reg } => {
+            Instruction::MSR_reg { rn, sysm, mask } => {
                 if self.condition_passed() {
-                    match spec_reg {
-                        SpecialReg::APSR => {
-                            let value = self.get_r(*rn);
-                            self.psr.value |= value & 0x1f00_0000;
+                    let r_n = self.get_r(*rn);
+                    match sysm.get_bits(3..8) {
+                        0b00000 => {
+                            if !sysm.get_bit(2) {
+                                if mask.get_bit(0) {
+                                    //GE extensions
+                                    self.psr.value.set_bits(16..20, r_n.get_bits(16..20));
+                                }
+                                if mask.get_bit(1) {
+                                    // N, Z, C, V, Q
+                                    self.psr.value.set_bits(27..32, r_n.get_bits(27..32));
+                                }
+                            }
                         }
-                        /*&SpecialReg::IPSR => {
-                            let ipsr_val = self.psr.get_exception_number() as u32;
-                            self.set_r(*rd, ipsr_val);
-                        }*/
-                        SpecialReg::MSP => {
-                            let msp = self.get_r(*rn);
-                            self.set_msp(msp);
-                        }
-                        SpecialReg::PSP => {
-                            let psp = self.get_r(*rn);
-                            self.set_psp(psp);
-                        }
-                        //PSP => self.set_r(*rd, self.get_r(Reg::PSP),
-                        SpecialReg::PRIMASK => {
-                            let primask = self.get_r(*rn) & 1 == 1;
-                            self.primask = primask;
-                            self.execution_priority = self.get_execution_priority();
-                        }
-                        //CONTROL => self.set_r(*rd,self.control as u32),
-                        _ => panic!("unsupported MSR operation {}", spec_reg),
+                        0b00001 => match sysm.get_bits(0..3) {
+                            0 => self.msp = r_n,
+                            1 => self.psp = r_n,
+                            _ => (),
+                        },
+                        0b00010 => match sysm.get_bits(0..3) {
+                            0b000 => {
+                                self.primask = r_n.get_bit(0);
+                                self.execution_priority = self.get_execution_priority();
+                            }
+                            0b001 => {
+                                self.basepri = r_n.get_bits(0..8) as u8;
+                                self.execution_priority = self.get_execution_priority();
+                            }
+                            0b010 => {
+                                let low_rn = r_n.get_bits(0..8) as u8;
+                                if low_rn != 0 && low_rn < self.basepri || self.basepri == 0 {
+                                    self.basepri = low_rn;
+                                    self.execution_priority = self.get_execution_priority();
+                                }
+                            }
+                            #[cfg(any(armv7m, armv7em))]
+                            0b011 => {
+                                if self.execution_priority > -1 {
+                                    self.faultmask = r_n.get_bit(0);
+                                    self.execution_priority = self.get_execution_priority();
+                                }
+                            }
+                            0b100 => {
+                                self.control.n_priv = r_n.get_bit(0);
+                                if self.mode == ProcessorMode::ThreadMode {
+                                    self.control.sp_sel = r_n.get_bit(1);
+                                }
+                            }
+                            _ => (),
+                        },
+                        _ => (),
                     }
+
                     return Ok(ExecuteResult::Taken { cycles: 4 });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -2264,9 +2337,16 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::WFE { .. } | Instruction::WFI { .. } | Instruction::YIELD { .. } => {
+            Instruction::WFE { .. } | Instruction::YIELD { .. } => {
                 if self.condition_passed() {
                     //TODO
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+            Instruction::WFI { .. } => {
+                if self.condition_passed() {
+                    self.sleeping = true;
                     return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -2496,16 +2576,33 @@ impl ExecutorHelper for Processor {
 }
 
 impl Executor for Processor {
+    fn sleep_tick(&mut self) {
+        self.syst_step();
+        self.check_exceptions();
+        self.dwt_tick();
+    }
+
+    fn tick(&mut self) {
+        let pc = self.get_pc();
+        let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
+        self.step(&instruction, instruction_size);
+        self.syst_step();
+        self.check_exceptions();
+        self.dwt_tick();
+    }
+
     fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
+        self.instruction_count += 1;
+
         let in_it_block = self.in_it_block();
 
-        match self.execute(instruction) {
+        match self.execute(&instruction) {
             Err(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
-                let pc = self.get_pc();
+                let new_pc = self.get_pc();
 
                 //TODO: map to correct exception
-                self.exception_entry(Exception::HardFault, pc)
+                self.exception_entry(Exception::HardFault, new_pc)
                     .expect("error handling on exception entry not implemented");
             }
             Ok(ExecuteResult::NotTaken) => {
@@ -2525,16 +2622,6 @@ impl Executor for Processor {
                     self.it_advance();
                 }
             }
-        }
-
-        self.syst_step();
-
-        if let Some(exception) = self.get_pending_exception() {
-            self.clear_pending_exception(exception);
-            let pc = self.get_pc();
-            // TODO: handle failure to enter exception
-            self.exception_entry(exception, pc)
-                .expect("error handling on exception entry not implemented");
         }
     }
 }
@@ -2656,8 +2743,8 @@ mod tests {
         };
 
         core.step(&i1, instruction_size(&i1));
-        core.step(&i2, instruction_size(&i2));
-        core.step(&i3, instruction_size(&i3));
+        core.step(&i2, instruction_size(&i1));
+        core.step(&i3, instruction_size(&i1));
 
         assert_eq!(core.get_r(Reg::R4), 0x01);
         assert!(!core.in_it_block());
@@ -2716,7 +2803,7 @@ mod tests {
             msbit: 7,
         };
 
-        core.step(&instruction, instruction_size(&instruction));
+        core.execute(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
         assert_eq!(core.get_r(Reg::R2), 0x112233dd);
@@ -2752,7 +2839,7 @@ mod tests {
             shift_n: 20,
         };
 
-        core.step(&instruction, instruction_size(&instruction));
+        core.execute(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R6), 0);
     }
@@ -2800,7 +2887,7 @@ mod tests {
             m_high: false,
         };
 
-        core.step(&instruction, instruction_size(&instruction));
+        core.execute(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R12), 0xFFD4F24B);
     }

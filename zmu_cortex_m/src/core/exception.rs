@@ -54,7 +54,7 @@ pub trait ExceptionHandling {
     ///
     /// Get the currently highest priority pending exception
     ///
-    fn get_pending_exception(&mut self) -> Option<Exception>;
+    fn get_pending_exception(&self) -> Option<Exception>;
 
     ///
     /// Clear the pending status of an exception
@@ -97,6 +97,11 @@ pub trait ExceptionHandling {
     /// Clear exceptions to reset state
     ///
     fn exceptions_reset(&mut self);
+
+    ///
+    ///
+    ///
+    fn check_exceptions(&mut self);
 }
 
 trait ExceptionHandlingHelpers {
@@ -183,9 +188,12 @@ impl ExceptionHandlingHelpers for Processor {
             .get_mut(&returning_exception_number)
             .unwrap()
             .active = false;
-        if self.psr.get_isr_number() != 0b10 {
-            //TODO
-            //self.faultmask0 = 0;
+
+        #[cfg(any(armv7m, armv7em))]
+        {
+            if self.psr.get_isr_number() != 0b10 {
+                self.faultmask = false;
+            }
         }
         self.execution_priority = self.get_execution_priority();
     }
@@ -381,7 +389,7 @@ impl ExceptionHandling for Processor {
         }
     }
 
-    fn get_pending_exception(&mut self) -> Option<Exception> {
+    fn get_pending_exception(&self) -> Option<Exception> {
         if self.pending_exception_count > 0 {
             let mut possible_exceptions: Vec<ExceptionState> = self
                 .exceptions
@@ -483,9 +491,27 @@ impl ExceptionHandling for Processor {
                 return self.exception_taken(Exception::UsageFault);
             }
 
+            if self.mode == ProcessorMode::ThreadMode
+                && nested_activation == 0
+                && self.scr.get_bit(1)
+            {
+                println!("sleep on exit");
+                self.sleeping = true;
+            }
+
             Ok(())
         } else {
             self.invalid_exception_return(returning_exception_number, exc_return)
+        }
+    }
+
+    fn check_exceptions(&mut self) {
+        if let Some(exception) = self.get_pending_exception() {
+            self.clear_pending_exception(exception);
+            let pc = self.get_pc();
+            // TODO: handle failure to enter exception
+            self.exception_entry(exception, pc)
+                .expect("error handling on exception entry not implemented");
         }
     }
 }

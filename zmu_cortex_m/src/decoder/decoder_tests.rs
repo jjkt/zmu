@@ -1346,7 +1346,7 @@ fn test_decode_rsb_imm() {
     );
 }
 
-#[test]
+/*#[test]
 fn test_decode_mrs() {
     // MRS R0, ipsr
     assert_eq!(
@@ -1356,7 +1356,7 @@ fn test_decode_mrs() {
             spec_reg: SpecialReg::IPSR,
         }
     );
-}
+}*/
 
 #[cfg(any(armv6m))]
 #[test]

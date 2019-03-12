@@ -2,13 +2,12 @@
 //! Cortex System Control Block Simulation
 //!
 
-#[cfg(any(armv7m, armv7em))]
 use crate::core::bits::Bits;
-#[cfg(any(armv7m, armv7em))]
 use crate::core::exception::Exception;
-#[cfg(any(armv7m, armv7em))]
 use crate::core::exception::ExceptionHandling;
 use crate::Processor;
+
+use crate::core::register::Ipsr;
 
 ///
 /// Register based API to SCB
@@ -171,11 +170,31 @@ pub trait SystemControlBlock {
 
 impl SystemControlBlock for Processor {
     fn read_icsr(&self) -> u32 {
-        self.icsr
+        let mut value: u32 = 0;
+
+        value.set_bits(0..9, self.psr.get_isr_number() as u32);
+
+        if let Some(exception) = self.get_pending_exception() {
+            value.set_bits(12..21, usize::from(exception) as u32);
+        }
+
+        value
     }
 
     fn write_icsr(&mut self, value: u32) {
-        self.icsr = value
+        if value.get_bit(31) {
+            self.set_exception_pending(Exception::NMI);
+        }
+        if value.get_bit(28) {
+            self.set_exception_pending(Exception::PendSV);
+        } else if value.get_bit(27) {
+            self.clear_pending_exception(Exception::PendSV);
+        }
+        if value.get_bit(26) {
+            self.set_exception_pending(Exception::SysTick);
+        } else if value.get_bit(25) {
+            self.clear_pending_exception(Exception::SysTick);
+        }
     }
 
     fn write_vtor(&mut self, value: u32) {
@@ -270,7 +289,7 @@ impl SystemControlBlock for Processor {
     }
 
     fn write_scr(&mut self, value: u32) {
-        self.scr = value
+        self.scr = value;
     }
 
     fn write_demcr(&mut self, _value: u32) {}
