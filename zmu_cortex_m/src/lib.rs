@@ -29,8 +29,13 @@ pub mod peripheral;
 pub mod semihosting;
 pub mod system;
 
+use crate::core::instruction::instruction_size;
+
 use crate::core::exception::Exception;
+use crate::core::fetch::Fetch;
+use crate::core::instruction::Instruction;
 use crate::core::register::{Apsr, BaseReg, Control, Reg, PSR};
+use crate::decoder::Decoder;
 use crate::memory::flash::FlashMemory;
 use crate::memory::ram::RAM;
 use crate::semihosting::SemihostingCommand;
@@ -65,8 +70,9 @@ pub struct Processor {
     lr: u32,
     pc: u32,
 
-    /// number of processor clock cycles run
+    /// Total number of processor clock cycles run
     pub cycle_count: u64,
+    pub instruction_count: u64,
 
     /// Processor state register, status flags.
     pub psr: PSR,
@@ -101,6 +107,11 @@ pub struct Processor {
     /// Is the core simulation currently running or not.
     ///
     pub running: bool,
+
+    ///
+    /// Is the processor currently in sleep mode
+    ///
+    pub sleeping: bool,
 
     ///
     /// lookup table for exceptions and their states
@@ -174,6 +185,8 @@ pub struct Processor {
     /// semihosting plug
     ///
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
+
+    instruction_cache: Vec<(Instruction, usize)>,
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -267,7 +280,9 @@ impl Processor {
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
             itm_file: itm_file,
             running: true,
+            sleeping: false,
             cycle_count: 0,
+            instruction_count: 0,
             exceptions: make_default_exception_priorities(),
             execution_priority: 0,
             pending_exception_count: 0,
@@ -305,6 +320,25 @@ impl Processor {
             syst_rvr: 0,
             syst_cvr: 0,
             syst_csr: 0,
+            instruction_cache: Vec::new(),
+        }
+    }
+
+    ///
+    /// Pre cache (decode) instructions to speed up simulation
+    ///
+    pub fn cache_instructions(&mut self) {
+        // pre-cache the decoded instructions
+        {
+            let mut pc = 0;
+
+            while pc < (self.code.len() as u32) {
+                let thumb = self.fetch(pc).unwrap();
+                let instruction = self.decode(thumb);
+                self.instruction_cache
+                    .push((instruction, instruction_size(&instruction)));
+                pc += 2;
+            }
         }
     }
 }

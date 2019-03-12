@@ -221,6 +221,7 @@ impl NVIC for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::exception::ExceptionHandling;
     use crate::core::executor::Executor;
     use crate::core::instruction::Instruction;
     use crate::core::reset::Reset;
@@ -354,6 +355,7 @@ mod tests {
         processor.nvic_write_iser(0, 1);
 
         processor.step(&Instruction::NOP { thumb32: false }, 2);
+        processor.check_exceptions();
 
         // Assert
         assert_eq!(processor.nvic_read_iabr(0), 1);

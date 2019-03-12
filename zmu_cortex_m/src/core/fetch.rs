@@ -13,18 +13,18 @@ use crate::Processor;
 pub trait Fetch {
     /// Fetch instruction from current PC (Program Counter) position,
     /// decoding the possible thumb32 variant
-    fn fetch(&mut self) -> Result<ThumbCode, Fault>;
+    fn fetch(&self, pc: u32) -> Result<ThumbCode, Fault>;
 }
 
 impl Fetch for Processor {
     // Fetch next Thumb2-coded instruction from current
     // PC location. Depending on instruction type, fetches
     // one or two half-words.
-    fn fetch(&mut self) -> Result<ThumbCode, Fault> {
-        let hw = self.read16(self.pc)?;
+    fn fetch(&self, pc: u32) -> Result<ThumbCode, Fault> {
+        let hw = self.read16(pc)?;
 
         if is_thumb32(hw) {
-            let hw2 = self.read16(self.pc + 2)?;
+            let hw2 = self.read16(pc + 2)?;
             Ok(ThumbCode::Thumb32 {
                 opcode: (u32::from(hw) << 16) + u32::from(hw2),
             })
