@@ -2587,12 +2587,12 @@ impl Executor for Processor {
 
     #[inline(always)]
     fn tick(&mut self) {
+        self.dwt_tick();
+        self.syst_step();
         let pc = self.get_pc();
         let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
         self.step(&instruction, instruction_size);
-        self.syst_step();
         self.check_exceptions();
-        self.dwt_tick();
     }
 
     #[inline(always)]

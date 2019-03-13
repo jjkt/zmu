@@ -491,8 +491,9 @@ impl ExceptionHandling for Processor {
                 return self.exception_taken(Exception::UsageFault);
             }
 
+
             if self.mode == ProcessorMode::ThreadMode
-                && nested_activation == 0
+                && nested_activation == 1 // deactivate() reduced one
                 && self.scr.get_bit(1)
             {
                 self.state.set_bit(1, true); // sleeping = true

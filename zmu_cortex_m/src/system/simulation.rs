@@ -31,6 +31,7 @@ pub fn simulate(
             //running, !sleeping
             processor.tick();
         }
+
         while processor.state == 0b11 {
             //running, sleeping
             processor.sleep_tick();
