@@ -33,9 +33,8 @@ impl Dwt for Processor {
         self.dwt_cyccnt = value;
     }
 
+    #[inline(always)]
     fn dwt_tick(&mut self) {
-        if self.dwt_ctrl.get_bit(0) {
-            self.dwt_cyccnt += 1;
-        }
+        self.dwt_cyccnt += self.dwt_ctrl & 1;
     }
 }

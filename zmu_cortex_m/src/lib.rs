@@ -104,14 +104,11 @@ pub struct Processor {
     mode: ProcessorMode,
 
     ///
-    /// Is the core simulation currently running or not.
+    /// processor simulation state
     ///
-    pub running: bool,
-
-    ///
-    /// Is the processor currently in sleep mode
-    ///
-    pub sleeping: bool,
+    /// bit 0 : 1= simulation running, 0 : simulation terminating
+    /// bit 1 : 1= processor sleeping, 0 : processor awake
+    pub state: u32,
 
     ///
     /// lookup table for exceptions and their states
@@ -279,8 +276,7 @@ impl Processor {
             // TODO make RAM size configurable
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
             itm_file: itm_file,
-            running: true,
-            sleeping: false,
+            state: 0,
             cycle_count: 0,
             instruction_count: 0,
             exceptions: make_default_exception_priorities(),

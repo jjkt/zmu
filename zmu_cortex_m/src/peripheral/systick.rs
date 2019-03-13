@@ -92,13 +92,24 @@ impl SysTick for Processor {
         0
     }
 
+    #[inline(always)]
     fn syst_step(&mut self) {
         if (self.syst_csr & SYST_ENABLE) == SYST_ENABLE {
-            self.syst_cvr = self.syst_cvr.saturating_sub(1);
-            self.syst_cvr &= 0x00ff_ffff;
+
+            let syst_was_not_zero = self.syst_cvr > 0;
+
+            if syst_was_not_zero
+            {
+                self.syst_cvr = self.syst_cvr.saturating_sub(1);
+                self.syst_cvr &= 0x00ff_ffff;
+            }
+            else 
+            {
+                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
+            }
 
             // reach 0?
-            if self.syst_cvr == 0 {
+            if syst_was_not_zero && self.syst_cvr == 0 {
                 // reload -> to counter value
                 self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
                 self.syst_csr |= SYST_COUNTFLAG;
