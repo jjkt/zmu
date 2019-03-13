@@ -260,7 +260,7 @@ impl Bus for Processor {
                 self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value)
             }
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_write_ipr_u8(((addr - 0xE000_E400) >> 2) as usize, value)
+                self.nvic_write_ipr_u8((addr - 0xE000_E400) as usize, value)
             }
             #[cfg(any(armv7m, armv7em))]
             0xE000_ED18..=0xE000_ED1B => {
