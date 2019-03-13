@@ -2346,7 +2346,9 @@ impl ExecutorHelper for Processor {
             }
             Instruction::WFI { .. } => {
                 if self.condition_passed() {
-                    self.sleeping = true;
+                    if self.get_pending_exception() == None {
+                        self.sleeping = true;
+                    }
                     return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
                 Ok(ExecuteResult::NotTaken)
