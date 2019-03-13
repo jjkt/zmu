@@ -495,8 +495,7 @@ impl ExceptionHandling for Processor {
                 && nested_activation == 0
                 && self.scr.get_bit(1)
             {
-                println!("sleep on exit");
-                self.sleeping = true;
+                self.state.set_bit(1, true); // sleeping = true
             }
 
             Ok(())
@@ -505,8 +504,10 @@ impl ExceptionHandling for Processor {
         }
     }
 
+    #[inline(always)]
     fn check_exceptions(&mut self) {
         if let Some(exception) = self.get_pending_exception() {
+            self.state.set_bit(1, false); // sleeping == false
             self.clear_pending_exception(exception);
             let pc = self.get_pc();
             // TODO: handle failure to enter exception

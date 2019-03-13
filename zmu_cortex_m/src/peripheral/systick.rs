@@ -92,6 +92,7 @@ impl SysTick for Processor {
         0
     }
 
+    #[inline(always)]
     fn syst_step(&mut self) {
         if (self.syst_csr & SYST_ENABLE) == SYST_ENABLE {
             self.syst_cvr = self.syst_cvr.saturating_sub(1);

@@ -2347,7 +2347,7 @@ impl ExecutorHelper for Processor {
             Instruction::WFI { .. } => {
                 if self.condition_passed() {
                     if self.get_pending_exception() == None {
-                        self.sleeping = true;
+                        self.state.set_bit(1, true); // sleeping == true
                     }
                     return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
@@ -2578,12 +2578,14 @@ impl ExecutorHelper for Processor {
 }
 
 impl Executor for Processor {
+    #[inline(always)]
     fn sleep_tick(&mut self) {
         self.syst_step();
         self.check_exceptions();
         self.dwt_tick();
     }
 
+    #[inline(always)]
     fn tick(&mut self) {
         let pc = self.get_pc();
         let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
@@ -2593,6 +2595,7 @@ impl Executor for Processor {
         self.dwt_tick();
     }
 
+    #[inline(always)]
     fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
         self.instruction_count += 1;
 
@@ -2604,6 +2607,7 @@ impl Executor for Processor {
                 let new_pc = self.get_pc();
 
                 //TODO: map to correct exception
+                //TODO: cycles not correctly accumulated yet for exception entry
                 self.exception_entry(Exception::HardFault, new_pc)
                     .expect("error handling on exception entry not implemented");
             }

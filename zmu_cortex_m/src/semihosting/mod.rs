@@ -3,6 +3,7 @@
 //!
 
 use crate::bus::Bus;
+use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::register::Reg;
@@ -368,7 +369,7 @@ pub fn semihost_return(processor: &mut Processor, response: &SemihostingResponse
         SemihostingResponse::SysException { success, stop }
         | SemihostingResponse::SysExitExtended { success, stop } => {
             if success {
-                processor.running = !stop
+                processor.state.set_bit(0, !stop);
             }
         }
         SemihostingResponse::SysClose { success } | SemihostingResponse::SysSeek { success } => {

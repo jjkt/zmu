@@ -2,6 +2,7 @@
 //! Cortex system simulation framework
 //!
 
+use crate::core::bits::Bits;
 use crate::core::executor::Executor;
 use crate::core::reset::Reset;
 use crate::semihosting::SemihostingCommand;
@@ -23,11 +24,15 @@ pub fn simulate(
     processor.cache_instructions();
     processor.reset().unwrap();
 
-    while processor.running {
-        while !processor.sleeping && processor.running {
+    processor.state.set_bit(0, true); // running
+
+    while processor.state & 1 == 1 {
+        while processor.state == 0b01 {
+            //running, !sleeping
             processor.tick();
         }
-        while processor.sleeping && processor.running {
+        while processor.state == 0b11 {
+            //running, sleeping
             processor.sleep_tick();
         }
     }
@@ -52,12 +57,16 @@ where
     processor.cache_instructions();
     processor.reset().unwrap();
 
-    while processor.running {
-        while !processor.sleeping && processor.running {
+    processor.state.set_bit(0, true); // running
+
+    while processor.state & 1 == 1 {
+        while processor.state == 0b01 {
+            //running, !sleeping
             processor.tick();
             trace_func(&processor);
         }
-        while processor.sleeping && processor.running {
+        while processor.state == 0b11 {
+            //running, sleeping
             processor.sleep_tick();
         }
     }
