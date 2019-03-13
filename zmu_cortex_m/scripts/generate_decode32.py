@@ -1,4 +1,4 @@
-""" Module for autogenerating ARMv6-m decoder trees"""
+""" Module for autogenerating ARM Thumb-2 decoder trees"""
 
 
 INSTRUCTIONS = {

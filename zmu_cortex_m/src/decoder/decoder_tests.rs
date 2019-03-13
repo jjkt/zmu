@@ -2862,3 +2862,9 @@ fn test_decode_asrw_reg_t2() {
         }
     );
 }
+
+#[test]
+fn test_decode_dmb() {
+    //  f3bf 8f5f       dmb sy
+    assert_eq!(decode_32(0xf3bf8f5f), Instruction::DMB);
+}
