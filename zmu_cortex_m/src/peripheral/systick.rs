@@ -2,6 +2,7 @@
 //! Cortex System Tick Simulation
 //!
 
+use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::Processor;
@@ -28,7 +29,7 @@ pub trait SysTick {
     ///
     /// Read control and status register
     ///
-    fn read_syst_csr(&self) -> u32;
+    fn read_syst_csr(&mut self) -> u32;
 
     ///
     /// Read reload value register
@@ -51,9 +52,9 @@ pub trait SysTick {
     fn syst_step(&mut self);
 }
 
-const SYST_ENABLE: u32 = 1;
-const SYST_TICKINT: u32 = 1 << 1;
-const SYST_COUNTFLAG: u32 = 1 << 16;
+const SYST_CSR_ENABLE: u32 = 1 << 0;
+const SYST_CSR_TICKINT: u32 = 1 << 1;
+const SYST_CSR_COUNTFLAG: u32 = 1 << 16;
 
 impl SysTick for Processor {
     fn write_syst_rvr(&mut self, value: u32) {
@@ -62,22 +63,19 @@ impl SysTick for Processor {
 
     fn write_syst_cvr(&mut self, _value: u32) {
         self.syst_cvr = 0;
-        self.syst_csr &= SYST_COUNTFLAG ^ 0xffff_ffff;
+
+        // writing to CVR always clears countflag
+        self.syst_csr &= !SYST_CSR_COUNTFLAG;
     }
 
     fn write_syst_csr(&mut self, value: u32) {
-        // is it an activation?
-        if (self.syst_csr & SYST_ENABLE == 0) && (value & SYST_ENABLE == SYST_ENABLE) {
-            // reload value -> counter value
-            self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
-        }
-
-        self.syst_csr &= 0b_111 ^ 0xffff_ffff;
-        self.syst_csr |= value & 0b_111;
+        self.syst_csr.set_bits(0..3, value.get_bits(0..3));
     }
 
-    fn read_syst_csr(&self) -> u32 {
-        self.syst_csr
+    fn read_syst_csr(&mut self) -> u32 {
+        let res = self.syst_csr;
+        self.syst_csr &= !SYST_CSR_COUNTFLAG;
+        res
     }
 
     fn read_syst_rvr(&self) -> u32 {
@@ -94,29 +92,212 @@ impl SysTick for Processor {
 
     #[inline(always)]
     fn syst_step(&mut self) {
-        if (self.syst_csr & SYST_ENABLE) == SYST_ENABLE {
+        if (self.syst_csr & SYST_CSR_ENABLE) == SYST_CSR_ENABLE {
+            if self.syst_cvr > 0 {
+                self.syst_cvr -= 1;
 
-            let syst_was_not_zero = self.syst_cvr > 0;
-
-            if syst_was_not_zero
-            {
-                self.syst_cvr = self.syst_cvr.saturating_sub(1);
-                self.syst_cvr &= 0x00ff_ffff;
-            }
-            else 
-            {
-                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
-            }
-
-            // reach 0?
-            if syst_was_not_zero && self.syst_cvr == 0 {
-                // reload -> to counter value
-                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
-                self.syst_csr |= SYST_COUNTFLAG;
-                if (self.syst_csr & SYST_TICKINT) == SYST_TICKINT {
-                    self.set_exception_pending(Exception::SysTick);
+                if self.syst_cvr == 0 {
+                    self.syst_csr |= SYST_CSR_COUNTFLAG;
+                    if (self.syst_csr & SYST_CSR_TICKINT) == SYST_CSR_TICKINT {
+                        self.set_exception_pending(Exception::SysTick);
+                    }
                 }
+            } else {
+                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
             }
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::reset::Reset;
+    use crate::semihosting::SemihostingCommand;
+    use crate::semihosting::SemihostingResponse;
+    use std::io::Result;
+    use std::io::Write;
+    struct TestWriter {}
+
+    impl Write for TestWriter {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_nvic_rvr() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        // Act
+        processor.write_syst_rvr(0xffff_ffff);
+
+        // Assert
+        assert_eq!(processor.read_syst_rvr(), 0x00ff_ffff);
+    }
+
+    #[test]
+    fn test_nvic_cvr() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        // Act
+        processor.write_syst_cvr(0xffff_ffff);
+
+        // Assert
+        assert_eq!(processor.read_syst_cvr(), 0);
+
+        // Act
+        processor.write_syst_cvr(0x1);
+
+        // Assert
+        assert_eq!(processor.read_syst_cvr(), 0);
+
+        // Act
+        processor.write_syst_cvr(42);
+
+        // Assert
+        assert_eq!(processor.read_syst_cvr(), 0);
+    }
+
+    #[test]
+    fn test_nvic_csr() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        // Act
+        processor.write_syst_csr(0xffff_ffff);
+
+        // Assert
+        assert_eq!(processor.read_syst_csr(), 0b111);
+    }
+
+    #[test]
+    fn test_nvic_reading_csr_clears_countflag() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        //Arrange
+        processor.write_syst_rvr(1);
+        processor.write_syst_cvr(0);
+        processor.write_syst_csr(SYST_CSR_ENABLE);
+
+        // Act
+        processor.syst_step();
+        processor.syst_step();
+
+        // Assert
+        assert_eq!(
+            processor.read_syst_csr(),
+            SYST_CSR_COUNTFLAG | SYST_CSR_ENABLE
+        );
+        assert_eq!(processor.read_syst_csr(), SYST_CSR_ENABLE);
+    }
+
+    #[test]
+    fn test_nvic_writing_cvr_clears_countflag() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        //Arrange
+        processor.write_syst_rvr(1);
+        processor.write_syst_cvr(0);
+        processor.write_syst_csr(SYST_CSR_ENABLE);
+        processor.syst_step();
+        processor.syst_step();
+
+        // Act
+        processor.write_syst_cvr(42);
+
+        // Assert
+        assert_eq!(processor.read_syst_csr(), SYST_CSR_ENABLE);
+    }
+
+    #[test]
+    fn test_nvic_exception_is_set_pending_on_reaching_zero() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        processor.reset().unwrap();
+
+        //Arrange
+        processor.write_syst_rvr(1);
+        processor.write_syst_cvr(0);
+        processor.write_syst_csr(SYST_CSR_ENABLE | SYST_CSR_TICKINT);
+
+        // Act
+        processor.syst_step();
+        processor.syst_step();
+
+        // Assert
+        assert_eq!(processor.get_pending_exception(), Some(Exception::SysTick));
+
+        assert_eq!(
+            processor.read_syst_csr(),
+            SYST_CSR_COUNTFLAG | SYST_CSR_ENABLE | SYST_CSR_TICKINT
+        );
+    }
+
 }

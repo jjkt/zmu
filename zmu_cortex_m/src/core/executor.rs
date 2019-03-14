@@ -1181,10 +1181,11 @@ impl ExecutorHelper for Processor {
                     self.set_r(Reg::SP, sp + regs_size);
 
                     for reg in registers.iter() {
+                        let val = self.read32(address)?;
                         if reg == Reg::PC {
-                            self.bx_write_pc(self.read32(address)?)?;
+                            self.bx_write_pc(val)?;
                         } else {
-                            self.set_r(reg, self.read32(address)?);
+                            self.set_r(reg, val);
                         }
                         address += 4;
                     }
@@ -2587,11 +2588,11 @@ impl Executor for Processor {
 
     #[inline(always)]
     fn tick(&mut self) {
-        self.dwt_tick();
-        self.syst_step();
         let pc = self.get_pc();
         let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
         self.step(&instruction, instruction_size);
+        self.dwt_tick();
+        self.syst_step();
         self.check_exceptions();
     }
 

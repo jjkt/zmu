@@ -288,12 +288,18 @@ impl ExceptionHandlingHelpers for Processor {
         //let forcealign = ccr.stkalign;
         let forcealign = true;
 
-        self.set_r(Reg::R0, self.read32(frameptr)?);
-        self.set_r(Reg::R1, self.read32(frameptr.wrapping_add(0x4))?);
-        self.set_r(Reg::R2, self.read32(frameptr.wrapping_add(0x8))?);
-        self.set_r(Reg::R3, self.read32(frameptr.wrapping_add(0xc))?);
-        self.set_r(Reg::R12, self.read32(frameptr.wrapping_add(0x10))?);
-        self.set_r(Reg::LR, self.read32(frameptr.wrapping_add(0x14))?);
+        let r = self.read32(frameptr)?;
+        self.set_r(Reg::R0, r);
+        let r = self.read32(frameptr.wrapping_add(0x4))?;
+        self.set_r(Reg::R1, r);
+        let r = self.read32(frameptr.wrapping_add(0x8))?;
+        self.set_r(Reg::R2, r);
+        let r = self.read32(frameptr.wrapping_add(0xc))?;
+        self.set_r(Reg::R3, r);
+        let r = self.read32(frameptr.wrapping_add(0x10))?;
+        self.set_r(Reg::R12, r);
+        let r = self.read32(frameptr.wrapping_add(0x14))?;
+        self.set_r(Reg::LR, r);
         let pc = self.read32(frameptr.wrapping_add(0x18))?;
         let psr = self.read32(frameptr.wrapping_add(0x1c))?;
 
@@ -490,7 +496,6 @@ impl ExceptionHandling for Processor {
                 self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
                 return self.exception_taken(Exception::UsageFault);
             }
-
 
             if self.mode == ProcessorMode::ThreadMode
                 && nested_activation == 1 // deactivate() reduced one

@@ -48,7 +48,7 @@ impl Bus for FlashMemory {
         Ok(LittleEndian::read_u16(&self.data[a..a + 2]))
     }
 
-    fn read32(&self, addr: u32) -> Result<u32, Fault> {
+    fn read32(&mut self, addr: u32) -> Result<u32, Fault> {
         let a = (addr - self.start_address) as usize;
         Ok(LittleEndian::read_u32(&self.data[a..a + 4]))
     }
@@ -81,7 +81,7 @@ fn test_new() {
 
 #[test]
 fn test_load() {
-    let mem = FlashMemory::new(0, 1024, &vec![42u8; 1024]);
+    let mut mem = FlashMemory::new(0, 1024, &vec![42u8; 1024]);
     assert_eq!(mem.read8(0).unwrap(), 42);
     assert_eq!(mem.read16(0).unwrap(), (42 << 8) + 42);
     assert_eq!(
