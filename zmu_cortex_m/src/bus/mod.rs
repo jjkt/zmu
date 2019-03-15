@@ -17,7 +17,7 @@ use crate::peripheral::systick::SysTick;
 pub trait Bus {
     /// Reads a 32 bit value via the bus from the given address.
     ///
-    fn read32(&self, addr: u32) -> Result<u32, Fault>;
+    fn read32(&mut self, addr: u32) -> Result<u32, Fault>;
 
     /// Reads a 16 bit value via the bus from the given address.
     ///
@@ -100,7 +100,7 @@ impl Bus for Processor {
         }
     }
 
-    fn read32(&self, addr: u32) -> Result<u32, Fault> {
+    fn read32(&mut self, addr: u32) -> Result<u32, Fault> {
         let result = match addr {
             0xE000_0000 => self.read_stim0(),
 
