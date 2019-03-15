@@ -18,9 +18,10 @@ pub trait Dwt {
     fn write_cyccnt(&mut self, value: u32);
 
     ///
-    /// clock dwt block
+    /// Clock dwt block ```cycles```.
     ///
-    fn dwt_tick(&mut self);
+    ///
+    fn dwt_tick(&mut self, cycles: u32);
 }
 
 impl Dwt for Processor {
@@ -34,7 +35,7 @@ impl Dwt for Processor {
     }
 
     #[inline(always)]
-    fn dwt_tick(&mut self) {
-        self.dwt_cyccnt += self.dwt_ctrl & 1;
+    fn dwt_tick(&mut self, cycles: u32) {
+        self.dwt_cyccnt += cycles * (self.dwt_ctrl & 1);
     }
 }
