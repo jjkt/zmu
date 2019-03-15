@@ -86,6 +86,11 @@ pub trait NVIC {
     /// 16 bit read from interrupt priority register
     ///
     fn nvic_read_ipr_u16(&self, index: usize) -> u16;
+
+    ///
+    /// Mark interrupt no longer pending in NVIC point of view.
+    ///
+    fn nvic_unpend_interrupt(&mut self, irqn: usize);
 }
 
 trait NVICHelper {
@@ -146,6 +151,12 @@ impl NVIC for Processor {
     fn nvic_write_icer(&mut self, index: usize, value: u32) {
         clear_bits_array(&mut self.nvic_interrupt_enabled, index, value);
         self.nvic_clear_unpended_exceptions(index);
+    }
+
+    fn nvic_unpend_interrupt(&mut self, irqn: usize) {
+        let index = irqn / 32;
+        let bit = irqn % 32;
+        clear_bits_array(&mut self.nvic_interrupt_pending, index, 1 << bit);
     }
 
     fn nvic_read_icer(&self, index: usize) -> u32 {

@@ -8,6 +8,7 @@ use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::register::{BaseReg, Ipsr, Reg};
 use crate::core::reset::Reset;
+use crate::peripheral::nvic::NVIC;
 use crate::Processor;
 use crate::ProcessorMode;
 
@@ -430,6 +431,9 @@ impl ExceptionHandling for Processor {
         if exception == Exception::Reset {
             self.reset()
         } else {
+            if let Exception::Interrupt { n } = exception {
+                self.nvic_unpend_interrupt(n);
+            }
             self.push_stack(exception, return_address)?;
             self.exception_taken(exception)
         }
@@ -756,6 +760,32 @@ mod tests {
 
         // Assert
         assert_eq!(processor.get_pending_exception(), None);
+    }
+
+    #[test]
+    fn test_exception_entry_clears_nvic() {
+        // Arrange
+        let mut processor = Processor::new(
+            Some(Box::new(TestWriter {})),
+            &[0; 65536],
+            Box::new(
+                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
+                    panic!("shoud not happen")
+                },
+            ),
+        );
+
+        // Arrange
+        processor.reset().unwrap();
+        processor.nvic_write_iser(0, 1);
+        processor.nvic_write_ispr(0, 1);
+        assert_eq!(processor.nvic_read_ispr(0), 1);
+
+        // Act
+        let _ = processor.exception_entry(Exception::Interrupt { n: 0 }, 0);
+
+        // Assert
+        assert_eq!(processor.nvic_read_ispr(0), 0);
     }
 
 }
