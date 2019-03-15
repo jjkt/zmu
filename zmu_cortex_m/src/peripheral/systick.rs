@@ -47,9 +47,9 @@ pub trait SysTick {
     fn read_syst_calib(&self) -> u32;
 
     ///
-    /// Step systick one clock cycle forward
+    /// Step systick ```cycles``` clock cycles forward
     ///
-    fn syst_step(&mut self);
+    fn syst_step(&mut self, cycles: u32);
 }
 
 const SYST_CSR_ENABLE: u32 = 1 << 0;
@@ -91,19 +91,21 @@ impl SysTick for Processor {
     }
 
     #[inline(always)]
-    fn syst_step(&mut self) {
-        if (self.syst_csr & SYST_CSR_ENABLE) == SYST_CSR_ENABLE {
-            if self.syst_cvr > 0 {
-                self.syst_cvr -= 1;
+    fn syst_step(&mut self, cycles: u32) {
+        for _ in 0..cycles {
+            if (self.syst_csr & SYST_CSR_ENABLE) == SYST_CSR_ENABLE {
+                if self.syst_cvr > 0 {
+                    self.syst_cvr -= 1;
 
-                if self.syst_cvr == 0 {
-                    self.syst_csr |= SYST_CSR_COUNTFLAG;
-                    if (self.syst_csr & SYST_CSR_TICKINT) == SYST_CSR_TICKINT {
-                        self.set_exception_pending(Exception::SysTick);
+                    if self.syst_cvr == 0 {
+                        self.syst_csr |= SYST_CSR_COUNTFLAG;
+                        if (self.syst_csr & SYST_CSR_TICKINT) == SYST_CSR_TICKINT {
+                            self.set_exception_pending(Exception::SysTick);
+                        }
                     }
+                } else {
+                    self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
                 }
-            } else {
-                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
             }
         }
     }
@@ -227,8 +229,7 @@ mod tests {
         processor.write_syst_csr(SYST_CSR_ENABLE);
 
         // Act
-        processor.syst_step();
-        processor.syst_step();
+        processor.syst_step(2);
 
         // Assert
         assert_eq!(
@@ -257,8 +258,7 @@ mod tests {
         processor.write_syst_rvr(1);
         processor.write_syst_cvr(0);
         processor.write_syst_csr(SYST_CSR_ENABLE);
-        processor.syst_step();
-        processor.syst_step();
+        processor.syst_step(2);
 
         // Act
         processor.write_syst_cvr(42);
@@ -288,8 +288,7 @@ mod tests {
         processor.write_syst_csr(SYST_CSR_ENABLE | SYST_CSR_TICKINT);
 
         // Act
-        processor.syst_step();
-        processor.syst_step();
+        processor.syst_step(2);
 
         // Assert
         assert_eq!(processor.get_pending_exception(), Some(Exception::SysTick));

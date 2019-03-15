@@ -34,9 +34,9 @@ pub trait Executor {
     fn sleep_tick(&mut self);
 
     ///
-    /// Step processor forward with given instruction
+    /// Step processor forward with given instruction. Returns number of clock cycles burn.
     ///
-    fn step(&mut self, instruction: &Instruction, instruction_size: usize);
+    fn step(&mut self, instruction: &Instruction, instruction_size: usize) -> u32;
 }
 
 trait ExecutorHelper {
@@ -53,11 +53,11 @@ trait ExecutorHelper {
 #[derive(PartialEq, Debug, Copy, Clone)]
 enum ExecuteResult {
     /// The instruction was taken normally
-    Taken { cycles: u64 },
+    Taken { cycles: u32 },
     /// The instruction was not taken as the condition did not pass
     NotTaken,
     /// The execution branched to a new address, pc was set accordingly
-    Branched { cycles: u64 },
+    Branched { cycles: u32 },
 }
 
 #[inline(always)]
@@ -980,7 +980,7 @@ impl ExecutorHelper for Processor {
                     if !registers.contains(rn) {
                         self.add_r(*rn, regs_size);
                     }
-                    let cc = 1 + registers.len() as u64;
+                    let cc = 1 + registers.len() as u32;
                     if branched {
                         return Ok(ExecuteResult::Branched { cycles: cc });
                     }
@@ -1166,7 +1166,7 @@ impl ExecutorHelper for Processor {
 
                     self.set_r(Reg::SP, sp - regs_size);
                     return Ok(ExecuteResult::Taken {
-                        cycles: 1 + registers.len() as u64,
+                        cycles: 1 + registers.len() as u32,
                     });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -1192,11 +1192,11 @@ impl ExecutorHelper for Processor {
 
                     if registers.contains(&Reg::PC) {
                         return Ok(ExecuteResult::Branched {
-                            cycles: 4 + registers.len() as u64,
+                            cycles: 4 + registers.len() as u32,
                         });
                     } else {
                         return Ok(ExecuteResult::Taken {
-                            cycles: 1 + registers.len() as u64,
+                            cycles: 1 + registers.len() as u32,
                         });
                     }
                 }
@@ -1248,10 +1248,10 @@ impl ExecutorHelper for Processor {
 
                     if rt == &Reg::PC {
                         self.load_write_pc(data)?;
-                        return Ok(ExecuteResult::Branched { cycles: 1 });
+                        return Ok(ExecuteResult::Branched { cycles: 2 });
                     } else {
                         self.set_r(*rt, data);
-                        return Ok(ExecuteResult::Taken { cycles: 1 });
+                        return Ok(ExecuteResult::Taken { cycles: 2 });
                     }
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -1275,7 +1275,7 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, sign_extend(u32::from(data), 15, 32) as u32);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -1298,7 +1298,7 @@ impl ExecutorHelper for Processor {
                     }
 
                     self.set_r(*rt, sign_extend(data.into(), 7, 32) as u32);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -1328,8 +1328,10 @@ impl ExecutorHelper for Processor {
 
                     if rt == &Reg::PC {
                         self.load_write_pc(data)?;
+                        return Ok(ExecuteResult::Branched { cycles: 2 });
                     } else {
                         self.set_r(*rt, data);
+                        return Ok(ExecuteResult::Taken { cycles: 2 });
                     }
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -1577,7 +1579,7 @@ impl ExecutorHelper for Processor {
                         self.add_r(*rn, regs_size);
                     }
                     return Ok(ExecuteResult::Taken {
-                        cycles: 1 + registers.len() as u64,
+                        cycles: 1 + registers.len() as u32,
                     });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -1602,7 +1604,7 @@ impl ExecutorHelper for Processor {
                         self.sub_r(*rn, regs_size);
                     }
                     return Ok(ExecuteResult::Taken {
-                        cycles: 1 + registers.len() as u64,
+                        cycles: 1 + registers.len() as u32,
                     });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -2061,7 +2063,7 @@ impl ExecutorHelper for Processor {
 
                     self.branch_write_pc(pc + 2 * halfwords);
 
-                    return Ok(ExecuteResult::Branched { cycles: 1 });
+                    return Ok(ExecuteResult::Branched { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -2405,7 +2407,7 @@ impl ExecutorHelper for Processor {
                         rn_ / rm_
                     };
                     self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -2492,7 +2494,7 @@ impl ExecutorHelper for Processor {
                         (rn_ as i32) / (rm_ as i32)
                     };
                     self.set_r(*rd, result as u32);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -2505,7 +2507,7 @@ impl ExecutorHelper for Processor {
                     let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
 
                     self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -2518,7 +2520,7 @@ impl ExecutorHelper for Processor {
                     let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
 
                     self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -2581,28 +2583,31 @@ impl ExecutorHelper for Processor {
 impl Executor for Processor {
     #[inline(always)]
     fn sleep_tick(&mut self) {
-        self.syst_step();
+        self.syst_step(1);
         self.check_exceptions();
-        self.dwt_tick();
+        self.dwt_tick(1);
     }
 
     #[inline(always)]
     fn tick(&mut self) {
         let pc = self.get_pc();
         let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
-        self.step(&instruction, instruction_size);
-        self.dwt_tick();
-        self.syst_step();
+        let count = self.step(&instruction, instruction_size);
+        self.cycle_count += count as u64;
+        self.dwt_tick(count);
+        self.syst_step(count);
         self.check_exceptions();
+        //TODO exception entry also burns cycles that should be accounted for
+        //DWT and SYST ticking
     }
 
     #[inline(always)]
-    fn step(&mut self, instruction: &Instruction, instruction_size: usize) {
+    fn step(&mut self, instruction: &Instruction, instruction_size: usize) -> u32 {
         self.instruction_count += 1;
 
         let in_it_block = self.in_it_block();
 
-        match self.execute(&instruction) {
+        let cycles = match self.execute(&instruction) {
             Err(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let new_pc = self.get_pc();
@@ -2611,25 +2616,28 @@ impl Executor for Processor {
                 //TODO: cycles not correctly accumulated yet for exception entry
                 self.exception_entry(Exception::HardFault, new_pc)
                     .expect("error handling on exception entry not implemented");
+                //TODO: proper amount of cycles calcuation
+                12
             }
             Ok(ExecuteResult::NotTaken) => {
                 self.add_pc(instruction_size as u32);
-                self.cycle_count += 1;
                 if in_it_block {
                     self.it_advance();
                 }
+                1
             }
-            Ok(ExecuteResult::Branched { cycles }) => {
-                self.cycle_count += cycles;
-            }
+            Ok(ExecuteResult::Branched { cycles }) => cycles,
             Ok(ExecuteResult::Taken { cycles }) => {
                 self.add_pc(instruction_size as u32);
-                self.cycle_count += cycles;
+
                 if in_it_block {
                     self.it_advance();
                 }
+                cycles
             }
-        }
+        };
+
+        cycles
     }
 }
 #[cfg(test)]
@@ -2670,7 +2678,7 @@ mod tests {
         // act
         let result = core.execute(&instruction);
 
-        assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 1 }));
+        assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 2 }));
 
         assert_eq!(core.get_r(Reg::R0), 0x29a);
         assert_eq!(core.get_r(Reg::R1), 0x3);
@@ -2704,7 +2712,7 @@ mod tests {
         // act
         let result = core.execute(&instruction);
 
-        assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 1 }));
+        assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 2 }));
 
         assert_eq!(core.get_r(Reg::R1), 0x20000DD0);
     }
