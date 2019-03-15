@@ -8,6 +8,7 @@ use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::register::{BaseReg, Ipsr, Reg};
 use crate::core::reset::Reset;
+use crate::peripheral::nvic::NVIC;
 use crate::Processor;
 use crate::ProcessorMode;
 
@@ -423,6 +424,10 @@ impl ExceptionHandling for Processor {
         if exp.pending {
             exp.pending = false;
             self.pending_exception_count -= 1;
+
+            if let Exception::Interrupt { n } = exception {
+                self.nvic_unpend_interrupt(n);
+            }
         }
     }
 
