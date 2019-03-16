@@ -749,7 +749,7 @@ mod tests {
         // Act
         processor.set_exception_pending(Exception::HardFault);
 
-        processor.step(
+        processor.execute(
             &Instruction::CPS {
                 im: true,
                 affect_pri: false,

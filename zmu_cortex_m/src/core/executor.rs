@@ -24,19 +24,19 @@ use crate::ProcessorMode;
 ///
 pub trait Executor {
     ///
-    /// Run processor forward with core not sleeping
+    /// Run processor forward. Simulates core + peripherals.
     ///
-    fn tick(&mut self);
+    fn step(&mut self);
 
     ///
-    /// Run processor forward with core sleeping (peripherals)
+    /// Run processor forward with core sleeping (peripherals only)
     ///
-    fn sleep_tick(&mut self);
+    fn step_sleep(&mut self);
 
     ///
-    /// Step processor forward with given instruction. Returns number of clock cycles burn.
+    /// Execute given instruction. Returns number of clock cycles burn.
     ///
-    fn step(&mut self, instruction: &Instruction, instruction_size: usize) -> u32;
+    fn execute(&mut self, instruction: &Instruction, instruction_size: usize) -> u32;
 }
 
 trait ExecutorHelper {
@@ -47,7 +47,7 @@ trait ExecutorHelper {
     fn it_advance(&mut self);
     fn in_it_block(&self) -> bool;
     fn last_in_it_block(&self) -> bool;
-    fn execute(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault>;
+    fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault>;
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -134,7 +134,7 @@ impl ExecutorHelper for Processor {
     }
     #[allow(unused_variables)]
     #[allow(clippy::cyclomatic_complexity)]
-    fn execute(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
+    fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
             Instruction::ADC_reg {
                 rd,
@@ -2582,17 +2582,17 @@ impl ExecutorHelper for Processor {
 
 impl Executor for Processor {
     #[inline(always)]
-    fn sleep_tick(&mut self) {
+    fn step_sleep(&mut self) {
         self.syst_step(1);
         self.check_exceptions();
         self.dwt_tick(1);
     }
 
     #[inline(always)]
-    fn tick(&mut self) {
+    fn step(&mut self) {
         let pc = self.get_pc();
         let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
-        let count = self.step(&instruction, instruction_size);
+        let count = self.execute(&instruction, instruction_size);
         self.cycle_count += count as u64;
         self.dwt_tick(count);
         self.syst_step(count);
@@ -2602,12 +2602,12 @@ impl Executor for Processor {
     }
 
     #[inline(always)]
-    fn step(&mut self, instruction: &Instruction, instruction_size: usize) -> u32 {
+    fn execute(&mut self, instruction: &Instruction, instruction_size: usize) -> u32 {
         self.instruction_count += 1;
 
         let in_it_block = self.in_it_block();
 
-        let cycles = match self.execute(&instruction) {
+        let cycles = match self.execute_internal(&instruction) {
             Err(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let new_pc = self.get_pc();
@@ -2640,6 +2640,7 @@ impl Executor for Processor {
         cycles
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2676,7 +2677,7 @@ mod tests {
         };
 
         // act
-        let result = core.execute(&instruction);
+        let result = core.execute_internal(&instruction);
 
         assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 2 }));
 
@@ -2710,7 +2711,7 @@ mod tests {
         };
 
         // act
-        let result = core.execute(&instruction);
+        let result = core.execute_internal(&instruction);
 
         assert_eq!(result, Ok(ExecuteResult::Taken { cycles: 2 }));
 
@@ -2757,9 +2758,9 @@ mod tests {
             thumb32: false,
         };
 
-        core.step(&i1, instruction_size(&i1));
-        core.step(&i2, instruction_size(&i1));
-        core.step(&i3, instruction_size(&i1));
+        core.execute(&i1, instruction_size(&i1));
+        core.execute(&i2, instruction_size(&i1));
+        core.execute(&i3, instruction_size(&i1));
 
         assert_eq!(core.get_r(Reg::R4), 0x01);
         assert!(!core.in_it_block());
@@ -2787,7 +2788,7 @@ mod tests {
         };
 
         // act
-        let result = core.execute(&instruction);
+        let result = core.execute_internal(&instruction);
 
         assert_eq!(result, Ok(ExecuteResult::NotTaken));
     }
@@ -2818,7 +2819,7 @@ mod tests {
             msbit: 7,
         };
 
-        core.execute(&instruction).unwrap();
+        core.execute_internal(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
         assert_eq!(core.get_r(Reg::R2), 0x112233dd);
@@ -2854,7 +2855,7 @@ mod tests {
             shift_n: 20,
         };
 
-        core.execute(&instruction).unwrap();
+        core.execute_internal(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R6), 0);
     }
@@ -2902,9 +2903,8 @@ mod tests {
             m_high: false,
         };
 
-        core.execute(&instruction).unwrap();
+        core.execute_internal(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R12), 0xFFD4F24B);
     }
-
 }
