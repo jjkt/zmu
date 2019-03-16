@@ -35,3 +35,4 @@ Exe/
 Obj/
 zmu_cortex_m/Cargo.lock
 tests/coremark/coremark_v1.0/
+.idea/
