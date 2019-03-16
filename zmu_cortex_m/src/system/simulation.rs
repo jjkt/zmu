@@ -4,6 +4,7 @@
 
 use crate::core::bits::Bits;
 use crate::core::executor::Executor;
+use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
@@ -97,9 +98,11 @@ where
     while processor.state & 1 == 1 {
         while processor.state == 0b01 {
             //running, !sleeping
+            processor.last_pc = processor.get_pc();
             processor.step();
             trace_func(&processor);
         }
+        processor.last_pc = processor.get_pc();
         while processor.state == 0b11 {
             //running, sleeping
             processor.step_sleep();

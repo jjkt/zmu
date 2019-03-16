@@ -468,13 +468,26 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
+    #[cfg(any(armv7m, armv7em))]
     fn get_isr_number(&self) -> usize {
-        //TODO: diff between cortex m0 and m3+
+        (*self).value.get_bits(0..9) as usize
+    }
+
+    #[cfg(any(armv6m))]
+    fn get_isr_number(&self) -> usize {
         (*self).value.get_bits(0..6) as usize
     }
+
+    #[cfg(any(armv7m, armv7em))]
     fn set_isr_number(&mut self, exception_number: usize) {
-        self.value = (self.value & 0xffff_ffc0) | (exception_number as u32 & 0b11_1111);
+        self.value.set_bits(0..9, exception_number as u32);
     }
+
+    #[cfg(any(armv6m))]
+    fn set_isr_number(&mut self, exception_number: usize) {
+        self.value.set_bits(0..6, exception_number as u32);
+    }
+
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]

@@ -390,7 +390,7 @@ impl ExecutorHelper for Processor {
                                 value.set_bits(24..27, 0);
                                 value.set_bits(10..16, 0);
                             }
-                            if sysm.get_bit(2) {
+                            if !sysm.get_bit(2) {
                                 value.set_bits(27..32, self.psr.value.get_bits(27..32));
                             }
                         }
