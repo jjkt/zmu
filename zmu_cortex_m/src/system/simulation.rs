@@ -54,12 +54,12 @@ pub fn simulate(
     while processor.state & 1 == 1 {
         while processor.state == 0b01 {
             //running, !sleeping
-            processor.tick();
+            processor.step();
         }
 
         while processor.state == 0b11 {
             //running, sleeping
-            processor.sleep_tick();
+            processor.step_sleep();
         }
     }
     let end = Instant::now();
@@ -97,12 +97,12 @@ where
     while processor.state & 1 == 1 {
         while processor.state == 0b01 {
             //running, !sleeping
-            processor.tick();
+            processor.step();
             trace_func(&processor);
         }
         while processor.state == 0b11 {
             //running, sleeping
-            processor.sleep_tick();
+            processor.step_sleep();
         }
     }
     let end = Instant::now();

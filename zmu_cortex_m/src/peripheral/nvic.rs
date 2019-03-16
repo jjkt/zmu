@@ -365,7 +365,7 @@ mod tests {
         processor.nvic_write_ispr(0, 1);
         processor.nvic_write_iser(0, 1);
 
-        processor.step(&Instruction::NOP { thumb32: false }, 2);
+        processor.execute(&Instruction::NOP { thumb32: false }, 2);
         processor.check_exceptions();
 
         // Assert
