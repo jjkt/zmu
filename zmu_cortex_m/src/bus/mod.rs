@@ -108,10 +108,10 @@ impl Bus for Processor {
 
             0xE000_E004 => self.ictr,
             0xE000_E008 => self.actlr,
-            0xE000_E010 => self.read_syst_csr(),
-            0xE000_E014 => self.read_syst_rvr(),
-            0xE000_E018 => self.read_syst_cvr(),
-            0xE000_E01C => self.read_syst_calib(),
+            0xE000_E010 => self.syst_read_csr(),
+            0xE000_E014 => self.syst_read_rvr(),
+            0xE000_E018 => self.syst_read_cvr(),
+            0xE000_E01C => self.syst_read_calib(),
             0xE000_E100..=0xE000_E13C => self.nvic_read_iser(((addr - 0xE000_E100) >> 5) as usize),
             0xE000_E180..=0xE000_E1BC => self.nvic_read_icer(((addr - 0xE000_E180) >> 5) as usize),
             0xE000_E200..=0xE000_E23C => self.nvic_read_ispr(((addr - 0xE000_E200) >> 5) as usize),
@@ -172,8 +172,8 @@ impl Bus for Processor {
                 self.write_stim_u32(((addr - 0xE000_0000) >> 2) as u8, value)
             }
 
-            0xE000_1000 => self.write_ctrl(value),
-            0xE000_1004 => self.write_cyccnt(value),
+            0xE000_1000 => self.dwt_write_ctrl(value),
+            0xE000_1004 => self.dwt_write_cyccnt(value),
 
             0xE000_ED04 => self.write_icsr(value),
             0xE000_ED08 => self.write_vtor(value),
@@ -187,9 +187,9 @@ impl Bus for Processor {
 
             0xE000_EDFC => self.write_demcr(value),
 
-            0xE000_E010 => self.write_syst_csr(value),
-            0xE000_E014 => self.write_syst_rvr(value),
-            0xE000_E018 => self.write_syst_cvr(value),
+            0xE000_E010 => self.syst_write_csr(value),
+            0xE000_E014 => self.syst_write_rvr(value),
+            0xE000_E018 => self.syst_write_cvr(value),
             0xE000_E100..=0xE000_E13C => {
                 self.nvic_write_iser(((addr - 0xE000_E100) >> 5) as usize, value)
             }
