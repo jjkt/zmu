@@ -94,11 +94,9 @@ echo "========================================"
 
 #
 # TODO: not yet working examples: 
-# - "capacity" => sometimes randomly panics
 # - "ramfunc" => ramfuncs currently not supported by the emulator because of the caching
-# - "static" => randomly triggers one or two prints (priority issue?)
 
-declare -a arr=("baseline" "binds" "generics" "idle" "init" "interrupt" "late" "lock" "message" "not-send" "not-sync" "resource" "singleton" "smallest" "task" "schedule" "periodic")
+declare -a arr=("baseline" "binds" "capacity" "generics" "idle" "init" "interrupt" "late" "lock" "message" "periodic" "not-send" "not-sync" "resource" "singleton" "smallest" "schedule" "static" "task")
 cd tests/cortex-m-rtfm
 cargo build
 for i in "${arr[@]}"
