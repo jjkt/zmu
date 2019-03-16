@@ -9,6 +9,29 @@ use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use crate::Processor;
 use std::io;
+use std::time::Duration;
+use std::time::Instant;
+
+///
+/// Statistical information on the simulation run.
+///
+///
+pub struct SimulationStatistics {
+    ///
+    /// Total number of instructions executed (taken, or not taken).
+    ///
+    pub instruction_count: u64,
+
+    ///
+    /// Number of system clock cycles simulated.
+    ///
+    pub cycle_count: u64,
+
+    ///
+    /// Wallclock time spent for the simulation
+    ///
+    pub duration: Duration,
+}
 
 ///
 /// Run simulation until processing gets terminated
@@ -17,11 +40,13 @@ pub fn simulate(
     code: &[u8],
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-) -> u64 {
+) -> SimulationStatistics {
     let mut processor = Processor::new(itm_file, code, semihost_func);
 
     processor.reset().unwrap();
     processor.cache_instructions();
+
+    let start = Instant::now();
     processor.reset().unwrap();
 
     processor.state.set_bit(0, true); // running
@@ -37,7 +62,13 @@ pub fn simulate(
             processor.sleep_tick();
         }
     }
-    processor.instruction_count
+    let end = Instant::now();
+
+    SimulationStatistics {
+        instruction_count: processor.instruction_count,
+        cycle_count: processor.cycle_count,
+        duration: end.duration_since(start),
+    }
 }
 
 ///
@@ -48,7 +79,7 @@ pub fn simulate_trace<F>(
     mut trace_func: F,
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-) -> u64
+) -> SimulationStatistics
 where
     F: FnMut(&Processor),
 {
@@ -56,6 +87,9 @@ where
 
     processor.reset().unwrap();
     processor.cache_instructions();
+
+    let start = Instant::now();
+
     processor.reset().unwrap();
 
     processor.state.set_bit(0, true); // running
@@ -71,6 +105,11 @@ where
             processor.sleep_tick();
         }
     }
+    let end = Instant::now();
 
-    processor.instruction_count
+    SimulationStatistics {
+        instruction_count: processor.instruction_count,
+        cycle_count: processor.cycle_count,
+        duration: end.duration_since(start),
+    }
 }

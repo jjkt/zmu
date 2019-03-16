@@ -63,10 +63,9 @@ fn run_bin(
     }
     let trace_start = option_trace_start.unwrap_or(0);
 
-    let start = Instant::now();
-    let semihost_func = Box::new(get_semihost_func(start));
+    let semihost_func = Box::new(get_semihost_func(Instant::now()));
 
-    let instruction_count = if trace {
+    let statistics = if trace {
         let mut symboltable = HashMap::new();
         let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
 
@@ -98,16 +97,19 @@ fn run_bin(
         simulate(&flash_mem, semihost_func, itm_file)
     };
 
-    let end = Instant::now();
+    let duration_in_secs = statistics.duration.as_secs() as f64
+        + (f64::from(statistics.duration.subsec_nanos()) / 1_000_000_000f64);
+    let instructions_per_sec = statistics.instruction_count as f64 / duration_in_secs;
 
-    let duration = end.duration_since(start);
+    let cycles_per_sec = statistics.cycle_count as f64 / duration_in_secs;
 
     println!(
-        "\n{:?}, {} instructions, {} instructions per sec",
-        duration,
-        instruction_count,
-        instruction_count as f64
-            / (duration.as_secs() as f64 + (f64::from(duration.subsec_nanos()) / 1_000_000_000f64))
+        "\n{:?}, {} instructions, {:.0} instructions per sec, {:.0} cycles_per_sec ~ {:.2} Mhz",
+        statistics.duration,
+        statistics.instruction_count,
+        instructions_per_sec,
+        cycles_per_sec,
+        cycles_per_sec / 1_000_000.0,
     );
 }
 

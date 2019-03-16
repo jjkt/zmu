@@ -36,6 +36,6 @@ impl Dwt for Processor {
 
     #[inline(always)]
     fn dwt_tick(&mut self, cycles: u32) {
-        self.dwt_cyccnt += cycles * (self.dwt_ctrl & 1);
+        self.dwt_cyccnt.wrapping_add(cycles * (self.dwt_ctrl & 1));
     }
 }
