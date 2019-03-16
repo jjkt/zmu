@@ -14,37 +14,37 @@ pub trait SysTick {
     ///
     /// write to SYST_RVR, reload value register
     ///
-    fn write_syst_rvr(&mut self, value: u32);
+    fn syst_write_rvr(&mut self, value: u32);
 
     ///
     /// write to current value register
     ///
-    fn write_syst_cvr(&mut self, _value: u32);
+    fn syst_write_cvr(&mut self, _value: u32);
 
     ///
     /// write to control and status register
     ///
-    fn write_syst_csr(&mut self, value: u32);
+    fn syst_write_csr(&mut self, value: u32);
 
     ///
     /// Read control and status register
     ///
-    fn read_syst_csr(&mut self) -> u32;
+    fn syst_read_csr(&mut self) -> u32;
 
     ///
     /// Read reload value register
     ///
-    fn read_syst_rvr(&self) -> u32;
+    fn syst_read_rvr(&self) -> u32;
 
     ///
     /// Read current value register
     ///
-    fn read_syst_cvr(&self) -> u32;
+    fn syst_read_cvr(&self) -> u32;
 
     ///
     /// Read calibration register value
     ///
-    fn read_syst_calib(&self) -> u32;
+    fn syst_read_calib(&self) -> u32;
 
     ///
     /// Step systick ```cycles``` clock cycles forward
@@ -57,36 +57,36 @@ const SYST_CSR_TICKINT: u32 = 1 << 1;
 const SYST_CSR_COUNTFLAG: u32 = 1 << 16;
 
 impl SysTick for Processor {
-    fn write_syst_rvr(&mut self, value: u32) {
+    fn syst_write_rvr(&mut self, value: u32) {
         self.syst_rvr = value & 0x00ff_ffff;
     }
 
-    fn write_syst_cvr(&mut self, _value: u32) {
+    fn syst_write_cvr(&mut self, _value: u32) {
         self.syst_cvr = 0;
 
         // writing to CVR always clears countflag
         self.syst_csr &= !SYST_CSR_COUNTFLAG;
     }
 
-    fn write_syst_csr(&mut self, value: u32) {
+    fn syst_write_csr(&mut self, value: u32) {
         self.syst_csr.set_bits(0..3, value.get_bits(0..3));
     }
 
-    fn read_syst_csr(&mut self) -> u32 {
+    fn syst_read_csr(&mut self) -> u32 {
         let res = self.syst_csr;
         self.syst_csr &= !SYST_CSR_COUNTFLAG;
         res
     }
 
-    fn read_syst_rvr(&self) -> u32 {
+    fn syst_read_rvr(&self) -> u32 {
         self.syst_rvr
     }
 
-    fn read_syst_cvr(&self) -> u32 {
+    fn syst_read_cvr(&self) -> u32 {
         self.syst_cvr
     }
 
-    fn read_syst_calib(&self) -> u32 {
+    fn syst_read_calib(&self) -> u32 {
         0
     }
 
@@ -146,10 +146,10 @@ mod tests {
         processor.reset().unwrap();
 
         // Act
-        processor.write_syst_rvr(0xffff_ffff);
+        processor.syst_write_rvr(0xffff_ffff);
 
         // Assert
-        assert_eq!(processor.read_syst_rvr(), 0x00ff_ffff);
+        assert_eq!(processor.syst_read_rvr(), 0x00ff_ffff);
     }
 
     #[test]
@@ -168,22 +168,22 @@ mod tests {
         processor.reset().unwrap();
 
         // Act
-        processor.write_syst_cvr(0xffff_ffff);
+        processor.syst_write_cvr(0xffff_ffff);
 
         // Assert
-        assert_eq!(processor.read_syst_cvr(), 0);
+        assert_eq!(processor.syst_read_cvr(), 0);
 
         // Act
-        processor.write_syst_cvr(0x1);
+        processor.syst_write_cvr(0x1);
 
         // Assert
-        assert_eq!(processor.read_syst_cvr(), 0);
+        assert_eq!(processor.syst_read_cvr(), 0);
 
         // Act
-        processor.write_syst_cvr(42);
+        processor.syst_write_cvr(42);
 
         // Assert
-        assert_eq!(processor.read_syst_cvr(), 0);
+        assert_eq!(processor.syst_read_cvr(), 0);
     }
 
     #[test]
@@ -202,10 +202,10 @@ mod tests {
         processor.reset().unwrap();
 
         // Act
-        processor.write_syst_csr(0xffff_ffff);
+        processor.syst_write_csr(0xffff_ffff);
 
         // Assert
-        assert_eq!(processor.read_syst_csr(), 0b111);
+        assert_eq!(processor.syst_read_csr(), 0b111);
     }
 
     #[test]
@@ -224,19 +224,19 @@ mod tests {
         processor.reset().unwrap();
 
         //Arrange
-        processor.write_syst_rvr(1);
-        processor.write_syst_cvr(0);
-        processor.write_syst_csr(SYST_CSR_ENABLE);
+        processor.syst_write_rvr(1);
+        processor.syst_write_cvr(0);
+        processor.syst_write_csr(SYST_CSR_ENABLE);
 
         // Act
         processor.syst_step(2);
 
         // Assert
         assert_eq!(
-            processor.read_syst_csr(),
+            processor.syst_read_csr(),
             SYST_CSR_COUNTFLAG | SYST_CSR_ENABLE
         );
-        assert_eq!(processor.read_syst_csr(), SYST_CSR_ENABLE);
+        assert_eq!(processor.syst_read_csr(), SYST_CSR_ENABLE);
     }
 
     #[test]
@@ -255,16 +255,16 @@ mod tests {
         processor.reset().unwrap();
 
         //Arrange
-        processor.write_syst_rvr(1);
-        processor.write_syst_cvr(0);
-        processor.write_syst_csr(SYST_CSR_ENABLE);
+        processor.syst_write_rvr(1);
+        processor.syst_write_cvr(0);
+        processor.syst_write_csr(SYST_CSR_ENABLE);
         processor.syst_step(2);
 
         // Act
-        processor.write_syst_cvr(42);
+        processor.syst_write_cvr(42);
 
         // Assert
-        assert_eq!(processor.read_syst_csr(), SYST_CSR_ENABLE);
+        assert_eq!(processor.syst_read_csr(), SYST_CSR_ENABLE);
     }
 
     #[test]
@@ -283,9 +283,9 @@ mod tests {
         processor.reset().unwrap();
 
         //Arrange
-        processor.write_syst_rvr(1);
-        processor.write_syst_cvr(0);
-        processor.write_syst_csr(SYST_CSR_ENABLE | SYST_CSR_TICKINT);
+        processor.syst_write_rvr(1);
+        processor.syst_write_cvr(0);
+        processor.syst_write_csr(SYST_CSR_ENABLE | SYST_CSR_TICKINT);
 
         // Act
         processor.syst_step(2);
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(processor.get_pending_exception(), Some(Exception::SysTick));
 
         assert_eq!(
-            processor.read_syst_csr(),
+            processor.syst_read_csr(),
             SYST_CSR_COUNTFLAG | SYST_CSR_ENABLE | SYST_CSR_TICKINT
         );
     }
