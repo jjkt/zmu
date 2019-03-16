@@ -3,13 +3,14 @@ extern crate zmu_cortex_m;
 use pad::PadStr;
 use std::collections::HashMap;
 use zmu_cortex_m::core::fetch::Fetch;
-use zmu_cortex_m::core::register::{Apsr, BaseReg, Reg, PSR};
+use zmu_cortex_m::core::register::{Apsr, PSR};
 use zmu_cortex_m::core::thumb::ThumbCode;
 use zmu_cortex_m::decoder::Decoder;
 use zmu_cortex_m::Processor;
 
 pub fn format_trace_entry(processor: &Processor, symboltable: &HashMap<u32, &str>) -> String {
-    let pc = processor.get_r(Reg::PC) - 4;
+
+    let pc = processor.last_pc;
 
     let thumb = processor.fetch(pc).unwrap();
     let instruction = processor.decode(thumb);

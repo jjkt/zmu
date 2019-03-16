@@ -184,6 +184,8 @@ pub struct Processor {
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
 
     instruction_cache: Vec<(Instruction, usize)>,
+
+    pub last_pc : u32
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -317,6 +319,7 @@ impl Processor {
             syst_cvr: 0,
             syst_csr: 0,
             instruction_cache: Vec::new(),
+            last_pc: 0
         }
     }
 
