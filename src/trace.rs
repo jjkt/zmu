@@ -9,7 +9,6 @@ use zmu_cortex_m::decoder::Decoder;
 use zmu_cortex_m::Processor;
 
 pub fn format_trace_entry(processor: &Processor, symboltable: &HashMap<u32, &str>) -> String {
-
     let pc = processor.last_pc;
 
     let thumb = processor.fetch(pc).unwrap();

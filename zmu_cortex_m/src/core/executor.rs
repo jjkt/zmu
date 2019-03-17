@@ -650,8 +650,11 @@ impl ExecutorHelper for Processor {
                     let r0 = self.get_r(Reg::R0);
                     let r1 = self.get_r(Reg::R1);
                     let semihost_cmd = decode_semihostcmd(r0, r1, self)?;
-                    let semihost_response = (self.semihost_func)(&semihost_cmd);
-                    semihost_return(self, &semihost_response);
+
+                    if let Some(sh_func) = &mut self.semihost_func {
+                        let semihost_response = (sh_func)(&semihost_cmd);
+                        semihost_return(self, &semihost_response);
+                    }
                 }
                 Ok(ExecuteResult::Taken { cycles: 1 })
             }
@@ -2593,7 +2596,7 @@ impl Executor for Processor {
         let pc = self.get_pc();
         let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
         let count = self.execute(&instruction, instruction_size);
-        self.cycle_count += count as u64;
+        self.cycle_count += u64::from(count);
         self.dwt_tick(count);
         self.syst_step(count);
         self.check_exceptions();
@@ -2607,7 +2610,7 @@ impl Executor for Processor {
 
         let in_it_block = self.in_it_block();
 
-        let cycles = match self.execute_internal(&instruction) {
+        match self.execute_internal(&instruction) {
             Err(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let new_pc = self.get_pc();
@@ -2635,9 +2638,7 @@ impl Executor for Processor {
                 }
                 cycles
             }
-        };
-
-        cycles
+        }
     }
 }
 
@@ -2647,25 +2648,11 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{ITCondition, SetFlags};
-    use crate::semihosting::SemihostingCommand;
-    use crate::semihosting::SemihostingResponse;
-
-    use std::io::Result;
-    use std::io::Write;
 
     #[test]
     fn test_udiv() {
         // arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.set_r(Reg::R0, 0x7d0);
         core.set_r(Reg::R1, 0x3);
         core.psr.value = 0;
@@ -2688,16 +2675,7 @@ mod tests {
     #[test]
     fn test_mla() {
         // arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.set_r(Reg::R7, 0x2);
         core.set_r(Reg::R2, 0x29a);
         core.set_r(Reg::R1, 0x2000089C);
@@ -2721,16 +2699,7 @@ mod tests {
     #[test]
     fn test_it_block() {
         // arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.set_r(Reg::R5, 0x49);
         core.set_r(Reg::R4, 0x01);
         core.set_r(Reg::R0, 0x49);
@@ -2769,16 +2738,7 @@ mod tests {
     #[test]
     fn test_b_cond() {
         // arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.psr.value = 0;
 
         let instruction = Instruction::B_t13 {
@@ -2796,16 +2756,7 @@ mod tests {
     #[test]
     fn test_bfi() {
         // arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.psr.value = 0;
 
         core.set_r(Reg::R2, 0x11223344);
@@ -2828,16 +2779,7 @@ mod tests {
     #[test]
     fn test_sub() {
         // arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.psr.value = 0;
 
         //3:418415f7 4:00000418 5:80000000 6:7d17d411
@@ -2860,32 +2802,12 @@ mod tests {
         assert_eq!(core.get_r(Reg::R6), 0);
     }
 
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
-
     #[test]
     fn test_smlabb() {
         // arrange
 
         //itm_file, &code, semihost_func
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
         core.psr.value = 0;
 
         //

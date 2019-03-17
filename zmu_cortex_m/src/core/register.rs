@@ -487,7 +487,6 @@ impl Ipsr for PSR {
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..6, exception_number as u32);
     }
-
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
