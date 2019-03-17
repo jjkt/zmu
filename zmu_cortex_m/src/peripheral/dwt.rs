@@ -24,7 +24,7 @@ pub trait Dwt {
     fn dwt_tick(&mut self, cycles: u32);
 }
 
-const DWT_CTRL_CYCCNTENA: u32 = 1 << 0;
+const DWT_CTRL_CYCCNTENA: u32 = 1;
 
 impl Dwt for Processor {
     fn dwt_write_ctrl(&mut self, value: u32) {
@@ -38,7 +38,9 @@ impl Dwt for Processor {
 
     #[inline(always)]
     fn dwt_tick(&mut self, cycles: u32) {
-        self.dwt_cyccnt = self.dwt_cyccnt.wrapping_add(cycles * (self.dwt_ctrl & DWT_CTRL_CYCCNTENA));
+        self.dwt_cyccnt = self
+            .dwt_cyccnt
+            .wrapping_add(cycles * (self.dwt_ctrl & DWT_CTRL_CYCCNTENA));
     }
 }
 
@@ -46,35 +48,12 @@ impl Dwt for Processor {
 mod tests {
     use super::*;
     use crate::core::reset::Reset;
-    use crate::semihosting::SemihostingCommand;
-    use crate::semihosting::SemihostingResponse;
-    use std::io::Result;
-    use std::io::Write;
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
-
 
     #[test]
     fn test_dwt_tick() {
         // Arrange
 
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         // Arrange
         processor.reset().unwrap();

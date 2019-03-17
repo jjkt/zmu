@@ -6,7 +6,6 @@
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
-#![allow(clippy::stutter)]
 #![allow(clippy::pub_enum_variant_names)]
 #![allow(clippy::inline_always)]
 // TODO: check these case by case, add unit tests
@@ -17,6 +16,8 @@
 #![allow(clippy::match_same_arms)]
 // TODO check if some filtering can be simplified
 #![allow(clippy::filter_map)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::new_without_default)]
 
 extern crate byteorder;
 extern crate enum_set;
@@ -181,11 +182,11 @@ pub struct Processor {
     ///
     /// semihosting plug
     ///
-    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse>,
+    semihost_func: Option<Box<FnMut(&SemihostingCommand) -> SemihostingResponse>>,
 
     instruction_cache: Vec<(Instruction, usize)>,
 
-    pub last_pc : u32
+    pub last_pc: u32,
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -251,11 +252,7 @@ impl Processor {
     ///
     /// Create processor with default data
     ///
-    pub fn new(
-        itm_file: Option<Box<io::Write + 'static>>,
-        code: &[u8],
-        semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
-    ) -> Self {
+    pub fn new() -> Self {
         Self {
             mode: ProcessorMode::ThreadMode,
             vtor: 0,
@@ -273,11 +270,10 @@ impl Processor {
             msp: 0,
             psp: 0,
             lr: 0,
-            // TODO make code size configurable
-            code: FlashMemory::new(0, 65536, code),
+            code: FlashMemory::new(0, 65536, &[0; 65536]),
             // TODO make RAM size configurable
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
-            itm_file: itm_file,
+            itm_file: None,
             state: 0,
             cycle_count: 0,
             instruction_count: 0,
@@ -285,7 +281,7 @@ impl Processor {
             execution_priority: 0,
             pending_exception_count: 0,
             itstate: 0,
-            semihost_func: semihost_func,
+            semihost_func: None,
             cpuid: 0,
             icsr: 0,
             aircr: 0,
@@ -319,8 +315,34 @@ impl Processor {
             syst_cvr: 0,
             syst_csr: 0,
             instruction_cache: Vec::new(),
-            last_pc: 0
+            last_pc: 0,
         }
+    }
+
+    /// Configure flash memory
+    pub fn flash_memory<'a>(
+        &'a mut self,
+        flash_start_address: u32,
+        flash_size: usize,
+        code: &[u8],
+    ) -> &'a mut Self {
+        self.code = FlashMemory::new(flash_start_address, flash_size, code);
+        self
+    }
+
+    /// Configure itm output file
+    pub fn itm<'a>(&'a mut self, file: Option<Box<io::Write + 'static>>) -> &'a mut Self {
+        self.itm_file = file;
+        self
+    }
+
+    /// Configure semihosting
+    pub fn semihost<'a>(
+        &'a mut self,
+        func: Option<Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>>,
+    ) -> &'a mut Self {
+        self.semihost_func = func;
+        self
     }
 
     ///

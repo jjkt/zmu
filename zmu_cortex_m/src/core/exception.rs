@@ -289,18 +289,18 @@ impl ExceptionHandlingHelpers for Processor {
         //let forcealign = ccr.stkalign;
         let forcealign = true;
 
-        let r = self.read32(frameptr)?;
-        self.set_r(Reg::R0, r);
-        let r = self.read32(frameptr.wrapping_add(0x4))?;
-        self.set_r(Reg::R1, r);
-        let r = self.read32(frameptr.wrapping_add(0x8))?;
-        self.set_r(Reg::R2, r);
-        let r = self.read32(frameptr.wrapping_add(0xc))?;
-        self.set_r(Reg::R3, r);
-        let r = self.read32(frameptr.wrapping_add(0x10))?;
-        self.set_r(Reg::R12, r);
-        let r = self.read32(frameptr.wrapping_add(0x14))?;
-        self.set_r(Reg::LR, r);
+        let r0 = self.read32(frameptr)?;
+        self.set_r(Reg::R0, r0);
+        let r1 = self.read32(frameptr.wrapping_add(0x4))?;
+        self.set_r(Reg::R1, r1);
+        let r2 = self.read32(frameptr.wrapping_add(0x8))?;
+        self.set_r(Reg::R2, r2);
+        let r3 = self.read32(frameptr.wrapping_add(0xc))?;
+        self.set_r(Reg::R3, r3);
+        let r12 = self.read32(frameptr.wrapping_add(0x10))?;
+        self.set_r(Reg::R12, r12);
+        let lr = self.read32(frameptr.wrapping_add(0x14))?;
+        self.set_r(Reg::LR, lr);
         let pc = self.read32(frameptr.wrapping_add(0x18))?;
         let psr = self.read32(frameptr.wrapping_add(0x1c))?;
 
@@ -584,35 +584,11 @@ mod tests {
     use crate::core::executor::Executor;
     #[cfg(any(armv7m, armv7em))]
     use crate::core::instruction::Instruction;
-    use crate::core::register::Ipsr;
-    use crate::semihosting::SemihostingCommand;
-    use crate::semihosting::SemihostingResponse;
-    use std::io::Result;
-    use std::io::Write;
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
 
     #[test]
     fn test_push_stack() {
         const STACK_START: u32 = 0x2000_0100;
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
 
         // arrange
         let lr = {
@@ -654,16 +630,7 @@ mod tests {
     #[test]
     fn test_exception_taken() {
         // Arrange
-        let code = [0; 65536];
-        let mut core = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &code,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut core = Processor::new();
 
         core.control.sp_sel = true;
         core.mode = ProcessorMode::ThreadMode;
@@ -682,15 +649,7 @@ mod tests {
     #[test]
     fn test_exception_priority() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -706,15 +665,7 @@ mod tests {
     #[test]
     fn test_exception_priority_same_priority_setting() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -734,15 +685,7 @@ mod tests {
     #[test]
     fn test_faultmask_priority() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -765,15 +708,7 @@ mod tests {
     #[test]
     fn test_exception_entry_clears_nvic() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         // Arrange
         processor.reset().unwrap();

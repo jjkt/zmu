@@ -11,6 +11,8 @@ tabwriter = "1"
 error-chain = "0.12.0"
 goblin = "0.0.12"
 pad = "0.1.4"
+stderrlog = "0.4"
+log = "0.4"
 
 
 [features]

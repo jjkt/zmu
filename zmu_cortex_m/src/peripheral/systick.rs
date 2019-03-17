@@ -52,7 +52,7 @@ pub trait SysTick {
     fn syst_step(&mut self, cycles: u32);
 }
 
-const SYST_CSR_ENABLE: u32 = 1 << 0;
+const SYST_CSR_ENABLE: u32 = 1;
 const SYST_CSR_TICKINT: u32 = 1 << 1;
 const SYST_CSR_COUNTFLAG: u32 = 1 << 16;
 
@@ -115,33 +115,11 @@ impl SysTick for Processor {
 mod tests {
     use super::*;
     use crate::core::reset::Reset;
-    use crate::semihosting::SemihostingCommand;
-    use crate::semihosting::SemihostingResponse;
-    use std::io::Result;
-    use std::io::Write;
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
 
     #[test]
     fn test_nvic_rvr() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -155,15 +133,7 @@ mod tests {
     #[test]
     fn test_nvic_cvr() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -189,15 +159,7 @@ mod tests {
     #[test]
     fn test_nvic_csr() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -211,15 +173,7 @@ mod tests {
     #[test]
     fn test_nvic_reading_csr_clears_countflag() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -242,15 +196,7 @@ mod tests {
     #[test]
     fn test_nvic_writing_cvr_clears_countflag() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -270,15 +216,7 @@ mod tests {
     #[test]
     fn test_nvic_exception_is_set_pending_on_reaching_zero() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 

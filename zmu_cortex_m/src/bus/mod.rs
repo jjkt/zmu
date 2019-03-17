@@ -263,17 +263,11 @@ impl Bus for Processor {
                 self.nvic_write_ipr_u8((addr - 0xE000_E400) as usize, value)
             }
             #[cfg(any(armv7m, armv7em))]
-            0xE000_ED18..=0xE000_ED1B => {
-                self.write_shpr1_u8((addr - 0xE000_ED18) as usize, value)
-            }
+            0xE000_ED18..=0xE000_ED1B => self.write_shpr1_u8((addr - 0xE000_ED18) as usize, value),
             #[cfg(any(armv7m, armv7em))]
-            0xE000_ED1C..=0xE000_ED1F => {
-                self.write_shpr2_u8((addr - 0xE000_ED1C) as usize, value)
-            }
+            0xE000_ED1C..=0xE000_ED1F => self.write_shpr2_u8((addr - 0xE000_ED1C) as usize, value),
             #[cfg(any(armv7m, armv7em))]
-            0xE000_ED20..=0xE000_ED23 => {
-                self.write_shpr3_u8((addr - 0xE000_ED20) as usize, value)
-            }
+            0xE000_ED20..=0xE000_ED23 => self.write_shpr3_u8((addr - 0xE000_ED20) as usize, value),
 
             _ => {
                 if self.sram.in_range(addr) {

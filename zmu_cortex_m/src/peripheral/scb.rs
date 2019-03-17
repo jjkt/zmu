@@ -404,34 +404,12 @@ mod tests {
     use super::*;
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
-    use crate::semihosting::SemihostingCommand;
-    use crate::semihosting::SemihostingResponse;
-    use std::io::Result;
-    use std::io::Write;
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
 
     #[test]
     #[cfg(any(armv7m, armv7em))]
     fn test_shpr_read_write_32() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         // Act
         processor.write_shpr1(0xffeeccbb);
@@ -468,15 +446,7 @@ mod tests {
     #[cfg(any(armv7m, armv7em))]
     fn test_shpr_read_write_16() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         // Act
         processor.write_shpr1_u16(0, 0xccbb);

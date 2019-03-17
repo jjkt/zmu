@@ -236,33 +236,11 @@ mod tests {
     use crate::core::executor::Executor;
     use crate::core::instruction::Instruction;
     use crate::core::reset::Reset;
-    use crate::semihosting::SemihostingCommand;
-    use crate::semihosting::SemihostingResponse;
-    use std::io::Result;
-    use std::io::Write;
-    struct TestWriter {}
-
-    impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> Result<()> {
-            Ok(())
-        }
-    }
 
     #[test]
     fn test_nvic_iser_icer() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         assert_eq!(processor.nvic_read_iser(0), 0);
         assert_eq!(processor.nvic_read_icer(0), 0xffff_ffff);
@@ -299,15 +277,7 @@ mod tests {
     #[test]
     fn test_nvic_ispr_icpr() {
         // Arrange
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         assert_eq!(processor.nvic_read_ispr(0), 0);
         assert_eq!(processor.nvic_read_icpr(0), 0xffff_ffff);
@@ -349,15 +319,9 @@ mod tests {
         data[3] = 0x20; // stack pointer
         data[0] = 0xff;
 
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &data,
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
+
+        processor.flash_memory(0, 65536, &data);
 
         processor.reset().unwrap();
 
@@ -376,15 +340,7 @@ mod tests {
     fn test_nvic_ipr() {
         // Arrange
 
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -438,15 +394,7 @@ mod tests {
     fn test_nvic_ipr_u8() {
         // Arrange
 
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 
@@ -470,15 +418,7 @@ mod tests {
     fn test_nvic_ipr_u16() {
         // Arrange
 
-        let mut processor = Processor::new(
-            Some(Box::new(TestWriter {})),
-            &[0; 65536],
-            Box::new(
-                |_semihost_cmd: &SemihostingCommand| -> SemihostingResponse {
-                    panic!("shoud not happen")
-                },
-            ),
-        );
+        let mut processor = Processor::new();
 
         processor.reset().unwrap();
 

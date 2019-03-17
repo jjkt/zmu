@@ -4,6 +4,7 @@
 
 use crate::core::bits::Bits;
 use crate::core::executor::Executor;
+use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
 use crate::semihosting::SemihostingCommand;
@@ -12,6 +13,16 @@ use crate::Processor;
 use std::io;
 use std::time::Duration;
 use std::time::Instant;
+
+///
+/// Various reasons for simulation to stop before completing fully
+///
+pub enum SimulationError {
+    ///
+    /// A fault was triggered and escalated to stop the simulation
+    ///
+    FaultTrap,
+}
 
 ///
 /// Statistical information on the simulation run.
@@ -34,6 +45,12 @@ pub struct SimulationStatistics {
     pub duration: Duration,
 }
 
+impl From<Fault> for SimulationError {
+    fn from(_fault: Fault) -> Self {
+        SimulationError::FaultTrap
+    }
+}
+
 ///
 /// Run simulation until processing gets terminated
 ///
@@ -41,15 +58,18 @@ pub fn simulate(
     code: &[u8],
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-) -> SimulationStatistics {
-    let mut processor = Processor::new(itm_file, code, semihost_func);
+    flash_start_address: u32,
+    flash_size: usize,
+) -> Result<SimulationStatistics, SimulationError> {
+    let mut processor = Processor::new();
 
-    processor.reset().unwrap();
+    processor.itm(itm_file);
+    processor.semihost(Some(semihost_func));
+    processor.flash_memory(flash_start_address, flash_size, code);
     processor.cache_instructions();
 
     let start = Instant::now();
-    processor.reset().unwrap();
-
+    processor.reset()?;
     processor.state.set_bit(0, true); // running
 
     while processor.state & 1 == 1 {
@@ -65,11 +85,11 @@ pub fn simulate(
     }
     let end = Instant::now();
 
-    SimulationStatistics {
+    Ok(SimulationStatistics {
         instruction_count: processor.instruction_count,
         cycle_count: processor.cycle_count,
         duration: end.duration_since(start),
-    }
+    })
 }
 
 ///
@@ -80,19 +100,21 @@ pub fn simulate_trace<F>(
     mut trace_func: F,
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-) -> SimulationStatistics
+    flash_start_address: u32,
+    flash_size: usize,
+) -> Result<SimulationStatistics, SimulationError>
 where
     F: FnMut(&Processor),
 {
-    let mut processor = Processor::new(itm_file, code, semihost_func);
-
-    processor.reset().unwrap();
+    let mut processor = Processor::new();
+    processor.itm(itm_file);
+    processor.semihost(Some(semihost_func));
+    processor.flash_memory(flash_start_address, flash_size, code);
     processor.cache_instructions();
 
     let start = Instant::now();
 
     processor.reset().unwrap();
-
     processor.state.set_bit(0, true); // running
 
     while processor.state & 1 == 1 {
@@ -108,11 +130,12 @@ where
             processor.step_sleep();
         }
     }
+
     let end = Instant::now();
 
-    SimulationStatistics {
+    Ok(SimulationStatistics {
         instruction_count: processor.instruction_count,
         cycle_count: processor.cycle_count,
         duration: end.duration_since(start),
-    }
+    })
 }
