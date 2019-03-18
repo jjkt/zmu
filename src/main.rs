@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate error_chain;
 
+#[macro_use]
 extern crate clap;
 extern crate goblin;
 extern crate pad;
@@ -217,7 +218,13 @@ fn run(args: &ArgMatches) -> Result<()> {
 
 fn main() {
     let args = App::new("zmu")
-        .version("0.1")
+        .version(crate_version!())
+        .arg(
+            Arg::with_name("verbosity")
+                .short("v")
+                .multiple(true)
+                .help("Increase message verbosity"),
+        )
         .about("a Low level emulator for microcontrollers")
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
@@ -250,9 +257,11 @@ fn main() {
         )
         .get_matches();
 
+    let verbose = args.occurrences_of("verbosity") as usize;
+
     stderrlog::new()
         .module(module_path!())
-        .verbosity(2)
+        .verbosity(verbose)
         .init()
         .unwrap();
 
