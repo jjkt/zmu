@@ -18,6 +18,7 @@ use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::Processor;
 use crate::ProcessorMode;
+use crate::memory::map::MapMemory;
 
 ///
 /// Stepping processor with instructions
@@ -2594,7 +2595,8 @@ impl Executor for Processor {
     #[inline(always)]
     fn step(&mut self) {
         let pc = self.get_pc();
-        let (instruction, instruction_size) = self.instruction_cache[(pc >> 1) as usize];
+        let mapped_pc = (self.map_address(pc) >> 1) as usize;
+        let (instruction, instruction_size) = self.instruction_cache[mapped_pc];
         let count = self.execute(&instruction, instruction_size);
         self.cycle_count += u64::from(count);
         self.dwt_tick(count);

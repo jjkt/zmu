@@ -275,8 +275,8 @@ pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32
         let low_word = imm12.get_bits(0..8) as u32;
         let imm32 = match imm12.get_bits(8..10) {
             0b00 => low_word as u32,
-            0b01 => low_word << (16 + low_word),
-            0b10 => low_word << (24 + low_word) << 8,
+            0b01 => (low_word << 16) + low_word,
+            0b10 => (low_word << 24) + (low_word << 8),
             0b11 => {
                 (low_word << 24) as u32
                     + (low_word << 16) as u32

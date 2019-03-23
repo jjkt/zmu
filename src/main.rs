@@ -31,6 +31,7 @@ use crate::trace::format_trace_entry;
 use std::cmp;
 use std::collections::HashMap;
 use tabwriter::TabWriter;
+use zmu_cortex_m::memory::map::MemoryMapConfig;
 use zmu_cortex_m::Processor;
 
 use zmu_cortex_m::system::simulation::simulate_trace;
@@ -154,7 +155,11 @@ fn run_bin(
             tracefunc,
             semihost_func,
             itm_file,
-            flash_start_address,
+            if flash_start_address != 0 {
+                Some(MemoryMapConfig::new(flash_start_address, 0, flash_size))
+            } else {
+                None
+            },
             flash_size,
         )?
     } else {
@@ -163,7 +168,11 @@ fn run_bin(
             &flash_mem,
             semihost_func,
             itm_file,
-            flash_start_address,
+            if flash_start_address != 0 {
+                Some(MemoryMapConfig::new(flash_start_address, 0, flash_size))
+            } else {
+                None
+            },
             flash_size,
         )?
     };
