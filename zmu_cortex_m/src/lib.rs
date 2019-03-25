@@ -38,6 +38,7 @@ use crate::core::instruction::Instruction;
 use crate::core::register::{Apsr, BaseReg, Control, Reg, PSR};
 use crate::decoder::Decoder;
 use crate::memory::flash::FlashMemory;
+use crate::memory::map::MemoryMapConfig;
 use crate::memory::ram::RAM;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
@@ -187,6 +188,8 @@ pub struct Processor {
     instruction_cache: Vec<(Instruction, usize)>,
 
     pub last_pc: u32,
+
+    mem_map: Option<MemoryMapConfig>,
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -270,7 +273,7 @@ impl Processor {
             msp: 0,
             psp: 0,
             lr: 0,
-            code: FlashMemory::new(0, 65536, &[0; 65536]),
+            code: FlashMemory::new(65536, &[0; 65536]),
             // TODO make RAM size configurable
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
             itm_file: None,
@@ -316,17 +319,19 @@ impl Processor {
             syst_csr: 0,
             instruction_cache: Vec::new(),
             last_pc: 0,
+            mem_map: None,
         }
     }
 
     /// Configure flash memory
-    pub fn flash_memory<'a>(
-        &'a mut self,
-        flash_start_address: u32,
-        flash_size: usize,
-        code: &[u8],
-    ) -> &'a mut Self {
-        self.code = FlashMemory::new(flash_start_address, flash_size, code);
+    pub fn flash_memory<'a>(&'a mut self, flash_size: usize, code: &[u8]) -> &'a mut Self {
+        self.code = FlashMemory::new(flash_size, code);
+        self
+    }
+
+    /// Configure memory mapping
+    pub fn memory_map(&mut self, map: Option<MemoryMapConfig>) -> &mut Self {
+        self.mem_map = map;
         self
     }
 
@@ -391,3 +396,4 @@ impl fmt::Display for Processor {
                  self.get_r(Reg::LR))
     }
 }
+

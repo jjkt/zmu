@@ -2,6 +2,7 @@
 //! Processor Bus related operations
 //!
 
+
 use crate::Processor;
 
 use crate::core::fault::Fault;
@@ -10,6 +11,7 @@ use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
+use crate::memory::map::MapMemory;
 
 ///
 /// Trait for reading and writing via a memory bus.
@@ -45,7 +47,9 @@ pub trait Bus {
 }
 
 impl Bus for Processor {
-    fn read8(&self, addr: u32) -> Result<u8, Fault> {
+    fn read8(&self, bus_addr: u32) -> Result<u8, Fault> {
+        let addr = self.map_address(bus_addr);
+
         let result = match addr {
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 2) as usize)
@@ -70,7 +74,8 @@ impl Bus for Processor {
         Ok(result)
     }
 
-    fn read16(&self, addr: u32) -> Result<u16, Fault> {
+    fn read16(&self, bus_addr: u32) -> Result<u16, Fault> {
+        let addr = self.map_address(bus_addr);
         match addr {
             #[cfg(any(armv7m, armv7em))]
             0xE000_ED18..=0xE000_ED1B => {
@@ -100,7 +105,9 @@ impl Bus for Processor {
         }
     }
 
-    fn read32(&mut self, addr: u32) -> Result<u32, Fault> {
+    fn read32(&mut self, bus_addr: u32) -> Result<u32, Fault> {
+        let addr = self.map_address(bus_addr);
+        
         let result = match addr {
             0xE000_0000 => self.read_stim0(),
 

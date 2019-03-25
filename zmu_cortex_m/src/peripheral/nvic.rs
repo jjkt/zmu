@@ -321,7 +321,7 @@ mod tests {
 
         let mut processor = Processor::new();
 
-        processor.flash_memory(0, 65536, &data);
+        processor.flash_memory(65536, &data);
 
         processor.reset().unwrap();
 

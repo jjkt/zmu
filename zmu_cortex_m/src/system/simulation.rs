@@ -10,6 +10,7 @@ use crate::core::reset::Reset;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use crate::Processor;
+use crate::MemoryMapConfig;
 use std::io;
 use std::time::Duration;
 use std::time::Instant;
@@ -51,6 +52,7 @@ impl From<Fault> for SimulationError {
     }
 }
 
+
 ///
 /// Run simulation until processing gets terminated
 ///
@@ -58,14 +60,17 @@ pub fn simulate(
     code: &[u8],
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-    flash_start_address: u32,
+    map: Option<MemoryMapConfig>,
     flash_size: usize,
 ) -> Result<SimulationStatistics, SimulationError> {
     let mut processor = Processor::new();
 
     processor.itm(itm_file);
     processor.semihost(Some(semihost_func));
-    processor.flash_memory(flash_start_address, flash_size, code);
+    processor.memory_map(map);
+    processor.flash_memory(flash_size, code);
+    //processor.ram_memory(ram_size);
+
     processor.cache_instructions();
 
     let start = Instant::now();
@@ -100,7 +105,7 @@ pub fn simulate_trace<F>(
     mut trace_func: F,
     semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<io::Write + 'static>>,
-    flash_start_address: u32,
+    map: Option<MemoryMapConfig>,
     flash_size: usize,
 ) -> Result<SimulationStatistics, SimulationError>
 where
@@ -109,7 +114,8 @@ where
     let mut processor = Processor::new();
     processor.itm(itm_file);
     processor.semihost(Some(semihost_func));
-    processor.flash_memory(flash_start_address, flash_size, code);
+    processor.memory_map(map);
+    processor.flash_memory(flash_size, code);
     processor.cache_instructions();
 
     let start = Instant::now();

@@ -15,6 +15,7 @@ extern crate log;
 extern crate stderrlog;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use goblin::elf::program_header::pt_to_str;
 use goblin::Object;
 use std::fs::File;
 use std::io;
@@ -30,6 +31,7 @@ use crate::trace::format_trace_entry;
 use std::cmp;
 use std::collections::HashMap;
 use tabwriter::TabWriter;
+use zmu_cortex_m::memory::map::MemoryMapConfig;
 use zmu_cortex_m::Processor;
 
 use zmu_cortex_m::system::simulation::simulate_trace;
@@ -56,6 +58,7 @@ fn run_bin(
     itm_file: Option<Box<io::Write + 'static>>,
 ) -> Result<()> {
     let res = Object::parse(buffer).unwrap();
+
     let elf = match res {
         Object::Elf(elf) => elf,
         _ => {
@@ -63,25 +66,38 @@ fn run_bin(
         }
     };
 
+    debug!("Detected ELF file.");
+
     // auto detection of required flash size:
     // loop 1: determine lower bound and upper bound
 
     let mut min_address = 0xffff_ffff;
     let mut max_address = 0;
+    debug!("Determining ELF code sections");
     for ph in &elf.program_headers {
         if ph.p_type == goblin::elf::program_header::PT_LOAD && ph.p_filesz > 0 {
             let dst_addr = ph.p_paddr as usize;
             let dst_end_addr = (ph.p_paddr + ph.p_filesz) as usize;
 
+            debug!(
+                "PT_LOAD section at 0x{:08x} - 0x{:08x} (size = {} bytes)",
+                dst_addr, dst_end_addr, ph.p_filesz
+            );
             min_address = cmp::min(dst_addr, min_address);
             max_address = cmp::max(dst_end_addr, max_address);
+        } else {
+            debug!(
+                "ignoring section : {} (size = {} bytes)",
+                pt_to_str(ph.p_type),
+                ph.p_filesz
+            );
         }
     }
 
     let flash_start_address = min_address as u32;
     let flash_size = (max_address - min_address) as usize;
     info!(
-        "Auto configuring flash: address space is 0x{:x}..0x{:x}, size={} bytes",
+        "Auto configuring flash: address space is 0x{:x}..0x{:x}, size= {} bytes",
         flash_start_address, max_address, flash_size
     );
     let mut flash_mem = vec![0; flash_size];
@@ -104,6 +120,8 @@ fn run_bin(
     let semihost_func = Box::new(get_semihost_func(Instant::now()));
 
     let statistics = if trace {
+        debug!("Configuring tracing.");
+
         let mut symboltable = HashMap::new();
         let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
 
@@ -130,20 +148,31 @@ fn run_bin(
                 let _ = trace_stdout.flush();
             }
         };
+        debug!("Starting simulation with trace.");
+
         simulate_trace(
             &flash_mem,
             tracefunc,
             semihost_func,
             itm_file,
-            flash_start_address,
+            if flash_start_address != 0 {
+                Some(MemoryMapConfig::new(flash_start_address, 0, flash_size))
+            } else {
+                None
+            },
             flash_size,
         )?
     } else {
+        debug!("Starting simulation.");
         simulate(
             &flash_mem,
             semihost_func,
             itm_file,
-            flash_start_address,
+            if flash_start_address != 0 {
+                Some(MemoryMapConfig::new(flash_start_address, 0, flash_size))
+            } else {
+                None
+            },
             flash_size,
         )?
     };
@@ -153,6 +182,8 @@ fn run_bin(
     let instructions_per_sec = statistics.instruction_count as f64 / duration_in_secs;
 
     let cycles_per_sec = statistics.cycle_count as f64 / duration_in_secs;
+
+    debug!("Simulation done.");
 
     info!(
         "{:?}, {} instructions, {:.0} instructions per sec, {:.0} cycles_per_sec ~ {:.2} Mhz",
