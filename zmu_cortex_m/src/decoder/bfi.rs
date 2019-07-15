@@ -10,13 +10,17 @@ pub fn decode_BFI_t1(opcode: u32) -> Instruction {
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm2: u8 = opcode.get_bits(6..8) as u8;
 
-    let lsbit = (imm3 << 2) + imm2;
+    let lsbit = u32::from((imm3 << 2) + imm2);
     let msbit = opcode.get_bits(0..5);
+
+    // msbit = lsbit + width -1   <=>
+    // width = msbit - lsbit + 1
+    let width = msbit - lsbit + 1;
 
     Instruction::BFI {
         rd: Reg::from(rd),
         rn: Reg::from(rn),
         lsbit: lsbit as usize,
-        msbit: msbit as usize,
+        width: width as usize,
     }
 }

@@ -2017,7 +2017,7 @@ fn test_decode_bfi_w() {
             rd: Reg::R4,
             rn: Reg::R3,
             lsbit: 0,
-            msbit: 0 + 8 - 1,
+            width: 8,
         }
     );
 }

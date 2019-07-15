@@ -300,10 +300,10 @@ impl ExecutorHelper for Processor {
                     let msbit = (lsbit + width) - 1;
 
                     let source_upper_range = (msbit - lsbit) + 1;
-
+                    let destination_upper_range = msbit + 1;
                     let mut result: u32 = r_d;
                     let value: u32 = r_n.get_bits(0..source_upper_range);
-                    result.set_bits(*lsbit..(msbit + 1), value);
+                    result.set_bits(*lsbit..destination_upper_range, value);
 
                     self.set_r(*rd, result);
                     return Ok(ExecuteResult::Taken { cycles: 1 });

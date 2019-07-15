@@ -185,7 +185,7 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         lsbit: usize,
-        msbit: usize,
+        width: usize,
     },
     CBZ {
         rn: Reg,
@@ -1245,8 +1245,8 @@ impl fmt::Display for Instruction {
                 ref rn,
                 ref rd,
                 ref lsbit,
-                ref msbit,
-            } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, msbit - lsbit + 1),
+                ref width,
+            } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, width),
 
             Instruction::CMN_reg {
                 rn,
