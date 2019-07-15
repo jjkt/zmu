@@ -29,6 +29,9 @@ pub mod memory;
 pub mod peripheral;
 pub mod semihosting;
 pub mod system;
+pub mod device;
+
+
 
 use crate::core::instruction::instruction_size;
 
@@ -47,6 +50,13 @@ use crate::core::exception::ExceptionState;
 use std::collections::HashMap;
 use std::fmt;
 use std::io;
+
+#[cfg(feature = "stm32f103")]
+use crate::device::stm32f1xx::Device as Device;
+
+#[cfg(feature = "generic-device")]
+use crate::device::generic::Device as Device;
+
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 /// Main execution mode of the processor
@@ -190,6 +200,8 @@ pub struct Processor {
     pub last_pc: u32,
 
     mem_map: Option<MemoryMapConfig>,
+
+    pub device : Device
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -320,6 +332,7 @@ impl Processor {
             instruction_cache: Vec::new(),
             last_pc: 0,
             mem_map: None,
+            device : Device::new()
         }
     }
 

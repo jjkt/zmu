@@ -13,6 +13,8 @@ use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
 use crate::memory::map::MapMemory;
 
+
+
 ///
 /// Trait for reading and writing via a memory bus.
 ///
@@ -66,6 +68,8 @@ impl Bus for Processor {
                     return self.sram.read8(addr);
                 } else if self.code.in_range(addr) {
                     return self.code.read8(addr);
+                } else if self.device.in_range(addr) {
+                    return self.device.read8(addr);
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -98,6 +102,8 @@ impl Bus for Processor {
                     self.sram.read16(addr)
                 } else if self.code.in_range(addr) {
                     self.code.read16(addr)
+                } else if self.device.in_range(addr) {
+                    self.device.read16(addr)
                 } else {
                     Err(Fault::DAccViol)
                 }
@@ -165,6 +171,8 @@ impl Bus for Processor {
                     self.sram.read32(addr)?
                 } else if self.code.in_range(addr) {
                     self.code.read32(addr)?
+                } else if self.device.in_range(addr) {
+                    self.device.read32(addr)?
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -220,6 +228,8 @@ impl Bus for Processor {
                     return self.sram.write32(addr, value);
                 } else if self.code.in_range(addr) {
                     return self.code.write32(addr, value);
+                } else if self.device.in_range(addr) {
+                    return self.device.write32(addr, value);
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -253,6 +263,8 @@ impl Bus for Processor {
                     return self.sram.write16(addr, value);
                 } else if self.code.in_range(addr) {
                     return self.code.write16(addr, value);
+                } else if self.device.in_range(addr) {
+                    return self.device.write16(addr, value);
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -281,6 +293,8 @@ impl Bus for Processor {
                     return self.sram.write8(addr, value);
                 } else if self.code.in_range(addr) {
                     return self.code.write8(addr, value);
+                } else if self.device.in_range(addr) {
+                    return self.device.write8(addr, value);
                 } else {
                     return Err(Fault::DAccViol);
                 }
@@ -291,6 +305,6 @@ impl Bus for Processor {
 
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
-        self.code.in_range(addr) || self.sram.in_range(addr)
+        self.code.in_range(addr) || self.sram.in_range(addr) ||self.device.in_range(addr)
     }
 }

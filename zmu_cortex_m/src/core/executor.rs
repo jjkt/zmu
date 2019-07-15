@@ -12,13 +12,13 @@ use crate::core::instruction::{Imm32Carry, Instruction, SRType, SetFlags};
 use crate::core::operation::condition_test;
 use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
 use crate::core::register::{Apsr, BaseReg, Reg};
+use crate::memory::map::MapMemory;
 use crate::peripheral::dwt::Dwt;
 use crate::peripheral::systick::SysTick;
 use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::Processor;
 use crate::ProcessorMode;
-use crate::memory::map::MapMemory;
 
 ///
 /// Stepping processor with instructions
@@ -291,17 +291,19 @@ impl ExecutorHelper for Processor {
                 rn,
                 rd,
                 lsbit,
-                msbit,
+                width,
             } => {
                 if self.condition_passed() {
                     let r_n: u32 = self.get_r(*rn);
                     let r_d = self.get_r(*rd);
 
-                    let width = (msbit - lsbit) + 1;
+                    let msbit = (lsbit + width) - 1;
+
+                    let source_upper_range = (msbit - lsbit) + 1;
 
                     let mut result: u32 = r_d;
-                    let value: u32 = r_n.get_bits(0..width);
-                    result.set_bits(0..width, value);
+                    let value: u32 = r_n.get_bits(0..source_upper_range);
+                    result.set_bits(*lsbit..(msbit + 1), value);
 
                     self.set_r(*rd, result);
                     return Ok(ExecuteResult::Taken { cycles: 1 });
@@ -2769,13 +2771,34 @@ mod tests {
             rd: Reg::R2,
             rn: Reg::R3,
             lsbit: 0,
-            msbit: 7,
+            width: 8,
         };
 
         core.execute_internal(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
         assert_eq!(core.get_r(Reg::R2), 0x112233dd);
+    }
+    #[test]
+    fn test_bfi_with_shift_8() {
+        // arrange
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0);
+        core.set_r(Reg::R1, 0x00e000e4);
+
+        let instruction = Instruction::BFI {
+            rd: Reg::R0,
+            rn: Reg::R1,
+            lsbit: 8,
+            width: 24,
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R0), 0xe000e400);
+        assert_eq!(core.get_r(Reg::R1), 0x00e000e4);
     }
 
     #[test]

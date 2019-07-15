@@ -13,3 +13,5 @@ enum-set = "0.0.7"
 armv6m = []
 armv7m = []
 armv7em = []
+generic-device = []
+stm32f103 = []
