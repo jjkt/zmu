@@ -35,6 +35,7 @@ const GPIOG_BASE_END: u32 = GPIOG_BASE + 0x18;
 const RCC_BASE: u32 = AHBPERIPH_BASE + 0x1000;
 const RCC_BASE_END: u32 = RCC_BASE + 0x24;
 const FLASH_R_BASE: u32 = AHBPERIPH_BASE + 0x2000;
+const FLASH_R_BASE_END: u32 = FLASH_R_BASE + 0x04;
 
 use crate::bus::Bus;
 use crate::core::fault::Fault;
@@ -115,11 +116,20 @@ struct GPIORegisters {
     LCKR: u32,
 }
 
+#[allow(non_snake_case)]
+struct FLASHRegisters {
+    ///
+    /// 0
+    ///
+    ACR: u32,
+}
+
 ///
 ///
 pub struct Device {
     rcc: RCCRegisters,
     gpio: [GPIORegisters; 7],
+    flash: FLASHRegisters,
 }
 
 impl Device {
@@ -129,7 +139,7 @@ impl Device {
         println!("initialize stm32f1xx");
         Self {
             rcc: RCCRegisters {
-                CR: 0,
+                CR: 0x83,
                 CFGR: 0,
                 CIR: 0,
                 APB2RSTR: 0,
@@ -191,6 +201,7 @@ impl Device {
                     LCKR: 0x0,
                 },
             ],
+            flash: FLASHRegisters { ACR: 0x30 },
         }
     }
 }
@@ -205,10 +216,32 @@ trait GPIO {
     fn gpio_read32(&mut self, index: usize, offset: u32) -> Result<u32, Fault>;
 }
 
+trait FLASH {
+    fn flash_write32(&mut self, offset: u32, value: u32) -> Result<(), Fault>;
+    fn flash_read32(&mut self, offset: u32) -> Result<u32, Fault>;
+}
+
 impl RCC for Device {
     fn rcc_write32(&mut self, offset: u32, value: u32) -> Result<(), Fault> {
         match offset {
-            0x0 => self.rcc.CR = value,
+            0x0 => {
+                // Only RW bits can be modified by a write
+                let rw_mask = 0b0000_0001_0000_1101_0000_0000_1111_1001;
+                let masked_on = value & rw_mask;
+                let masked_off = !value & rw_mask;
+
+                self.rcc.CR |= masked_on;
+                self.rcc.CR &= !masked_off;
+
+                // PLLON -> PLL_RDY
+                self.rcc.CR.set_bit(25, self.rcc.CR.get_bit(24));
+
+                // HSEON -> HSE_RDY
+                self.rcc.CR.set_bit(17, self.rcc.CR.get_bit(16));
+
+                // HSION -> HSI_RDY
+                self.rcc.CR.set_bit(1, self.rcc.CR.get_bit(0));
+            }
             0x4 => self.rcc.CFGR = value,
             0x8 => self.rcc.CIR = value,
             0xc => self.rcc.APB2RSTR = value,
@@ -284,6 +317,38 @@ impl GPIO for Device {
     }
 }
 
+impl FLASH for Device {
+    fn flash_write32(&mut self, offset: u32, value: u32) -> Result<(), Fault> {
+        match offset {
+            0x0 => {
+                // Only RW bits can be modified by a write
+                let rw_mask = 0b1_1111;
+                let masked_on = value & rw_mask;
+                let masked_off = !value & rw_mask;
+
+                self.flash.ACR |= masked_on;
+                self.flash.ACR &= !masked_off;
+
+                // PRFTBE -> PRFTBS
+                self.flash.ACR.set_bit(5, self.flash.ACR.get_bit(4));
+
+            }
+            _ => return Err(Fault::DAccViol),
+        }
+
+        Ok(())
+    }
+
+    fn flash_read32(&mut self, offset: u32) -> Result<u32, Fault> {
+        let result = match offset {
+            0x0 => self.flash.ACR,
+            _ => return Err(Fault::DAccViol),
+        };
+
+        Ok(result)
+    }
+}
+
 impl Bus for Device {
     fn read8(&self, bus_addr: u32) -> Result<u8, Fault> {
         println!("read8 0x{:x}", bus_addr);
@@ -306,6 +371,7 @@ impl Bus for Device {
             GPIOE_BASE..=GPIOE_BASE_END => self.gpio_read32(4, bus_addr - GPIOE_BASE),
             GPIOF_BASE..=GPIOF_BASE_END => self.gpio_read32(5, bus_addr - GPIOF_BASE),
             GPIOG_BASE..=GPIOG_BASE_END => self.gpio_read32(6, bus_addr - GPIOG_BASE),
+            FLASH_R_BASE..=FLASH_R_BASE_END => self.flash_read32(bus_addr - FLASH_R_BASE),
             _ => Err(Fault::DAccViol),
         }
     }
@@ -321,6 +387,7 @@ impl Bus for Device {
             GPIOE_BASE..=GPIOE_BASE_END => self.gpio_write32(4, addr - GPIOE_BASE, value),
             GPIOF_BASE..=GPIOF_BASE_END => self.gpio_write32(5, addr - GPIOF_BASE, value),
             GPIOG_BASE..=GPIOG_BASE_END => self.gpio_write32(6, addr - GPIOG_BASE, value),
+            FLASH_R_BASE..=FLASH_R_BASE_END => self.flash_write32(addr - FLASH_R_BASE, value),
             _ => Err(Fault::DAccViol),
         }
     }
@@ -337,6 +404,56 @@ impl Bus for Device {
 
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
-        addr >= PERIPH_BASE && addr < FLASH_R_BASE
+        addr >= PERIPH_BASE && addr < FLASH_R_BASE_END
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_rcc_cr_init() {
+        {
+            let mut device = Device::new();
+            assert_eq!(device.rcc_read32(0).unwrap(), 0x83);
+        }
+    }
+
+    #[test]
+    fn test_rcc_cr_write_all() -> Result<(), Fault> {
+        {
+            let mut device = Device::new();
+            device.rcc_write32(0, 0xffff_ffff)?;
+            assert_eq!(
+                device.rcc_read32(0)?,
+                0b0000_0011_0000_1111_0000_0000_1111_1011
+            );
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_rcc_cr_hse_on() -> Result<(), Fault> {
+        {
+            let mut device = Device::new();
+            // HSE_ON enables HSE_RDY
+            device.rcc_write32(0, 0x10000)?;
+            assert_eq!(device.rcc_read32(0)? & 0x30000, 0x30000);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_rcc_cr_hse_off() -> Result<(), Fault> {
+        {
+            let mut device = Device::new();
+            device.rcc_write32(0, 0x10000)?;
+            device.rcc_write32(0, 0)?;
+            assert_eq!(device.rcc_read32(0)? & 0x30000, 0);
+            Ok(())
+        }
+    }
+
 }
