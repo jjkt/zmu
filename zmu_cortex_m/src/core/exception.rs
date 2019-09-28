@@ -606,7 +606,7 @@ mod tests {
             core.psr.value = 0xffff_ffff;
 
             // act
-            core.push_stack(Self::HardFault, 99).unwrap();
+            core.push_stack(Exception::HardFault, 99).unwrap();
 
             assert_eq!(core.msp, STACK_START - 32);
             core.get_r(Reg::LR)
