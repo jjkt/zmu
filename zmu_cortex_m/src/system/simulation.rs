@@ -48,7 +48,7 @@ pub struct SimulationStatistics {
 
 impl From<Fault> for SimulationError {
     fn from(_fault: Fault) -> Self {
-        SimulationError::FaultTrap
+        Self::FaultTrap
     }
 }
 

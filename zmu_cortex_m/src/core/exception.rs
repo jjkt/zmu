@@ -553,22 +553,22 @@ impl From<Exception> for usize {
 impl From<usize> for Exception {
     fn from(value: usize) -> Self {
         match value {
-            1 => Exception::Reset,
-            2 => Exception::NMI,
-            3 => Exception::HardFault,
-            4 => Exception::MemoryManagementFault,
-            5 => Exception::BusFault,
-            6 => Exception::UsageFault,
-            7 => Exception::Reserved4,
-            8 => Exception::Reserved5,
-            9 => Exception::Reserved6,
-            10 => Exception::DebugMonitor,
-            11 => Exception::SVCall,
-            12 => Exception::Reserved8,
-            13 => Exception::Reserved9,
-            14 => Exception::PendSV,
-            15 => Exception::SysTick,
-            _ => Exception::Interrupt { n: value - 16 },
+            1 => Self::Reset,
+            2 => Self::NMI,
+            3 => Self::HardFault,
+            4 => Self::MemoryManagementFault,
+            5 => Self::BusFault,
+            6 => Self::UsageFault,
+            7 => Self::Reserved4,
+            8 => Self::Reserved5,
+            9 => Self::Reserved6,
+            10 => Self::DebugMonitor,
+            11 => Self::SVCall,
+            12 => Self::Reserved8,
+            13 => Self::Reserved9,
+            14 => Self::PendSV,
+            15 => Self::SysTick,
+            _ => Self::Interrupt { n: value - 16 },
         }
     }
 }
@@ -606,7 +606,7 @@ mod tests {
             core.psr.value = 0xffff_ffff;
 
             // act
-            core.push_stack(Exception::HardFault, 99).unwrap();
+            core.push_stack(Self::HardFault, 99).unwrap();
 
             assert_eq!(core.msp, STACK_START - 32);
             core.get_r(Reg::LR)

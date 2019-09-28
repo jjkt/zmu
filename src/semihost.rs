@@ -28,13 +28,13 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                 // println!("opening stream '{}' in mode '{}'", name, mode);
                 if name == ":tt" {
                     match mode {
-                        0...3 => SemihostingResponse::SysOpen {
+                        0..=3 => SemihostingResponse::SysOpen {
                             result: Ok(TT_HANDLE_STDIN),
                         },
-                        4...7 => SemihostingResponse::SysOpen {
+                        4..=7 => SemihostingResponse::SysOpen {
                             result: Ok(TT_HANDLE_STDOUT),
                         },
-                        8...11 => SemihostingResponse::SysOpen {
+                        8..=11 => SemihostingResponse::SysOpen {
                             result: Ok(TT_HANDLE_STDERR),
                         },
                         _ => SemihostingResponse::SysOpen {

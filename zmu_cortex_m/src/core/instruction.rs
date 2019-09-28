@@ -987,7 +987,7 @@ impl fmt::Display for Instruction {
         // TODO: shift_t, shift_n formattings missing.
         // TODO: some of the wide instruction formattings missing.
         match *self {
-            Instruction::ADD_imm {
+            Self::ADD_imm {
                 rn,
                 rd,
                 imm32,
@@ -1015,7 +1015,7 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
-            Instruction::ADC_imm {
+            Self::ADC_imm {
                 rd,
                 rn,
                 imm32,
@@ -1028,7 +1028,7 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32
             ),
-            Instruction::ADD_reg {
+            Self::ADD_reg {
                 rm,
                 rn,
                 rd,
@@ -1050,7 +1050,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::ADD_sp_reg {
+            Self::ADD_sp_reg {
                 rm,
                 rd,
                 setflags,
@@ -1070,7 +1070,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::ADC_reg {
+            Self::ADC_reg {
                 rm,
                 rn,
                 rd,
@@ -1092,14 +1092,14 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::ADR { rd, imm32, thumb32 } => write!(
+            Self::ADR { rd, imm32, thumb32 } => write!(
                 f,
                 "adr{} {}, pc, 0x#{:x}",
                 if thumb32 { ".W" } else { "" },
                 rd,
                 imm32
             ),
-            Instruction::AND_reg {
+            Self::AND_reg {
                 rd,
                 rn,
                 rm,
@@ -1121,7 +1121,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::AND_imm {
+            Self::AND_imm {
                 rd,
                 rn,
                 ref imm32,
@@ -1138,7 +1138,7 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Instruction::ASR_imm {
+            Self::ASR_imm {
                 rd,
                 rm,
                 shift_n,
@@ -1153,7 +1153,7 @@ impl fmt::Display for Instruction {
                 rm,
                 shift_n
             ),
-            Instruction::ROR_imm {
+            Self::ROR_imm {
                 rd,
                 rm,
                 shift_n,
@@ -1166,7 +1166,7 @@ impl fmt::Display for Instruction {
                 rm,
                 shift_n
             ),
-            Instruction::ASR_reg {
+            Self::ASR_reg {
                 rd,
                 rn,
                 rm,
@@ -1181,7 +1181,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::BIC_reg {
+            Self::BIC_reg {
                 rd,
                 rn,
                 rm,
@@ -1203,7 +1203,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::BIC_imm {
+            Self::BIC_imm {
                 rd,
                 rn,
                 ref imm32,
@@ -1219,7 +1219,7 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::TEQ_imm { rn, ref imm32 } => write!(
+            Self::TEQ_imm { rn, ref imm32 } => write!(
                 f,
                 "teq.w {}, #{}",
                 rn,
@@ -1228,27 +1228,27 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::B_t13 {
+            Self::B_t13 {
                 ref cond,
                 imm32,
                 thumb32,
             } => write!(f, "b{}{} {}", cond, if thumb32 { ".W" } else { "" }, imm32),
-            Instruction::B_t24 { imm32, thumb32 } => {
+            Self::B_t24 { imm32, thumb32 } => {
                 write!(f, "b{} {}", if thumb32 { ".W" } else { "" }, imm32)
             }
-            Instruction::BL { imm32 } => write!(f, "bl 0x#{:x}", imm32),
-            Instruction::BX { rm } => write!(f, "bx {}", rm),
-            Instruction::BLX { rm } => write!(f, "blx {}", rm),
-            Instruction::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
+            Self::BL { imm32 } => write!(f, "bl 0x#{:x}", imm32),
+            Self::BX { rm } => write!(f, "bx {}", rm),
+            Self::BLX { rm } => write!(f, "blx {}", rm),
+            Self::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
 
-            Instruction::BFI {
+            Self::BFI {
                 ref rn,
                 ref rd,
                 ref lsbit,
                 ref width,
             } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, width),
 
-            Instruction::CMN_reg {
+            Self::CMN_reg {
                 rn,
                 rm,
                 ref shift_t,
@@ -1266,23 +1266,23 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::CMN_imm { rn, imm32 } => write!(f, "cmn.W {}, #{}", rn, imm32),
-            Instruction::CBZ { rn, nonzero, imm32 } => write!(
+            Self::CMN_imm { rn, imm32 } => write!(f, "cmn.W {}, #{}", rn, imm32),
+            Self::CBZ { rn, nonzero, imm32 } => write!(
                 f,
                 "cb{}z {}, #{}",
                 if nonzero { "n" } else { "" },
                 rn,
                 imm32,
             ),
-            Instruction::CLZ { rd, rm } => write!(f, "clz {},{}", rd, rm),
-            Instruction::CMP_imm { rn, imm32, thumb32 } => write!(
+            Self::CLZ { rd, rm } => write!(f, "clz {},{}", rd, rm),
+            Self::CMP_imm { rn, imm32, thumb32 } => write!(
                 f,
                 "cmp{} {}, #{}",
                 if thumb32 { ".W" } else { "" },
                 rn,
                 imm32
             ),
-            Instruction::CMP_reg {
+            Self::CMP_reg {
                 rn,
                 rm,
                 ref shift_t,
@@ -1302,9 +1302,9 @@ impl fmt::Display for Instruction {
             ),
 
             #[cfg(any(armv6m))]
-            Instruction::CPS { im } => write!(f, "cps{} i", if im { "ID" } else { "IE" }),
+            Self::CPS { im } => write!(f, "cps{} i", if im { "ID" } else { "IE" }),
             #[cfg(any(armv7m, armv7em))]
-            Instruction::CPS {
+            Self::CPS {
                 im,
                 affect_pri,
                 affect_fault,
@@ -1315,9 +1315,9 @@ impl fmt::Display for Instruction {
                 if affect_pri { "i" } else { "" },
                 if affect_fault { "f" } else { "" }
             ),
-            Instruction::DMB => write!(f, "dmb"),
-            Instruction::DSB => write!(f, "dsb"),
-            Instruction::EOR_reg {
+            Self::DMB => write!(f, "dmb"),
+            Self::DSB => write!(f, "dsb"),
+            Self::EOR_reg {
                 rd,
                 rn,
                 rm,
@@ -1339,8 +1339,8 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::ISB => write!(f, "isb"),
-            Instruction::IT {
+            Self::ISB => write!(f, "isb"),
+            Self::IT {
                 ref x,
                 ref y,
                 ref z,
@@ -1362,7 +1362,7 @@ impl fmt::Display for Instruction {
                 write!(f, "it{}{}{} {}", x_str, y_str, z_str, firstcond)
             }
 
-            Instruction::LDM {
+            Self::LDM {
                 rn,
                 registers,
                 thumb32,
@@ -1373,7 +1373,7 @@ impl fmt::Display for Instruction {
                 rn,
                 registers
             ),
-            Instruction::LDR_reg {
+            Self::LDR_reg {
                 rt,
                 rn,
                 rm,
@@ -1391,7 +1391,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LDR_imm {
+            Self::LDR_imm {
                 rt,
                 rn,
                 imm32,
@@ -1400,7 +1400,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldr", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::LDR_lit {
+            Self::LDR_lit {
                 rt,
                 imm32,
                 thumb32,
@@ -1419,7 +1419,7 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
-            Instruction::LDRB_imm {
+            Self::LDRB_imm {
                 rt,
                 rn,
                 imm32,
@@ -1428,7 +1428,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrb", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::LDRB_reg {
+            Self::LDRB_reg {
                 rt,
                 rn,
                 rm,
@@ -1446,7 +1446,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LDRH_imm {
+            Self::LDRH_imm {
                 rt,
                 rn,
                 imm32,
@@ -1455,7 +1455,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrh", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::LDRH_reg {
+            Self::LDRH_reg {
                 rt,
                 rn,
                 rm,
@@ -1473,7 +1473,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LDRSB_reg {
+            Self::LDRSB_reg {
                 rt,
                 rn,
                 rm,
@@ -1484,7 +1484,7 @@ impl fmt::Display for Instruction {
                 add,
                 thumb32,
             } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
-            Instruction::LDRSH_reg {
+            Self::LDRSH_reg {
                 rt,
                 rn,
                 rm,
@@ -1502,7 +1502,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LSL_imm {
+            Self::LSL_imm {
                 rd,
                 rm,
                 shift_n,
@@ -1517,7 +1517,7 @@ impl fmt::Display for Instruction {
                 rm,
                 shift_n
             ),
-            Instruction::LSL_reg {
+            Self::LSL_reg {
                 rd,
                 rn,
                 rm,
@@ -1532,7 +1532,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LSR_reg {
+            Self::LSR_reg {
                 rd,
                 rn,
                 rm,
@@ -1547,7 +1547,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::LSR_imm {
+            Self::LSR_imm {
                 rd,
                 rm,
                 shift_n,
@@ -1561,9 +1561,9 @@ impl fmt::Display for Instruction {
                 rm,
                 shift_n
             ),
-            Instruction::MSR_reg { sysm, rn, mask } => write!(f, "msr {}, {}", sysm, rn),
-            Instruction::MRS { rd, sysm } => write!(f, "mrs {}, {}", rd, sysm),
-            Instruction::MUL {
+            Self::MSR_reg { sysm, rn, mask } => write!(f, "msr {}, {}", sysm, rn),
+            Self::MRS { rd, sysm } => write!(f, "mrs {}, {}", rd, sysm),
+            Self::MUL {
                 rd,
                 rn,
                 rm,
@@ -1577,7 +1577,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::SMUL {
+            Self::SMUL {
                 rd,
                 rn,
                 rm,
@@ -1592,7 +1592,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::SMLA {
+            Self::SMLA {
                 rd,
                 rn,
                 rm,
@@ -1609,7 +1609,7 @@ impl fmt::Display for Instruction {
                 rm,
                 ra
             ),
-            Instruction::MOV_reg {
+            Self::MOV_reg {
                 rd,
                 rm,
                 setflags,
@@ -1622,7 +1622,7 @@ impl fmt::Display for Instruction {
                 rd,
                 rm
             ),
-            Instruction::MOV_imm {
+            Self::MOV_imm {
                 rd,
                 ref imm32,
                 ref setflags,
@@ -1638,8 +1638,8 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::MOVT { rd, imm16 } => write!(f, "movt {}, #{}", rd, imm16),
-            Instruction::LDRSH_imm {
+            Self::MOVT { rd, imm16 } => write!(f, "movt {}, #{}", rd, imm16),
+            Self::LDRSH_imm {
                 rt,
                 rn,
                 imm32,
@@ -1649,7 +1649,7 @@ impl fmt::Display for Instruction {
                 thumb32,
             } => format_adressing_mode("ldrsh", f, rn, rt, imm32, index, add, wback, thumb32),
 
-            Instruction::LDRSB_imm {
+            Self::LDRSB_imm {
                 rt,
                 rn,
                 imm32,
@@ -1659,7 +1659,7 @@ impl fmt::Display for Instruction {
                 thumb32,
             } => format_adressing_mode("ldrsb", f, rn, rt, imm32, index, add, wback, thumb32),
 
-            Instruction::MVN_reg {
+            Self::MVN_reg {
                 rd,
                 rm,
                 ref setflags,
@@ -1679,7 +1679,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::MVN_imm {
+            Self::MVN_imm {
                 rd,
                 ref imm32,
                 setflags,
@@ -1693,8 +1693,8 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::NOP { .. } => write!(f, "nop"),
-            Instruction::ORR_reg {
+            Self::NOP { .. } => write!(f, "nop"),
+            Self::ORR_reg {
                 rd,
                 rn,
                 rm,
@@ -1716,7 +1716,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::ORR_imm {
+            Self::ORR_imm {
                 rd,
                 rn,
                 ref imm32,
@@ -1732,7 +1732,7 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::ORN_reg {
+            Self::ORN_reg {
                 rd,
                 rn,
                 rm,
@@ -1752,7 +1752,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::EOR_imm {
+            Self::EOR_imm {
                 rd,
                 rn,
                 ref imm32,
@@ -1768,19 +1768,19 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::POP { registers, thumb32 } => {
+            Self::POP { registers, thumb32 } => {
                 write!(f, "pop{} {:?}", if thumb32 { ".W" } else { "" }, registers)
             }
-            Instruction::PUSH { thumb32, registers } => {
+            Self::PUSH { thumb32, registers } => {
                 write!(f, "push{} {:?}", if thumb32 { ".W" } else { "" }, registers)
             }
-            Instruction::PLD_imm { rn, imm32, add } => {
+            Self::PLD_imm { rn, imm32, add } => {
                 write!(f, "pld [{}, {}{}]", rn, if add { "+" } else { "-" }, imm32)
             }
-            Instruction::PLD_lit { imm32, add } => {
+            Self::PLD_lit { imm32, add } => {
                 write!(f, "pld [PC, {}{}]", if add { "+" } else { "-" }, imm32)
             }
-            Instruction::PLD_reg {
+            Self::PLD_reg {
                 rn,
                 rm,
                 shift_t,
@@ -1797,10 +1797,10 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Instruction::REV { rd, rm, .. } => write!(f, "rev {}, {}", rd, rm),
-            Instruction::REV16 { rd, rm, .. } => write!(f, "rev16 {}, {}", rd, rm),
-            Instruction::REVSH { rd, rm, .. } => write!(f, "revsh {}, {}", rd, rm),
-            Instruction::ROR_reg {
+            Self::REV { rd, rm, .. } => write!(f, "rev {}, {}", rd, rm),
+            Self::REV16 { rd, rm, .. } => write!(f, "rev16 {}, {}", rd, rm),
+            Self::REVSH { rd, rm, .. } => write!(f, "revsh {}, {}", rd, rm),
+            Self::ROR_reg {
                 rd,
                 rn,
                 rm,
@@ -1814,7 +1814,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::RSB_imm {
+            Self::RSB_imm {
                 rd,
                 rn,
                 imm32,
@@ -1829,7 +1829,7 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32
             ),
-            Instruction::RRX { rd, rm, setflags } => write!(
+            Self::RRX { rd, rm, setflags } => write!(
                 f,
                 "mov.w{} {}, {}, rrx",
                 if setflags { "s" } else { "" },
@@ -1837,7 +1837,7 @@ impl fmt::Display for Instruction {
                 rm,
             ),
 
-            Instruction::SBC_imm {
+            Self::SBC_imm {
                 rd,
                 rn,
                 imm32,
@@ -1850,7 +1850,7 @@ impl fmt::Display for Instruction {
                 rn,
                 imm32
             ),
-            Instruction::RSB_reg {
+            Self::RSB_reg {
                 rd,
                 rn,
                 rm,
@@ -1873,8 +1873,8 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Instruction::SEV { .. } => write!(f, "sev"),
-            Instruction::SBC_reg {
+            Self::SEV { .. } => write!(f, "sev"),
+            Self::SBC_reg {
                 rd,
                 rn,
                 rm,
@@ -1891,7 +1891,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::STM {
+            Self::STM {
                 rn,
                 wback,
                 registers,
@@ -1904,7 +1904,7 @@ impl fmt::Display for Instruction {
                 if wback { "!" } else { "" },
                 registers
             ),
-            Instruction::STMDB {
+            Self::STMDB {
                 rn,
                 wback,
                 registers,
@@ -1915,7 +1915,7 @@ impl fmt::Display for Instruction {
                 if wback { "!" } else { "" },
                 registers
             ),
-            Instruction::STR_imm {
+            Self::STR_imm {
                 rn,
                 rt,
                 imm32,
@@ -1924,7 +1924,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("str", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::STRD_imm {
+            Self::STRD_imm {
                 rn,
                 rt,
                 rt2,
@@ -1933,7 +1933,7 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
             } => format_adressing_mode2("strd", f, rn, rt, rt2, imm32, index, add, wback, true),
-            Instruction::LDRD_imm {
+            Self::LDRD_imm {
                 rn,
                 rt,
                 rt2,
@@ -1942,7 +1942,7 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
             } => format_adressing_mode2("ldrd", f, rn, rt, rt2, imm32, index, add, wback, true),
-            Instruction::STR_reg {
+            Self::STR_reg {
                 rn,
                 rm,
                 rt,
@@ -1953,7 +1953,7 @@ impl fmt::Display for Instruction {
                 ref shift_t,
                 shift_n,
             } => write!(f, "str {}, [{}, {}]", rt, rn, rm),
-            Instruction::STRB_imm {
+            Self::STRB_imm {
                 rt,
                 rn,
                 imm32,
@@ -1962,7 +1962,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("strb", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::STRB_reg {
+            Self::STRB_reg {
                 rt,
                 rn,
                 rm,
@@ -1973,7 +1973,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => write!(f, "strb {}, [{}, {}]", rt, rn, rm),
-            Instruction::STRH_imm {
+            Self::STRH_imm {
                 rt,
                 rn,
                 imm32,
@@ -1982,7 +1982,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("strh", f, rn, rt, imm32, index, add, wback, thumb32),
-            Instruction::STRH_reg {
+            Self::STRH_reg {
                 rn,
                 rm,
                 rt,
@@ -1993,7 +1993,7 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => write!(f, "strh {}, [{}, {}]", rt, rn, rm),
-            Instruction::SUB_imm {
+            Self::SUB_imm {
                 rd,
                 rn,
                 imm32,
@@ -2021,7 +2021,7 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
-            Instruction::SUB_reg {
+            Self::SUB_reg {
                 rm,
                 rn,
                 rd,
@@ -2038,7 +2038,7 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Instruction::TEQ_reg {
+            Self::TEQ_reg {
                 rm,
                 rn,
                 ref shift_t,
@@ -2054,8 +2054,8 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::SVC { imm32 } => write!(f, "svc #{}", imm32),
-            Instruction::SXTH {
+            Self::SVC { imm32 } => write!(f, "svc #{}", imm32),
+            Self::SXTH {
                 rd,
                 rm,
                 thumb32,
@@ -2073,7 +2073,7 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Instruction::SXTB {
+            Self::SXTB {
                 rd,
                 rm,
                 thumb32,
@@ -2090,9 +2090,9 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
-            Instruction::TBH { rn, rm } => write!(f, "tbh [{}, {}, lsl #1]", rn, rm),
-            Instruction::TST_reg {
+            Self::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
+            Self::TBH { rn, rm } => write!(f, "tbh [{}, {}, lsl #1]", rn, rm),
+            Self::TST_reg {
                 rn,
                 rm,
                 ref shift_t,
@@ -2110,7 +2110,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::TST_imm { rn, ref imm32 } => write!(
+            Self::TST_imm { rn, ref imm32 } => write!(
                 f,
                 "tst {}, #{}",
                 rn,
@@ -2119,35 +2119,35 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Instruction::UDF {
+            Self::UDF {
                 imm32, ref opcode, ..
             } => write!(f, "udf {} (opcode = {})", imm32, opcode),
 
-            Instruction::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
-            Instruction::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
+            Self::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
+            Self::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
             // ARMv7-M
-            Instruction::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
-            Instruction::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
+            Self::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
+            Self::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
             // ARMv7-M
-            Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
+            Self::UMLAL { rdlo, rdhi, rn, rm } => {
                 write!(f, "umlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
             // ARMv7-M
-            Instruction::UMULL { rdlo, rdhi, rn, rm } => {
+            Self::UMULL { rdlo, rdhi, rn, rm } => {
                 write!(f, "umull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
-            Instruction::SMULL { rdlo, rdhi, rn, rm } => {
+            Self::SMULL { rdlo, rdhi, rn, rm } => {
                 write!(f, "smull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
             // ARMv7-M
-            Instruction::MLA { rd, rn, rm, ra } => write!(f, "mla {}, {}, {}, {}", rd, rn, rm, ra),
+            Self::MLA { rd, rn, rm, ra } => write!(f, "mla {}, {}, {}, {}", rd, rn, rm, ra),
             // ARMv7-M
-            Instruction::MLS { rd, rn, rm, ra } => write!(f, "mls {}, {}, {}, {}", rd, rn, rm, ra),
+            Self::MLS { rd, rn, rm, ra } => write!(f, "mls {}, {}, {}, {}", rd, rn, rm, ra),
             // ARMv7-M
-            Instruction::SMLAL { rdlo, rdhi, rn, rm } => {
+            Self::SMLAL { rdlo, rdhi, rn, rm } => {
                 write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
-            Instruction::UXTB {
+            Self::UXTB {
                 rd,
                 rm,
                 thumb32,
@@ -2164,7 +2164,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::UXTAB {
+            Self::UXTAB {
                 rd,
                 rn,
                 rm,
@@ -2181,7 +2181,7 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::UXTH {
+            Self::UXTH {
                 rd,
                 rm,
                 rotation,
@@ -2198,18 +2198,18 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Instruction::UBFX {
+            Self::UBFX {
                 rd,
                 rn,
                 lsb,
                 widthminus1,
             } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
 
-            Instruction::WFE { .. } => write!(f, "wfe"),
-            Instruction::WFI { .. } => write!(f, "wfi"),
-            Instruction::YIELD { .. } => write!(f, "yield"),
+            Self::WFE { .. } => write!(f, "wfe"),
+            Self::WFI { .. } => write!(f, "wfi"),
+            Self::YIELD { .. } => write!(f, "yield"),
             // ARMv7-M
-            Instruction::MCR {
+            Self::MCR {
                 ref rt,
                 ref coproc,
                 ref opc1,
@@ -2219,7 +2219,7 @@ impl fmt::Display for Instruction {
             } => write!(f, "mcr"),
 
             // ARMv7-M
-            Instruction::MCR2 {
+            Self::MCR2 {
                 ref rt,
                 ref coproc,
                 ref opc1,
@@ -2229,7 +2229,7 @@ impl fmt::Display for Instruction {
             } => write!(f, "mcr2"),
 
             // ARMv7-M
-            Instruction::LDC_imm {
+            Self::LDC_imm {
                 ref coproc,
                 ref imm32,
                 ref crd,
@@ -2237,7 +2237,7 @@ impl fmt::Display for Instruction {
             } => write!(f, "ldc"),
 
             // ARMv7-M
-            Instruction::LDC2_imm {
+            Self::LDC2_imm {
                 ref coproc,
                 ref imm32,
                 ref crd,
@@ -2251,8 +2251,8 @@ impl fmt::Display for Instruction {
 impl fmt::Display for ITCondition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ITCondition::Then => write!(f, "t"),
-            ITCondition::Else => write!(f, "e"),
+            Self::Then => write!(f, "t"),
+            Self::Else => write!(f, "e"),
         }
     }
 }

@@ -55,7 +55,7 @@ fn run_bin(
     buffer: &[u8],
     trace: bool,
     option_trace_start: Option<u64>,
-    itm_file: Option<Box<io::Write + 'static>>,
+    itm_file: Option<Box<dyn io::Write + 'static>>,
 ) -> Result<()> {
     let res = Object::parse(buffer).unwrap();
 
@@ -196,11 +196,11 @@ fn run_bin(
     Ok(())
 }
 
-fn open_itm_file(filename: &str) -> Option<Box<io::Write + 'static>> {
+fn open_itm_file(filename: &str) -> Option<Box<dyn io::Write + 'static>> {
     let result = File::create(filename);
 
     match result {
-        Ok(f) => Some(Box::new(f) as Box<io::Write + 'static>),
+        Ok(f) => Some(Box::new(f) as Box<dyn io::Write + 'static>),
         Err(_) => None,
     }
 }
