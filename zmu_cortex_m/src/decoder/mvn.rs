@@ -39,8 +39,8 @@ pub fn decode_MVN_reg_t2(opcode: u32) -> Instruction {
         } else {
             SetFlags::False
         },
-        shift_n: shift_n,
-        shift_t: shift_t,
+        shift_n,
+        shift_t,
         thumb32: true,
     }
 }

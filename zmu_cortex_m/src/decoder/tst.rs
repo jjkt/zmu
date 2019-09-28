@@ -27,8 +27,8 @@ pub fn decode_TST_reg_t2(opcode: u32) -> Instruction {
     Instruction::TST_reg {
         rm: opcode.get_bits(0..4).into(),
         rn: opcode.get_bits(16..20).into(),
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
         thumb32: true,
     }
 }

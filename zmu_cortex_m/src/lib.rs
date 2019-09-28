@@ -18,6 +18,7 @@
 #![allow(clippy::filter_map)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::new_without_default)]
+#![allow(clippy::similar_names)]
 
 extern crate byteorder;
 extern crate enum_set;
@@ -188,12 +189,12 @@ pub struct Processor {
     ///
     /// file handle to which to write ITM data
     ///
-    pub itm_file: Option<Box<io::Write + 'static>>,
+    pub itm_file: Option<Box<dyn io::Write + 'static>>,
 
     ///
     /// semihosting plug
     ///
-    semihost_func: Option<Box<FnMut(&SemihostingCommand) -> SemihostingResponse>>,
+    semihost_func: Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse>>,
 
     instruction_cache: Vec<(Instruction, usize)>,
 
@@ -349,7 +350,7 @@ impl Processor {
     }
 
     /// Configure itm output file
-    pub fn itm<'a>(&'a mut self, file: Option<Box<io::Write + 'static>>) -> &'a mut Self {
+    pub fn itm<'a>(&'a mut self, file: Option<Box<dyn io::Write + 'static>>) -> &'a mut Self {
         self.itm_file = file;
         self
     }
@@ -357,7 +358,7 @@ impl Processor {
     /// Configure semihosting
     pub fn semihost<'a>(
         &'a mut self,
-        func: Option<Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>>,
+        func: Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>>,
     ) -> &'a mut Self {
         self.semihost_func = func;
         self

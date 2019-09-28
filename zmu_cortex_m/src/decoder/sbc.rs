@@ -42,8 +42,8 @@ pub fn decode_SBC_reg_t2(opcode: u32) -> Instruction {
             SetFlags::False
         },
         thumb32: true,
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
     }
 }
 

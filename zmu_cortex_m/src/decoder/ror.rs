@@ -31,7 +31,7 @@ pub fn decode_ROR_imm_t1(opcode: u32) -> Instruction {
         rd: Reg::from(rd),
         rm: Reg::from(rm),
         setflags: s == 1,
-        shift_n: shift_n,
+        shift_n,
     }
 }
 

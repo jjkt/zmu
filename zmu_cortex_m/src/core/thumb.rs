@@ -30,6 +30,7 @@ impl From<u32> for ThumbCode {
         ThumbCode::Thumb32 { opcode: value }
     }
 }
+
 impl fmt::Display for ThumbCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {

@@ -9,8 +9,8 @@ use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
-use crate::Processor;
 use crate::MemoryMapConfig;
+use crate::Processor;
 use std::io;
 use std::time::Duration;
 use std::time::Instant;
@@ -52,14 +52,13 @@ impl From<Fault> for SimulationError {
     }
 }
 
-
 ///
 /// Run simulation until processing gets terminated
 ///
 pub fn simulate(
     code: &[u8],
-    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
-    itm_file: Option<Box<io::Write + 'static>>,
+    semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
+    itm_file: Option<Box<dyn io::Write + 'static>>,
     map: Option<MemoryMapConfig>,
     flash_size: usize,
 ) -> Result<SimulationStatistics, SimulationError> {
@@ -103,8 +102,8 @@ pub fn simulate(
 pub fn simulate_trace<F>(
     code: &[u8],
     mut trace_func: F,
-    semihost_func: Box<FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
-    itm_file: Option<Box<io::Write + 'static>>,
+    semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
+    itm_file: Option<Box<dyn io::Write + 'static>>,
     map: Option<MemoryMapConfig>,
     flash_size: usize,
 ) -> Result<SimulationStatistics, SimulationError>

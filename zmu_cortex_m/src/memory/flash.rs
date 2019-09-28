@@ -19,9 +19,7 @@ impl FlashMemory {
         let mut data = vec![0_u8; size].into_boxed_slice();
         data.copy_from_slice(new_data);
 
-        Self {
-            data: data,
-        }
+        Self { data }
     }
 
     ///

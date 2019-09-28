@@ -265,13 +265,13 @@ pub fn decode_semihostcmd(
 
             SemihostingCommand::SysOpen {
                 name: String::from_utf8(string_bytes).unwrap(),
-                mode: mode,
+                mode,
             }
         }
         SYS_CLOSE => {
             let params_ptr = r1;
             let handle = processor.read32(params_ptr)?;
-            SemihostingCommand::SysClose { handle: handle }
+            SemihostingCommand::SysClose { handle }
         }
         SYS_WRITE => {
             let params_ptr = r1;
@@ -287,10 +287,7 @@ pub fn decode_semihostcmd(
                 memoryptr += 1;
                 len -= 1;
             }
-            SemihostingCommand::SysWrite {
-                handle: handle,
-                data: data,
-            }
+            SemihostingCommand::SysWrite { handle, data }
         }
         SYS_READ => {
             let params_ptr = r1;
@@ -299,32 +296,29 @@ pub fn decode_semihostcmd(
             let len = processor.read32(params_ptr + 8)?;
 
             SemihostingCommand::SysRead {
-                handle: handle,
-                memoryptr: memoryptr,
-                len: len,
+                handle,
+                memoryptr,
+                len,
             }
         }
         SYS_FLEN => {
             let params_ptr = r1;
             let handle = processor.read32(params_ptr)?;
 
-            SemihostingCommand::SysFlen { handle: handle }
+            SemihostingCommand::SysFlen { handle }
         }
         SYS_ISTTY => {
             let params_ptr = r1;
             let handle = processor.read32(params_ptr)?;
 
-            SemihostingCommand::SysIstty { handle: handle }
+            SemihostingCommand::SysIstty { handle }
         }
         SYS_SEEK => {
             let params_ptr = r1;
             let handle = processor.read32(params_ptr)?;
             let position = processor.read32(params_ptr + 4)?;
 
-            SemihostingCommand::SysSeek {
-                handle: handle,
-                position: position,
-            }
+            SemihostingCommand::SysSeek { handle, position }
         }
         SYS_CLOCK => SemihostingCommand::SysClock,
         SYS_ERRNO => SemihostingCommand::SysErrno,
@@ -333,10 +327,7 @@ pub fn decode_semihostcmd(
             let reason = SysExceptionReason::from_u32(processor.read32(params_ptr)?);
             let subcode = processor.read32(params_ptr + 4)?;
 
-            SemihostingCommand::SysExitExtended {
-                reason: reason,
-                subcode: subcode,
-            }
+            SemihostingCommand::SysExitExtended { reason, subcode }
         }
         SYS_EXIT => SemihostingCommand::SysException {
             reason: SysExceptionReason::from_u32(r1),

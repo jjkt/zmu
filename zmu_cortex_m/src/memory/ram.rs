@@ -20,8 +20,8 @@ impl RAM {
         let data = vec![0_u8; size].into_boxed_slice();
 
         Self {
-            start_address: start_address,
-            data: data,
+            start_address,
+            data,
         }
     }
     ///
@@ -29,8 +29,8 @@ impl RAM {
         let data = vec![fill; size].into_boxed_slice();
 
         Self {
-            start_address: start_address,
-            data: data,
+            start_address,
+            data,
         }
     }
 }

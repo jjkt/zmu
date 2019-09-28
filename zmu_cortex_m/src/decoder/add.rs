@@ -86,8 +86,8 @@ pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
         } else {
             SetFlags::False
         },
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
         thumb32: true,
     }
 }

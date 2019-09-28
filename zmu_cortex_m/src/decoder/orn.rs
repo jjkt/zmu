@@ -15,8 +15,8 @@ pub fn decode_ORN_reg_t1(opcode: u32) -> Instruction {
         rn: opcode.get_bits(16..20).into(),
         rm: opcode.get_bits(0..4).into(),
         setflags: opcode.get_bit(20),
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
     }
 }
 

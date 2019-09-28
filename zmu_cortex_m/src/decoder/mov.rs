@@ -58,7 +58,7 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(opcode: u16) -> Instruction {
         Instruction::LSL_imm {
             rd: Reg::from(opcode.get_bits(0..3) as u8),
             rm: Reg::from(opcode.get_bits(3..6) as u8),
-            shift_n: shift_n,
+            shift_n,
             setflags: SetFlags::NotInITBlock,
             thumb32: false,
         }

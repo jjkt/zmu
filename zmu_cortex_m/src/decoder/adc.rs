@@ -41,8 +41,8 @@ pub fn decode_ADC_reg_t2(opcode: u32) -> Instruction {
         } else {
             SetFlags::False
         },
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
         thumb32: true,
     }
 }

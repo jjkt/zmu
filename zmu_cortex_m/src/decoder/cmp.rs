@@ -67,8 +67,8 @@ pub fn decode_CMP_reg_t3(opcode: u32) -> Instruction {
     Instruction::CMP_reg {
         rm: Reg::from(opcode.get_bits(0..4)),
         rn: Reg::from(opcode.get_bits(16..20)),
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
         thumb32: true,
     }
 }

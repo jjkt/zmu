@@ -35,8 +35,8 @@ pub fn decode_RSB_reg_t1(opcode: u32) -> Instruction {
         rn: Reg::from(rn),
         rm: Reg::from(rm),
         setflags: s == 1,
-        shift_t: shift_t,
-        shift_n: shift_n,
+        shift_t,
+        shift_n,
         thumb32: true,
     }
 }

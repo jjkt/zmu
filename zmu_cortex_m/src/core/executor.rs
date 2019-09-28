@@ -134,7 +134,7 @@ impl ExecutorHelper for Processor {
         condition_test(cond, &self.psr)
     }
     #[allow(unused_variables)]
-    #[allow(clippy::cyclomatic_complexity)]
+    #[allow(clippy::cognitive_complexity)]
     fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
             Instruction::ADC_reg {

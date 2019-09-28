@@ -160,7 +160,7 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
 
                 SemihostingResponse::SysException {
                     success: true,
-                    stop: stop,
+                    stop,
                 }
             }
             SemihostingCommand::SysExitExtended { ref reason, .. } => {
