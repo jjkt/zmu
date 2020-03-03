@@ -71,7 +71,7 @@ pub trait ExceptionHandling {
 
     ///
     /// Return from an exception.
-    ///     
+    ///
     /// exc_return determines the mode to which to return to.
     ///
     /// Exception return happens when processor is in HandlerMode and exc_return value is loaded to PC using
@@ -81,17 +81,17 @@ pub trait ExceptionHandling {
 
     ///
     /// Check if given exception is currently active
-    ///          
+    ///
     fn exception_active(&self, exception: Exception) -> bool;
 
     ///
     /// Set priority of an exception. Smaller priority number has higher urgency.
-    ///          
+    ///
     fn set_exception_priority(&mut self, exception: Exception, priority: u8);
 
     ///
     /// Get priority of an exception. Smaller priority number has higher urgency.
-    ///          
+    ///
     fn get_exception_priority(&self, exception: Exception) -> i16;
 
     ///
@@ -606,7 +606,7 @@ mod tests {
             core.psr.value = 0xffff_ffff;
 
             // act
-            core.push_stack(Self::HardFault, 99).unwrap();
+            core.push_stack(Exception::HardFault, 99).unwrap();
 
             assert_eq!(core.msp, STACK_START - 32);
             core.get_r(Reg::LR)

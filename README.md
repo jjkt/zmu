@@ -8,8 +8,8 @@ zmu supports Linux and Windows operating systems.
 - Loading of ELF binaries
 - Relatively efficient Simulation
     - Intel Core i7-2630QM @ 2.8 Ghz can simulate 40-50 Mhz Cortex-m4 in realtime
-- Architectures: 
-    - arm-v6m, 
+- Architectures:
+    - arm-v6m,
     - arm-v7m (partial support)
     - arm-v7me (partial support)
 - Cores (in progress): Cortex-m0/m0+, Cortex-m3, Cortex-m4
@@ -18,7 +18,7 @@ zmu supports Linux and Windows operating systems.
     - Processor sleep
 - ARM semihosting, supported semihosting extensions:
     - open, close (streams only)
-    - FLEN 
+    - FLEN
     - ISTTY
     - write, read
     - seek, clock, exception -> exit
@@ -33,8 +33,8 @@ zmu supports Linux and Windows operating systems.
 ## Missing / Planned features
 - Time simulation / sync to real time
 - Some instructions are not yet properly supported
-    - ~20 instructions missing: BFC, CDP, CLREX, LDMDB, ... 
-    - Full v7m + DSP exensions support 
+    - ~20 instructions missing: BFC, CDP, CLREX, LDMDB, ...
+    - Full v7m + DSP exensions support
     - Full v7me + floats (m4f)
 - ARM Cortex peripherals
     - NVIC (partial support available)
@@ -43,20 +43,56 @@ zmu supports Linux and Windows operating systems.
 - System Simulation:
     - device profiles, eg stm32 device support
     - board profiles, external peripheral simulation
+
+## Depedencies
+
+You need ARM compiler. Get the latest compiliers from [ARM website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
+
+You have to install RUST. Assuming Ubuntu 18.04.
+
+```sh
+curl https://sh.rustup.rs -sSf | sh
+```
+
+Follow the install menu, then run the following command in the terminal used for compilation
+
+```sh
+source ~/.cargo/env
+```
+
+## How to Compile
+
+Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default locatio is /usr
+
+```sh
+export GCC_HOME=/usr
+chmod +x buildall.sh
+./buildall.sh
+```
+
+The executables are genereated in the dir ```./target/release/```.
+
+## Testing
+
+```sh
+chmod +x testdall.sh
+./testdall.sh
+```
+
 ## Usage
 
 - ```zmu-armv6m``` runs the zmu with support for armv6m instructions.
 - ```zmu-armv7m``` runs the zmu with support for armv7m instructions.
 
-### Run an ELF binary 
+### Run an ELF binary
 ```
-$zmu-armv6m run tests/hello_world/hello_world-cm0.elf
+$./target/release/zmu-armv6m run tests/hello_world/hello_world-cm0.elf
 hello, world
 ```
 
 ### Run with tracing
 ```
-$zmu-armv7m run -t tests/minimal/minimal.elf | head -3
+$./target/release/zmu-armv7m run -t tests/minimal/minimal-cm3.elf | head -3
 4906      ldr r1, [pc, #+24]               00000074  Reset_Handler         2 qvczn r0:00000000 1:00001c84 2:00000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 4A07      ldr r2, [pc, #+28]               00000076  Reset_Handler         4 qvczn r0:00000000 1:00001c84 2:20000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 4B07      ldr r3, [pc, #+28]               00000078  Reset_Handler         6 qvczn r0:00000000 1:00001c84 2:20000000 3:20000854 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
@@ -64,22 +100,22 @@ $zmu-armv7m run -t tests/minimal/minimal.elf | head -3
 
 ### Run with ITM trace via itmdump
 
-Following example uses the [itmdump](https://docs.rs/itm/0.3.1/itm/) tool and embedded rustbook examples to show how to dump itm trace prints to stdout from the zmu. To install itmdump, you need to run ```cargo install itmdump```. 
+Following example uses the [itmdump](https://docs.rs/itm/0.3.1/itm/) tool and embedded rustbook examples to show how to dump itm trace prints to stdout from the zmu. To install itmdump, you need to run ```cargo install itmdump```.
 
 ```
-$zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
+$./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
 Hello, world!
 ```
 
 
-### "RTFM" examples with rust 
+### "RTFM" examples with rust
 Zmu can already run many of the [cortex-m-rtfm](https://github.com/japaric/cortex-m-rtfm) examples directly.
-Here are few example runs: 
+Here are few example runs:
 
 
 periodic.rs
 ```
-$zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/periodic
+$./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/periodic
 foo(scheduled = Instant(8000000), now = Instant(8005826))
 foo(scheduled = Instant(16000000), now = Instant(16006035))
 foo(scheduled = Instant(24000000), now = Instant(24006032))
@@ -89,7 +125,7 @@ foo(scheduled = Instant(32000000), now = Instant(32006029))
 
 resource.rs
 ```
-$zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/resource
+$./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/resource
 UART0: SHARED = 1
 UART1: SHARED = 2
 
