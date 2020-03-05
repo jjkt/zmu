@@ -72,11 +72,10 @@ You need ARM compiler to compile some of the examples. Get the latest compilers 
 
 Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default location is /usr
 
-
 ```sh
 export GCC_HOME=/usr
-chmod +x testdall.sh
-./testdall.sh
+chmod +x testall.sh
+./testall.sh
 ```
 
 ## Usage
@@ -113,14 +112,15 @@ Zmu can already run many of the [cortex-m-rtfm](https://github.com/japaric/corte
 
 Here are few example runs:
 
-
-periodic.rs
+message.rs
 ```
-$./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/periodic
-foo(scheduled = Instant(8000000), now = Instant(8005826))
-foo(scheduled = Instant(16000000), now = Instant(16006035))
-foo(scheduled = Instant(24000000), now = Instant(24006032))
-foo(scheduled = Instant(32000000), now = Instant(32006029))
+$./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/message
+foo
+bar(0)
+baz(1, 2)
+foo
+bar(1)
+baz(2, 3)
 ^C
 ```
 
@@ -129,10 +129,7 @@ resource.rs
 $./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/resource
 UART0: SHARED = 1
 UART1: SHARED = 2
-
-9.354ms, 4884 instructions, 522129.5702373317 instructions per sec
 ```
-
 
 ### "Hello, world" example with Arm GCC + semihosting
 
