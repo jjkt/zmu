@@ -46,8 +46,6 @@ zmu supports Linux and Windows operating systems.
 
 ## Depedencies
 
-You need ARM compiler. Get the latest compiliers from [ARM website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
-
 You have to install RUST. Assuming Ubuntu 18.04.
 
 ```sh
@@ -62,19 +60,21 @@ source ~/.cargo/env
 
 ## How to Compile
 
-Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default locatio is /usr
-
 ```sh
-export GCC_HOME=/usr
 chmod +x buildall.sh
 ./buildall.sh
 ```
-
 The executables are genereated in the dir ```./target/release/```.
 
 ## Testing
 
+You need ARM compiler to compile some of the examples. Get the latest compilers from [ARM website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
+
+Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default location is /usr
+
+
 ```sh
+export GCC_HOME=/usr
 chmod +x testdall.sh
 ./testdall.sh
 ```
@@ -110,6 +110,7 @@ Hello, world!
 
 ### "RTFM" examples with rust
 Zmu can already run many of the [cortex-m-rtfm](https://github.com/japaric/cortex-m-rtfm) examples directly.
+
 Here are few example runs:
 
 
