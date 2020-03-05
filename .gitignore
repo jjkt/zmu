@@ -34,5 +34,7 @@
 Exe/
 Obj/
 zmu_cortex_m/Cargo.lock
+tests/rustbook
+tests/cortex-m-rtfm
 tests/coremark/coremark_v1.0/
 .idea/

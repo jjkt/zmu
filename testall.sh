@@ -60,6 +60,10 @@ echo "----------------------------------------"
 
 
 
+git clone https://github.com/rust-embedded/cortex-m-quickstart tests/rustbook
+
+sed -i 's/{{authors}}/jjkt/g' tests/rustbook/Cargo.toml
+sed -i 's/{{project-name}}/zmu-tests/g' tests/rustbook/Cargo.toml
 #
 # RustBook examples
 #
@@ -72,7 +76,7 @@ cargo build --example hello
 cargo build --example exception
 cargo build --example itm
 cargo build --example crash
-
+#
 cd ../..
 echo "armv7m->hello"
 echo "----------------------------------------"
@@ -86,22 +90,24 @@ timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-e
 echo "armv7m->crash"
 echo "----------------------------------------"
 timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/crash
-
+#
 echo ""
 echo "========================================"
 echo "TEST: cortex-m-rtfm crate examples"
 echo "========================================"
 
+git clone https://github.com/rtfm-rs/cortex-m-rtfm.git tests/cortex-m-rtfm
 #
-# TODO: not yet working examples: 
-# - "ramfunc" => ramfuncs currently not supported by the emulator because of the caching
-
-declare -a arr=("baseline" "binds" "capacity" "generics" "idle" "init" "interrupt" "late" "lock" "message" "periodic" "not-send" "not-sync" "resource" "singleton" "smallest" "schedule" "static" "task")
+##
+## TODO: not yet working examples:
+## - "ramfunc" => ramfuncs currently not supported by the emulator because of the caching
+#
+declare -a arr=("baseline" "binds" "capacity" "cfg" "destructure" "generics" "hardware" "idle" "init" "late" "lock" "message" "not-send" "not-sync" "only-shared-access" "periodic" "pool" "preempt" "resource" "smallest" "schedule" "shared-with-init" "task" "types")
 cd tests/cortex-m-rtfm
-cargo build
+cargo build --target thumbv7m-none-eabi
 for i in "${arr[@]}"
 do
-   cargo build --features="timer-queue" --example $i
+   cargo build --target thumbv7m-none-eabi --features="__v7" --example $i
 done
 cd ../..
 
@@ -113,23 +119,23 @@ done
 
 
 
+##
+## coremark
+##
+#echo ""
+#echo "========================================"
+#echo "TEST: Coremark with IAR toolchain"
+#echo "========================================"
+#echo "armv6m->cm0"
+#echo "----------------------------------------"
+#./target/release/zmu-armv6m run tests/coremark/coremark-iar-cm0.elf
+#echo "armv7m->cm3"
+#echo "----------------------------------------"
+#./target/release/zmu-armv7m run tests/coremark/coremark-iar-cm3.elf
+#echo "armv7m->cm4"
+#echo "----------------------------------------"
+#./target/release/zmu-armv7m run tests/coremark/coremark-iar-cm4.elf
 #
-# coremark
-# 
-echo ""
-echo "========================================"
-echo "TEST: Coremark with IAR toolchain"
-echo "========================================"
-echo "armv6m->cm0"
-echo "----------------------------------------"
-./target/release/zmu-armv6m run tests/coremark/coremark-iar-cm0.elf
-echo "armv7m->cm3"
-echo "----------------------------------------"
-./target/release/zmu-armv7m run tests/coremark/coremark-iar-cm3.elf
-echo "armv7m->cm4"
-echo "----------------------------------------"
-./target/release/zmu-armv7m run tests/coremark/coremark-iar-cm4.elf
-
-echo ""
-echo "all done"
-set -x;
+#echo ""
+#echo "all done"
+#set -x;
