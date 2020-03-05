@@ -59,61 +59,66 @@ echo "----------------------------------------"
 #./target/release/zmu run tests/pi/pi-cm4f.elf
 
 
-# commenting these tests because they are not in the distribution
 
+git clone https://github.com/rust-embedded/cortex-m-quickstart tests/rustbook
+
+sed -i 's/{{authors}}/jjkt/g' tests/rustbook/Cargo.toml
+sed -i 's/{{project-name}}/zmu-tests/g' tests/rustbook/Cargo.toml
 #
 # RustBook examples
 #
-#echo ""
-#echo "========================================"
-#echo "TEST: Rustbook examples, compiled with Rust"
-#echo "========================================"
-#cd tests/rustbook
-#cargo build --example hello
-#cargo build --example exception
-#cargo build --example itm
-#cargo build --example crash
+echo ""
+echo "========================================"
+echo "TEST: Rustbook examples, compiled with Rust"
+echo "========================================"
+cd tests/rustbook
+cargo build --example hello
+cargo build --example exception
+cargo build --example itm
+cargo build --example crash
 #
-#cd ../..
-#echo "armv7m->hello"
-#echo "----------------------------------------"
-#./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/hello
-#echo "armv7m->itm"
-#echo "----------------------------------------"
-#timeout 1s ./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
-#echo "armv7m->exception"
-#echo "----------------------------------------"
-#timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception
-#echo "armv7m->crash"
-#echo "----------------------------------------"
-#timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/crash
+cd ../..
+echo "armv7m->hello"
+echo "----------------------------------------"
+./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/hello
+echo "armv7m->itm"
+echo "----------------------------------------"
+timeout 1s ./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
+echo "armv7m->exception"
+echo "----------------------------------------"
+timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/exception
+echo "armv7m->crash"
+echo "----------------------------------------"
+timeout 1s ./target/release/zmu-armv7m run tests/rustbook/target/thumbv7m-none-eabi/debug/examples/crash
 #
-#echo ""
-#echo "========================================"
-#echo "TEST: cortex-m-rtfm crate examples"
-#echo "========================================"
+echo ""
+echo "========================================"
+echo "TEST: cortex-m-rtfm crate examples"
+echo "========================================"
+
+git clone https://github.com/rtfm-rs/cortex-m-rtfm.git tests/cortex-m-rtfm
 #
 ##
 ## TODO: not yet working examples:
 ## - "ramfunc" => ramfuncs currently not supported by the emulator because of the caching
 #
-#declare -a arr=("baseline" "binds" "capacity" "generics" "idle" "init" "interrupt" "late" "lock" "message" "periodic" "not-send" "not-sync" "resource" "singleton" "smallest" "schedule" "static" "task")
-#cd tests/cortex-m-rtfm
-#cargo build
-#for i in "${arr[@]}"
-#do
-#   cargo build --features="timer-queue" --example $i
-#done
-#cd ../..
-#
-#for i in "${arr[@]}"
-#do
-#   echo "armv7m->cortex-m-rtfm examples/$i"
-#   timeout 2s ./target/release/zmu-armv7m run tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/$i
-#done
-#
-#
-#
+declare -a arr=("baseline" "binds" "capacity" "cfg" "destructure" "generics" "hardware" "idle" "init" "late" "lock" "message" "not-send" "not-sync" "only-shared-access" "periodic" "pool" "preempt" "resource" "smallest" "schedule" "shared-with-init" "task" "types")
+cd tests/cortex-m-rtfm
+cargo build --target thumbv7m-none-eabi
+for i in "${arr[@]}"
+do
+   cargo build --target thumbv7m-none-eabi --features="__v7" --example $i
+done
+cd ../..
+
+for i in "${arr[@]}"
+do
+   echo "armv7m->cortex-m-rtfm examples/$i"
+   timeout 2s ./target/release/zmu-armv7m run tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/$i
+done
+
+
+
 ##
 ## coremark
 ##
