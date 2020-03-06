@@ -30,6 +30,12 @@ pub trait InstrumentationTraceMacrocell {
     /// data is sent in little endian order
     ///
     fn write_stim_u8(&mut self, port: u8, value: u8);
+
+    ///
+    /// write value to LAR register. (Lock Access Register)
+    /// Value of 0xC5ACCE55 unlocks the access to debug registers.
+    ///
+    fn itm_write_lar_u32(&mut self, value: u32);
 }
 
 trait InstrumentationTraceMacrocellHelper {
@@ -85,6 +91,8 @@ impl InstrumentationTraceMacrocell for Processor {
         ];
         self.write_itm_packet(make_instrumentation_packet(port, &payload));
     }
+
+    fn itm_write_lar_u32(&mut self, _value: u32) {}
 
     fn write_stim_u16(&mut self, port: u8, value: u16) {
         let payload: [u8; 2] = [(value & 0xff) as u8, ((value & 0xff00) >> 8) as u8];

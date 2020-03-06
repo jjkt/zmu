@@ -2,18 +2,15 @@
 //! Processor Bus related operations
 //!
 
-
 use crate::Processor;
 
 use crate::core::fault::Fault;
+use crate::memory::map::MapMemory;
 use crate::peripheral::dwt::Dwt;
 use crate::peripheral::itm::InstrumentationTraceMacrocell;
 use crate::peripheral::nvic::NVIC;
 use crate::peripheral::scb::SystemControlBlock;
 use crate::peripheral::systick::SysTick;
-use crate::memory::map::MapMemory;
-
-
 
 ///
 /// Trait for reading and writing via a memory bus.
@@ -113,7 +110,7 @@ impl Bus for Processor {
 
     fn read32(&mut self, bus_addr: u32) -> Result<u32, Fault> {
         let addr = self.map_address(bus_addr);
-        
+
         let result = match addr {
             0xE000_0000 => self.read_stim0(),
 
@@ -189,6 +186,8 @@ impl Bus for Processor {
 
             0xE000_1000 => self.dwt_write_ctrl(value),
             0xE000_1004 => self.dwt_write_cyccnt(value),
+
+            0xE000_1FB0 => self.itm_write_lar_u32(value),
 
             0xE000_ED04 => self.write_icsr(value),
             0xE000_ED08 => self.write_vtor(value),
@@ -305,6 +304,6 @@ impl Bus for Processor {
 
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
-        self.code.in_range(addr) || self.sram.in_range(addr) ||self.device.in_range(addr)
+        self.code.in_range(addr) || self.sram.in_range(addr) || self.device.in_range(addr)
     }
 }
