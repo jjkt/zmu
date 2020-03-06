@@ -458,5 +458,4 @@ mod tests {
         assert_eq!(build_imm_6_11(0xF00080C4), 0xc4 << 1);
         assert_eq!(build_imm_6_11(0xf57fad69), -1326);
     }
-
 }

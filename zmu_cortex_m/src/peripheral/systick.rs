@@ -236,5 +236,4 @@ mod tests {
             SYST_CSR_COUNTFLAG | SYST_CSR_ENABLE | SYST_CSR_TICKINT
         );
     }
-
 }

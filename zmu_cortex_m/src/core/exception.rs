@@ -722,5 +722,4 @@ mod tests {
         // Assert
         assert_eq!(processor.nvic_read_ispr(0), 0);
     }
-
 }
