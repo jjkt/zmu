@@ -442,5 +442,4 @@ mod tests {
             assert_eq!(processor.nvic_read_ipr_u16(n), value);
         }
     }
-
 }

@@ -66,5 +66,4 @@ mod tests {
         // Act
         assert_eq!(processor.dwt_cyccnt, 42);
     }
-
 }

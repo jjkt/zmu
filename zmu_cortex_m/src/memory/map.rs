@@ -5,13 +5,12 @@
 use crate::Processor;
 ///
 /// Mapping of memory from one range to another
-/// 
+///
 pub trait MapMemory {
-
     ///
     /// Resolves the mapped address for given address
     /// Might return same address in case range not mapped.
-    /// 
+    ///
     fn map_address(&self, address: u32) -> u32;
 }
 

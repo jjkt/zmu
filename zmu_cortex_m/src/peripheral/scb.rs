@@ -490,5 +490,4 @@ mod tests {
         assert_eq!(processor.read_shpr3_u16(0), 0x0033);
         assert_eq!(processor.read_shpr3_u16(1), 0x6655);
     }
-
 }
