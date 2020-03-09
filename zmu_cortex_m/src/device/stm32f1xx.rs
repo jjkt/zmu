@@ -195,7 +195,7 @@ enum BasicTimerType {
     TIM7,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct MinimumTimerRegisters {
     CR1: u32,
     DIER: u32,
@@ -206,13 +206,13 @@ struct MinimumTimerRegisters {
     ARR: u32,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct BasicTimerRegisters {
     min: MinimumTimerRegisters,
     CR2: u32,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct GeneralPurposeTimerRegisters {
     min: MinimumTimerRegisters,
     SMCR: u32,
@@ -221,7 +221,7 @@ struct GeneralPurposeTimerRegisters {
     CCR1: u32,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct GeneralPurposeTimer2Registers {
     gp: GeneralPurposeTimerRegisters,
     CR2: u32,
@@ -233,7 +233,7 @@ struct GeneralPurposeTimer2Registers {
     DMAR: u32,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct AdvancedControlTimerRegisters {
     gp: GeneralPurposeTimer2Registers,
     RCR: u32,
@@ -256,6 +256,8 @@ pub struct Device {
 impl Device {
     ///
     ///
+    ///
+    #[allow(clippy::too_many_lines)]
     pub fn new() -> Self {
         println!("initialize stm32f1xx");
         Self {

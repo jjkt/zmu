@@ -9,8 +9,11 @@ use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SRType, SetFlags};
+use crate::core::monitor::Monitor;
 use crate::core::operation::condition_test;
-use crate::core::operation::{add_with_carry, ror, shift, shift_c, sign_extend};
+use crate::core::operation::{
+    add_with_carry, ror, shift, shift_c, sign_extend, zero_extend, zero_extend_u16,
+};
 use crate::core::register::{Apsr, BaseReg, Reg};
 use crate::memory::map::MapMemory;
 use crate::peripheral::dwt::Dwt;
@@ -135,6 +138,7 @@ impl ExecutorHelper for Processor {
     }
     #[allow(unused_variables)]
     #[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::too_many_lines)]
     fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
             Instruction::ADC_reg {
@@ -1262,6 +1266,52 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
+            Instruction::LDREX { rt, rn, imm32 } => {
+                if self.condition_passed() {
+                    let (address, _) = resolve_addressing(self.get_r(*rn), *imm32, true, true);
+
+                    self.set_exclusive_monitors(address, 4);
+
+                    let data = self.read32(address)?;
+                    self.set_r(*rt, data);
+
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
+            Instruction::LDREXB { rt, rn } => {
+                if self.condition_passed() {
+                    let address = self.get_r(*rn);
+                    self.set_exclusive_monitors(address, 1);
+
+                    let data = self.read8(address)?;
+
+                    let params = [data];
+                    let lengths = [32];
+                    self.set_r(*rt, zero_extend(&params, &lengths));
+
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
+            Instruction::LDREXH { rt, rn } => {
+                if self.condition_passed() {
+                    let address = self.get_r(*rn);
+                    self.set_exclusive_monitors(address, 2);
+
+                    let data = self.read16(address)?;
+
+                    let params = [data];
+                    let lengths = [32];
+                    self.set_r(*rt, zero_extend_u16(&params, &lengths));
+
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
             Instruction::LDRSH_imm {
                 rt,
                 rn,
@@ -1640,6 +1690,54 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
+            Instruction::STREX { rd, rt, rn, imm32 } => {
+                if self.condition_passed() {
+                    let (address, _) = resolve_addressing(self.get_r(*rn), *imm32, true, true);
+
+                    if self.exclusive_monitors_pass(address, 4) {
+                        self.write32(address, self.get_r(*rt))?;
+                        self.set_r(*rd, 0);
+                    } else {
+                        self.set_r(*rd, 1);
+                    }
+
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
+            Instruction::STREXB { rd, rt, rn } => {
+                if self.condition_passed() {
+                    let address = self.get_r(*rn);
+
+                    if self.exclusive_monitors_pass(address, 1) {
+                        self.write8(address, self.get_r(*rt) as u8)?;
+                        self.set_r(*rd, 0);
+                    } else {
+                        self.set_r(*rd, 1);
+                    }
+
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
+            Instruction::STREXH { rd, rt, rn } => {
+                if self.condition_passed() {
+                    let address = self.get_r(*rn);
+
+                    if self.exclusive_monitors_pass(address, 2) {
+                        self.write16(address, self.get_r(*rt) as u16)?;
+                        self.set_r(*rd, 0);
+                    } else {
+                        self.set_r(*rd, 1);
+                    }
+
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
             Instruction::STRD_imm {
                 rt,
                 rt2,

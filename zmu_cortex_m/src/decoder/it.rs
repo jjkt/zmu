@@ -4,6 +4,7 @@ use crate::core::instruction::ITCondition;
 use crate::core::instruction::Instruction;
 
 #[allow(non_snake_case)]
+#[allow(clippy::too_many_lines)]
 pub fn decode_IT_t1(opcode: u16) -> Instruction {
     let firstcond = opcode.get_bits(4..8);
     let mask = opcode.get_bits(0..4) as u8;

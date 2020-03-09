@@ -388,6 +388,22 @@ pub enum Instruction {
         thumb32: bool,
     },
 
+    LDREX {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+
+    LDREXB {
+        rt: Reg,
+        rn: Reg,
+    },
+
+    LDREXH {
+        rt: Reg,
+        rn: Reg,
+    },
+
     LSL_imm {
         rd: Reg,
         rm: Reg,
@@ -654,6 +670,26 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
+    STREX {
+        rd: Reg,
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+
+    STREXB {
+        rd: Reg,
+        rt: Reg,
+        rn: Reg,
+    },
+
+    STREXH {
+        rd: Reg,
+        rt: Reg,
+        rn: Reg,
+    },
+
     STRB_reg {
         rm: Reg,
         rn: Reg,
@@ -982,6 +1018,7 @@ fn setflags_to_str(setflags: SetFlags) -> &'static str {
 
 #[allow(clippy::cognitive_complexity)]
 #[allow(unused_variables)]
+#[allow(clippy::too_many_lines)]
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: shift_t, shift_n formattings missing.
@@ -1419,6 +1456,10 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
+            Self::LDREX { rt, rn, imm32 } => write!(f, "ldrex {}, {}, #{}", rt, rn, imm32),
+            Self::LDREXB { rt, rn } => write!(f, "ldrexb {}, {}", rt, rn),
+            Self::LDREXH { rt, rn } => write!(f, "ldrexh {}, {}", rt, rn),
+
             Self::LDRB_imm {
                 rt,
                 rn,
@@ -1924,6 +1965,12 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("str", f, rn, rt, imm32, index, add, wback, thumb32),
+            Self::STREX { rd, rt, rn, imm32 } => {
+                write!(f, "strex {}, {}, {}, #{}", rd, rt, rn, imm32)
+            }
+            Self::STREXB { rd, rt, rn } => write!(f, "strexb {}, {}, {}", rd, rt, rn),
+            Self::STREXH { rd, rt, rn } => write!(f, "strexh {}, {}, {} ", rd, rt, rn),
+
             Self::STRD_imm {
                 rn,
                 rt,
@@ -2259,6 +2306,7 @@ impl fmt::Display for ITCondition {
 
 #[allow(clippy::cognitive_complexity)]
 #[allow(unused_variables)]
+#[allow(clippy::too_many_lines)]
 /// Get the size of an instruction in bytes
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
@@ -2316,9 +2364,9 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //LDRBT
         Instruction::LDRD_imm { .. } => 4,
         //LDRD_lit
-        //LDREX
-        //LDREXB
-        //LDREXH
+        Instruction::LDREX { .. } => 4,
+        Instruction::LDREXB { .. } => 4,
+        Instruction::LDREXH { .. } => 4,
         Instruction::LDRH_imm { thumb32, .. } => isize_t(*thumb32),
         //LDRH_lit
         Instruction::LDRH_reg { thumb32, .. } => isize_t(*thumb32),
@@ -2431,9 +2479,9 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::STRB_reg { thumb32, .. } => isize_t(*thumb32),
         //STRBT
         Instruction::STRD_imm { .. } => 4,
-        //STREX
-        //STREXB
-        //STREXH
+        Instruction::STREX { .. } => 4,
+        Instruction::STREXB { .. } => 4,
+        Instruction::STREXH { .. } => 4,
         Instruction::STRH_imm { thumb32, .. } => isize_t(*thumb32),
         Instruction::STRH_reg { thumb32, .. } => isize_t(*thumb32),
         //STRHT

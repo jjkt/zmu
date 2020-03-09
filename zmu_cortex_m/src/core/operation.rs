@@ -312,6 +312,23 @@ pub fn zero_extend(params: &[u8], lengths: &[u8]) -> u32 {
 }
 
 ///
+/// zero extend n parameters to n bit lengths
+/// TODO: make generic
+///
+pub fn zero_extend_u16(params: &[u16], lengths: &[u8]) -> u32 {
+    assert_eq!(params.len(), lengths.len());
+
+    let mut result: u32 = 0;
+    let mut shift = 0;
+    for (param, length) in params.iter().rev().zip(lengths.iter().rev()) {
+        result += u32::from(*param) << shift;
+        shift += length;
+    }
+
+    result
+}
+
+///
 /// build signed value from immediate 10/11 representation
 ///
 pub fn build_imm_10_11(opcode: u32) -> i32 {

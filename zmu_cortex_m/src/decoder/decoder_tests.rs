@@ -2868,3 +2868,30 @@ fn test_decode_dmb() {
     //  f3bf 8f5f       dmb sy
     assert_eq!(decode_32(0xf3bf8f5f), Instruction::DMB);
 }
+
+#[test]
+fn test_decode_ldrex() {
+    //  e850 3f00       ldrex   r3, [r0]
+    assert_eq!(
+        decode_32(0xe8503f00),
+        Instruction::LDREX {
+            rt: Reg::R3,
+            rn: Reg::R0,
+            imm32: 0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_strex() {
+    //  e840 2c00       strex   ip, r2, [r0]
+    assert_eq!(
+        decode_32(0xe8402c00),
+        Instruction::STREX {
+            rd: Reg::R12,
+            rt: Reg::R2,
+            rn: Reg::R0,
+            imm32: 0,
+        }
+    );
+}

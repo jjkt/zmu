@@ -31,7 +31,7 @@ pub trait BaseReg {
     fn bx_write_pc(&mut self, address: u32) -> Result<(), Fault>;
 
     ///
-    /// alias for bx_write_pc
+    /// alias for `bx_write_pc`
     ///
     fn load_write_pc(&mut self, address: u32) -> Result<(), Fault>;
 
