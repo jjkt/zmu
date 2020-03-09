@@ -72,9 +72,9 @@ pub trait ExceptionHandling {
     ///
     /// Return from an exception.
     ///
-    /// exc_return determines the mode to which to return to.
+    /// `exc_return` determines the mode to which to return to.
     ///
-    /// Exception return happens when processor is in HandlerMode and exc_return value is loaded to PC using
+    /// Exception return happens when processor is in `HandlerMode` and `exc_return` value is loaded to PC using
     /// LDM, POP, LDR, or BX instructions
     ///
     fn exception_return(&mut self, exc_return: u32) -> Result<(), Fault>;

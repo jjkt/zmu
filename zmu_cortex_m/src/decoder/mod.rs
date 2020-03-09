@@ -268,6 +268,7 @@ fn decode_UDF_t2(opcode: u32) -> Instruction {
 }
 
 #[allow(clippy::cognitive_complexity)]
+#[allow(clippy::too_many_lines)]
 ///
 /// Decode 16 bit thumb opcode into an instruction
 ///
@@ -432,6 +433,7 @@ pub fn decode_16(opcode: u16) -> Instruction {
 }
 
 #[allow(clippy::cognitive_complexity, clippy::unreadable_literal)]
+#[allow(clippy::too_many_lines)]
 ///
 /// Decode 32 bit thumb opcode into an instruction
 ///

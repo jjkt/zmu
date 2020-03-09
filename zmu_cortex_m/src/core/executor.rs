@@ -8,8 +8,8 @@ use crate::core::condition::Condition;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
-use crate::core::monitor::Monitor;
 use crate::core::instruction::{Imm32Carry, Instruction, SRType, SetFlags};
+use crate::core::monitor::Monitor;
 use crate::core::operation::condition_test;
 use crate::core::operation::{
     add_with_carry, ror, shift, shift_c, sign_extend, zero_extend, zero_extend_u16,

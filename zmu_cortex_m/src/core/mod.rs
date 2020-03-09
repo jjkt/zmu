@@ -9,6 +9,7 @@ pub mod executor;
 pub mod fault;
 pub mod fetch;
 pub mod instruction;
+pub mod monitor;
 pub mod operation;
 pub mod register;
 pub mod reset;

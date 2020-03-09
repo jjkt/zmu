@@ -19,6 +19,8 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::similar_names)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_errors_doc)]
 
 extern crate byteorder;
 extern crate enum_set;

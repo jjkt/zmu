@@ -12,7 +12,7 @@ use crate::Processor;
 ///
 pub trait SysTick {
     ///
-    /// write to SYST_RVR, reload value register
+    /// write to `SYST_RVR`, reload value register
     ///
     fn syst_write_rvr(&mut self, value: u32);
 

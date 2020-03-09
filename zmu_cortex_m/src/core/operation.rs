@@ -328,7 +328,6 @@ pub fn zero_extend_u16(params: &[u16], lengths: &[u8]) -> u32 {
     result
 }
 
-
 ///
 /// build signed value from immediate 10/11 representation
 ///

@@ -1018,6 +1018,7 @@ fn setflags_to_str(setflags: SetFlags) -> &'static str {
 
 #[allow(clippy::cognitive_complexity)]
 #[allow(unused_variables)]
+#[allow(clippy::too_many_lines)]
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: shift_t, shift_n formattings missing.
@@ -2305,6 +2306,7 @@ impl fmt::Display for ITCondition {
 
 #[allow(clippy::cognitive_complexity)]
 #[allow(unused_variables)]
+#[allow(clippy::too_many_lines)]
 /// Get the size of an instruction in bytes
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
