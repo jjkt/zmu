@@ -145,28 +145,26 @@ pub fn decode_LDRD_lit_t1(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_LDREXB_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
-        thumb32: true,
+    Instruction::LDREXB {
+        rt: From::from(opcode.get_bits(12..16) as u8),
+        rn: From::from(opcode.get_bits(16..20) as u8),
     }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDREXH_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
-        thumb32: true,
+    Instruction::LDREXH {
+        rt: From::from(opcode.get_bits(12..16) as u8),
+        rn: From::from(opcode.get_bits(16..20) as u8),
     }
 }
 
 #[allow(non_snake_case)]
 pub fn decode_LDREX_t1(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
-        thumb32: true,
+    Instruction::LDREX {
+        rt: From::from(opcode.get_bits(12..16) as u8),
+        rn: From::from(opcode.get_bits(16..20) as u8),
+        imm32: opcode.get_bits(0..8) << 2,
     }
 }
 
