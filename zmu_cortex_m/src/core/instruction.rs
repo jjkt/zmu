@@ -3,7 +3,7 @@
 //!
 
 use crate::core::condition::Condition;
-use crate::core::register::Reg;
+use crate::core::register::{ExtensionReg, Reg};
 use crate::core::thumb::ThumbCode;
 use enum_set::EnumSet;
 
@@ -154,6 +154,11 @@ pub enum Instruction {
         imm32: i32,
         thumb32: bool,
     },
+    BFC {
+        rd: Reg,
+        lsbit: usize,
+        msbit: usize,
+    },
     BIC_reg {
         rd: Reg,
         rn: Reg,
@@ -258,7 +263,6 @@ pub enum Instruction {
         mask: u8,
     },
 
-    // ARMv7-M
     LDC_imm {
         coproc: u8,
         imm32: u32,
@@ -266,7 +270,6 @@ pub enum Instruction {
         rn: Reg,
     },
 
-    // ARMv7-M
     LDC2_imm {
         coproc: u8,
         imm32: u32,
@@ -433,7 +436,6 @@ pub enum Instruction {
         thumb32: bool,
     },
 
-    // ARMv7-M
     MCR {
         rt: Reg,
         coproc: u8,
@@ -442,7 +444,6 @@ pub enum Instruction {
         crn: u8,
         crm: u8,
     },
-    // ARMv7-M
     MCR2 {
         rt: Reg,
         coproc: u8,
@@ -791,61 +792,52 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
     },
-    // ARMv7-M
     UBFX {
         rd: Reg,
         rn: Reg,
         lsb: usize,
         widthminus1: usize,
     },
-    // ARMv7-M
     UDIV {
         rd: Reg,
         rn: Reg,
         rm: Reg,
     },
-    // ARMv7-M
     SDIV {
         rd: Reg,
         rn: Reg,
         rm: Reg,
     },
-    // ARMv7-M
     MLA {
         rd: Reg,
         rn: Reg,
         rm: Reg,
         ra: Reg,
     },
-    // ARMv7-M
     MLS {
         rd: Reg,
         rn: Reg,
         rm: Reg,
         ra: Reg,
     },
-    // ARMv7-M
     UMLAL {
         rm: Reg,
         rdlo: Reg,
         rdhi: Reg,
         rn: Reg,
     },
-    // ARMv7-M
     UMULL {
         rm: Reg,
         rdlo: Reg,
         rdhi: Reg,
         rn: Reg,
     },
-    // ARMv7-M
     SMLAL {
         rm: Reg,
         rdlo: Reg,
         rdhi: Reg,
         rn: Reg,
     },
-    // ARMv7-Me
     SMUL {
         rd: Reg,
         rn: Reg,
@@ -859,7 +851,6 @@ pub enum Instruction {
         rn: Reg,
         rm: Reg,
     },
-    // ARMv7-Me
     SMLA {
         rd: Reg,
         rn: Reg,
@@ -886,6 +877,13 @@ pub enum Instruction {
         rm: Reg,
         rotation: usize,
     },
+    VLDR {
+        dd: ExtensionReg,
+        rn: Reg,
+        add: bool,
+        imm32: u32,
+        single_reg: bool,
+    },
     WFE {
         thumb32: bool,
     },
@@ -899,7 +897,7 @@ pub enum Instruction {
 
 use std::fmt;
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
 fn format_adressing_mode(
     name: &str,
     f: &mut fmt::Formatter,
@@ -952,7 +950,7 @@ fn format_adressing_mode(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
 fn format_adressing_mode2(
     name: &str,
     f: &mut fmt::Formatter,
@@ -1284,6 +1282,12 @@ impl fmt::Display for Instruction {
                 ref lsbit,
                 ref width,
             } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, width),
+
+            Self::BFC {
+                ref rd,
+                ref lsbit,
+                ref msbit,
+            } => write!(f, "bfc {}, #{}, #{}", rd, lsbit, msbit - lsbit + 1),
 
             Self::CMN_reg {
                 rn,
@@ -2251,6 +2255,13 @@ impl fmt::Display for Instruction {
                 lsb,
                 widthminus1,
             } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
+            Self::VLDR {
+                dd,
+                rn,
+                add,
+                imm32,
+                single_reg,
+            } => write!(f, "vldr {}, {}", dd, rn),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2324,7 +2335,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::B_t13 { thumb32, .. } => isize_t(*thumb32),
         Instruction::B_t24 { thumb32, .. } => isize_t(*thumb32),
         Instruction::BFI { .. } => 4,
-        //BFC
+        Instruction::BFC { .. } => 4,
         Instruction::BIC_imm { .. } => 4,
         Instruction::BIC_reg { thumb32, .. } => isize_t(*thumb32),
         Instruction::BKPT { .. } => 2,
@@ -2550,7 +2561,6 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //VFNMA
         //VFNMS
         //VLDM
-        //VLDR
         //VMAXNM
         //VMINNM
         //VMLA
@@ -2576,6 +2586,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),
+        Instruction::VLDR {
+            dd,
+            rn,
+            add,
+            imm32,
+            single_reg,
+        } => 4,
     }
 }
 

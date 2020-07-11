@@ -538,6 +538,132 @@ pub enum Reg {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+///
+/// Single precision floating point registers
+///
+pub enum SingleReg {
+    /// Extension register 0, 32 bit floating point register
+    S0,
+    /// Extension register 1, 32 bit floating point register
+    S1,
+    /// Extension register 2, 32 bit floating point register
+    S2,
+    /// Extension register 3, 32 bit floating point register
+    S3,
+    /// Extension register 4, 32 bit floating point register
+    S4,
+    /// Extension register 5, 32 bit floating point register
+    S5,
+    /// Extension register 6, 32 bit floating point register
+    S6,
+    /// Extension register 7, 32 bit floating point register
+    S7,
+    /// Extension register 8, 32 bit floating point register
+    S8,
+    /// Extension register 9, 32 bit floating point register
+    S9,
+    /// Extension register 10, 32 bit floating point register
+    S10,
+    /// Extension register 11, 32 bit floating point register
+    S11,
+    /// Extension register 12, 32 bit floating point register
+    S12,
+    /// Extension register 13, 32 bit floating point register
+    S13,
+    /// Extension register 14, 32 bit floating point register
+    S14,
+    /// Extension register 15, 32 bit floating point register
+    S15,
+    /// Extension register 16, 32 bit floating point register
+    S16,
+    /// Extension register 17, 32 bit floating point register
+    S17,
+    /// Extension register 18, 32 bit floating point register
+    S18,
+    /// Extension register 19, 32 bit floating point register
+    S19,
+    /// Extension register 20, 32 bit floating point register
+    S20,
+    /// Extension register 21, 32 bit floating point register
+    S21,
+    /// Extension register 22, 32 bit floating point register
+    S22,
+    /// Extension register 23, 32 bit floating point register
+    S23,
+    /// Extension register 24, 32 bit floating point register
+    S24,
+    /// Extension register 25, 32 bit floating point register
+    S25,
+    /// Extension register 26, 32 bit floating point register
+    S26,
+    /// Extension register 27, 32 bit floating point register
+    S27,
+    /// Extension register 28, 32 bit floating point register
+    S28,
+    /// Extension register 29, 32 bit floating point register
+    S29,
+    /// Extension register 30, 32 bit floating point register
+    S30,
+    /// Extension register 31, 32 bit floating point register
+    S31,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+///
+/// Double precision floating point registers
+///
+pub enum DoubleReg {
+    /// Extension register 0, 64 bit floating point register
+    D0,
+    /// Extension register 1, 64 bit floating point register
+    D1,
+    /// Extension register 2, 64 bit floating point register
+    D2,
+    /// Extension register 3, 64 bit floating point register
+    D3,
+    /// Extension register 4, 64 bit floating point register
+    D4,
+    /// Extension register 5, 64 bit floating point register
+    D5,
+    /// Extension register 6, 64 bit floating point register
+    D6,
+    /// Extension register 7, 64 bit floating point register
+    D7,
+    /// Extension register 8, 64 bit floating point register
+    D8,
+    /// Extension register 9, 64 bit floating point register
+    D9,
+    /// Extension register 10, 64 bit floating point register
+    D10,
+    /// Extension register 11, 64 bit floating point register
+    D11,
+    /// Extension register 12, 64 bit floating point register
+    D12,
+    /// Extension register 13, 64 bit floating point register
+    D13,
+    /// Extension register 14, 64 bit floating point register
+    D14,
+    /// Extension register 15, 64 bit floating point register
+    D15,
+}
+#[derive(Copy, Clone, PartialEq, Debug)]
+///
+/// Extension registers, either single or double precision floating points
+///
+pub enum ExtensionReg {
+    /// a single precision reg
+    Single {
+        /// register identification
+        reg: SingleReg,
+    },
+    /// a double precision reg
+    Double {
+        /// register identification
+        reg: DoubleReg,
+    },
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
 /// Declarations of Special registers, of which some are overlays of same contents
 pub enum SpecialReg {
@@ -804,6 +930,77 @@ impl fmt::Display for Reg {
     }
 }
 
+impl fmt::Display for ExtensionReg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Self::Single { reg } => write!(f, "{}", reg),
+            Self::Double { reg } => write!(f, "{}", reg),
+        }
+    }
+}
+
+impl fmt::Display for SingleReg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SingleReg::S0 => write!(f, "s0"),
+            SingleReg::S1 => write!(f, "s1"),
+            SingleReg::S2 => write!(f, "s2"),
+            SingleReg::S3 => write!(f, "s3"),
+            SingleReg::S4 => write!(f, "s4"),
+            SingleReg::S5 => write!(f, "s5"),
+            SingleReg::S6 => write!(f, "s6"),
+            SingleReg::S7 => write!(f, "s7"),
+            SingleReg::S8 => write!(f, "s8"),
+            SingleReg::S9 => write!(f, "s9"),
+            SingleReg::S10 => write!(f, "s10"),
+            SingleReg::S11 => write!(f, "s11"),
+            SingleReg::S12 => write!(f, "s12"),
+            SingleReg::S13 => write!(f, "s13"),
+            SingleReg::S14 => write!(f, "s14"),
+            SingleReg::S15 => write!(f, "s15"),
+            SingleReg::S16 => write!(f, "s16"),
+            SingleReg::S17 => write!(f, "s17"),
+            SingleReg::S18 => write!(f, "s18"),
+            SingleReg::S19 => write!(f, "s19"),
+            SingleReg::S20 => write!(f, "s20"),
+            SingleReg::S21 => write!(f, "s21"),
+            SingleReg::S22 => write!(f, "s22"),
+            SingleReg::S23 => write!(f, "s23"),
+            SingleReg::S24 => write!(f, "s24"),
+            SingleReg::S25 => write!(f, "s25"),
+            SingleReg::S26 => write!(f, "s26"),
+            SingleReg::S27 => write!(f, "s27"),
+            SingleReg::S28 => write!(f, "s28"),
+            SingleReg::S29 => write!(f, "s29"),
+            SingleReg::S30 => write!(f, "s30"),
+            SingleReg::S31 => write!(f, "s31"),
+        }
+    }
+}
+
+impl fmt::Display for DoubleReg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DoubleReg::D0 => write!(f, "d0"),
+            DoubleReg::D1 => write!(f, "d1"),
+            DoubleReg::D2 => write!(f, "d2"),
+            DoubleReg::D3 => write!(f, "d3"),
+            DoubleReg::D4 => write!(f, "d4"),
+            DoubleReg::D5 => write!(f, "d5"),
+            DoubleReg::D6 => write!(f, "d6"),
+            DoubleReg::D7 => write!(f, "d7"),
+            DoubleReg::D8 => write!(f, "d8"),
+            DoubleReg::D9 => write!(f, "d9"),
+            DoubleReg::D10 => write!(f, "s10"),
+            DoubleReg::D11 => write!(f, "s11"),
+            DoubleReg::D12 => write!(f, "s12"),
+            DoubleReg::D13 => write!(f, "s14"),
+            DoubleReg::D14 => write!(f, "s15"),
+            DoubleReg::D15 => write!(f, "s16"),
+        }
+    }
+}
+
 impl fmt::Display for SpecialReg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -835,5 +1032,69 @@ pub struct Control {
 impl From<Control> for u8 {
     fn from(control: Control) -> Self {
         control.n_priv as Self + ((control.sp_sel as Self) << 1)
+    }
+}
+
+impl From<u8> for DoubleReg {
+    fn from(value: u8) -> Self {
+        match value & 0xf {
+            0 => Self::D0,
+            1 => Self::D1,
+            2 => Self::D2,
+            3 => Self::D3,
+            4 => Self::D4,
+            5 => Self::D5,
+            6 => Self::D6,
+            7 => Self::D7,
+            8 => Self::D8,
+            9 => Self::D9,
+            10 => Self::D10,
+            11 => Self::D11,
+            12 => Self::D12,
+            13 => Self::D13,
+            14 => Self::D14,
+            15 => Self::D15,
+            _ => Self::D0,
+        }
+    }
+}
+
+impl From<u8> for SingleReg {
+    fn from(value: u8) -> Self {
+        match value & 0xf {
+            0 => Self::S0,
+            1 => Self::S1,
+            2 => Self::S2,
+            3 => Self::S3,
+            4 => Self::S4,
+            5 => Self::S5,
+            6 => Self::S6,
+            7 => Self::S7,
+            8 => Self::S8,
+            9 => Self::S9,
+            10 => Self::S10,
+            11 => Self::S11,
+            12 => Self::S12,
+            13 => Self::S13,
+            14 => Self::S14,
+            15 => Self::S15,
+            16 => Self::S16,
+            17 => Self::S17,
+            18 => Self::S18,
+            19 => Self::S19,
+            20 => Self::S20,
+            21 => Self::S21,
+            22 => Self::S22,
+            23 => Self::S23,
+            24 => Self::S24,
+            25 => Self::S25,
+            26 => Self::S26,
+            27 => Self::S27,
+            28 => Self::S28,
+            29 => Self::S29,
+            30 => Self::S30,
+            31 => Self::S31,
+            _ => Self::S0,
+        }
     }
 }

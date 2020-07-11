@@ -1,9 +1,8 @@
-use crate::core::bits::*;
 use crate::core::condition::Condition;
 use crate::core::instruction::Instruction;
 use crate::core::operation::build_imm_10_11;
 use crate::core::operation::build_imm_6_11;
-use crate::core::operation::sign_extend;
+use crate::core::{bits::Bits, operation::sign_extend};
 
 #[allow(non_snake_case)]
 #[inline(always)]

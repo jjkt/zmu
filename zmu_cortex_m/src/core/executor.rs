@@ -314,12 +314,25 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
+            Instruction::BFC { rd, lsbit, msbit } => {
+                if self.condition_passed() {
+                    if msbit >= lsbit {
+                        let destination_upper_range = msbit + 1;
+                        let mut result: u32 = self.get_r(*rd);
+                        result.set_bits(*lsbit..destination_upper_range, 0);
+                        println!("BFC {}, {} = {}", lsbit, msbit, result);
+                        self.set_r(*rd, result);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
             #[cfg(armv6m)]
             Instruction::CPS { im } => {
-                if !im {
-                    self.primask = false;
-                } else {
+                if *im {
                     self.primask = true;
+                } else {
+                    self.primask = false;
                 }
                 self.execution_priority = self.get_execution_priority();
                 Ok(ExecuteResult::Taken { cycles: 1 })
@@ -2679,6 +2692,15 @@ impl ExecutorHelper for Processor {
                 println!("UDF {}, {}", imm32, opcode);
                 panic!("undefined");
                 //Some(Fault::UndefinedInstruction)
+            }
+            Instruction::VLDR {
+                dd,
+                rn,
+                add,
+                imm32,
+                single_reg,
+            } => {
+                panic!("undefined");
             }
         }
     }

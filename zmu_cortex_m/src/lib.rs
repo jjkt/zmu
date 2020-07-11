@@ -40,7 +40,7 @@ use crate::core::exception::Exception;
 use crate::core::fetch::Fetch;
 use crate::core::instruction::Instruction;
 use crate::core::register::{Apsr, BaseReg, Control, Reg, PSR};
-use crate::decoder::Decoder;
+
 use crate::memory::flash::FlashMemory;
 use crate::memory::map::MemoryMapConfig;
 use crate::memory::ram::RAM;
@@ -57,6 +57,7 @@ use crate::device::stm32f1xx::Device;
 
 #[cfg(feature = "generic-device")]
 use crate::device::generic::Device;
+use decoder::Decoder;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 /// Main execution mode of the processor

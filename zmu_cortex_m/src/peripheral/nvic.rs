@@ -6,6 +6,7 @@ use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::Processor;
+use Exception::Interrupt;
 
 ///
 /// Register API for NVIC
@@ -120,7 +121,7 @@ impl NVICHelper for Processor {
         let mut irqn = index * 4;
         while active != 0 {
             if active & 1 != 0 {
-                self.set_exception_pending(Exception::Interrupt { n: irqn });
+                self.set_exception_pending(Interrupt { n: irqn });
             }
             active >>= 1;
             irqn += 1;
@@ -131,7 +132,7 @@ impl NVICHelper for Processor {
         let mut active = self.nvic_interrupt_pending[index] & self.nvic_interrupt_enabled[index];
         for irqn in (index * 4)..(index * 4) + 32 {
             if active & 1 == 0 {
-                self.clear_pending_exception(Exception::Interrupt { n: irqn });
+                self.clear_pending_exception(Interrupt { n: irqn });
             }
             active >>= 1;
         }
@@ -186,7 +187,7 @@ impl NVIC for Processor {
         let mut active = 0;
         let mut mask = 1;
         for irqn in first_irqn..first_irqn + 32 {
-            if self.exception_active(Exception::Interrupt { n: irqn }) {
+            if self.exception_active(Interrupt { n: irqn }) {
                 active |= mask;
             }
             mask <<= 1;
@@ -219,13 +220,13 @@ impl NVIC for Processor {
     }
 
     fn nvic_read_ipr_u8(&self, index: usize) -> u8 {
-        let priority = self.get_exception_priority(Exception::Interrupt { n: index });
+        let priority = self.get_exception_priority(Interrupt { n: index });
         assert!(priority >= 0 && priority < 256);
         priority as u8
     }
 
     fn nvic_write_ipr_u8(&mut self, index: usize, value: u8) {
-        self.set_exception_priority(Exception::Interrupt { n: index }, value);
+        self.set_exception_priority(Interrupt { n: index }, value);
     }
 }
 

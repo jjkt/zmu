@@ -1,5 +1,4 @@
-use crate::core::bits::*;
-use crate::core::instruction::Instruction;
+use crate::core::{bits::Bits, instruction::Instruction};
 
 #[allow(non_snake_case)]
 #[inline(always)]

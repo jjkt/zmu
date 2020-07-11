@@ -1,6 +1,6 @@
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::{SRType, SetFlags};
-use crate::core::register::Reg;
+use crate::core::register::{DoubleReg, ExtensionReg, Reg};
 
 use super::*;
 
@@ -2892,6 +2892,34 @@ fn test_decode_strex() {
             rt: Reg::R2,
             rn: Reg::R0,
             imm32: 0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_bfc() {
+    //  f36f 011f       bfc     r1, #0, #32
+    assert_eq!(
+        decode_32(0xf36f011f),
+        Instruction::BFC {
+            rd: Reg::R1,
+            lsbit: 0,
+            msbit: 31,
+        }
+    );
+}
+
+#[test]
+fn test_decode_vldr() {
+    //  ed9f 7b86       vldr    d7, [pc, #536]  ; 448 <_vfprintf_r+0x290>
+    assert_eq!(
+        decode_32(0xed9f7b86),
+        Instruction::VLDR {
+            dd: ExtensionReg::Double { reg: DoubleReg::D7 },
+            rn: Reg::PC,
+            add: true,
+            imm32: 0x86 << 2,
+            single_reg: false
         }
     );
 }
