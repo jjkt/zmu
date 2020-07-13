@@ -90,6 +90,22 @@ pub trait BaseReg {
     fn sub_r(&mut self, r: Reg, value: u32);
 }
 
+
+///
+/// Functionality for operating with floating point data
+///
+pub trait ExtensionRegOperations {
+    ///
+    /// Set value of single precision floating point register
+    ///
+    fn set_sr(&mut self, r: SingleReg, value: u32);
+
+    ///
+    /// Set value of double precision floating point register
+    ///
+    fn set_dr(&mut self, r: DoubleReg, low_word: u32, high_word: u32);
+}
+
 impl BaseReg for Processor {
     fn branch_write_pc(&mut self, address: u32) {
         self.set_pc(address & 0xffff_fffe);
@@ -265,6 +281,18 @@ impl BaseReg for Processor {
             Reg::LR => self.lr -= value,
             Reg::PC => self.pc -= value,
         };
+    }
+}
+
+impl ExtensionRegOperations for Processor {
+    fn set_sr(&mut self, r: SingleReg, value: u32) {
+        let index: usize = r.into();
+        self.fp_regs[index] = value;
+    }
+    fn set_dr(&mut self, r: DoubleReg, low_word: u32, high_word: u32) {
+        let index: usize = r.into();
+        self.fp_regs[index] = low_word;
+        self.fp_regs[index + 1] = high_word;
     }
 }
 
@@ -1032,6 +1060,74 @@ pub struct Control {
 impl From<Control> for u8 {
     fn from(control: Control) -> Self {
         control.n_priv as Self + ((control.sp_sel as Self) << 1)
+    }
+}
+
+///
+/// for indexing floating point register array
+///
+impl From<DoubleReg> for usize {
+    fn from(value: DoubleReg) -> Self {
+        match value {
+            DoubleReg::D0 => 0,
+            DoubleReg::D1 => 2,
+            DoubleReg::D2 => 4,
+            DoubleReg::D3 => 6,
+            DoubleReg::D4 => 8,
+            DoubleReg::D5 => 10,
+            DoubleReg::D6 => 12,
+            DoubleReg::D7 => 14,
+            DoubleReg::D8 => 16,
+            DoubleReg::D9 => 18,
+            DoubleReg::D10 => 20,
+            DoubleReg::D11 => 22,
+            DoubleReg::D12 => 24,
+            DoubleReg::D13 => 26,
+            DoubleReg::D14 => 28,
+            DoubleReg::D15 => 30,
+        }
+    }
+}
+
+///
+/// for indexing floating point register array
+///
+impl From<SingleReg> for usize {
+    fn from(value: SingleReg) -> Self {
+        match value {
+            SingleReg::S0 => 0,
+            SingleReg::S1 => 1,
+            SingleReg::S2 => 2,
+            SingleReg::S3 => 3,
+            SingleReg::S4 => 4,
+            SingleReg::S5 => 5,
+            SingleReg::S6 => 6,
+            SingleReg::S7 => 7,
+            SingleReg::S8 => 8,
+            SingleReg::S9 => 9,
+            SingleReg::S10 => 10,
+            SingleReg::S11 => 11,
+            SingleReg::S12 => 12,
+            SingleReg::S13 => 13,
+            SingleReg::S14 => 14,
+            SingleReg::S15 => 15,
+            SingleReg::S16 => 16,
+            SingleReg::S17 => 17,
+            SingleReg::S18 => 18,
+            SingleReg::S19 => 19,
+            SingleReg::S20 => 20,
+            SingleReg::S21 => 21,
+            SingleReg::S22 => 22,
+            SingleReg::S23 => 23,
+            SingleReg::S24 => 24,
+            SingleReg::S25 => 25,
+            SingleReg::S26 => 26,
+            SingleReg::S27 => 27,
+            SingleReg::S28 => 28,
+            SingleReg::S29 => 29,
+            SingleReg::S30 => 30,
+            SingleReg::S31 => 31,
+        }
     }
 }
 

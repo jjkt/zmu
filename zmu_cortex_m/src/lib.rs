@@ -76,6 +76,9 @@ pub struct Processor {
     /// 13 of 32-bit general purpose registers.
     pub r0_12: [u32; 13],
 
+    /// 32 of 32-bit floating pointer registers
+    pub fp_regs: [u32; 32],
+
     /// MSP, virtual reg r[13]
     msp: u32,
     /// PSP, virtual reg r[13]
@@ -282,6 +285,7 @@ impl Processor {
                 sp_sel: false,
             },
             r0_12: [0; 13],
+            fp_regs: [0; 32],
             pc: 0,
             msp: 0,
             psp: 0,
