@@ -2923,3 +2923,19 @@ fn test_decode_vldr() {
         }
     );
 }
+
+
+#[test]
+fn test_decode_vstr() {
+    //250:       ed8d 7b12       vstr    d7, [sp, #72]   ; 0x48
+    assert_eq!(
+        decode_32(0xed8d7b12),
+        Instruction::VSTR {
+            dd: ExtensionReg::Double { reg: DoubleReg::D7 },
+            rn: Reg::SP,
+            add: true,
+            imm32: 0x48,
+            single_reg: false
+        }
+    );
+}

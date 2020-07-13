@@ -116,6 +116,7 @@ mod uxt;
 mod uxtab;
 
 mod vldr;
+mod vstr;
 
 use {
     crate::decoder::str::{
@@ -245,6 +246,8 @@ use {
     usat::decode_USAT_t1,
     uxt::{decode_UXTB_t1, decode_UXTB_t2, decode_UXTH_t1, decode_UXTH_t2},
     uxtab::decode_UXTAB_t1,
+    vldr::{decode_VLDR_t1, decode_VLDR_t2},
+    vstr::{decode_VSTR_t1, decode_VSTR_t2},
     wfe::{decode_WFE_t1, decode_WFE_t2},
     wfi::{decode_WFI_t1, decode_WFI_t2},
     yield_::{decode_YIELD_t1, decode_YIELD_t2},
@@ -252,7 +255,6 @@ use {
 
 use crate::core::thumb::ThumbCode;
 use crate::Processor;
-use vldr::{decode_VLDR_t1, decode_VLDR_t2};
 
 ///
 /// Generic Thumbcode to instruction decoder trait
@@ -670,10 +672,14 @@ pub fn decode_32(opcode: u32) -> Instruction {
         decode_VLDR_t2(opcode)
     } else if (opcode & 0xff300f00) == 0xed100b00 {
         decode_VLDR_t1(opcode)
+    } else if (opcode & 0xff300f00) == 0xed000a00 {
+        decode_VSTR_t2(opcode)
     } else if (opcode & 0xfff000c0) == 0xfb100000 {
         decode_SMLA_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3c00000 {
         decode_UBFX_t1(opcode)
+    } else if (opcode & 0xff300f00) == 0xed000b00 {
+        decode_VSTR_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3600000 {
         decode_BFI_t1(opcode)
     } else if (opcode & 0xfff08020) == 0xf3400000 {

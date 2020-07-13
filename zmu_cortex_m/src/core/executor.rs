@@ -16,13 +16,12 @@ use crate::core::operation::{
 };
 use crate::core::register::{Apsr, BaseReg, Reg};
 
-
+use super::register::{ExtensionReg, ExtensionRegOperations};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
-use super::register::{ExtensionRegOperations, ExtensionReg};
 
 ///
 /// Stepping processor with instructions
@@ -322,7 +321,6 @@ impl ExecutorHelper for Processor {
                         let destination_upper_range = msbit + 1;
                         let mut result: u32 = self.get_r(*rd);
                         result.set_bits(*lsbit..destination_upper_range, 0);
-                        println!("BFC {}, {} = {}", lsbit, msbit, result);
                         self.set_r(*rd, result);
                     }
                     return Ok(ExecuteResult::Taken { cycles: 1 });
@@ -2700,37 +2698,64 @@ impl ExecutorHelper for Processor {
                 rn,
                 add,
                 imm32,
-                single_reg
+                single_reg,
             } => {
                 if self.condition_passed() {
                     //self.execute_fp_check();
 
-
-                    let base = 
-                    match *rn {
+                    let base = match *rn {
                         Reg::PC => self.get_r(Reg::PC) & 0xffff_fffc,
                         _ => self.get_r(*rn),
                     };
-                    
+
                     let address = if *add { base + imm32 } else { base - imm32 };
-                    match *dd{
-                        ExtensionReg::Single{reg} => {
+                    match *dd {
+                        ExtensionReg::Single { reg } => {
                             let data = self.read32(address)?;
-                            self.set_sr(reg, data);    
-                         }
-                         ExtensionReg::Double{reg} => {
+                            self.set_sr(reg, data);
+                        }
+                        ExtensionReg::Double { reg } => {
                             let word1 = self.read32(address)?;
-                            let word2 = self.read32(address+4)?;
-                            self.set_dr(reg, word1, word2);    
-                         }
+                            let word2 = self.read32(address + 4)?;
+                            self.set_dr(reg, word1, word2);
+                        }
                     }
 
                     return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
                 Ok(ExecuteResult::NotTaken)
+            }
+            Instruction::VSTR {
+                dd,
+                rn,
+                add,
+                imm32,
+                single_reg,
+            } => {
+                if self.condition_passed() {
+                    //self.execute_fp_check();
+
+                    let base = self.get_r(*rn);
+
+                    let address = if *add { base + imm32 } else { base - imm32 };
+                    match *dd {
+                        ExtensionReg::Single { reg } => {
+                            let value = self.get_sr(reg);
+                            self.write32(address, value)?;
+                        }
+                        ExtensionReg::Double { reg } => {
+                            let (low_word, high_word) = self.get_dr(reg);
+                            self.write32(address, low_word)?;
+                            self.write32(address + 4, high_word)?;
+                        }
+                    }
+
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
         }
     }
-}
 }
 
 impl Executor for Processor {

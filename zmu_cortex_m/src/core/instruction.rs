@@ -884,6 +884,13 @@ pub enum Instruction {
         imm32: u32,
         single_reg: bool,
     },
+    VSTR {
+        dd: ExtensionReg,
+        rn: Reg,
+        add: bool,
+        imm32: u32,
+        single_reg: bool,
+    },
     WFE {
         thumb32: bool,
     },
@@ -2262,6 +2269,13 @@ impl fmt::Display for Instruction {
                 imm32,
                 single_reg,
             } => write!(f, "vldr {}, {}", dd, rn),
+            Self::VSTR {
+                dd,
+                rn,
+                add,
+                imm32,
+                single_reg,
+            } => write!(f, "vstr {}, {}", dd, rn),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2586,13 +2600,8 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),
-        Instruction::VLDR {
-            dd,
-            rn,
-            add,
-            imm32,
-            single_reg,
-        } => 4,
+        Instruction::VLDR { .. } => 4,
+        Instruction::VSTR { .. } => 4,
     }
 }
 

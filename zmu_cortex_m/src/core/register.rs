@@ -90,7 +90,6 @@ pub trait BaseReg {
     fn sub_r(&mut self, r: Reg, value: u32);
 }
 
-
 ///
 /// Functionality for operating with floating point data
 ///
@@ -104,6 +103,16 @@ pub trait ExtensionRegOperations {
     /// Set value of double precision floating point register
     ///
     fn set_dr(&mut self, r: DoubleReg, low_word: u32, high_word: u32);
+
+    ///
+    /// Get value of single precision floating point register
+    ///
+    fn get_sr(&mut self, r: SingleReg) -> u32;
+
+    ///
+    /// Get value of double precision floating point register
+    ///
+    fn get_dr(&mut self, r: DoubleReg) -> (u32, u32);
 }
 
 impl BaseReg for Processor {
@@ -293,6 +302,15 @@ impl ExtensionRegOperations for Processor {
         let index: usize = r.into();
         self.fp_regs[index] = low_word;
         self.fp_regs[index + 1] = high_word;
+    }
+
+    fn get_sr(&mut self, r: SingleReg) -> u32 {
+        let index: usize = r.into();
+        self.fp_regs[index]
+    }
+    fn get_dr(&mut self, r: DoubleReg) -> (u32, u32) {
+        let index: usize = r.into();
+        (self.fp_regs[index], self.fp_regs[index + 1])
     }
 }
 

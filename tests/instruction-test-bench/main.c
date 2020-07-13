@@ -9,6 +9,20 @@ unsigned int bfc_0_32(int value)
         : [value] "+r" (value));
     return value;
 }
+unsigned int bfc_0_16(int value)
+{
+    asm volatile (
+        "bfc     %[value], 0, 16"
+        : [value] "+r" (value));
+    return value;
+}
+unsigned int bfc_15_16(int value)
+{
+    asm volatile (
+        "bfc     %[value], 15, 16"
+        : [value] "+r" (value));
+    return value;
+}
 #endif
 //  [lsb] "I" (lsb), [width] "I" (width)
 int main(void)
@@ -16,6 +30,8 @@ int main(void)
     
 #if __ARM_ARCH >= 7
     printf("bfc(0xffffffff, 0, 32) = 0x%08x\n", bfc_0_32(0xffffffff));
+    printf("bfc(0xffffffff, 0, 16) = 0x%08x\n", bfc_0_16(0xffffffff));
+    printf("bfc(0xffffffff, 15, 16) = 0x%08x\n", bfc_15_16(0xffffffff));
 #endif    
 }
 
