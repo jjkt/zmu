@@ -1,6 +1,6 @@
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::{SRType, SetFlags};
-use crate::core::register::Reg;
+use crate::core::register::{DoubleReg, ExtensionReg, Reg};
 
 use super::*;
 
@@ -2590,6 +2590,23 @@ fn test_decode_ldrsb_imm_w() {
 }
 
 #[test]
+fn test_decode_ldrsb_imm_t2() {
+    // 0xf9170c09 -> ldrsb.w r0, [r7, #-9]
+    assert_eq!(
+        decode_32(0xf9170c09),
+        Instruction::LDRSB_imm {
+            rt: Reg::R0,
+            rn: Reg::R7,
+            imm32: 9,
+            index: true,
+            add: false,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
 fn test_decode_smul_bb() {
     // 0xfb1efe08 -> SMULBB LR, LR, R8
     assert_eq!(
@@ -2892,6 +2909,50 @@ fn test_decode_strex() {
             rt: Reg::R2,
             rn: Reg::R0,
             imm32: 0,
+        }
+    );
+}
+
+#[test]
+fn test_decode_bfc() {
+    //  f36f 011f       bfc     r1, #0, #32
+    assert_eq!(
+        decode_32(0xf36f011f),
+        Instruction::BFC {
+            rd: Reg::R1,
+            lsbit: 0,
+            msbit: 31,
+        }
+    );
+}
+
+#[test]
+fn test_decode_vldr() {
+    //  ed9f 7b86       vldr    d7, [pc, #536]  ; 448 <_vfprintf_r+0x290>
+    assert_eq!(
+        decode_32(0xed9f7b86),
+        Instruction::VLDR {
+            dd: ExtensionReg::Double { reg: DoubleReg::D7 },
+            rn: Reg::PC,
+            add: true,
+            imm32: 0x86 << 2,
+            single_reg: false
+        }
+    );
+}
+
+
+#[test]
+fn test_decode_vstr() {
+    //250:       ed8d 7b12       vstr    d7, [sp, #72]   ; 0x48
+    assert_eq!(
+        decode_32(0xed8d7b12),
+        Instruction::VSTR {
+            dd: ExtensionReg::Double { reg: DoubleReg::D7 },
+            rn: Reg::SP,
+            add: true,
+            imm32: 0x48,
+            single_reg: false
         }
     );
 }

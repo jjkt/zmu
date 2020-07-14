@@ -1,6 +1,4 @@
-use crate::core::bits::*;
-use crate::core::instruction::Instruction;
-use crate::core::register::Reg;
+use crate::core::{bits::Bits, instruction::Instruction, register::Reg};
 
 #[allow(non_snake_case)]
 pub fn decode_MCR2_t2(opcode: u32) -> Instruction {
