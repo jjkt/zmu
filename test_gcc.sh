@@ -26,11 +26,11 @@ do
    make -s clean
    make -s
    cd ../..
-   echo -e "\e[1m========================================"
-   echo -e "\e[1mGCC TEST: $i"
-   echo -e "\e[1m========================================\e[0m"
    for a in "${archs[@]}"
    do
+      echo -e "\e[1m========================================"
+      echo -e "\e[1mGCC TEST: $i / $a"
+      echo -e "\e[1m========================================\e[0m"
       arch_supports_cores $a
       for c in "${cores[@]}"
       do

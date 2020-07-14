@@ -25,3 +25,8 @@ echo "building..."
 ## Coremark
 ##
 ./test_coremark.sh
+
+##
+## TODO: Rusty Clock
+##
+# https://github.com/TeXitoi/rusty-clock.git
