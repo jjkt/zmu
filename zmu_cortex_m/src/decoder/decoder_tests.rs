@@ -2590,6 +2590,23 @@ fn test_decode_ldrsb_imm_w() {
 }
 
 #[test]
+fn test_decode_ldrsb_imm_t2() {
+    // 0xf9170c09 -> ldrsb.w r0, [r7, #-9]
+    assert_eq!(
+        decode_32(0xf9170c09),
+        Instruction::LDRSB_imm {
+            rt: Reg::R0,
+            rn: Reg::R7,
+            imm32: 9,
+            index: true,
+            add: false,
+            wback: false,
+            thumb32: true,
+        }
+    );
+}
+
+#[test]
 fn test_decode_smul_bb() {
     // 0xfb1efe08 -> SMULBB LR, LR, R8
     assert_eq!(

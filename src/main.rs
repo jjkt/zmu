@@ -284,6 +284,13 @@ fn main() {
                         .index(1)
                         .help("Set executable to load")
                         .required(true),
+                )
+                .arg(
+                    Arg::with_name("ARGS")
+                        .required(false)
+                        .help("List of free arguments to pass to runtime as parameters")
+                        .index(2)
+                        .multiple(true),
                 ),
         )
         .get_matches();
