@@ -1,6 +1,15 @@
 #File : core_portme.mak
 
-STARTUP_PATH=/usr/share/gcc-arm-embedded/samples/startup
+# check the expected dir for the startup file
+ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-embedded/samples/startup/*),)
+	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-embedded/samples/startup
+else ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup/*),)
+	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup
+else ifneq ($(wildcard $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup/*),)
+	STARTUP_PATH := $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup
+else
+	$(error startup dir not found !)
+endif
 
 # Flag : OUTFLAG
 #	Use this flag to define how to to get an executable (e.g -o)
@@ -10,7 +19,7 @@ OUTFLAG= -o
 CC = arm-none-eabi-gcc
 # Flag : CFLAGS
 #	Use this flag to define compiler options. Note, you can add compiler options from the command line using XCFLAGS="other flags"
-PORT_CFLAGS = -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T $(PORT_DIR)/link.ld -D__STARTUP_CLEAR_BSS
+PORT_CFLAGS = -O3 --specs=rdimon.specs -mthumb -g -nostartfiles -T $(PORT_DIR)/link.ld -D__STARTUP_CLEAR_BSS
 FLAGS_STR = "$(PORT_CFLAGS) $(XCFLAGS) $(XLFLAGS) $(LFLAGS_END)"
 CFLAGS = $(PORT_CFLAGS) -I$(PORT_DIR) -I. -DCOMPILER_FLAGS=\"$(FLAGS_STR)\"
 #Flag : LFLAGS_END

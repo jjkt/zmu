@@ -2,6 +2,13 @@
 set -e
 { set +x; } 2>/dev/null
 
+if ! command -v arm-none-eabi-gcc &> /dev/null
+then
+    echo "GCC for ARM is not installed. Please install with: 'sudo apt install gcc-arm-none-eabi'"
+    exit
+fi
+
+
 function arch_supports_cores()
 {
    case "$1" in

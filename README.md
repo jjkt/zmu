@@ -58,6 +58,7 @@ Follow the install menu, then run the following command in the terminal used for
 source ~/.cargo/env
 ```
 
+
 ## How to Compile
 
 ```sh
@@ -68,7 +69,16 @@ The executables are genereated in the dir ```./target/release/```.
 
 ## Testing
 
-You need ARM compiler to compile some of the examples. Get the latest compilers from [ARM website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
+Install support for compiling for cortex-M targets: (needed for rust based tests)
+
+```sh
+rustup target add thumbv6m-none-eabi thumbv7m-none-eabi thumbv7em-none-eabi thumbv7em-none-eabihf
+```
+
+You need ARM compiler to compile some of the examples. Get the latest compilers from [ARM website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads). Some Linux distros (like Ubuntu) have prebuilt packages for this.
+```sh
+'sudo apt install gcc-arm-none-eabi'
+```
 
 Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default location is /usr
 

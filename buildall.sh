@@ -1,6 +1,19 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 { set +x; } 2>/dev/null
+
+if ! command -v cargo &> /dev/null
+then
+    echo "Cargo/rust not installed. Please visit https://rustup.rs/"
+    exit
+fi
+
+if ! command -v cc &> /dev/null
+then
+    echo "A Gcc compatible 'cc' linker is not installed. If running ubuntu, please run 'sudo apt install build-essential'."
+    exit
+fi
+
 
 echo "running library tests..."
 cd zmu_cortex_m
