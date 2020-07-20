@@ -8,7 +8,7 @@ pub fn decode_VSTR_t1(opcode: u32) -> Instruction {
     Instruction::VSTR {
         dd: ExtensionReg::Double {
             reg: DoubleReg::from(
-                opcode.get_bits(12..16) as u8 + (opcode.get_bits(22..22) << 4) as u8,
+                opcode.get_bits(12..16) as u8 + ((opcode.get_bit(22) as u8) << 4) as u8,
             ),
         },
         rn: Reg::from(opcode.get_bits(16..20) as u8),
@@ -24,7 +24,7 @@ pub fn decode_VSTR_t2(opcode: u32) -> Instruction {
     Instruction::VSTR {
         dd: ExtensionReg::Single {
             reg: SingleReg::from(
-                opcode.get_bits(12..16) as u8 + (opcode.get_bits(22..22) << 4) as u8,
+                opcode.get_bits(12..16) as u8 + ((opcode.get_bit(22) as u8) << 4) as u8,
             ),
         },
         rn: Reg::from(opcode.get_bits(16..20) as u8),
