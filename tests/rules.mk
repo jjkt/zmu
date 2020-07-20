@@ -1,6 +1,4 @@
-
 #common rules used by all tests
-
 # testing the requirements
 ifndef GCC_HOME
     $(error GCC_HOME is undefined)
@@ -15,11 +13,14 @@ ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-embedded/samples/startup/*),)
 	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-embedded/samples/startup
 else ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup/*),)
 	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup
+else ifneq ($(wildcard $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup/*),)
+	STARTUP_PATH := $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup
 else
 	$(error startup dir not found !)
 endif
 
 all: $(PROG)-cm0.elf $(PROG)-cm0p.elf $(PROG)-cm3.elf $(PROG)-cm4.elf $(PROG)-cm4f.elf
+
 
 $(PROG)-cm0.elf:
 	$(CC) $(CFLAGS) -mcpu=cortex-m0 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM0.S -o $@

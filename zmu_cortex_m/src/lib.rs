@@ -80,10 +80,10 @@ pub struct Processor {
     pub fp_regs: [u32; 32],
 
     /// MSP, virtual reg r[13]
-    msp: u32,
+    pub msp: u32,
     /// PSP, virtual reg r[13]
-    psp: u32,
-    lr: u32,
+    pub psp: u32,
+    pub lr: u32,
     pc: u32,
 
     /// Total number of processor clock cycles run
