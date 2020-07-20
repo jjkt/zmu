@@ -15,13 +15,15 @@ use crate::core::operation::{
     add_with_carry, ror, shift, shift_c, sign_extend, zero_extend, zero_extend_u16,
 };
 use crate::core::register::{Apsr, BaseReg, Reg};
-
-use super::register::{ExtensionReg, ExtensionRegOperations};
+use crate::core::register::{ExtensionReg, ExtensionRegOperations};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 use crate::semihosting::decode_semihostcmd;
 use crate::semihosting::semihost_return;
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
+
+mod adc;
+use crate::executor::adc::AdcReg;
 
 ///
 /// Stepping processor with instructions
@@ -55,13 +57,20 @@ trait ExecutorHelper {
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-enum ExecuteResult {
+/// Result of executing an instruction
+pub enum ExecuteResult {
     /// The instruction was taken normally
-    Taken { cycles: u32 },
+    Taken {
+        /// Number of clock cycles taken for the operation
+        cycles: u32,
+    },
     /// The instruction was not taken as the condition did not pass
     NotTaken,
     /// The execution branched to a new address, pc was set accordingly
-    Branched { cycles: u32 },
+    Branched {
+        /// Number of clock cycles taken for the operation
+        cycles: u32,
+    },
 }
 
 #[inline(always)]
@@ -142,32 +151,7 @@ impl ExecutorHelper for Processor {
     #[allow(clippy::too_many_lines)]
     fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
-            Instruction::ADC_reg {
-                rd,
-                rn,
-                rm,
-                setflags,
-                shift_t,
-                shift_n,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let c = self.psr.get_c();
-                    let shifted = shift(self.get_r(*rm), *shift_t, *shift_n as usize, c);
-                    let (result, carry, overflow) = add_with_carry(self.get_r(*rn), shifted, c);
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                        self.psr.set_v(overflow);
-                    }
-
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::ADC_reg { params } => self.exec_adc_reg(params),
             Instruction::ADC_imm {
                 rd,
                 rn,

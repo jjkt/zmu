@@ -5,7 +5,6 @@
 pub mod bits;
 pub mod condition;
 pub mod exception;
-pub mod executor;
 pub mod fault;
 pub mod fetch;
 pub mod instruction;

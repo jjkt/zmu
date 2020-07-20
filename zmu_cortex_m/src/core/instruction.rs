@@ -65,6 +65,18 @@ pub enum SetFlags {
     NotInITBlock,
 }
 
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct AdcRegParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+    pub setflags: SetFlags,
+    pub shift_t: SRType,
+    pub shift_n: u8,
+    pub thumb32: bool,
+}
+
 #[allow(non_camel_case_types, missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 ///
@@ -72,13 +84,7 @@ pub enum SetFlags {
 ///
 pub enum Instruction {
     ADC_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
-        thumb32: bool,
+        params: AdcRegParams,
     },
     ADC_imm {
         rd: Reg,
@@ -1112,24 +1118,16 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::ADC_reg {
-                rm,
-                rn,
-                rd,
-                ref setflags,
-                ref shift_t,
-                shift_n,
-                thumb32,
-            } => write!(
+            Self::ADC_reg { params } => write!(
                 f,
                 "adc{}{} {}, {}, {}{}",
-                setflags_to_str(*setflags),
-                if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                setflags_to_str(params.setflags),
+                if params.thumb32 { ".W" } else { "" },
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -2336,7 +2334,7 @@ impl fmt::Display for ITCondition {
 pub fn instruction_size(instruction: &Instruction) -> usize {
     match instruction {
         Instruction::ADC_imm { .. } => 4,
-        Instruction::ADC_reg { thumb32, .. } => isize_t(*thumb32),
+        Instruction::ADC_reg { params } => isize_t(params.thumb32),
         Instruction::ADD_imm { thumb32, .. } => isize_t(*thumb32),
         Instruction::ADD_reg { thumb32, .. } => isize_t(*thumb32),
         Instruction::ADD_sp_reg { thumb32, .. } => isize_t(*thumb32),

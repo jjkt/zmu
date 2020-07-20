@@ -581,9 +581,9 @@ mod tests {
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
     #[cfg(any(armv7m, armv7em))]
-    use crate::core::executor::Executor;
-    #[cfg(any(armv7m, armv7em))]
     use crate::core::instruction::Instruction;
+    #[cfg(any(armv7m, armv7em))]
+    use crate::executor::Executor;
 
     #[test]
     fn test_push_stack() {

@@ -1,3 +1,4 @@
+use crate::core::instruction::AdcRegParams;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::{SRType, SetFlags};
 use crate::core::register::{DoubleReg, ExtensionReg, Reg};
@@ -888,22 +889,14 @@ fn test_decode_lsr_reg() {
 fn test_decode_adc_reg() {
     // ADCS R2,R2,R2
     match decode_16(0x4152) {
-        Instruction::ADC_reg {
-            rd,
-            rm,
-            rn,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R2);
-            assert!(rm == Reg::R2);
-            assert!(rn == Reg::R2);
-            assert!(setflags == SetFlags::NotInITBlock);
-            assert!(shift_t == SRType::LSL);
-            assert!(shift_n == 0);
-            assert!(!thumb32);
+        Instruction::ADC_reg { params } => {
+            assert!(params.rd == Reg::R2);
+            assert!(params.rm == Reg::R2);
+            assert!(params.rn == Reg::R2);
+            assert!(params.setflags == SetFlags::NotInITBlock);
+            assert!(params.shift_t == SRType::LSL);
+            assert!(params.shift_n == 0);
+            assert!(!params.thumb32);
         }
         _ => {
             assert!(false);
@@ -2462,13 +2455,15 @@ fn test_decode_adc_reg_w() {
     assert_eq!(
         decode_32(0xeb50500e),
         Instruction::ADC_reg {
-            rd: Reg::R0,
-            rn: Reg::R0,
-            rm: Reg::LR,
-            setflags: SetFlags::True,
-            shift_t: SRType::LSL,
-            shift_n: 20,
-            thumb32: true,
+            params: AdcRegParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::LR,
+                setflags: SetFlags::True,
+                shift_t: SRType::LSL,
+                shift_n: 20,
+                thumb32: true,
+            }
         }
     );
 }
@@ -2940,7 +2935,6 @@ fn test_decode_vldr() {
         }
     );
 }
-
 
 #[test]
 fn test_decode_vstr() {
