@@ -1,6 +1,6 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SetFlags;
+use crate::core::instruction::{AdcImmParams, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm;
 use crate::core::register::Reg;
@@ -9,10 +9,12 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_RSB_imm_t1(opcode: u16) -> Instruction {
     Instruction::RSB_imm {
-        rd: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(3..6) as u8),
-        imm32: 0,
-        setflags: SetFlags::NotInITBlock,
+        params: AdcImmParams {
+            rd: Reg::from(opcode.get_bits(0..3) as u8),
+            rn: Reg::from(opcode.get_bits(3..6) as u8),
+            imm32: 0,
+            setflags: SetFlags::NotInITBlock,
+        },
         thumb32: false,
     }
 }
@@ -53,13 +55,15 @@ pub fn decode_RSB_imm_t2(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::RSB_imm {
-        rd: Reg::from(opcode.get_bits(8..12) as u8),
-        rn: Reg::from(opcode.get_bits(16..20) as u8),
-        imm32: thumb_expand_imm(&params, &lengths),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: AdcImmParams {
+            rd: Reg::from(opcode.get_bits(8..12) as u8),
+            rn: Reg::from(opcode.get_bits(16..20) as u8),
+            imm32: thumb_expand_imm(&params, &lengths),
+            setflags: if s == 1 {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
         },
         thumb32: true,
     }

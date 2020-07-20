@@ -1,6 +1,6 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType, SetFlags};
+use crate::core::instruction::{AdcImmParams, SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm;
 use crate::core::operation::zero_extend;
@@ -96,10 +96,12 @@ pub fn decode_ADD_reg_t3(opcode: u32) -> Instruction {
 #[inline(always)]
 pub fn decode_ADD_imm_t1(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
-        rd: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(3..6) as u8),
-        imm32: u32::from(opcode.get_bits(6..9)),
-        setflags: SetFlags::NotInITBlock,
+        params: AdcImmParams {
+            rd: Reg::from(opcode.get_bits(0..3) as u8),
+            rn: Reg::from(opcode.get_bits(3..6) as u8),
+            imm32: u32::from(opcode.get_bits(6..9)),
+            setflags: SetFlags::NotInITBlock,
+        },
         thumb32: false,
     }
 }
@@ -108,10 +110,12 @@ pub fn decode_ADD_imm_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_ADD_imm_t2(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
-        rn: Reg::from(opcode.get_bits(8..11) as u8),
-        rd: Reg::from(opcode.get_bits(8..11) as u8),
-        imm32: u32::from(opcode.get_bits(0..8)),
-        setflags: SetFlags::NotInITBlock,
+        params: AdcImmParams {
+            rn: Reg::from(opcode.get_bits(8..11) as u8),
+            rd: Reg::from(opcode.get_bits(8..11) as u8),
+            imm32: u32::from(opcode.get_bits(0..8)),
+            setflags: SetFlags::NotInITBlock,
+        },
         thumb32: false,
     }
 }
@@ -120,10 +124,12 @@ pub fn decode_ADD_imm_t2(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_ADD_SP_imm_t1(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
-        rd: Reg::from(opcode.get_bits(8..11) as u8),
-        rn: Reg::SP,
-        imm32: u32::from(opcode.get_bits(0..8)) << 2,
-        setflags: SetFlags::False,
+        params: AdcImmParams {
+            rd: Reg::from(opcode.get_bits(8..11) as u8),
+            rn: Reg::SP,
+            imm32: u32::from(opcode.get_bits(0..8)) << 2,
+            setflags: SetFlags::False,
+        },
         thumb32: false,
     }
 }
@@ -132,10 +138,12 @@ pub fn decode_ADD_SP_imm_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_ADD_SP_imm_t2(opcode: u16) -> Instruction {
     Instruction::ADD_imm {
-        rd: Reg::SP,
-        rn: Reg::SP,
-        imm32: u32::from(opcode.get_bits(0..7)) << 2,
-        setflags: SetFlags::False,
+        params: AdcImmParams {
+            rd: Reg::SP,
+            rn: Reg::SP,
+            imm32: u32::from(opcode.get_bits(0..7)) << 2,
+            setflags: SetFlags::False,
+        },
         thumb32: false,
     }
 }
@@ -155,10 +163,12 @@ pub fn decode_ADD_imm_t3(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::ADD_imm {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        imm32: thumb_expand_imm(&params, &lengths),
-        setflags: if s { SetFlags::True } else { SetFlags::False },
+        params: AdcImmParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            imm32: thumb_expand_imm(&params, &lengths),
+            setflags: if s { SetFlags::True } else { SetFlags::False },
+        },
         thumb32: true,
     }
 }
@@ -177,10 +187,12 @@ pub fn decode_ADD_imm_t4(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::ADD_imm {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        imm32: zero_extend(&params, &lengths),
-        setflags: SetFlags::False,
+        params: AdcImmParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            imm32: zero_extend(&params, &lengths),
+            setflags: SetFlags::False,
+        },
         thumb32: true,
     }
 }

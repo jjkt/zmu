@@ -1,11 +1,8 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType, SetFlags};
-use crate::core::operation::decode_imm_shift;
-use crate::core::operation::thumb_expand_imm;
+use crate::core::operation::{decode_imm_shift, thumb_expand_imm};
 use crate::core::register::Reg;
 
-use crate::core::instruction::AdcRegParams;
+use crate::core::instruction::{AdcImmParams, AdcRegParams, Instruction, SRType, SetFlags};
 
 #[allow(non_snake_case)]
 #[inline(always)]
@@ -18,8 +15,8 @@ pub fn decode_ADC_reg_t1(opcode: u16) -> Instruction {
             setflags: SetFlags::NotInITBlock,
             shift_t: SRType::LSL,
             shift_n: 0,
-            thumb32: false,
         },
+        thumb32: false,
     }
 }
 
@@ -48,8 +45,8 @@ pub fn decode_ADC_reg_t2(opcode: u32) -> Instruction {
             },
             shift_t,
             shift_n,
-            thumb32: true,
         },
+        thumb32: true,
     }
 }
 
@@ -65,13 +62,15 @@ pub fn decode_ADC_imm_t1(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::ADC_imm {
-        rd: Reg::from(opcode.get_bits(8..12) as u8),
-        rn: Reg::from(opcode.get_bits(16..20) as u8),
-        imm32: thumb_expand_imm(&params, &lengths),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: AdcImmParams {
+            rd: Reg::from(opcode.get_bits(8..12) as u8),
+            rn: Reg::from(opcode.get_bits(16..20) as u8),
+            imm32: thumb_expand_imm(&params, &lengths),
+            setflags: if s == 1 {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
         },
     }
 }

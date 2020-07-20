@@ -1,6 +1,6 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SRType;
+use crate::core::instruction::{CmpParams, SRType};
 use crate::core::operation::{decode_imm_shift, thumb_expand_imm};
 use crate::core::register::Reg;
 
@@ -8,8 +8,10 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_CMP_imm_t1(opcode: u16) -> Instruction {
     Instruction::CMP_imm {
-        rn: Reg::from(opcode.get_bits(8..11) as u8),
-        imm32: u32::from(opcode.get_bits(0..8)),
+        params: CmpParams {
+            rn: Reg::from(opcode.get_bits(8..11) as u8),
+            imm32: u32::from(opcode.get_bits(0..8)),
+        },
         thumb32: false,
     }
 }
@@ -27,8 +29,10 @@ pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::CMP_imm {
-        rn: Reg::from(rn),
-        imm32: thumb_expand_imm(&params, &lengths),
+        params: CmpParams {
+            rn: Reg::from(rn),
+            imm32: thumb_expand_imm(&params, &lengths),
+        },
         thumb32: true,
     }
 }

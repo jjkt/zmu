@@ -1,6 +1,7 @@
-use crate::core::instruction::AdcRegParams;
-use crate::core::instruction::Imm32Carry;
-use crate::core::instruction::{SRType, SetFlags};
+use crate::core::instruction::{
+    AdcImmParams, AdcRegParams, CmpParams, Imm32Carry, SRType, SetFlags,
+};
+
 use crate::core::register::{DoubleReg, ExtensionReg, Reg};
 
 use super::*;
@@ -340,8 +341,10 @@ fn test_decode_cmp() {
     assert_eq!(
         decode_16(0x2800),
         Instruction::CMP_imm {
-            rn: Reg::R0,
-            imm32: 0,
+            params: CmpParams {
+                rn: Reg::R0,
+                imm32: 0,
+            },
             thumb32: false,
         }
     );
@@ -368,8 +371,10 @@ fn test_decode_cmp() {
     assert_eq!(
         decode_16(0x2a00),
         Instruction::CMP_imm {
-            rn: Reg::R2,
-            imm32: 0,
+            params: CmpParams {
+                rn: Reg::R2,
+                imm32: 0,
+            },
             thumb32: false,
         }
     );
@@ -526,17 +531,11 @@ fn test_decode_add_reg_pc() {
 fn test_decode_add_reg_imm() {
     // ADDS R1, R1, 24
     match decode_16(0x3118) {
-        Instruction::ADD_imm {
-            rn,
-            rd,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R1);
-            assert!(rd == Reg::R1);
-            assert!(imm32 == 24);
-            assert!(setflags == SetFlags::NotInITBlock);
+        Instruction::ADD_imm { params, thumb32 } => {
+            assert!(params.rn == Reg::R1);
+            assert!(params.rd == Reg::R1);
+            assert!(params.imm32 == 24);
+            assert!(params.setflags == SetFlags::NotInITBlock);
             assert!(thumb32 == false);
         }
         _ => {
@@ -549,17 +548,11 @@ fn test_decode_add_reg_imm() {
 fn test_decode_add_reg_sp() {
     // ADD R1, SP, #0xc
     match decode_16(0xa903) {
-        Instruction::ADD_imm {
-            rn,
-            rd,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rn == Reg::SP);
-            assert!(rd == Reg::R1);
-            assert!(imm32 == 0xc);
-            assert!(setflags == SetFlags::False);
+        Instruction::ADD_imm { params, thumb32 } => {
+            assert!(params.rn == Reg::SP);
+            assert!(params.rd == Reg::R1);
+            assert!(params.imm32 == 0xc);
+            assert!(params.setflags == SetFlags::False);
             assert!(thumb32 == false);
         }
         _ => {
@@ -572,17 +565,11 @@ fn test_decode_add_reg_sp() {
 fn test_decode_sub() {
     // SUB SP,SP, #0x8
     match decode_16(0xb082) {
-        Instruction::SUB_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::SP);
-            assert!(rn == Reg::SP);
-            assert!(imm32 == 0x8);
-            assert!(setflags == SetFlags::False);
+        Instruction::SUB_imm { params, thumb32 } => {
+            assert!(params.rd == Reg::SP);
+            assert!(params.rn == Reg::SP);
+            assert!(params.imm32 == 0x8);
+            assert!(params.setflags == SetFlags::False);
             assert!(thumb32 == false);
         }
         _ => {
@@ -595,17 +582,11 @@ fn test_decode_sub() {
 fn test_decode_sub2() {
     // SUBS R2,R2,#48
     match decode_16(0x3a30) {
-        Instruction::SUB_imm {
-            rd,
-            rn,
-            imm32,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R2);
-            assert!(rn == Reg::R2);
-            assert!(imm32 == 48);
-            assert!(setflags == SetFlags::NotInITBlock);
+        Instruction::SUB_imm { params, thumb32 } => {
+            assert!(params.rd == Reg::R2);
+            assert!(params.rn == Reg::R2);
+            assert!(params.imm32 == 48);
+            assert!(params.setflags == SetFlags::NotInITBlock);
             assert!(thumb32 == false);
         }
         _ => {
@@ -889,14 +870,14 @@ fn test_decode_lsr_reg() {
 fn test_decode_adc_reg() {
     // ADCS R2,R2,R2
     match decode_16(0x4152) {
-        Instruction::ADC_reg { params } => {
+        Instruction::ADC_reg { params, thumb32 } => {
             assert!(params.rd == Reg::R2);
             assert!(params.rm == Reg::R2);
             assert!(params.rn == Reg::R2);
             assert!(params.setflags == SetFlags::NotInITBlock);
             assert!(params.shift_t == SRType::LSL);
             assert!(params.shift_n == 0);
-            assert!(!params.thumb32);
+            assert!(!thumb32);
         }
         _ => {
             assert!(false);
@@ -1330,10 +1311,12 @@ fn test_decode_rsb_imm() {
     assert_eq!(
         decode_16(0x4242),
         Instruction::RSB_imm {
-            rd: Reg::R2,
-            rn: Reg::R0,
-            imm32: 0,
-            setflags: SetFlags::NotInITBlock,
+            params: AdcImmParams {
+                rd: Reg::R2,
+                rn: Reg::R0,
+                imm32: 0,
+                setflags: SetFlags::NotInITBlock,
+            },
             thumb32: false
         }
     );
@@ -1524,10 +1507,12 @@ fn test_decode_subw_imm() {
     assert_eq!(
         decode_32(0xf6ad0d24),
         Instruction::SUB_imm {
-            rd: Reg::SP,
-            rn: Reg::SP,
-            imm32: 2084,
-            setflags: SetFlags::False,
+            params: AdcImmParams {
+                rd: Reg::SP,
+                rn: Reg::SP,
+                imm32: 2084,
+                setflags: SetFlags::False,
+            },
             thumb32: true,
         }
     );
@@ -1713,8 +1698,10 @@ fn test_decode_cmp_imm_w() {
     assert_eq!(
         decode_32(0xf1ba0f00),
         Instruction::CMP_imm {
-            rn: Reg::R10,
-            imm32: 0,
+            params: CmpParams {
+                rn: Reg::R10,
+                imm32: 0,
+            },
             thumb32: true,
         }
     );
@@ -1992,11 +1979,13 @@ fn test_decode_adds_w() {
     assert_eq!(
         decode_32(0xf1180801),
         Instruction::ADD_imm {
-            rn: Reg::R8,
-            rd: Reg::R8,
-            thumb32: true,
-            imm32: 1,
-            setflags: SetFlags::True
+            params: AdcImmParams {
+                rn: Reg::R8,
+                rd: Reg::R8,
+                imm32: 1,
+                setflags: SetFlags::True
+            },
+            thumb32: true
         }
     );
 }
@@ -2229,10 +2218,12 @@ fn test_decode_rsb_w_reg() {
     assert_eq!(
         decode_32(0xf1c6003c),
         Instruction::RSB_imm {
-            rd: Reg::R0,
-            rn: Reg::R6,
-            imm32: 60,
-            setflags: SetFlags::False,
+            params: AdcImmParams {
+                rd: Reg::R0,
+                rn: Reg::R6,
+                imm32: 60,
+                setflags: SetFlags::False,
+            },
             thumb32: true
         }
     );
@@ -2440,10 +2431,12 @@ fn test_decode_sbc_imm_w() {
     assert_eq!(
         decode_32(0xf1670700),
         Instruction::SBC_imm {
-            rd: Reg::R7,
-            rn: Reg::R7,
-            setflags: false,
-            imm32: 0
+            params: AdcImmParams {
+                rd: Reg::R7,
+                rn: Reg::R7,
+                setflags: SetFlags::False,
+                imm32: 0
+            }
         }
     );
 }
@@ -2462,8 +2455,8 @@ fn test_decode_adc_reg_w() {
                 setflags: SetFlags::True,
                 shift_t: SRType::LSL,
                 shift_n: 20,
-                thumb32: true,
-            }
+            },
+            thumb32: true,
         }
     );
 }
@@ -2493,10 +2486,12 @@ fn test_decode_adc_imm_w() {
     assert_eq!(
         decode_32(0xf1540401),
         Instruction::ADC_imm {
-            rd: Reg::R4,
-            rn: Reg::R4,
-            setflags: SetFlags::True,
-            imm32: 1
+            params: AdcImmParams {
+                rd: Reg::R4,
+                rn: Reg::R4,
+                setflags: SetFlags::True,
+                imm32: 1
+            }
         }
     );
 }
@@ -2851,10 +2846,12 @@ fn test_decode_subw_imm_t4() {
     assert_eq!(
         decode_32(0xf2a44333),
         Instruction::SUB_imm {
-            rd: Reg::R3,
-            rn: Reg::R4,
-            imm32: 1075,
-            setflags: SetFlags::False,
+            params: AdcImmParams {
+                rd: Reg::R3,
+                rn: Reg::R4,
+                imm32: 1075,
+                setflags: SetFlags::False,
+            },
             thumb32: true,
         }
     );

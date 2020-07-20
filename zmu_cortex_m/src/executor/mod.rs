@@ -5,25 +5,21 @@
 use crate::bus::Bus;
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
-use crate::core::exception::Exception;
-use crate::core::exception::ExceptionHandling;
+use crate::core::exception::{Exception, ExceptionHandling};
 use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SRType, SetFlags};
 use crate::core::monitor::Monitor;
-use crate::core::operation::condition_test;
 use crate::core::operation::{
-    add_with_carry, ror, shift, shift_c, sign_extend, zero_extend, zero_extend_u16,
+    add_with_carry, condition_test, ror, shift, shift_c, sign_extend, zero_extend, zero_extend_u16,
 };
-use crate::core::register::{Apsr, BaseReg, Reg};
-use crate::core::register::{ExtensionReg, ExtensionRegOperations};
+use crate::core::register::{Apsr, BaseReg, ExtensionReg, ExtensionRegOperations, Reg};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
-use crate::semihosting::decode_semihostcmd;
-use crate::semihosting::semihost_return;
+use crate::semihosting::{decode_semihostcmd, semihost_return};
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
 mod adc;
-use crate::executor::adc::AdcReg;
+use crate::executor::adc::InstructionAdc;
 
 ///
 /// Stepping processor with instructions
@@ -151,30 +147,8 @@ impl ExecutorHelper for Processor {
     #[allow(clippy::too_many_lines)]
     fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
-            Instruction::ADC_reg { params } => self.exec_adc_reg(params),
-            Instruction::ADC_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (result, carry, overflow) = add_with_carry(r_n, *imm32, self.psr.get_c());
-
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                        self.psr.set_v(overflow);
-                    }
-
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::ADC_reg { params, .. } => self.exec_adc_reg(params),
+            Instruction::ADC_imm { params } => self.exec_adc_imm(params),
 
             Instruction::ASR_imm {
                 rd,
@@ -1085,18 +1059,7 @@ impl ExecutorHelper for Processor {
                 }
             }
 
-            Instruction::CMP_imm { rn, imm32, thumb32 } => {
-                if self.condition_passed() {
-                    let (result, carry, overflow) =
-                        add_with_carry(self.get_r(*rn), imm32 ^ 0xFFFF_FFFF, true);
-                    self.psr.set_n(result);
-                    self.psr.set_z(result);
-                    self.psr.set_c(carry);
-                    self.psr.set_v(overflow);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::CMP_imm { params, thumb32 } => self.exec_cmp_imm(*params),
 
             Instruction::CMP_reg {
                 rn,
@@ -1147,17 +1110,7 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::CMN_imm { rn, imm32 } => {
-                if self.condition_passed() {
-                    let (result, carry, overflow) = add_with_carry(self.get_r(*rn), *imm32, false);
-                    self.psr.set_n(result);
-                    self.psr.set_z(result);
-                    self.psr.set_c(carry);
-                    self.psr.set_v(overflow);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::CMN_imm { params } => self.exec_cmn_imm(*params),
 
             Instruction::PUSH { registers, thumb32 } => {
                 if self.condition_passed() {
@@ -1533,8 +1486,8 @@ impl ExecutorHelper for Processor {
                 shift_t,
                 shift_n,
                 index,
-                wback,
                 add,
+                wback,
                 thumb32,
             } => {
                 if self.condition_passed() {
@@ -1794,10 +1747,10 @@ impl ExecutorHelper for Processor {
                 rm,
                 shift_t,
                 shift_n,
-                thumb32,
                 index,
                 add,
                 wback,
+                thumb32,
             } => {
                 if self.condition_passed() {
                     let c = self.psr.get_c();
@@ -1991,29 +1944,7 @@ impl ExecutorHelper for Processor {
                 }
             }
 
-            Instruction::ADD_imm {
-                rn,
-                rd,
-                imm32,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (result, carry, overflow) = add_with_carry(r_n, *imm32, false);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                        self.psr.set_v(overflow);
-                    }
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::ADD_imm { params, thumb32 } => self.exec_add_imm(params),
 
             Instruction::ADR { rd, imm32, thumb32 } => {
                 if self.condition_passed() {
@@ -2024,53 +1955,8 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::NotTaken)
             }
 
-            Instruction::RSB_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (result, carry, overflow) = add_with_carry(r_n ^ 0xFFFF_FFFF, *imm32, true);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                        self.psr.set_v(overflow);
-                    }
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::SBC_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (result, carry, overflow) =
-                        add_with_carry(r_n, *imm32 ^ 0xFFFF_FFFF, self.psr.get_c());
-
-                    self.set_r(*rd, result);
-
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                        self.psr.set_v(overflow);
-                    }
-
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::RSB_imm { params, thumb32 } => self.exec_rsb_imm(params),
+            Instruction::SBC_imm { params } => self.exec_sbc_imm(params),
 
             Instruction::RSB_reg {
                 rd,
@@ -2102,29 +1988,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::NotTaken)
             }
 
-            Instruction::SUB_imm {
-                rn,
-                rd,
-                imm32,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (result, carry, overflow) = add_with_carry(r_n, imm32 ^ 0xFFFF_FFFF, true);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                        self.psr.set_v(overflow);
-                    }
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
+            Instruction::SUB_imm { params, thumb32 } => self.exec_sub_imm(params),
 
             Instruction::SUB_reg {
                 rn,
