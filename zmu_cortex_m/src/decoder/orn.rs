@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{Instruction, Reg3ShiftParams, SetFlags};
 use crate::core::operation::decode_imm_shift;
 
 #[allow(non_snake_case)]
@@ -9,14 +9,17 @@ pub fn decode_ORN_reg_t1(opcode: u32) -> Instruction {
     let type_: u8 = opcode.get_bits(4..6) as u8;
 
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
+    let s = opcode.get_bit(20);
 
     Instruction::ORN_reg {
-        rd: opcode.get_bits(8..12).into(),
-        rn: opcode.get_bits(16..20).into(),
-        rm: opcode.get_bits(0..4).into(),
-        setflags: opcode.get_bit(20),
-        shift_t,
-        shift_n,
+        params: Reg3ShiftParams {
+            rd: opcode.get_bits(8..12).into(),
+            rn: opcode.get_bits(16..20).into(),
+            rm: opcode.get_bits(0..4).into(),
+            setflags: if s { SetFlags::True } else { SetFlags::False },
+            shift_t,
+            shift_n,
+        },
     }
 }
 

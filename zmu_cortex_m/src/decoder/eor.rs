@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType, SetFlags};
+use crate::core::instruction::{Reg3ShiftParams, SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::register::Reg;
@@ -10,12 +10,14 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_EOR_reg_t1(opcode: u16) -> Instruction {
     Instruction::EOR_reg {
-        rd: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..6) as u8),
-        setflags: SetFlags::NotInITBlock,
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg3ShiftParams {
+            rd: Reg::from(opcode.get_bits(0..3) as u8),
+            rn: Reg::from(opcode.get_bits(0..3) as u8),
+            rm: Reg::from(opcode.get_bits(3..6) as u8),
+            setflags: SetFlags::NotInITBlock,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -34,16 +36,18 @@ pub fn decode_EOR_reg_t2(opcode: u32) -> Instruction {
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
 
     Instruction::EOR_reg {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        rm: Reg::from(rm),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: Reg3ShiftParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            rm: Reg::from(rm),
+            setflags: if s == 1 {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
+            shift_t,
+            shift_n,
         },
-        shift_t,
-        shift_n,
         thumb32: true,
     }
 }

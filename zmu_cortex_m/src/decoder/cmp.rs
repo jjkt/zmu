@@ -1,6 +1,6 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{CmpParams, SRType};
+use crate::core::instruction::{Reg2ShiftNoSetFlagsParams, RegImmParams, SRType};
 use crate::core::operation::{decode_imm_shift, thumb_expand_imm};
 use crate::core::register::Reg;
 
@@ -8,7 +8,7 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_CMP_imm_t1(opcode: u16) -> Instruction {
     Instruction::CMP_imm {
-        params: CmpParams {
+        params: RegImmParams {
             rn: Reg::from(opcode.get_bits(8..11) as u8),
             imm32: u32::from(opcode.get_bits(0..8)),
         },
@@ -29,7 +29,7 @@ pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::CMP_imm {
-        params: CmpParams {
+        params: RegImmParams {
             rn: Reg::from(rn),
             imm32: thumb_expand_imm(&params, &lengths),
         },
@@ -41,10 +41,12 @@ pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
 #[inline(always)]
 pub fn decode_CMP_reg_t1(opcode: u16) -> Instruction {
     Instruction::CMP_reg {
-        rn: Reg::from(opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..6) as u8),
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg2ShiftNoSetFlagsParams {
+            rn: Reg::from(opcode.get_bits(0..3) as u8),
+            rm: Reg::from(opcode.get_bits(3..6) as u8),
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -53,10 +55,12 @@ pub fn decode_CMP_reg_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_CMP_reg_t2(opcode: u16) -> Instruction {
     Instruction::CMP_reg {
-        rn: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..7) as u8),
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg2ShiftNoSetFlagsParams {
+            rn: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
+            rm: Reg::from(opcode.get_bits(3..7) as u8),
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -69,10 +73,12 @@ pub fn decode_CMP_reg_t3(opcode: u32) -> Instruction {
 
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
     Instruction::CMP_reg {
-        rm: Reg::from(opcode.get_bits(0..4)),
-        rn: Reg::from(opcode.get_bits(16..20)),
-        shift_t,
-        shift_n,
+        params: Reg2ShiftNoSetFlagsParams {
+            rm: Reg::from(opcode.get_bits(0..4)),
+            rn: Reg::from(opcode.get_bits(16..20)),
+            shift_t,
+            shift_n,
+        },
         thumb32: true,
     }
 }

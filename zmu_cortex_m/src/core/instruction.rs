@@ -37,19 +37,19 @@ pub enum ITCondition {
 /// Coding of imm32+carry variants for more efficient run time behaviour
 ///
 pub enum Imm32Carry {
-    /// precalculated value carry value was not relevant
-    /// for the decoding
+    /// Precalculated value carry value was not relevant
+    /// for the decoding.
     NoCarry {
         /// imm32 original value
         imm32: u32,
     },
-    /// precalculated values for cases ASPR.C == 0 and ASPR.C ==1
-    /// if carry was relevant for the decoding
-    /// tuple of (immediate value, carry)
+    /// Precalculated values for cases ASPR.C == 0 and ASPR.C ==1
+    /// If carry was relevant for the decoding
+    /// tuple of (immediate value, carry).
     Carry {
-        /// values of imm32 and carry, when carry was originally 0
+        /// Values of imm32 and carry, when carry was originally 0.
         imm32_c0: (u32, bool),
-        /// values of imm32 and carry, when carry was originally 1
+        /// Values of imm32 and carry, when carry was originally 1.
         imm32_c1: (u32, bool),
     },
 }
@@ -67,18 +67,28 @@ pub enum SetFlags {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct AdcRegParams {
+pub struct Reg3ShiftParams {
     pub rd: Reg,
     pub rn: Reg,
     pub rm: Reg,
-    pub setflags: SetFlags,
     pub shift_t: SRType,
     pub shift_n: u8,
+    pub setflags: SetFlags,
 }
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct AdcImmParams {
+pub struct Reg2ShiftParams {
+    pub rd: Reg,
+    pub rm: Reg,
+    pub shift_t: SRType,
+    pub shift_n: u8,
+    pub setflags: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2ImmParams {
     pub rd: Reg,
     pub rn: Reg,
     pub imm32: u32,
@@ -87,7 +97,16 @@ pub struct AdcImmParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct CmpParams {
+pub struct Reg2ShiftNoSetFlagsParams {
+    pub rn: Reg,
+    pub rm: Reg,
+    pub shift_t: SRType,
+    pub shift_n: u8,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct RegImmParams {
     pub rn: Reg,
     pub imm32: u32,
 }
@@ -99,31 +118,22 @@ pub struct CmpParams {
 ///
 pub enum Instruction {
     ADC_reg {
-        params: AdcRegParams,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     ADC_imm {
-        params: AdcImmParams,
+        params: Reg2ImmParams,
     },
     ADD_imm {
-        params: AdcImmParams,
+        params: Reg2ImmParams,
         thumb32: bool,
     },
     ADD_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     ADD_sp_reg {
-        rd: Reg,
-        rm: Reg,
-        setflags: bool,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg2ShiftParams,
         thumb32: bool,
     },
     ADR {
@@ -132,12 +142,7 @@ pub enum Instruction {
         thumb32: bool,
     },
     AND_reg {
-        rd: Reg,
-        rm: Reg,
-        rn: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     AND_imm {
@@ -176,12 +181,7 @@ pub enum Instruction {
         msbit: usize,
     },
     BIC_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     BIC_imm {
@@ -218,24 +218,18 @@ pub enum Instruction {
         rm: Reg,
     },
     CMN_reg {
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg2ShiftNoSetFlagsParams,
         thumb32: bool,
     },
     CMN_imm {
-        params: CmpParams,
+        params: RegImmParams,
     },
     CMP_imm {
-        params: CmpParams,
+        params: RegImmParams,
         thumb32: bool,
     },
     CMP_reg {
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg2ShiftNoSetFlagsParams,
         thumb32: bool,
     },
     CPS {
@@ -248,12 +242,7 @@ pub enum Instruction {
     DMB,
     DSB,
     EOR_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        setflags: SetFlags,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     EOR_imm {
@@ -516,12 +505,7 @@ pub enum Instruction {
         thumb32: bool,
     },
     ORR_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        setflags: SetFlags,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     ORR_imm {
@@ -531,12 +515,7 @@ pub enum Instruction {
         setflags: bool,
     },
     ORN_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        setflags: bool,
+        params: Reg3ShiftParams,
     },
     POP {
         registers: EnumSet<Reg>,
@@ -584,16 +563,11 @@ pub enum Instruction {
         thumb32: bool,
     },
     RSB_imm {
-        params: AdcImmParams,
+        params: Reg2ImmParams,
         thumb32: bool,
     },
     RSB_reg {
-        rd: Reg,
-        rm: Reg,
-        rn: Reg,
-        setflags: bool,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     RRX {
@@ -602,16 +576,11 @@ pub enum Instruction {
         setflags: bool,
     },
     SBC_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     SBC_imm {
-        params: AdcImmParams,
+        params: Reg2ImmParams,
     },
     SEV {
         thumb32: bool,
@@ -731,16 +700,11 @@ pub enum Instruction {
         thumb32: bool,
     },
     SUB_imm {
-        params: AdcImmParams,
+        params: Reg2ImmParams,
         thumb32: bool,
     },
     SUB_reg {
-        rm: Reg,
-        rn: Reg,
-        rd: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
+        params: Reg3ShiftParams,
         thumb32: bool,
     },
     SVC {
@@ -1064,44 +1028,29 @@ impl fmt::Display for Instruction {
                 params.rn,
                 params.imm32
             ),
-            Self::ADD_reg {
-                rm,
-                rn,
-                rd,
-                ref setflags,
-                ref shift_t,
-                shift_n,
-                thumb32,
-            } => write!(
+            Self::ADD_reg { params, thumb32 } => write!(
                 f,
                 "add{}{} {}, {}, {}{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
             ),
-            Self::ADD_sp_reg {
-                rm,
-                rd,
-                setflags,
-                ref shift_t,
-                shift_n,
-                thumb32,
-            } => write!(
+            Self::ADD_sp_reg { params, thumb32 } => write!(
                 f,
                 "add{}{} {}, SP, {}{}",
-                if setflags { "s" } else { "" },
+                if params.setflags { "s" } else { "" },
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1127,24 +1076,16 @@ impl fmt::Display for Instruction {
                 rd,
                 imm32
             ),
-            Self::AND_reg {
-                rd,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::AND_reg { params, thumb32 } => write!(
                 f,
                 "and{}{} {}, {}, {}{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1209,24 +1150,16 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Self::BIC_reg {
-                rd,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::BIC_reg { params, thumb32 } => write!(
                 f,
                 "bic{}{} {}, {}, {}{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1282,20 +1215,14 @@ impl fmt::Display for Instruction {
                 ref msbit,
             } => write!(f, "bfc {}, #{}, #{}", rd, lsbit, msbit - lsbit + 1),
 
-            Self::CMN_reg {
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                thumb32,
-            } => write!(
+            Self::CMN_reg { params, thumb32 } => write!(
                 f,
                 "cmn{} {}, {}{}",
                 if thumb32 { ".W" } else { "" },
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1316,20 +1243,14 @@ impl fmt::Display for Instruction {
                 params.rn,
                 params.imm32
             ),
-            Self::CMP_reg {
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                thumb32,
-            } => write!(
+            Self::CMP_reg { params, thumb32 } => write!(
                 f,
                 "cmp{} {}, {}{}",
                 if thumb32 { ".W" } else { "" },
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1351,24 +1272,16 @@ impl fmt::Display for Instruction {
             ),
             Self::DMB => write!(f, "dmb"),
             Self::DSB => write!(f, "dsb"),
-            Self::EOR_reg {
-                rd,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::EOR_reg { params, thumb32 } => write!(
                 f,
                 "eor{}{} {}, {}, {}{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1732,24 +1645,16 @@ impl fmt::Display for Instruction {
                 }
             ),
             Self::NOP { .. } => write!(f, "nop"),
-            Self::ORR_reg {
-                rd,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::ORR_reg { params, thumb32 } => write!(
                 f,
                 "orr{}{} {}, {}, {}{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1770,22 +1675,15 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Self::ORN_reg {
-                rd,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                setflags,
-            } => write!(
+            Self::ORN_reg { params } => write!(
                 f,
                 "orn{}.w {}, {}, {}{}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                setflags_to_str(params.setflags),
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
@@ -1877,46 +1775,30 @@ impl fmt::Display for Instruction {
                 params.rn,
                 params.imm32
             ),
-            Self::RSB_reg {
-                rd,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                setflags,
-                thumb32,
-            } => write!(
+            Self::RSB_reg { params, thumb32 } => write!(
                 f,
                 "rsb{}{} {}, {}, {}{}",
-                if setflags { "s" } else { "" },
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm,
-                if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.shift_n > 0 {
+                    format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
                     "".to_string()
                 }
             ),
 
             Self::SEV { .. } => write!(f, "sev"),
-            Self::SBC_reg {
-                rd,
-                rn,
-                rm,
-                ref setflags,
-                thumb32,
-                ref shift_t,
-                shift_n,
-            } => write!(
+            Self::SBC_reg { params, thumb32 } => write!(
                 f,
                 "sbc{}{} {}, {}, {}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm
+                params.rd,
+                params.rn,
+                params.rm
             ),
             Self::STM {
                 rn,
@@ -2048,22 +1930,14 @@ impl fmt::Display for Instruction {
                     )
                 }
             }
-            Self::SUB_reg {
-                rm,
-                rn,
-                rd,
-                ref setflags,
-                ref shift_t,
-                shift_n,
-                thumb32,
-            } => write!(
+            Self::SUB_reg { params, thumb32 } => write!(
                 f,
                 "sub{}{} {}, {}, {}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm
+                params.rd,
+                params.rn,
+                params.rm
             ),
             Self::TEQ_reg {
                 rm,
