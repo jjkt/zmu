@@ -19,8 +19,10 @@ use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
 mod add_with_carry;
+mod bitoper;
 mod boole_algebra;
 use crate::executor::add_with_carry::InstructionAdc;
+use crate::executor::bitoper::InstructionBitOper;
 use crate::executor::boole_algebra::InstructionBooleAlgebra;
 ///
 /// Stepping processor with instructions
@@ -191,9 +193,19 @@ impl ExecutorHelper for Processor {
             Instruction::SUB_imm { params, .. } => self.exec_sub_imm(params),
 
             //
-            // Booles algebra based instruction variants
+            // Boole's algebra based instruction variants
             //
             Instruction::AND_reg { params, .. } => self.exec_and_reg(params),
+            Instruction::EOR_reg { params, thumb32 } => self.exec_eor_reg(params),
+
+            Instruction::AND_imm { params } => self.exec_and_imm(params),
+            Instruction::EOR_imm { params } => self.exec_eor_imm(params),
+            Instruction::ORR_imm { params } => self.exec_orr_imm(params),
+
+            //
+            // bit manipulations
+            //
+            Instruction::BIC_imm { params } => self.exec_bic_imm(params),
 
             Instruction::ASR_imm {
                 rd,
@@ -260,30 +272,10 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::BIC_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
 
-                    let result = self.get_r(*rn) & (im ^ 0xffff_ffff);
-                    self.set_r(*rd, result);
-
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
             Instruction::BFI {
-                rn,
                 rd,
+                rn,
                 lsbit,
                 width,
             } => {
@@ -770,29 +762,7 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::ORR_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
 
-                    let result = r_n | im;
-
-                    self.set_r(*rd, result);
-
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
             Instruction::ORN_reg { params } => {
                 if self.condition_passed() {
                     let r_n = self.get_r(params.rn);
@@ -805,76 +775,6 @@ impl ExecutorHelper for Processor {
                     self.set_r(params.rd, result);
 
                     if params.setflags == SetFlags::True {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::EOR_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
-
-                    let result = r_n ^ im;
-
-                    self.set_r(*rd, result);
-
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::EOR_reg { params, thumb32 } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(params.rn);
-                    let r_m = self.get_r(params.rm);
-                    let c = self.psr.get_c();
-
-                    let (shifted, carry) = shift_c(r_m, params.shift_t, params.shift_n as usize, c);
-
-                    let result = r_n ^ shifted;
-
-                    self.set_r(params.rd, result);
-
-                    if conditional_setflags(params.setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::AND_imm {
-                rd,
-                rn,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
-
-                    let result = r_n & im;
-
-                    self.set_r(*rd, result);
-
-                    if *setflags {
                         self.psr.set_n(result);
                         self.psr.set_z(result);
                         self.psr.set_c(carry);

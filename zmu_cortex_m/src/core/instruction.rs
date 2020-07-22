@@ -97,6 +97,15 @@ pub struct Reg2ImmParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2ImmCarryParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub imm32: Imm32Carry,
+    pub setflags: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg2ShiftNoSetFlagsParams {
     pub rn: Reg,
     pub rm: Reg,
@@ -114,43 +123,256 @@ pub struct RegImmParams {
 #[allow(non_camel_case_types, missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 ///
-/// List of acknowledged instrctions
-///
+/// Instruction set
+/// These "micro instructions" are produced by the decoder
+/// and operated on by the executor.
+/// Note that the instruction list is not 1:1 to
+/// the mnemonics listed in the ref manual, instead
+/// the exact variant is decoded to allow faster runtime.
 pub enum Instruction {
-    ADC_reg {
-        params: Reg3ShiftParams,
+    // --------------------------------------------
+    //
+    // Group: Branch instructions
+    //
+    // --------------------------------------------
+    /// Branch to target address (on condition)
+    B_t13 {
+        cond: Condition,
+        imm32: i32,
         thumb32: bool,
     },
-    ADC_imm {
-        params: Reg2ImmParams,
+    /// Branch to target address
+    B_t24 {
+        imm32: i32,
+        thumb32: bool,
     },
+    /// Call a subroutine
+    BL {
+        imm32: i32,
+    },
+    /// Call a subroutine, optionally change instruction set
+    BLX {
+        rm: Reg,
+    },
+    /// Change to target address, change instruction set
+    BX {
+        rm: Reg,
+    },
+    /// Compare and branch on Nonzero / Zero
+    CBZ {
+        rn: Reg,
+        nonzero: bool,
+        imm32: u32,
+    },
+    /// Table branch, byte offsets
+    TBB {
+        rn: Reg,
+        rm: Reg,
+    },
+    /// Table branch, halfword offsets
+    TBH {
+        rn: Reg,
+        rm: Reg,
+    },
+
+    // --------------------------------------------
+    //
+    // Group: Standard data-processing instructions
+    //
+    // --------------------------------------------
+    /// Add (immediate)
     ADD_imm {
         params: Reg2ImmParams,
         thumb32: bool,
     },
+    /// Add (register)
     ADD_reg {
         params: Reg3ShiftParams,
         thumb32: bool,
     },
+    /// Add (register, sp)
     ADD_sp_reg {
         params: Reg2ShiftParams,
         thumb32: bool,
     },
+    /// Add with Carry
+    ADC_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+    /// Add with Carry
+    ADC_imm {
+        params: Reg2ImmParams,
+    },
+
+    /// Form PC-relative Address
     ADR {
         rd: Reg,
         imm32: u32,
         thumb32: bool,
     },
+
+    /// Bitwise AND
     AND_reg {
         params: Reg3ShiftParams,
         thumb32: bool,
     },
+    /// Bitwise AND
     AND_imm {
+        params: Reg2ImmCarryParams,
+    },
+
+    /// Bitwise Bit Clear
+    BIC_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+    /// Bitwise Bit Clear
+    BIC_imm {
+        params: Reg2ImmCarryParams,
+    },
+
+    /// Compare Negative
+    CMN_reg {
+        params: Reg2ShiftNoSetFlagsParams,
+        thumb32: bool,
+    },
+    /// Compare Negative
+    CMN_imm {
+        params: RegImmParams,
+    },
+
+    /// Compare
+    CMP_imm {
+        params: RegImmParams,
+        thumb32: bool,
+    },
+    /// Compare
+    CMP_reg {
+        params: Reg2ShiftNoSetFlagsParams,
+        thumb32: bool,
+    },
+
+    /// Bitwise Exclusive OR
+    EOR_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+    /// Bitwise Exclusive OR
+    EOR_imm {
+        params: Reg2ImmCarryParams,
+    },
+
+    /// Copies operand to destination
+    MOV_imm {
         rd: Reg,
-        rn: Reg,
+        imm32: Imm32Carry,
+        setflags: SetFlags,
+        thumb32: bool,
+    },
+    /// Copies operand to destination
+    MOV_reg {
+        rd: Reg,
+        rm: Reg,
+        setflags: bool,
+        thumb32: bool,
+    },
+
+    /// Bitwise NOT
+    MVN_reg {
+        rd: Reg,
+        rm: Reg,
+        setflags: SetFlags,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
+    },
+    /// Bitwise NOT
+    MVN_imm {
+        rd: Reg,
         imm32: Imm32Carry,
         setflags: bool,
     },
+    /// Bitwise OR NOT
+    ORN_reg {
+        params: Reg3ShiftParams,
+    },
+
+    /// Bitwise OR
+    ORR_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+    /// Bitwise OR
+    ORR_imm {
+        params: Reg2ImmCarryParams,
+    },
+
+    /// Reverse subtract
+    RSB_imm {
+        params: Reg2ImmParams,
+        thumb32: bool,
+    },
+    /// Reverse subtract
+    RSB_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+
+    /// Subtract with Carry
+    SBC_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+    /// Subtract with Carry
+    SBC_imm {
+        params: Reg2ImmParams,
+    },
+
+    /// Subtract
+    SUB_imm {
+        params: Reg2ImmParams,
+        thumb32: bool,
+    },
+    /// Subtract
+    SUB_reg {
+        params: Reg3ShiftParams,
+        thumb32: bool,
+    },
+
+    /// Test equivalence
+    TEQ_reg {
+        rn: Reg,
+        rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+    },
+    /// Test equivalence
+    TEQ_imm {
+        rn: Reg,
+        imm32: Imm32Carry,
+    },
+
+    /// Test
+    TST_reg {
+        rn: Reg,
+        rm: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        thumb32: bool,
+    },
+    /// Test
+    TST_imm {
+        rn: Reg,
+        imm32: Imm32Carry,
+    },
+
+    // --------------------------------------------
+    //
+    // Group: Shift instructions
+    //
+    // --------------------------------------------
+    /// Arithmetic shift right
     ASR_imm {
         rd: Reg,
         rm: Reg,
@@ -158,6 +380,7 @@ pub enum Instruction {
         setflags: SetFlags,
         thumb32: bool,
     },
+    /// Arithmetic shift right
     ASR_reg {
         rd: Reg,
         rn: Reg,
@@ -165,73 +388,312 @@ pub enum Instruction {
         setflags: SetFlags,
         thumb32: bool,
     },
+    /// Logical Shift Left (immediate)
+    LSL_imm {
+        rd: Reg,
+        rm: Reg,
+        shift_n: u8,
+        setflags: SetFlags,
+        thumb32: bool,
+    },
+    /// Logical Shift Left (register)
+    LSL_reg {
+        rd: Reg,
+        rm: Reg,
+        rn: Reg,
+        setflags: SetFlags,
+        thumb32: bool,
+    },
+    /// Logical Shift Right (immediate)
+    LSR_imm {
+        rd: Reg,
+        rm: Reg,
+        shift_n: u8,
+        setflags: SetFlags,
+        thumb32: bool,
+    },
+    /// Logical Shift Right (register)
+    LSR_reg {
+        rd: Reg,
+        rm: Reg,
+        rn: Reg,
+        setflags: SetFlags,
+        thumb32: bool,
+    },
+    /// Rotate Right (immediate)
+    ROR_imm {
+        rd: Reg,
+        rm: Reg,
+        shift_n: u8,
+        setflags: bool,
+    },
+    /// Rotate Right (register)
+    ROR_reg {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: SetFlags,
+        thumb32: bool,
+    },
+    /// Rotate Right with Extend
+    RRX {
+        rd: Reg,
+        rm: Reg,
+        setflags: bool,
+    },
 
-    B_t13 {
-        cond: Condition,
-        imm32: i32,
+    // --------------------------------------------
+    //
+    // Group: Multiply instructions
+    //
+    // --------------------------------------------
+    /// Multipy and Accumulate
+    MLA {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        ra: Reg,
+    },
+    /// Multipy and subtract
+    MLS {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        ra: Reg,
+    },
+    /// Multipy
+    MUL {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+        setflags: SetFlags,
         thumb32: bool,
     },
-    B_t24 {
-        imm32: i32,
+    /// Signed Multiply and Accumulate (Long)
+    SMLAL {
+        rm: Reg,
+        rdlo: Reg,
+        rdhi: Reg,
+        rn: Reg,
+    },
+    /// Signed Multiply (Long)
+    SMULL {
+        rdlo: Reg,
+        rdhi: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+
+    // --------------------------------------------
+    //
+    // Group: Multiply instructions (DSP extensions)
+    //
+    // --------------------------------------------
+    //SMLAL second variant?
+    //SMLALD
+    //SMLAW
+    //SMLSD
+    //SMLSLD
+    //SMMLA
+    //SMMLS
+    //SMMUL
+    //SMUAD
+
+    // --------------------------------------------
+    //
+    // Group: Saturating instructions
+    //
+    // --------------------------------------------
+
+    //SSAT
+    //USAT
+
+    // --------------------------------------------
+    //
+    // Group: Saturating instructions (DSP extensions)
+    //
+    // --------------------------------------------
+    //USAT16
+    //SSAT16
+
+    // --------------------------------------------
+    //
+    // Group: Saturating add/sub (DSP extensions)
+    //
+    // --------------------------------------------
+    //QADD
+    //QSUB
+    //QDADD
+    //QDSUB
+
+    // --------------------------------------------
+    //
+    // Group: Packing and unpacking instructions
+    //
+    // --------------------------------------------
+    /// Signed Extend Byte
+    SXTB {
+        rd: Reg,
+        rm: Reg,
+        rotation: usize,
         thumb32: bool,
     },
+    /// Signed Extend Halfword
+    SXTH {
+        rd: Reg,
+        rm: Reg,
+        rotation: usize,
+        thumb32: bool,
+    },
+    /// Unsigned Extend Byte
+    UXTB {
+        rd: Reg,
+        rm: Reg,
+        thumb32: bool,
+        rotation: usize,
+    },
+    /// Unsigned Extend Halfword
+    UXTH {
+        rd: Reg,
+        rm: Reg,
+        rotation: usize,
+        thumb32: bool,
+    },
+    // --------------------------------------------
+    //
+    // Group: Packing and unpacking instructions (DSP extensions)
+    //
+    // --------------------------------------------
+    //PKHBT, PKHTB
+    //SXTAB
+    //SXTAB16
+    //SXTAH
+    //SXTB16
+    //UXTAB
+    //UXTAB16
+    //UXTAH
+    //UXTB16
+
+    // --------------------------------------------
+    //
+    // Group: Divide instructions
+    //
+    // --------------------------------------------
+    /// Unsigned divide
+    UDIV {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    /// signed divide
+    SDIV {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+
+    // --------------------------------------------
+    //
+    // Group: Parallel add / sub (DSP extension)
+    //
+    // --------------------------------------------
+    //SADD16, QADD16, SHADD16, UADD16, UQADD16, UHADD16
+    //SASX, QASX, SHASX, UASX, UQASX, UHSX
+    //SSAX, QSAX, SHSAX, USAX, UQSAX, UHSAX
+    //SSUB16, QSUB16, SHSUB16, USUB16, UQSUB16, UHSUB16
+    //SADD8, QADD8, SHADD8, UADD8, UQADD8, UHADD8
+    //SSUB8, QSUB8, SHSUB8, USUB8, UQSUB8, UHSUB8
+
+    // --------------------------------------------
+    //
+    // Group:  Miscellaneous data-processing instructions
+    //
+    // --------------------------------------------
+    // Bit Field Clear
     BFC {
         rd: Reg,
         lsbit: usize,
         msbit: usize,
     },
-    BIC_reg {
-        params: Reg3ShiftParams,
-        thumb32: bool,
-    },
-    BIC_imm {
-        rd: Reg,
-        rn: Reg,
-        imm32: Imm32Carry,
-        setflags: bool,
-    },
-    BKPT {
-        imm32: u32,
-    },
-    BL {
-        imm32: i32,
-    },
-    BLX {
-        rm: Reg,
-    },
-    BX {
-        rm: Reg,
-    },
+    /// Bit Field Insert
     BFI {
         rd: Reg,
         rn: Reg,
         lsbit: usize,
         width: usize,
     },
-    CBZ {
-        rn: Reg,
-        nonzero: bool,
-        imm32: u32,
-    },
+    /// Count Leading Zeros
     CLZ {
         rd: Reg,
         rm: Reg,
     },
-    CMN_reg {
-        params: Reg2ShiftNoSetFlagsParams,
+    /// Move Top
+    MOVT {
+        rd: Reg,
+        imm16: u16,
+    },
+    // RBIT
+    /// Byte-reverse word
+    REV {
+        rd: Reg,
+        rm: Reg,
         thumb32: bool,
     },
-    CMN_imm {
-        params: RegImmParams,
-    },
-    CMP_imm {
-        params: RegImmParams,
+
+    /// Byte-reverse packed half-word
+    REV16 {
+        rd: Reg,
+        rm: Reg,
         thumb32: bool,
     },
-    CMP_reg {
-        params: Reg2ShiftNoSetFlagsParams,
+
+    /// Byte-reverse signed half-word
+    REVSH {
+        rd: Reg,
+        rm: Reg,
         thumb32: bool,
     },
+
+    //SBFX - signed bit field extract
+    /// Unsigned bit field extract
+    UBFX {
+        rd: Reg,
+        rn: Reg,
+        lsb: usize,
+        widthminus1: usize,
+    },
+
+    // --------------------------------------------
+    //
+    // Group:  Miscellaneous data-processing instructions (DSP extensions)
+    //
+    // --------------------------------------------
+    /// Select bytes using GE flags
+    SEL {
+        rd: Reg,
+        rn: Reg,
+        rm: Reg,
+    },
+    //USAD8
+    //USADA8
+
+    // --------------------------------------------
+    //
+    // Group: Status register access instructions
+    //
+    // --------------------------------------------
+    /// Move to Register from Special Register
+    MRS {
+        rd: Reg,
+        sysm: u8,
+    },
+    /// Move to Special Register from ARM Register
+    MSR_reg {
+        rn: Reg,
+        sysm: u8,
+        mask: u8,
+    },
+    /// Change Processor State
     CPS {
         im: bool,
         #[cfg(any(armv7m, armv7em))]
@@ -239,52 +701,12 @@ pub enum Instruction {
         #[cfg(any(armv7m, armv7em))]
         affect_fault: bool,
     },
-    DMB,
-    DSB,
-    EOR_reg {
-        params: Reg3ShiftParams,
-        thumb32: bool,
-    },
-    EOR_imm {
-        rd: Reg,
-        rn: Reg,
-        imm32: Imm32Carry,
-        setflags: bool,
-    },
-    ROR_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: bool,
-    },
-    ISB,
-    IT {
-        x: Option<ITCondition>,
-        y: Option<ITCondition>,
-        z: Option<ITCondition>,
-        firstcond: Condition,
-        mask: u8,
-    },
 
-    LDC_imm {
-        coproc: u8,
-        imm32: u32,
-        crd: u8,
-        rn: Reg,
-    },
-
-    LDC2_imm {
-        coproc: u8,
-        imm32: u32,
-        crd: u8,
-        rn: Reg,
-    },
-
-    LDM {
-        rn: Reg,
-        registers: EnumSet<Reg>,
-        thumb32: bool,
-    },
+    // --------------------------------------------
+    //
+    // Group:  Load and Store instructions
+    //
+    // --------------------------------------------
     LDR_imm {
         rt: Reg,
         rn: Reg,
@@ -393,214 +815,6 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
-
-    LDREX {
-        rt: Reg,
-        rn: Reg,
-        imm32: u32,
-    },
-
-    LDREXB {
-        rt: Reg,
-        rn: Reg,
-    },
-
-    LDREXH {
-        rt: Reg,
-        rn: Reg,
-    },
-
-    LSL_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-    LSL_reg {
-        rd: Reg,
-        rm: Reg,
-        rn: Reg,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-    LSR_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-    LSR_reg {
-        rd: Reg,
-        rm: Reg,
-        rn: Reg,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-
-    MCR {
-        rt: Reg,
-        coproc: u8,
-        opc1: u8,
-        opc2: u8,
-        crn: u8,
-        crm: u8,
-    },
-    MCR2 {
-        rt: Reg,
-        coproc: u8,
-        opc1: u8,
-        opc2: u8,
-        crn: u8,
-        crm: u8,
-    },
-
-    MOV_imm {
-        rd: Reg,
-        imm32: Imm32Carry,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-    MOV_reg {
-        rd: Reg,
-        rm: Reg,
-        setflags: bool,
-        thumb32: bool,
-    },
-    MOVT {
-        rd: Reg,
-        imm16: u16,
-    },
-    MRS {
-        rd: Reg,
-        sysm: u8,
-    },
-    MSR_reg {
-        rn: Reg,
-        sysm: u8,
-        mask: u8,
-    },
-    MUL {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-    MVN_reg {
-        rd: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        shift_t: SRType,
-        shift_n: u8,
-        thumb32: bool,
-    },
-    MVN_imm {
-        rd: Reg,
-        imm32: Imm32Carry,
-        setflags: bool,
-    },
-    NOP {
-        thumb32: bool,
-    },
-    ORR_reg {
-        params: Reg3ShiftParams,
-        thumb32: bool,
-    },
-    ORR_imm {
-        rd: Reg,
-        rn: Reg,
-        imm32: Imm32Carry,
-        setflags: bool,
-    },
-    ORN_reg {
-        params: Reg3ShiftParams,
-    },
-    POP {
-        registers: EnumSet<Reg>,
-        thumb32: bool,
-    },
-    PLD_imm {
-        rn: Reg,
-        imm32: u32,
-        add: bool,
-    },
-    PLD_lit {
-        imm32: u32,
-        add: bool,
-    },
-    PLD_reg {
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-    },
-    PUSH {
-        registers: EnumSet<Reg>,
-        thumb32: bool,
-    },
-    REV {
-        rd: Reg,
-        rm: Reg,
-        thumb32: bool,
-    },
-    REV16 {
-        rd: Reg,
-        rm: Reg,
-        thumb32: bool,
-    },
-    REVSH {
-        rd: Reg,
-        rm: Reg,
-        thumb32: bool,
-    },
-    ROR_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
-        thumb32: bool,
-    },
-    RSB_imm {
-        params: Reg2ImmParams,
-        thumb32: bool,
-    },
-    RSB_reg {
-        params: Reg3ShiftParams,
-        thumb32: bool,
-    },
-    RRX {
-        rd: Reg,
-        rm: Reg,
-        setflags: bool,
-    },
-    SBC_reg {
-        params: Reg3ShiftParams,
-        thumb32: bool,
-    },
-    SBC_imm {
-        params: Reg2ImmParams,
-    },
-    SEV {
-        thumb32: bool,
-    },
-    SEL {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-    },
-    STM {
-        rn: Reg,
-        registers: EnumSet<Reg>,
-        wback: bool,
-        thumb32: bool,
-    },
-    STMDB {
-        rn: Reg,
-        registers: EnumSet<Reg>,
-        wback: bool,
-    },
     STR_imm {
         rn: Reg,
         rt: Reg,
@@ -618,6 +832,52 @@ pub enum Instruction {
         index: bool,
         add: bool,
         wback: bool,
+    },
+    STRB_reg {
+        rm: Reg,
+        rn: Reg,
+        rt: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
+    },
+    STRH_imm {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
+    },
+    STRH_reg {
+        rm: Reg,
+        rn: Reg,
+        rt: Reg,
+        shift_t: SRType,
+        shift_n: u8,
+        index: bool,
+        add: bool,
+        wback: bool,
+        thumb32: bool,
+    },
+    LDREX {
+        rt: Reg,
+        rn: Reg,
+        imm32: u32,
+    },
+
+    LDREXB {
+        rt: Reg,
+        rn: Reg,
+    },
+
+    LDREXH {
+        rt: Reg,
+        rn: Reg,
     },
     LDRD_imm {
         rn: Reg,
@@ -668,89 +928,150 @@ pub enum Instruction {
         rn: Reg,
     },
 
-    STRB_reg {
-        rm: Reg,
+    // --------------------------------------------
+    //
+    // Group:  Load and Store Multiple instructions
+    //
+    // --------------------------------------------
+    LDM {
         rn: Reg,
-        rt: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
+        registers: EnumSet<Reg>,
+        thumb32: bool,
+    },
+    POP {
+        registers: EnumSet<Reg>,
+        thumb32: bool,
+    },
+    PUSH {
+        registers: EnumSet<Reg>,
+        thumb32: bool,
+    },
+    STM {
+        rn: Reg,
+        registers: EnumSet<Reg>,
         wback: bool,
         thumb32: bool,
     },
-    STRH_imm {
-        rt: Reg,
+    STMDB {
+        rn: Reg,
+        registers: EnumSet<Reg>,
+        wback: bool,
+    },
+
+    // --------------------------------------------
+    //
+    // Group: Miscellaneous
+    //
+    // --------------------------------------------
+    //CLREX
+    //DBG
+    /// Data Memory Barrier
+    DMB,
+    /// Data Synchronization Barrier
+    DSB,
+    /// Instruction Synchronization Barrier
+    ISB,
+
+    /// If-then
+    IT {
+        x: Option<ITCondition>,
+        y: Option<ITCondition>,
+        z: Option<ITCondition>,
+        firstcond: Condition,
+        mask: u8,
+    },
+    /// No operation
+    NOP {
+        thumb32: bool,
+    },
+
+    /// Preload data (immediate)
+    PLD_imm {
         rn: Reg,
         imm32: u32,
-        index: bool,
         add: bool,
-        wback: bool,
-        thumb32: bool,
     },
-    STRH_reg {
-        rm: Reg,
+    /// Preload data (literal)
+    PLD_lit {
+        imm32: u32,
+        add: bool,
+    },
+    /// Preload data (register)
+    PLD_reg {
         rn: Reg,
-        rt: Reg,
+        rm: Reg,
         shift_t: SRType,
         shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+    },
+    /// Send event
+    SEV {
         thumb32: bool,
     },
-    SUB_imm {
-        params: Reg2ImmParams,
+    /// Wait for Event
+    WFE {
         thumb32: bool,
     },
-    SUB_reg {
-        params: Reg3ShiftParams,
+    /// Wait for interrupt
+    WFI {
         thumb32: bool,
     },
+    /// Yield
+    YIELD {
+        thumb32: bool,
+    },
+    // --------------------------------------------
+    //
+    // Group: Exception generating instructions
+    //
+    // --------------------------------------------
+    /// supervisor call
     SVC {
         imm32: u32,
     },
-    SXTB {
-        rd: Reg,
-        rm: Reg,
-        rotation: usize,
-        thumb32: bool,
+    /// Breakpoint
+    BKPT {
+        imm32: u32,
     },
-    SXTH {
-        rd: Reg,
-        rm: Reg,
-        rotation: usize,
-        thumb32: bool,
+    // --------------------------------------------
+    //
+    // Group: Coprocessor instructions
+    //
+    // --------------------------------------------
+    //CDP, CDP2
+    MCR {
+        rt: Reg,
+        coproc: u8,
+        opc1: u8,
+        opc2: u8,
+        crn: u8,
+        crm: u8,
     },
-    TST_reg {
+    MCR2 {
+        rt: Reg,
+        coproc: u8,
+        opc1: u8,
+        opc2: u8,
+        crn: u8,
+        crm: u8,
+    },
+    //MCRR, MCRR2
+    //MRC, MRC2
+    //MRRC, MRRC2
+    LDC_imm {
+        coproc: u8,
+        imm32: u32,
+        crd: u8,
         rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        thumb32: bool,
     },
-    TST_imm {
+
+    LDC2_imm {
+        coproc: u8,
+        imm32: u32,
+        crd: u8,
         rn: Reg,
-        imm32: Imm32Carry,
     },
-    TEQ_reg {
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-    },
-    TEQ_imm {
-        rn: Reg,
-        imm32: Imm32Carry,
-    },
-    TBB {
-        rn: Reg,
-        rm: Reg,
-    },
-    TBH {
-        rn: Reg,
-        rm: Reg,
-    },
+
+    //STC, STC2
     UDF {
         imm32: u32,
         opcode: ThumbCode,
@@ -760,34 +1081,6 @@ pub enum Instruction {
         rd: Reg,
         rn: Reg,
         rm: Reg,
-    },
-    UBFX {
-        rd: Reg,
-        rn: Reg,
-        lsb: usize,
-        widthminus1: usize,
-    },
-    UDIV {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-    },
-    SDIV {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-    },
-    MLA {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
-    },
-    MLS {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
     },
     UMLAL {
         rm: Reg,
@@ -801,24 +1094,12 @@ pub enum Instruction {
         rdhi: Reg,
         rn: Reg,
     },
-    SMLAL {
-        rm: Reg,
-        rdlo: Reg,
-        rdhi: Reg,
-        rn: Reg,
-    },
     SMUL {
         rd: Reg,
         rn: Reg,
         rm: Reg,
         n_high: bool,
         m_high: bool,
-    },
-    SMULL {
-        rdlo: Reg,
-        rdhi: Reg,
-        rn: Reg,
-        rm: Reg,
     },
     SMLA {
         rd: Reg,
@@ -827,18 +1108,6 @@ pub enum Instruction {
         ra: Reg,
         n_high: bool,
         m_high: bool,
-    },
-    UXTB {
-        rd: Reg,
-        rm: Reg,
-        thumb32: bool,
-        rotation: usize,
-    },
-    UXTH {
-        rd: Reg,
-        rm: Reg,
-        rotation: usize,
-        thumb32: bool,
     },
     UXTAB {
         rd: Reg,
@@ -859,15 +1128,6 @@ pub enum Instruction {
         add: bool,
         imm32: u32,
         single_reg: bool,
-    },
-    WFE {
-        thumb32: bool,
-    },
-    WFI {
-        thumb32: bool,
-    },
-    YIELD {
-        thumb32: bool,
     },
 }
 
@@ -1090,18 +1350,13 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::AND_imm {
-                rd,
-                rn,
-                ref imm32,
-                setflags,
-            } => write!(
+            Self::AND_imm { params } => write!(
                 f,
                 "and{}.W {},{}, #{}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                match *imm32 {
+                if params.setflags { "s" } else { "" },
+                params.rd,
+                params.rn,
+                match params.imm32 {
                     Imm32Carry::NoCarry { imm32 } => imm32,
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
@@ -1164,18 +1419,13 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::BIC_imm {
-                rd,
-                rn,
-                ref imm32,
-                setflags,
-            } => write!(
+            Self::BIC_imm { params } => write!(
                 f,
                 "bic{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                match *imm32 {
+                if params.setflags { "s" } else { "" },
+                params.rd,
+                params.rn,
+                match params.imm32 {
                     Imm32Carry::NoCarry { imm32 } => imm32,
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
@@ -1203,8 +1453,8 @@ impl fmt::Display for Instruction {
             Self::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
 
             Self::BFI {
-                ref rn,
                 ref rd,
+                ref rn,
                 ref lsbit,
                 ref width,
             } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, width),
@@ -1659,18 +1909,13 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::ORR_imm {
-                rd,
-                rn,
-                ref imm32,
-                setflags,
-            } => write!(
+            Self::ORR_imm { params } => write!(
                 f,
                 "orr{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                match *imm32 {
+                if params.setflags { "s" } else { "" },
+                params.rd,
+                params.rn,
+                match params.imm32 {
                     Imm32Carry::NoCarry { imm32 } => imm32,
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
@@ -1688,18 +1933,13 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::EOR_imm {
-                rd,
-                rn,
-                ref imm32,
-                setflags,
-            } => write!(
+            Self::EOR_imm { params } => write!(
                 f,
                 "eor{} {}, {}, #{}",
-                if setflags { "s" } else { "" },
-                rd,
-                rn,
-                match *imm32 {
+                if params.setflags { "s" } else { "" },
+                params.rd,
+                params.rn,
+                match params.imm32 {
                     Imm32Carry::NoCarry { imm32 } => imm32,
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
@@ -2282,14 +2522,14 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::POP { thumb32, .. } => isize_t(*thumb32),
         Instruction::PUSH { thumb32, .. } => isize_t(*thumb32),
 
-        //QADD
         //QADD16
         //QADD8
         //QASX
+        //QSAX
+        //QADD
+        //QSUB
         //QDADD
         //QDSUB
-        //QSAX
-        //QSUB
         //QSUB16
         //QSUB8
 

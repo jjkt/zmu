@@ -1,6 +1,6 @@
 use crate::core::instruction::{
     Imm32Carry, Reg2ImmParams, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, RegImmParams, SRType,
-    SetFlags,
+    SetFlags, Reg2ImmCarryParams,
 };
 
 use crate::core::register::{DoubleReg, ExtensionReg, Reg};
@@ -1668,13 +1668,15 @@ fn test_decode_and_imm_w() {
     assert_eq!(
         decode_32(0xf01a0c03),
         Instruction::AND_imm {
-            rd: Reg::R12,
-            rn: Reg::R10,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (3, false),
-                imm32_c1: (3, true),
-            },
-            setflags: true,
+            params: Reg2ImmCarryParams {
+                rd: Reg::R12,
+                rn: Reg::R10,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (3, false),
+                    imm32_c1: (3, true),
+                },
+                setflags: true,
+            }
         }
     );
 }
@@ -2090,13 +2092,15 @@ fn test_decode_orr_imm_w() {
     assert_eq!(
         decode_32(0xf0400010),
         Instruction::ORR_imm {
-            rd: Reg::R0,
-            rn: Reg::R0,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (16, false),
-                imm32_c1: (16, true)
-            },
-            setflags: false
+            params: Reg2ImmCarryParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (16, false),
+                    imm32_c1: (16, true)
+                },
+                setflags: false
+            }
         }
     );
 }
@@ -2270,13 +2274,15 @@ fn test_decode_bic_imm_w() {
     assert_eq!(
         decode_32(0xf02400ff),
         Instruction::BIC_imm {
-            rd: Reg::R0,
-            rn: Reg::R4,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (255, false),
-                imm32_c1: (255, true),
-            },
-            setflags: false,
+            params: Reg2ImmCarryParams {
+                rd: Reg::R0,
+                rn: Reg::R4,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (255, false),
+                    imm32_c1: (255, true),
+                },
+                setflags: false,
+            }
         }
     );
 }
@@ -2307,13 +2313,15 @@ fn test_decode_eor_imm_w() {
     assert_eq!(
         decode_32(0xf4814120),
         Instruction::EOR_imm {
-            rd: Reg::R1,
-            rn: Reg::R1,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (0xa000, false),
-                imm32_c1: (0xa000, false)
-            },
-            setflags: false
+            params: Reg2ImmCarryParams {
+                rd: Reg::R1,
+                rn: Reg::R1,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (0xa000, false),
+                    imm32_c1: (0xa000, false)
+                },
+                setflags: false
+            }
         }
     );
 }
