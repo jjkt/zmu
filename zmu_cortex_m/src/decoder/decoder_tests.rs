@@ -1,6 +1,7 @@
 use crate::core::instruction::{
-    Imm32Carry, Reg2ImmParams, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, RegImmParams, SRType,
-    SetFlags, Reg2ImmCarryParams,
+    Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNoSetFlagsParams,
+    Reg2ShiftParams, Reg3ShiftParams, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams,
+    SRType, SetFlags,
 };
 
 use crate::core::register::{DoubleReg, ExtensionReg, Reg};
@@ -20,15 +21,10 @@ fn test_is_thumb32() {
 #[test]
 fn test_decode_mov() {
     match decode_16(0x4600) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R0);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R0);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -36,15 +32,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4608) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R1);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R1);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -52,15 +43,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4610) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R2);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R2);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -68,15 +54,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4618) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R3);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R3);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -84,15 +65,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4620) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R4);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R4);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -100,15 +76,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4628) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R5);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R5);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -116,15 +87,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4630) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R6);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R6);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -132,15 +98,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4638) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R7);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R7);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -148,15 +109,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4640) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R8);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R8);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -164,15 +120,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4648) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R9);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R9);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -180,15 +131,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4650) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R10);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R10);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -196,15 +142,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4658) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R11);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R11);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -212,15 +153,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4660) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::R12);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::R12);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -228,15 +164,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4668) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::SP);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::SP);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -244,15 +175,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4670) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::LR);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::LR);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -260,15 +186,10 @@ fn test_decode_mov() {
         }
     }
     match decode_16(0x4678) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R0);
-            assert!(rm == Reg::PC);
-            assert!(setflags == false);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R0);
+            assert!(params.rm == Reg::PC);
+            assert!(params.setflags == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -277,15 +198,10 @@ fn test_decode_mov() {
     }
 
     match decode_16(0x0001) {
-        Instruction::MOV_reg {
-            rd,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R1);
-            assert!(rm == Reg::R0);
-            assert!(setflags == true);
+        Instruction::MOV_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R1);
+            assert!(params.rm == Reg::R0);
+            assert!(params.setflags == true);
             assert!(thumb32 == false);
         }
         _ => {
@@ -296,20 +212,24 @@ fn test_decode_mov() {
     assert_eq!(
         decode_16(0x2001),
         Instruction::MOV_imm {
-            rd: Reg::R0,
-            imm32: Imm32Carry::NoCarry { imm32: 1 },
+            params: RegImmCarryParams {
+                rd: Reg::R0,
+                imm32: Imm32Carry::NoCarry { imm32: 1 },
+                setflags: SetFlags::NotInITBlock,
+            },
             thumb32: false,
-            setflags: SetFlags::NotInITBlock,
         }
     );
 
     assert_eq!(
         decode_16(0x2101),
         Instruction::MOV_imm {
-            rd: Reg::R1,
-            imm32: Imm32Carry::NoCarry { imm32: 1 },
+            params: RegImmCarryParams {
+                rd: Reg::R1,
+                imm32: Imm32Carry::NoCarry { imm32: 1 },
+                setflags: SetFlags::NotInITBlock,
+            },
             thumb32: false,
-            setflags: SetFlags::NotInITBlock,
         }
     );
 }
@@ -343,7 +263,7 @@ fn test_decode_cmp() {
         decode_16(0x2800),
         Instruction::CMP_imm {
             params: RegImmParams {
-                rn: Reg::R0,
+                r: Reg::R0,
                 imm32: 0,
             },
             thumb32: false,
@@ -367,7 +287,7 @@ fn test_decode_cmp() {
         decode_16(0x2a00),
         Instruction::CMP_imm {
             params: RegImmParams {
-                rn: Reg::R2,
+                r: Reg::R2,
                 imm32: 0,
             },
             thumb32: false,
@@ -598,17 +518,11 @@ fn test_decode_sub2() {
 fn test_decode_tst() {
     // TST R4, R1
     match decode_16(0x420c) {
-        Instruction::TST_reg {
-            rn,
-            rm,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R4);
-            assert!(rm == Reg::R1);
-            assert!(shift_t == SRType::LSL);
-            assert!(shift_n == 0);
+        Instruction::TST_reg { params, thumb32 } => {
+            assert!(params.rn == Reg::R4);
+            assert!(params.rm == Reg::R1);
+            assert!(params.shift_t == SRType::LSL);
+            assert!(params.shift_n == 0);
             assert!(!thumb32);
         }
         _ => {
@@ -655,19 +569,12 @@ fn test_decode_ldrb_imm2() {
 fn test_decode_mvns() {
     // MVNS R5,R5
     match decode_16(0x43ed) {
-        Instruction::MVN_reg {
-            rd,
-            rm,
-            setflags,
-            shift_t,
-            shift_n,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R5);
-            assert!(rm == Reg::R5);
-            assert!(setflags == SetFlags::NotInITBlock);
-            assert!(shift_t == SRType::LSL);
-            assert!(shift_n == 0);
+        Instruction::MVN_reg { params, thumb32 } => {
+            assert!(params.rd == Reg::R5);
+            assert!(params.rm == Reg::R5);
+            assert!(params.setflags == SetFlags::NotInITBlock);
+            assert!(params.shift_t == SRType::LSL);
+            assert!(params.shift_n == 0);
             assert!(!thumb32);
         }
         _ => {
@@ -703,9 +610,9 @@ fn test_decode_lsls() {
 fn test_decode_adr() {
     // ADR R0, PC, #(7<<2)
     match decode_16(0xa007) {
-        Instruction::ADR { rd, imm32, thumb32 } => {
-            assert!(rd == Reg::R0);
-            assert!(imm32 == 7 << 2);
+        Instruction::ADR { params, thumb32 } => {
+            assert!(params.r == Reg::R0);
+            assert!(params.imm32 == 7 << 2);
             assert!(!thumb32);
         }
         _ => {
@@ -1523,13 +1430,15 @@ fn test_decode_mov_w() {
     assert_eq!(
         decode_32(0xf04f38ff),
         Instruction::MOV_imm {
-            rd: Reg::R8,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (0xffffffff, false),
-                imm32_c1: (0xffffffff, true),
+            params: RegImmCarryParams {
+                rd: Reg::R8,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (0xffffffff, false),
+                    imm32_c1: (0xffffffff, true),
+                },
+                setflags: SetFlags::False,
             },
             thumb32: true,
-            setflags: SetFlags::False,
         }
     );
 }
@@ -1654,7 +1563,7 @@ fn test_decode_cmp_imm_w() {
         decode_32(0xf1ba0f00),
         Instruction::CMP_imm {
             params: RegImmParams {
-                rn: Reg::R10,
+                r: Reg::R10,
                 imm32: 0,
             },
             thumb32: true,
@@ -1912,9 +1821,11 @@ fn test_decode_mov_reg_w() {
     assert_eq!(
         decode_32(0xea4f0803),
         Instruction::MOV_reg {
-            rd: Reg::R8,
-            rm: Reg::R3,
-            setflags: false,
+            params: Reg2Params {
+                rd: Reg::R8,
+                rm: Reg::R3,
+                setflags: false,
+            },
             thumb32: true,
         }
     );
@@ -2217,11 +2128,13 @@ fn test_decode_tst_imm_w() {
     assert_eq!(
         decode_32(0xf0113f80),
         Instruction::TST_imm {
-            rn: Reg::R1,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (0x80808080, false),
-                imm32_c1: (0x80808080, true),
-            },
+            params: RegImmCarryNoSetFlagsParams {
+                rn: Reg::R1,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (0x80808080, false),
+                    imm32_c1: (0x80808080, true),
+                },
+            }
         }
     );
 }
@@ -2486,10 +2399,12 @@ fn test_decode_teq_reg_w() {
     assert_eq!(
         decode_32(0xea910f03),
         Instruction::TEQ_reg {
-            rn: Reg::R1,
-            rm: Reg::R3,
-            shift_t: SRType::LSL,
-            shift_n: 0
+            params: Reg2ShiftNoSetFlagsParams {
+                rn: Reg::R1,
+                rm: Reg::R3,
+                shift_t: SRType::LSL,
+                shift_n: 0
+            }
         }
     );
 }
@@ -2654,11 +2569,13 @@ fn test_decode_tst_reg_w() {
     assert_eq!(
         decode_32(0xea180f03),
         Instruction::TST_reg {
-            rn: Reg::R8,
-            rm: Reg::R3,
+            params: Reg2ShiftNoSetFlagsParams {
+                rn: Reg::R8,
+                rm: Reg::R3,
+                shift_n: 0,
+                shift_t: SRType::LSL,
+            },
             thumb32: true,
-            shift_n: 0,
-            shift_t: SRType::LSL,
         }
     );
 }
@@ -2773,11 +2690,13 @@ fn test_decode_mvn_reg_w() {
     assert_eq!(
         decode_32(0xea6f5507),
         Instruction::MVN_reg {
-            rd: Reg::R5,
-            rm: Reg::R7,
-            setflags: SetFlags::False,
-            shift_n: 20,
-            shift_t: SRType::LSL,
+            params: Reg2ShiftParams {
+                rd: Reg::R5,
+                rm: Reg::R7,
+                setflags: SetFlags::False,
+                shift_n: 20,
+                shift_t: SRType::LSL,
+            },
             thumb32: true,
         }
     );
@@ -2789,11 +2708,13 @@ fn test_decode_teq_w() {
     assert_eq!(
         decode_32(0xf0900f00),
         Instruction::TEQ_imm {
-            rn: Reg::R0,
-            imm32: Imm32Carry::Carry {
-                imm32_c0: (0, false),
-                imm32_c1: (0, true),
-            },
+            params: RegImmCarryNoSetFlagsParams {
+                rn: Reg::R0,
+                imm32: Imm32Carry::Carry {
+                    imm32_c0: (0, false),
+                    imm32_c1: (0, true),
+                },
+            }
         }
     );
 }

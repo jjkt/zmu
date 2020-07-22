@@ -49,7 +49,7 @@ pub fn decode_ADD_reg_sp_t1(opcode: u16) -> Instruction {
         params: Reg2ShiftParams {
             rm: rdm,
             rd: rdm,
-            setflags: false,
+            setflags: SetFlags::False,
             shift_t: SRType::LSL,
             shift_n: 0,
         },
@@ -64,7 +64,7 @@ pub fn decode_ADD_reg_sp_t2(opcode: u16) -> Instruction {
         params: Reg2ShiftParams {
             rm: Reg::from(opcode.get_bits(3..7) as u8),
             rd: Reg::SP,
-            setflags: false,
+            setflags: SetFlags::False,
             shift_t: SRType::LSL,
             shift_n: 0,
         },

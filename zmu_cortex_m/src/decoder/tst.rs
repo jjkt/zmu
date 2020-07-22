@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SRType;
+use crate::core::instruction::{Reg2ShiftNoSetFlagsParams, SRType, RegImmCarryNoSetFlagsParams};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 
@@ -9,10 +9,12 @@ use crate::core::operation::thumb_expand_imm_c;
 #[inline(always)]
 pub fn decode_TST_reg_t1(opcode: u16) -> Instruction {
     Instruction::TST_reg {
-        rn: opcode.get_bits(0..3).into(),
-        rm: opcode.get_bits(3..6).into(),
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg2ShiftNoSetFlagsParams {
+            rn: opcode.get_bits(0..3).into(),
+            rm: opcode.get_bits(3..6).into(),
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -25,10 +27,12 @@ pub fn decode_TST_reg_t2(opcode: u32) -> Instruction {
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
 
     Instruction::TST_reg {
-        rm: opcode.get_bits(0..4).into(),
-        rn: opcode.get_bits(16..20).into(),
-        shift_t,
-        shift_n,
+        params: Reg2ShiftNoSetFlagsParams {
+            rm: opcode.get_bits(0..4).into(),
+            rn: opcode.get_bits(16..20).into(),
+            shift_t,
+            shift_n,
+        },
         thumb32: true,
     }
 }
@@ -43,10 +47,12 @@ pub fn decode_TST_imm_t1(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::TST_imm {
-        rn: opcode.get_bits(16..20).into(),
-        imm32: Imm32Carry::Carry {
-            imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
-            imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+        params: RegImmCarryNoSetFlagsParams {
+            rn: opcode.get_bits(16..20).into(),
+            imm32: Imm32Carry::Carry {
+                imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
+                imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+            },
         },
     }
 }

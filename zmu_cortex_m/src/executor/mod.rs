@@ -18,12 +18,8 @@ use crate::semihosting::{decode_semihostcmd, semihost_return};
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
-mod add_with_carry;
-mod bitoper;
-mod boole_algebra;
-use crate::executor::add_with_carry::InstructionAdc;
-use crate::executor::bitoper::InstructionBitOper;
-use crate::executor::boole_algebra::InstructionBooleAlgebra;
+mod std_data_processing;
+use crate::executor::std_data_processing::IsaStandardDataProcessing;
 ///
 /// Stepping processor with instructions
 ///
@@ -134,6 +130,7 @@ impl ExecutorHelper for Processor {
         true
     }
 
+    #[inline(always)]
     fn condition_passed(&mut self) -> bool {
         let itstate = self.itstate;
 
@@ -172,41 +169,65 @@ impl ExecutorHelper for Processor {
     #[allow(clippy::too_many_lines)]
     fn execute_internal(&mut self, instruction: &Instruction) -> Result<ExecuteResult, Fault> {
         match instruction {
+            // --------------------------------------------
             //
-            // Add-with-carry based instruction variants
+            // Group: Standard data-processing instructions
             //
-            Instruction::ADC_reg { params, .. } => self.exec_adc_reg(params),
+            // --------------------------------------------
             Instruction::ADD_reg { params, .. } => self.exec_add_reg(params),
-            Instruction::SUB_reg { params, .. } => self.exec_sub_reg(params),
-            Instruction::SBC_reg { params, .. } => self.exec_sbc_reg(params),
-            Instruction::RSB_reg { params, .. } => self.exec_rsb_reg(params),
-            Instruction::ADD_sp_reg { params, .. } => self.exec_add_sp_reg(params),
-            Instruction::CMP_reg { params, .. } => self.exec_cmp_reg(params),
-            Instruction::CMN_reg { params, .. } => self.exec_cmn_reg(params),
-
-            Instruction::ADC_imm { params } => self.exec_adc_imm(params),
             Instruction::ADD_imm { params, .. } => self.exec_add_imm(params),
-            Instruction::CMP_imm { params, .. } => self.exec_cmp_imm(*params),
+            Instruction::ADD_sp_reg { params, .. } => self.exec_add_sp_reg(params),
+
+            Instruction::ADC_reg { params, .. } => self.exec_adc_reg(params),
+            Instruction::ADC_imm { params } => self.exec_adc_imm(params),
+
+            Instruction::ADR { params, .. } => self.exec_adr(*params),
+            
+            Instruction::AND_reg { params, .. } => self.exec_and_reg(params),
+            Instruction::AND_imm { params } => self.exec_and_imm(params),
+
+            Instruction::BIC_imm { params } => self.exec_bic_imm(params),
+            Instruction::BIC_reg { params, .. } => self.exec_bic_reg(params),
+
+            Instruction::CMN_reg { params, .. } => self.exec_cmn_reg(params),
             Instruction::CMN_imm { params } => self.exec_cmn_imm(*params),
+
+            Instruction::CMP_reg { params, .. } => self.exec_cmp_reg(params),
+            Instruction::CMP_imm { params, .. } => self.exec_cmp_imm(*params),
+
+            Instruction::EOR_reg { params, .. } => self.exec_eor_reg(params),
+            Instruction::EOR_imm { params } => self.exec_eor_imm(params),
+
+            Instruction::MOV_reg { params, .. } => self.exec_mov_reg(params),
+            Instruction::MOV_imm { params, .. } => self.exec_mov_imm(params),
+
+            Instruction::MVN_reg { params, .. } => self.exec_mvn_reg(params),
+            Instruction::MVN_imm { params } => self.exec_mvn_imm(params),
+
+            Instruction::ORN_reg { params } => self.exec_orn_reg(params),
+            Instruction::ORR_imm { params } => self.exec_orr_imm(params),
+            Instruction::ORR_reg { params, .. } => self.exec_orr_reg(params),
+
+            Instruction::RSB_reg { params, .. } => self.exec_rsb_reg(params),
             Instruction::RSB_imm { params, .. } => self.exec_rsb_imm(params),
+
+            Instruction::SBC_reg { params, .. } => self.exec_sbc_reg(params),
             Instruction::SBC_imm { params } => self.exec_sbc_imm(params),
+
+            Instruction::SUB_reg { params, .. } => self.exec_sub_reg(params),
             Instruction::SUB_imm { params, .. } => self.exec_sub_imm(params),
 
-            //
-            // Boole's algebra based instruction variants
-            //
-            Instruction::AND_reg { params, .. } => self.exec_and_reg(params),
-            Instruction::EOR_reg { params, thumb32 } => self.exec_eor_reg(params),
+            Instruction::TEQ_reg { params } => self.exec_teq_reg(params),
+            Instruction::TEQ_imm { params } => self.exec_teq_imm(params),
 
-            Instruction::AND_imm { params } => self.exec_and_imm(params),
-            Instruction::EOR_imm { params } => self.exec_eor_imm(params),
-            Instruction::ORR_imm { params } => self.exec_orr_imm(params),
+            Instruction::TST_reg { params, .. } => self.exec_tst_reg(params),
+            Instruction::TST_imm { params } => self.exec_tst_imm(params),
 
+            // --------------------------------------------
             //
-            // bit manipulations
+            // Group: Shift instructions
             //
-            Instruction::BIC_imm { params } => self.exec_bic_imm(params),
-
+            // --------------------------------------------
             Instruction::ASR_imm {
                 rd,
                 rm,
@@ -253,18 +274,214 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::BIC_reg { params, thumb32 } => {
+
+            Instruction::LSL_imm {
+                rd,
+                rm,
+                shift_n,
+                thumb32,
+                setflags,
+            } => {
                 if self.condition_passed() {
-                    let r_n = self.get_r(params.rn);
-                    let r_m = self.get_r(params.rm);
                     let c = self.psr.get_c();
+                    let (result, carry) =
+                        shift_c(self.get_r(*rm), SRType::LSL, *shift_n as usize, c);
+                    self.set_r(*rd, result);
 
-                    let (shifted, carry) = shift_c(r_m, params.shift_t, params.shift_n as usize, c);
+                    if conditional_setflags(*setflags, self.in_it_block()) {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
 
-                    let result = self.get_r(params.rn) & (shifted ^ 0xffff_ffff);
-                    self.set_r(params.rd, result);
+            Instruction::LSL_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let shift_n: u32 = self.get_r(*rm).get_bits(0..8);
+                    let c = self.psr.get_c();
+                    let (result, carry) =
+                        shift_c(self.get_r(*rn), SRType::LSL, shift_n as usize, c);
+                    self.set_r(*rd, result);
 
-                    if conditional_setflags(params.setflags, self.in_it_block()) {
+                    if conditional_setflags(*setflags, self.in_it_block()) {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
+            Instruction::LSR_imm {
+                rd,
+                rm,
+                shift_n,
+                setflags,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let c = self.psr.get_c();
+                    let (result, carry) =
+                        shift_c(self.get_r(*rm), SRType::LSR, usize::from(*shift_n), c);
+                    self.set_r(*rd, result);
+
+                    if conditional_setflags(*setflags, self.in_it_block()) {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+
+            Instruction::LSR_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let shift_n: u32 = self.get_r(*rm).get_bits(0..8);
+                    let c = self.psr.get_c();
+                    let (result, carry) =
+                        shift_c(self.get_r(*rn), SRType::LSR, shift_n as usize, c);
+
+                    self.set_r(*rd, result);
+
+                    if conditional_setflags(*setflags, self.in_it_block()) {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+
+                Ok(ExecuteResult::NotTaken)
+            }
+            Instruction::ROR_imm {
+                rd,
+                rm,
+                shift_n,
+                setflags,
+            } => {
+                if self.condition_passed() {
+                    let (result, carry) = shift_c(
+                        self.get_r(*rm),
+                        SRType::ROR,
+                        usize::from(*shift_n),
+                        self.psr.get_c(),
+                    );
+
+                    self.set_r(*rd, result);
+
+                    if *setflags {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+            Instruction::ROR_reg {
+                rd,
+                rn,
+                rm,
+                setflags,
+                ..
+            } => {
+                if self.condition_passed() {
+                    let shift_n = self.get_r(*rm) & 0xff;
+                    let (result, carry) = shift_c(
+                        self.get_r(*rn),
+                        SRType::ROR,
+                        shift_n as usize,
+                        self.psr.get_c(),
+                    );
+                    self.set_r(*rd, result);
+                    if conditional_setflags(*setflags, self.in_it_block()) {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+            Instruction::RRX { rd, rm, setflags } => {
+                if self.condition_passed() {
+                    let (result, carry) =
+                        shift_c(self.get_r(*rm), SRType::RRX, 1, self.psr.get_c());
+                    self.set_r(*rd, result);
+                    if *setflags {
+                        self.psr.set_n(result);
+                        self.psr.set_z(result);
+                        self.psr.set_c(carry);
+                    }
+                    return Ok(ExecuteResult::Taken { cycles: 1 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+            // --------------------------------------------
+            //
+            // Group: Multiply instructions
+            //
+            // --------------------------------------------
+
+            // ARMv7-M
+            Instruction::MLA { rd, rn, rm, ra } => {
+                if self.condition_passed() {
+                    let rn_ = self.get_r(*rn);
+                    let rm_ = self.get_r(*rm);
+                    let ra_ = self.get_r(*ra);
+                    let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
+
+                    self.set_r(*rd, result);
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+            // ARMv7-M
+            Instruction::MLS { rd, rn, rm, ra } => {
+                if self.condition_passed() {
+                    let rn_ = self.get_r(*rn);
+                    let rm_ = self.get_r(*rm);
+                    let ra_ = self.get_r(*ra);
+                    let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
+
+                    self.set_r(*rd, result);
+                    return Ok(ExecuteResult::Taken { cycles: 2 });
+                }
+                Ok(ExecuteResult::NotTaken)
+            }
+            Instruction::MUL {
+                rd,
+                rn,
+                rm,
+                setflags,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let operand1 = self.get_r(*rn);
+                    let operand2 = self.get_r(*rm);
+
+                    let result = operand1.wrapping_mul(operand2);
+
+                    self.set_r(*rd, result);
+
+                    if conditional_setflags(*setflags, self.in_it_block()) {
                         self.psr.set_n(result);
                         self.psr.set_z(result);
                     }
@@ -272,7 +489,132 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
+            // --------------------------------------------
+            //
+            // Group: Signed multiply instructions (ArmV7-m)
+            //
+            // --------------------------------------------
+            // ARMv7-M
+            Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
+            // --------------------------------------------
+            //
+            // Group: Multiply instructions (ARMv7-M base architecture)
+            //
+            // --------------------------------------------
 
+            // --------------------------------------------
+            //
+            // Group: Signed Multiply instructions (ARMv7-M DSP extension)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Saturating instructions (ARMv7-M base arch)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Saturating instructions (ARMv7-M DSP extensions)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Saturating add/sub (ARMv7-M DSP extensions)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Packing and unpacking instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Packing and unpacking instructions (DSP extensions)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Divide instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Parallel add / sub (DSP extension)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group:  Miscellaneous data-processing instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group:  Miscellaneous data-processing instructions (DSP extensions)
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Status register access instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group:  Load and Store instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group:  Load and Store Multiple instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Miscellaneous
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Exception generating instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Coprocessor instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Floating-point load and store instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Floating-point register transfer instructions
+            //
+            // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Group: Floating-point data-processing instructions
+            //
+            // --------------------------------------------
             Instruction::BFI {
                 rd,
                 rn,
@@ -492,30 +834,6 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::MOV_reg {
-                rd,
-                rm,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let result = self.get_r(*rm);
-
-                    if *rd == Reg::PC {
-                        self.branch_write_pc(result);
-                        return Ok(ExecuteResult::Branched { cycles: 3 });
-                    } else {
-                        self.set_r(*rd, result);
-                        if *setflags {
-                            self.psr.set_n(result);
-                            self.psr.set_z(result);
-                        }
-                        return Ok(ExecuteResult::Taken { cycles: 1 });
-                    }
-                }
-
-                Ok(ExecuteResult::NotTaken)
-            }
             Instruction::MOVT { rd, imm16 } => {
                 if self.condition_passed() {
                     let mut result: u32 = self.get_r(*rd);
@@ -526,102 +844,6 @@ impl ExecutorHelper for Processor {
 
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::LSL_imm {
-                rd,
-                rm,
-                shift_n,
-                thumb32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let c = self.psr.get_c();
-                    let (result, carry) =
-                        shift_c(self.get_r(*rm), SRType::LSL, *shift_n as usize, c);
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::LSL_reg {
-                rd,
-                rn,
-                rm,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let shift_n: u32 = self.get_r(*rm).get_bits(0..8);
-                    let c = self.psr.get_c();
-                    let (result, carry) =
-                        shift_c(self.get_r(*rn), SRType::LSL, shift_n as usize, c);
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::LSR_imm {
-                rd,
-                rm,
-                shift_n,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let c = self.psr.get_c();
-                    let (result, carry) =
-                        shift_c(self.get_r(*rm), SRType::LSR, usize::from(*shift_n), c);
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::LSR_reg {
-                rd,
-                rn,
-                rm,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let shift_n: u32 = self.get_r(*rm).get_bits(0..8);
-                    let c = self.psr.get_c();
-                    let (result, carry) =
-                        shift_c(self.get_r(*rn), SRType::LSR, shift_n as usize, c);
-
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-
-                Ok(ExecuteResult::NotTaken)
-            }
-
             Instruction::BL { imm32 } => {
                 if self.condition_passed() {
                     let pc = self.get_r(Reg::PC);
@@ -650,29 +872,6 @@ impl ExecutorHelper for Processor {
 
             Instruction::NOP { .. } => Ok(ExecuteResult::Taken { cycles: 1 }),
 
-            Instruction::MUL {
-                rd,
-                rn,
-                rm,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let operand1 = self.get_r(*rn);
-                    let operand2 = self.get_r(*rm);
-
-                    let result = operand1.wrapping_mul(operand2);
-
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
             Instruction::SMUL {
                 rd,
                 rn,
@@ -742,48 +941,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::NotTaken)
             }
 
-            Instruction::ORR_reg { params, thumb32 } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(params.rn);
-                    let r_m = self.get_r(params.rm);
-                    let c = self.psr.get_c();
-
-                    let (shifted, carry) = shift_c(r_m, params.shift_t, params.shift_n as usize, c);
-                    let result = r_n | shifted;
-
-                    self.set_r(params.rd, result);
-
-                    if conditional_setflags(params.setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::ORN_reg { params } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(params.rn);
-                    let r_m = self.get_r(params.rm);
-                    let c = self.psr.get_c();
-
-                    let (shifted, carry) = shift_c(r_m, params.shift_t, params.shift_n as usize, c);
-                    let result = r_n | (shifted ^ 0xFFFF_FFFF);
-
-                    self.set_r(params.rd, result);
-
-                    if params.setflags == SetFlags::True {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
             Instruction::BX { rm } => {
                 if self.condition_passed() {
                     let r_m = self.get_r(*rm);
@@ -837,71 +994,7 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::MOV_imm {
-                rd,
-                imm32,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (result, carry) = expand_conditional_carry(&imm32, self.psr.get_c());
-                    self.set_r(*rd, result);
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
 
-            Instruction::MVN_reg {
-                rd,
-                rm,
-                setflags,
-                shift_t,
-                shift_n,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (shifted, carry) = shift_c(
-                        self.get_r(*rm),
-                        *shift_t,
-                        *shift_n as usize,
-                        self.psr.get_c(),
-                    );
-                    let result = shifted ^ 0xFFFF_FFFF;
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::MVN_imm {
-                rd,
-                imm32,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
-                    let result = im ^ 0xFFFF_FFFF;
-                    self.set_r(*rd, result);
-
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
             Instruction::B_t13 {
                 cond,
                 imm32,
@@ -1322,31 +1415,6 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-            Instruction::ROR_imm {
-                rd,
-                rm,
-                shift_n,
-                setflags,
-            } => {
-                if self.condition_passed() {
-                    let (result, carry) = shift_c(
-                        self.get_r(*rm),
-                        SRType::ROR,
-                        usize::from(*shift_n),
-                        self.psr.get_c(),
-                    );
-
-                    self.set_r(*rd, result);
-
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
 
             Instruction::STM {
                 registers,
@@ -1665,15 +1733,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::NotTaken)
             }
 
-            Instruction::ADR { rd, imm32, thumb32 } => {
-                if self.condition_passed() {
-                    let result = (self.get_r(Reg::PC) & 0xffff_fffc) + imm32;
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
             Instruction::TBB { rn, rm } => {
                 if self.condition_passed() {
                     let r_n = self.get_r(*rn);
@@ -1697,81 +1756,6 @@ impl ExecutorHelper for Processor {
                     self.branch_write_pc(pc + 2 * halfwords);
 
                     return Ok(ExecuteResult::Branched { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-
-            Instruction::TST_reg {
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (shifted, carry) = shift_c(
-                        self.get_r(*rm),
-                        *shift_t,
-                        *shift_n as usize,
-                        self.psr.get_c(),
-                    );
-
-                    let result = self.get_r(*rn) & shifted;
-
-                    self.psr.set_n(result);
-                    self.psr.set_z(result);
-                    self.psr.set_c(carry);
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::TST_imm { rn, imm32 } => {
-                if self.condition_passed() {
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
-
-                    let result = self.get_r(*rn) & im;
-
-                    self.psr.set_n(result);
-                    self.psr.set_z(result);
-                    self.psr.set_c(carry);
-
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::TEQ_reg {
-                rn,
-                rm,
-                shift_n,
-                shift_t,
-            } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let r_m = self.get_r(*rm);
-
-                    let (shifted, carry) =
-                        shift_c(r_m, *shift_t, *shift_n as usize, self.psr.get_c());
-                    let result = r_n ^ shifted;
-
-                    self.psr.set_n(result);
-                    self.psr.set_z(result);
-                    self.psr.set_c(carry);
-
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::TEQ_imm { rn, imm32 } => {
-                if self.condition_passed() {
-                    let (im, carry) = expand_conditional_carry(imm32, self.psr.get_c());
-
-                    let result = self.get_r(*rn) ^ im;
-
-                    self.psr.set_n(result);
-                    self.psr.set_z(result);
-                    self.psr.set_c(carry);
-
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
                 Ok(ExecuteResult::NotTaken)
             }
@@ -1903,45 +1887,6 @@ impl ExecutorHelper for Processor {
                         *rd,
                         ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
                     );
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::ROR_reg {
-                rd,
-                rn,
-                rm,
-                setflags,
-                ..
-            } => {
-                if self.condition_passed() {
-                    let shift_n = self.get_r(*rm) & 0xff;
-                    let (result, carry) = shift_c(
-                        self.get_r(*rn),
-                        SRType::ROR,
-                        shift_n as usize,
-                        self.psr.get_c(),
-                    );
-                    self.set_r(*rd, result);
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
-                    return Ok(ExecuteResult::Taken { cycles: 1 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            Instruction::RRX { rd, rm, setflags } => {
-                if self.condition_passed() {
-                    let (result, carry) =
-                        shift_c(self.get_r(*rm), SRType::RRX, 1, self.psr.get_c());
-                    self.set_r(*rd, result);
-                    if *setflags {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                        self.psr.set_c(carry);
-                    }
                     return Ok(ExecuteResult::Taken { cycles: 1 });
                 }
                 Ok(ExecuteResult::NotTaken)
@@ -2119,32 +2064,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteResult::NotTaken)
             }
             // ARMv7-M
-            Instruction::MLA { rd, rn, rm, ra } => {
-                if self.condition_passed() {
-                    let rn_ = self.get_r(*rn);
-                    let rm_ = self.get_r(*rm);
-                    let ra_ = self.get_r(*ra);
-                    let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 2 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            // ARMv7-M
-            Instruction::MLS { rd, rn, rm, ra } => {
-                if self.condition_passed() {
-                    let rn_ = self.get_r(*rn);
-                    let rm_ = self.get_r(*rm);
-                    let ra_ = self.get_r(*ra);
-                    let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteResult::Taken { cycles: 2 });
-                }
-                Ok(ExecuteResult::NotTaken)
-            }
-            // ARMv7-M
             Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
                 if self.condition_passed() {
                     let rn_ = u64::from(self.get_r(*rn));
@@ -2187,9 +2106,6 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteResult::NotTaken)
             }
-
-            // ARMv7-M
-            Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
 
             Instruction::UDF { imm32, opcode, .. } => {
                 println!("UDF {}, {}", imm32, opcode);
@@ -2327,7 +2243,7 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, SetFlags,
+        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, RegImmCarryParams, SetFlags,
     };
 
     #[test]
@@ -2404,9 +2320,11 @@ mod tests {
             mask: 0b1000,
         };
         let i3 = Instruction::MOV_imm {
-            rd: Reg::R4,
-            imm32: Imm32Carry::NoCarry { imm32: 0 },
-            setflags: SetFlags::False,
+            params: RegImmCarryParams {
+                rd: Reg::R4,
+                imm32: Imm32Carry::NoCarry { imm32: 0 },
+                setflags: SetFlags::False,
+            },
             thumb32: false,
         };
 

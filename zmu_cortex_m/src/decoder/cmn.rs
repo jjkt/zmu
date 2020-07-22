@@ -49,7 +49,7 @@ pub fn decode_CMN_imm_t1(opcode: u32) -> Instruction {
 
     Instruction::CMN_imm {
         params: RegImmParams {
-            rn: Reg::from(opcode.get_bits(16..20) as u8),
+            r: Reg::from(opcode.get_bits(16..20) as u8),
             imm32: thumb_expand_imm(&params, &lengths),
         },
     }
