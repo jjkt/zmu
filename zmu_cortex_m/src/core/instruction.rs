@@ -87,6 +87,14 @@ pub struct Reg3Params {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2UsizeParams {
+    pub rd: Reg,
+    pub rm: Reg,
+    pub rotation: usize,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg4NoSetFlagsParams {
     pub rd: Reg,
     pub rn: Reg,
@@ -580,9 +588,7 @@ pub enum Instruction {
     // --------------------------------------------
     /// Signed Extend Byte
     SXTB {
-        rd: Reg,
-        rm: Reg,
-        rotation: usize,
+        params: Reg2UsizeParams,
         thumb32: bool,
     },
     /// Signed Extend Halfword
@@ -2187,19 +2193,14 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Self::SXTB {
-                rd,
-                rm,
-                thumb32,
-                rotation,
-            } => write!(
+            Self::SXTB { params, thumb32 } => write!(
                 f,
                 "sxtb{} {}, {}{}",
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                if rotation > 0 {
-                    format!("{}", rotation)
+                params.rd,
+                params.rm,
+                if params.rotation > 0 {
+                    format!("{}", params.rotation)
                 } else {
                     "".to_string()
                 }

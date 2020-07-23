@@ -19,6 +19,7 @@ use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
 mod multiply;
+mod packing;
 mod shift;
 mod signed_multiply;
 mod std_data_processing;
@@ -26,6 +27,7 @@ use crate::executor::multiply::IsaMultiply;
 use crate::executor::shift::IsaShift;
 use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
+use packing::IsaPacking;
 ///
 /// Stepping processor with instructions
 ///
@@ -304,19 +306,7 @@ impl ExecutorHelper for Processor {
             // Group: Packing and unpacking instructions
             //
             // --------------------------------------------
-            Instruction::SXTB {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::SXTB { params, thumb32 } => self.exec_sxtb(params),
 
             Instruction::SXTH {
                 rd,
@@ -1909,7 +1899,7 @@ mod tests {
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
         ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, Reg4NoSetFlagsParams,
-        RegImmCarryParams, SRType, SetFlags,
+        RegImmCarryParams, SRType, SetFlags, Reg4HighParams,
     };
 
     #[test]

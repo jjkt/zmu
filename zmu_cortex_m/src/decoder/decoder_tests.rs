@@ -2,7 +2,7 @@ use crate::core::instruction::{
     Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg3Params, Reg3ShiftParams, Reg4NoSetFlagsParams,
     Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType,
-    SetFlags,
+    SetFlags, Reg3HighParams, Reg4HighParams,
 };
 
 use super::*;
