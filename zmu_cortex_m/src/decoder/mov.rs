@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{Reg2Params, RegImmCarryParams, SetFlags};
+use crate::core::instruction::{Reg2Params, RegImmCarryParams, SetFlags, Reg2ShiftNParams};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::operation::zero_extend;
@@ -64,10 +64,12 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(opcode: u16) -> Instruction {
     } else {
         let (_, shift_n) = decode_imm_shift(0b00, imm5);
         Instruction::LSL_imm {
-            rd: Reg::from(opcode.get_bits(0..3) as u8),
-            rm: Reg::from(opcode.get_bits(3..6) as u8),
-            shift_n,
-            setflags: SetFlags::NotInITBlock,
+            params: Reg2ShiftNParams {
+                rd: Reg::from(opcode.get_bits(0..3) as u8),
+                rm: Reg::from(opcode.get_bits(3..6) as u8),
+                shift_n,
+                setflags: SetFlags::NotInITBlock,
+            },
             thumb32: false,
         }
     }

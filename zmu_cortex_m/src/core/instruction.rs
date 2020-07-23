@@ -78,10 +78,28 @@ pub struct Reg3ShiftParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg3Params {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+    pub setflags: SetFlags,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg2ShiftParams {
     pub rd: Reg,
     pub rm: Reg,
     pub shift_t: SRType,
+    pub shift_n: u8,
+    pub setflags: SetFlags,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2ShiftNParams {
+    pub rd: Reg,
+    pub rm: Reg,
     pub shift_n: u8,
     pub setflags: SetFlags,
 }
@@ -378,72 +396,46 @@ pub enum Instruction {
     // --------------------------------------------
     /// Arithmetic shift right
     ASR_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: SetFlags,
+        params: Reg2ShiftNParams,
         thumb32: bool,
     },
     /// Arithmetic shift right
     ASR_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
+        params: Reg3Params,
         thumb32: bool,
     },
     /// Logical Shift Left (immediate)
     LSL_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: SetFlags,
+        params: Reg2ShiftNParams,
         thumb32: bool,
     },
     /// Logical Shift Left (register)
     LSL_reg {
-        rd: Reg,
-        rm: Reg,
-        rn: Reg,
-        setflags: SetFlags,
+        params: Reg3Params,
         thumb32: bool,
     },
     /// Logical Shift Right (immediate)
     LSR_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: SetFlags,
+        params: Reg2ShiftNParams,
         thumb32: bool,
     },
     /// Logical Shift Right (register)
     LSR_reg {
-        rd: Reg,
-        rm: Reg,
-        rn: Reg,
-        setflags: SetFlags,
+        params: Reg3Params,
         thumb32: bool,
     },
     /// Rotate Right (immediate)
     ROR_imm {
-        rd: Reg,
-        rm: Reg,
-        shift_n: u8,
-        setflags: bool,
+        params: Reg2ShiftNParams,
     },
     /// Rotate Right (register)
     ROR_reg {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
+        params: Reg3Params,
         thumb32: bool,
     },
     /// Rotate Right with Extend
     RRX {
-        rd: Reg,
-        rm: Reg,
-        setflags: bool,
+        params: Reg2Params,
     },
 
     // --------------------------------------------
@@ -1422,48 +1414,31 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Self::ASR_imm {
-                rd,
-                rm,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::ASR_imm { params, thumb32 } => write!(
                 f,
                 "asr{}{} {}, {}, #{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                shift_n
+                params.rd,
+                params.rm,
+                params.shift_n
             ),
-            Self::ROR_imm {
-                rd,
-                rm,
-                shift_n,
-                setflags,
-            } => write!(
+            Self::ROR_imm { params } => write!(
                 f,
                 "ror{}.w {}, {}, #{}",
-                if setflags { "s" } else { "" },
-                rd,
-                rm,
-                shift_n
+                setflags_to_str(params.setflags),
+                params.rd,
+                params.rm,
+                params.shift_n
             ),
-            Self::ASR_reg {
-                rd,
-                rn,
-                rm,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::ASR_reg { params, thumb32 } => write!(
                 f,
                 "asr{}{} {}, {}, {}",
                 if thumb32 { ".W" } else { "" },
-                setflags_to_str(*setflags),
-                rd,
-                rn,
-                rm
+                setflags_to_str(params.setflags),
+                params.rd,
+                params.rn,
+                params.rm
             ),
             Self::BIC_reg { params, thumb32 } => write!(
                 f,
@@ -1763,64 +1738,40 @@ impl fmt::Display for Instruction {
                 rn,
                 rm
             ),
-            Self::LSL_imm {
-                rd,
-                rm,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::LSL_imm { params, thumb32 } => write!(
                 f,
                 "lsl{}{} {}, {}, #{}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                shift_n
+                params.rd,
+                params.rm,
+                params.shift_n
             ),
-            Self::LSL_reg {
-                rd,
-                rn,
-                rm,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::LSL_reg { params, thumb32 } => write!(
                 f,
                 "lsl{}{} {}, {}, {}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm
+                params.rd,
+                params.rn,
+                params.rm
             ),
-            Self::LSR_reg {
-                rd,
-                rn,
-                rm,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::LSR_reg { params, thumb32 } => write!(
                 f,
                 "lsr{}{} {}, {}, {}",
-                setflags_to_str(*setflags),
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rn,
-                rm
+                params.rd,
+                params.rn,
+                params.rm
             ),
-            Self::LSR_imm {
-                rd,
-                rm,
-                shift_n,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::LSR_imm { params, thumb32 } => write!(
                 f,
                 "lsr{} {}, {}, #{}",
-                setflags_to_str(*setflags),
-                rd,
-                rm,
-                shift_n
+                setflags_to_str(params.setflags),
+                params.rd,
+                params.rm,
+                params.shift_n
             ),
             Self::MSR_reg { sysm, rn, mask } => write!(f, "msr {}, {}", sysm, rn),
             Self::MRS { rd, sysm } => write!(f, "mrs {}, {}", rd, sysm),
@@ -2015,19 +1966,13 @@ impl fmt::Display for Instruction {
             Self::REV { rd, rm, .. } => write!(f, "rev {}, {}", rd, rm),
             Self::REV16 { rd, rm, .. } => write!(f, "rev16 {}, {}", rd, rm),
             Self::REVSH { rd, rm, .. } => write!(f, "revsh {}, {}", rd, rm),
-            Self::ROR_reg {
-                rd,
-                rn,
-                rm,
-                ref setflags,
-                ..
-            } => write!(
+            Self::ROR_reg { params, .. } => write!(
                 f,
                 "ror{} {}, {}, #{}",
-                setflags_to_str(*setflags),
-                rd,
-                rn,
-                rm
+                setflags_to_str(params.setflags),
+                params.rd,
+                params.rn,
+                params.rm
             ),
             Self::RSB_imm { params, thumb32 } => write!(
                 f,
@@ -2038,12 +1983,12 @@ impl fmt::Display for Instruction {
                 params.rn,
                 params.imm32
             ),
-            Self::RRX { rd, rm, setflags } => write!(
+            Self::RRX { params } => write!(
                 f,
                 "mov.w{} {}, {}, rrx",
-                if setflags { "s" } else { "" },
-                rd,
-                rm,
+                if params.setflags { "s" } else { "" },
+                params.rd,
+                params.rm,
             ),
 
             Self::SBC_imm { params } => write!(
@@ -2567,7 +2512,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::REVSH { thumb32, .. } => isize_t(*thumb32),
         Instruction::ROR_imm { .. } => 4,
         Instruction::ROR_reg { thumb32, .. } => isize_t(*thumb32),
-        Instruction::RRX { rd, rm, setflags } => 4,
+        Instruction::RRX { .. } => 4,
         Instruction::RSB_imm { thumb32, .. } => isize_t(*thumb32),
         Instruction::RSB_reg { thumb32, .. } => 4,
         //SADD16

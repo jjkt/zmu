@@ -1,6 +1,6 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SetFlags;
+use crate::core::instruction::{Reg3Params, SetFlags, Reg2ShiftNParams};
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 
@@ -8,10 +8,12 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_LSL_reg_t1(opcode: u16) -> Instruction {
     Instruction::LSL_reg {
-        rd: opcode.get_bits(0..3).into(),
-        rn: opcode.get_bits(0..3).into(),
-        rm: opcode.get_bits(3..6).into(),
-        setflags: SetFlags::NotInITBlock,
+        params: Reg3Params {
+            rd: opcode.get_bits(0..3).into(),
+            rn: opcode.get_bits(0..3).into(),
+            rm: opcode.get_bits(3..6).into(),
+            setflags: SetFlags::NotInITBlock,
+        },
         thumb32: false,
     }
 }
@@ -19,13 +21,15 @@ pub fn decode_LSL_reg_t1(opcode: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_LSL_reg_t2(opcode: u32) -> Instruction {
     Instruction::LSL_reg {
-        rd: opcode.get_bits(8..12).into(),
-        rn: opcode.get_bits(16..20).into(),
-        rm: opcode.get_bits(0..4).into(),
-        setflags: if opcode.get_bit(20) {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: Reg3Params {
+            rd: opcode.get_bits(8..12).into(),
+            rn: opcode.get_bits(16..20).into(),
+            rm: opcode.get_bits(0..4).into(),
+            setflags: if opcode.get_bit(20) {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
         },
         thumb32: true,
     }
@@ -43,14 +47,16 @@ pub fn decode_LSL_imm_t2(opcode: u32) -> Instruction {
     let (_, shift_n) = decode_imm_shift(0b_00, (imm3 << 2) + imm2);
 
     Instruction::LSL_imm {
-        rd: Reg::from(rd),
-        rm: Reg::from(rm),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: Reg2ShiftNParams {
+            rd: Reg::from(rd),
+            rm: Reg::from(rm),
+            setflags: if s == 1 {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
+            shift_n,
         },
-        shift_n,
         thumb32: true,
     }
 }
