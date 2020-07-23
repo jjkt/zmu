@@ -1,7 +1,7 @@
 use crate::core::instruction::{
     Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg3Params, Reg3ShiftParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, Reg4NoSetFlagsParams,
 };
 
 use super::*;
@@ -673,17 +673,11 @@ fn test_decode_nop() {
 fn test_decode_mul() {
     // MULS R4, R0, R4
     match decode_16(0x4344) {
-        Instruction::MUL {
-            rd,
-            rn,
-            rm,
-            setflags,
-            thumb32,
-        } => {
-            assert!(rd == Reg::R4);
-            assert!(rn == Reg::R0);
-            assert!(rm == Reg::R4);
-            assert!(setflags == SetFlags::NotInITBlock);
+        Instruction::MUL { params, thumb32 } => {
+            assert!(params.rd == Reg::R4);
+            assert!(params.rn == Reg::R0);
+            assert!(params.rm == Reg::R4);
+            assert!(params.setflags == SetFlags::NotInITBlock);
             assert!(!thumb32);
         }
         _ => {
@@ -1489,10 +1483,12 @@ fn test_decode_mla() {
     assert_eq!(
         decode_32(0xfb071102),
         Instruction::MLA {
-            rd: Reg::R1,
-            rn: Reg::R7,
-            rm: Reg::R2,
-            ra: Reg::R1,
+            params: Reg4NoSetFlagsParams {
+                rd: Reg::R1,
+                rn: Reg::R7,
+                rm: Reg::R2,
+                ra: Reg::R1,
+            }
         }
     );
 }
@@ -1672,10 +1668,12 @@ fn test_decode_mul_w() {
     assert_eq!(
         decode_32(0xfb04f604),
         Instruction::MUL {
-            rd: Reg::R6,
-            rn: Reg::R4,
-            rm: Reg::R4,
-            setflags: SetFlags::False,
+            params: Reg3Params {
+                rd: Reg::R6,
+                rn: Reg::R4,
+                rm: Reg::R4,
+                setflags: SetFlags::False,
+            },
             thumb32: true,
         }
     );
@@ -1878,10 +1876,12 @@ fn test_decode_mls() {
     assert_eq!(
         decode_32(0xfb02921a),
         Instruction::MLS {
-            rd: Reg::R2,
-            rn: Reg::R2,
-            rm: Reg::R10,
-            ra: Reg::R9,
+            params: Reg4NoSetFlagsParams {
+                rd: Reg::R2,
+                rn: Reg::R2,
+                rm: Reg::R10,
+                ra: Reg::R9,
+            }
         }
     );
 }

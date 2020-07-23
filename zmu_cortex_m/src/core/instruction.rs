@@ -87,6 +87,15 @@ pub struct Reg3Params {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg4NoSetFlagsParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+    pub ra: Reg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg2ShiftParams {
     pub rd: Reg,
     pub rm: Reg,
@@ -445,24 +454,15 @@ pub enum Instruction {
     // --------------------------------------------
     /// Multipy and Accumulate
     MLA {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
+        params: Reg4NoSetFlagsParams,
     },
-    /// Multipy and subtract
+    /// Multipy and Subtract
     MLS {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
+        params: Reg4NoSetFlagsParams,
     },
     /// Multipy
     MUL {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        setflags: SetFlags,
+        params: Reg3Params,
         thumb32: bool,
     },
     // --------------------------------------------
@@ -1775,19 +1775,13 @@ impl fmt::Display for Instruction {
             ),
             Self::MSR_reg { sysm, rn, mask } => write!(f, "msr {}, {}", sysm, rn),
             Self::MRS { rd, sysm } => write!(f, "mrs {}, {}", rd, sysm),
-            Self::MUL {
-                rd,
-                rn,
-                rm,
-                ref setflags,
-                thumb32,
-            } => write!(
+            Self::MUL { params, thumb32 } => write!(
                 f,
                 "mul{} {}, {}, {}",
-                setflags_to_str(*setflags),
-                rd,
-                rn,
-                rm
+                setflags_to_str(params.setflags),
+                params.rd,
+                params.rn,
+                params.rm
             ),
             Self::SMUL {
                 rd,
@@ -2254,9 +2248,17 @@ impl fmt::Display for Instruction {
                 write!(f, "smull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
             }
             // ARMv7-M
-            Self::MLA { rd, rn, rm, ra } => write!(f, "mla {}, {}, {}, {}", rd, rn, rm, ra),
+            Self::MLA { params } => write!(
+                f,
+                "mla {}, {}, {}, {}",
+                params.rd, params.rn, params.rm, params.ra
+            ),
             // ARMv7-M
-            Self::MLS { rd, rn, rm, ra } => write!(f, "mls {}, {}, {}, {}", rd, rn, rm, ra),
+            Self::MLS { params } => write!(
+                f,
+                "mls {}, {}, {}, {}",
+                params.rd, params.rn, params.rm, params.ra
+            ),
             // ARMv7-M
             Self::SMLAL { rdlo, rdhi, rn, rm } => {
                 write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)

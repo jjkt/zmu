@@ -18,8 +18,10 @@ use crate::semihosting::{decode_semihostcmd, semihost_return};
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
+mod multiply;
 mod shift;
 mod std_data_processing;
+use crate::executor::multiply::IsaMultiply;
 use crate::executor::shift::IsaShift;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
 ///
@@ -250,56 +252,9 @@ impl ExecutorHelper for Processor {
             // Group: Multiply instructions
             //
             // --------------------------------------------
-
-            // ARMv7-M
-            Instruction::MLA { rd, rn, rm, ra } => {
-                if self.condition_passed() {
-                    let rn_ = self.get_r(*rn);
-                    let rm_ = self.get_r(*rm);
-                    let ra_ = self.get_r(*ra);
-                    let result = rn_.wrapping_mul(rm_).wrapping_add(ra_);
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            // ARMv7-M
-            Instruction::MLS { rd, rn, rm, ra } => {
-                if self.condition_passed() {
-                    let rn_ = self.get_r(*rn);
-                    let rm_ = self.get_r(*rm);
-                    let ra_ = self.get_r(*ra);
-                    let result = ra_.wrapping_sub(rn_.wrapping_mul(rm_));
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::MUL {
-                rd,
-                rn,
-                rm,
-                setflags,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let operand1 = self.get_r(*rn);
-                    let operand2 = self.get_r(*rm);
-
-                    let result = operand1.wrapping_mul(operand2);
-
-                    self.set_r(*rd, result);
-
-                    if conditional_setflags(*setflags, self.in_it_block()) {
-                        self.psr.set_n(result);
-                        self.psr.set_z(result);
-                    }
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::MLA { params } => self.exec_mla(params),
+            Instruction::MLS { params } => self.exec_mls(params),
+            Instruction::MUL { params, .. } => self.exec_mul(params),
             // --------------------------------------------
             //
             // Group: Signed multiply instructions (ArmV7-m)
@@ -2055,7 +2010,7 @@ mod tests {
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
         ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, RegImmCarryParams, SRType,
-        SetFlags,
+        SetFlags, Reg4NoSetFlagsParams,
     };
 
     #[test]
@@ -2091,10 +2046,12 @@ mod tests {
         core.psr.value = 0;
 
         let instruction = Instruction::MLA {
-            rd: Reg::R1,
-            rn: Reg::R7,
-            rm: Reg::R2,
-            ra: Reg::R1,
+            params: Reg4NoSetFlagsParams {
+                rd: Reg::R1,
+                rn: Reg::R7,
+                rm: Reg::R2,
+                ra: Reg::R1,
+            },
         };
 
         // act
