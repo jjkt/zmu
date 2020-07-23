@@ -1,7 +1,8 @@
 use crate::core::instruction::{
     Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
-    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg3Params, Reg3ShiftParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, Reg4NoSetFlagsParams,
+    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg3Params, Reg3ShiftParams, Reg4NoSetFlagsParams,
+    Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType,
+    SetFlags,
 };
 
 use super::*;
@@ -2039,23 +2040,28 @@ fn test_decode_ulmull() {
     assert_eq!(
         decode_32(0xfba42300),
         Instruction::UMULL {
-            rdlo: Reg::R2,
-            rdhi: Reg::R3,
-            rn: Reg::R4,
-            rm: Reg::R0,
+            params: Reg643232Params {
+                rdlo: Reg::R2,
+                rdhi: Reg::R3,
+                rn: Reg::R4,
+                rm: Reg::R0,
+            }
         }
     );
 }
+
 #[test]
 fn test_decode_smull() {
     // fb83 320b       smull   r3, r2, r3, fp
     assert_eq!(
         decode_32(0xfb83320b),
         Instruction::SMULL {
-            rdlo: Reg::R3,
-            rdhi: Reg::R2,
-            rn: Reg::R3,
-            rm: Reg::R11,
+            params: Reg643232Params {
+                rdlo: Reg::R3,
+                rdhi: Reg::R2,
+                rn: Reg::R3,
+                rm: Reg::R11,
+            }
         }
     );
 }
@@ -2489,11 +2495,13 @@ fn test_decode_smul_bb() {
     assert_eq!(
         decode_32(0xfb1efe08),
         Instruction::SMUL {
-            rd: Reg::LR,
-            rn: Reg::LR,
-            rm: Reg::R8,
-            n_high: false,
-            m_high: false
+            params: Reg3HighParams {
+                rd: Reg::LR,
+                rn: Reg::LR,
+                rm: Reg::R8,
+                n_high: false,
+                m_high: false
+            }
         }
     );
 }
@@ -2504,12 +2512,14 @@ fn test_decode_smla_bb() {
     assert_eq!(
         decode_32(0xfb15ee0b),
         Instruction::SMLA {
-            rd: Reg::LR,
-            rn: Reg::R5,
-            rm: Reg::R11,
-            ra: Reg::LR,
-            n_high: false,
-            m_high: false
+            params: Reg4HighParams {
+                rd: Reg::LR,
+                rn: Reg::R5,
+                rm: Reg::R11,
+                ra: Reg::LR,
+                n_high: false,
+                m_high: false
+            }
         }
     );
 }

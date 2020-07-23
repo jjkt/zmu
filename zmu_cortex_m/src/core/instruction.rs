@@ -170,6 +170,36 @@ pub struct RegImmParams {
     pub imm32: u32,
 }
 
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg643232Params {
+    pub rdlo: Reg,
+    pub rdhi: Reg,
+    pub rm: Reg,
+    pub rn: Reg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg3HighParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+    pub n_high: bool,
+    pub m_high: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg4HighParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+    pub ra: Reg,
+    pub n_high: bool,
+    pub m_high: bool,
+}
+
 #[allow(non_camel_case_types, missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 ///
@@ -472,55 +502,38 @@ pub enum Instruction {
     // --------------------------------------------
     /// Signed Multiply and Accumulate (Long)
     SMLAL {
-        rm: Reg,
-        rdlo: Reg,
-        rdhi: Reg,
-        rn: Reg,
+        params: Reg643232Params,
     },
     /// Signed Multiply (Long)
     SMULL {
-        rdlo: Reg,
-        rdhi: Reg,
-        rn: Reg,
-        rm: Reg,
+        params: Reg643232Params,
     },
 
     // --------------------------------------------
     //
-    // Group: Multiply instructions (ARMv7-M base architecture)
+    // Group: Unsigned Multiply instructions (ARMv7-M base architecture)
     //
     // --------------------------------------------
     UMLAL {
-        rm: Reg,
-        rdlo: Reg,
-        rdhi: Reg,
-        rn: Reg,
+        params: Reg643232Params,
     },
     UMULL {
-        rm: Reg,
-        rdlo: Reg,
-        rdhi: Reg,
-        rn: Reg,
+        params: Reg643232Params,
     },
     // --------------------------------------------
     //
     // Group: Signed Multiply instructions (ARMv7-M DSP extension)
     //
     // --------------------------------------------
+    /// Signed multiply: halfwords
+    /// variants: SMULTT, SMULBB, SMULTB, SMULBT
     SMUL {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        n_high: bool,
-        m_high: bool,
+        params: Reg3HighParams,
     },
+    /// Signed multiply and Accumulate, halfwords
+    /// variants: SMLATT, SMLABB, SMLATB, SMLABT
     SMLA {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
-        n_high: bool,
-        m_high: bool,
+        params: Reg4HighParams,
     },
 
     //SMLAL second variant?
@@ -650,7 +663,7 @@ pub enum Instruction {
 
     // --------------------------------------------
     //
-    // Group:  Miscellaneous data-processing instructions
+    // Group: Miscellaneous data-processing instructions
     //
     // --------------------------------------------
     // Bit Field Clear
@@ -709,7 +722,7 @@ pub enum Instruction {
 
     // --------------------------------------------
     //
-    // Group:  Miscellaneous data-processing instructions (DSP extensions)
+    // Group: Miscellaneous data-processing instructions (DSP extensions)
     //
     // --------------------------------------------
     /// Select bytes using GE flags
@@ -1783,37 +1796,24 @@ impl fmt::Display for Instruction {
                 params.rn,
                 params.rm
             ),
-            Self::SMUL {
-                rd,
-                rn,
-                rm,
-                n_high,
-                m_high,
-            } => write!(
+            Self::SMUL { params } => write!(
                 f,
                 "smul{}{} {}, {}, {}",
-                if n_high { "T" } else { "B" },
-                if m_high { "T" } else { "B" },
-                rd,
-                rn,
-                rm
+                if params.n_high { "T" } else { "B" },
+                if params.m_high { "T" } else { "B" },
+                params.rd,
+                params.rn,
+                params.rm
             ),
-            Self::SMLA {
-                rd,
-                rn,
-                rm,
-                ra,
-                n_high,
-                m_high,
-            } => write!(
+            Self::SMLA { params } => write!(
                 f,
                 "smla{}{} {}, {}, {}, {}",
-                if n_high { "T" } else { "B" },
-                if m_high { "T" } else { "B" },
-                rd,
-                rn,
-                rm,
-                ra
+                if params.n_high { "T" } else { "B" },
+                if params.m_high { "T" } else { "B" },
+                params.rd,
+                params.rn,
+                params.rm,
+                params.ra
             ),
             Self::MOV_reg { params, thumb32 } => write!(
                 f,
@@ -2237,16 +2237,22 @@ impl fmt::Display for Instruction {
             Self::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
             Self::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
             // ARMv7-M
-            Self::UMLAL { rdlo, rdhi, rn, rm } => {
-                write!(f, "umlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
-            }
+            Self::UMLAL { params } => write!(
+                f,
+                "umlal {}, {}, {}, {}",
+                params.rdlo, params.rdhi, params.rn, params.rm
+            ),
             // ARMv7-M
-            Self::UMULL { rdlo, rdhi, rn, rm } => {
-                write!(f, "umull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
-            }
-            Self::SMULL { rdlo, rdhi, rn, rm } => {
-                write!(f, "smull {}, {}, {}, {}", rdlo, rdhi, rn, rm)
-            }
+            Self::UMULL { params } => write!(
+                f,
+                "umull {}, {}, {}, {}",
+                params.rdlo, params.rdhi, params.rn, params.rm
+            ),
+            Self::SMULL { params } => write!(
+                f,
+                "smull {}, {}, {}, {}",
+                params.rdlo, params.rdhi, params.rn, params.rm
+            ),
             // ARMv7-M
             Self::MLA { params } => write!(
                 f,
@@ -2260,9 +2266,11 @@ impl fmt::Display for Instruction {
                 params.rd, params.rn, params.rm, params.ra
             ),
             // ARMv7-M
-            Self::SMLAL { rdlo, rdhi, rn, rm } => {
-                write!(f, "smlal {}, {}, {}, {}", rdlo, rdhi, rn, rm)
-            }
+            Self::SMLAL { params } => write!(
+                f,
+                "smlal {}, {}, {}, {}",
+                params.rdlo, params.rdhi, params.rn, params.rm
+            ),
             Self::UXTB {
                 rd,
                 rm,

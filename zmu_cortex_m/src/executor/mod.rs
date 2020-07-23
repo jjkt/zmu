@@ -20,9 +20,11 @@ use crate::{memory::map::MapMemory, ProcessorMode};
 
 mod multiply;
 mod shift;
+mod signed_multiply;
 mod std_data_processing;
 use crate::executor::multiply::IsaMultiply;
 use crate::executor::shift::IsaShift;
+use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
 ///
 /// Stepping processor with instructions
@@ -260,19 +262,24 @@ impl ExecutorHelper for Processor {
             // Group: Signed multiply instructions (ArmV7-m)
             //
             // --------------------------------------------
-            // ARMv7-M
-            Instruction::SMLAL { rdlo, rdhi, rn, rm } => unimplemented!(),
+            Instruction::SMLAL { params } => unimplemented!(),
+            Instruction::SMULL { params } => self.exec_smull(params),
+
             // --------------------------------------------
             //
-            // Group: Multiply instructions (ARMv7-M base architecture)
+            // Group: Unsigned Multiply instructions (ARMv7-M base architecture)
             //
             // --------------------------------------------
+            Instruction::UMLAL { params } => self.exec_umlal(params),
+            Instruction::UMULL { params } => self.exec_umull(params),
 
             // --------------------------------------------
             //
             // Group: Signed Multiply instructions (ARMv7-M DSP extension)
             //
             // --------------------------------------------
+            Instruction::SMUL { params } => self.exec_smul(params),
+            Instruction::SMLA { params } => self.exec_smla(params),
 
             // --------------------------------------------
             //
@@ -297,36 +304,313 @@ impl ExecutorHelper for Processor {
             // Group: Packing and unpacking instructions
             //
             // --------------------------------------------
+            Instruction::SXTB {
+                rd,
+                rm,
+                rotation,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let rotated = ror(self.get_r(*rm), *rotation);
+                    self.set_r(*rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::SXTH {
+                rd,
+                rm,
+                rotation,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let rotated = ror(self.get_r(*rm), *rotation);
+                    self.set_r(*rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::UXTB {
+                rd,
+                rm,
+                thumb32,
+                rotation,
+            } => {
+                if self.condition_passed() {
+                    let rotated = ror(self.get_r(*rm), *rotation);
+                    self.set_r(*rd, rotated.get_bits(0..8));
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::UXTH {
+                rd,
+                rm,
+                rotation,
+                thumb32,
+            } => {
+                if self.condition_passed() {
+                    let rotated = ror(self.get_r(*rm), *rotation);
+                    self.set_r(*rd, rotated.get_bits(0..16));
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
 
             // --------------------------------------------
             //
             // Group: Packing and unpacking instructions (DSP extensions)
             //
             // --------------------------------------------
+            Instruction::UXTAB {
+                rd,
+                rn,
+                rm,
+                rotation,
+            } => {
+                if self.condition_passed() {
+                    let rotated = ror(self.get_r(*rm), *rotation);
+                    let rn = self.get_r(*rn);
+                    let result = rn.wrapping_add(rotated.get_bits(0..8));
+                    self.set_r(*rd, result);
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
 
             // --------------------------------------------
             //
             // Group: Divide instructions
             //
             // --------------------------------------------
+            // ARMv7-M
+            Instruction::SDIV { rd, rn, rm } => {
+                if self.condition_passed() {
+                    let rm_ = self.get_r(*rm);
+                    let result = if rm_ == 0 {
+                        if self.integer_zero_divide_trapping_enabled() {
+                            return Err(Fault::DivByZero);
+                        }
+                        0
+                    } else {
+                        let rn_ = self.get_r(*rn);
+                        (rn_ as i32) / (rm_ as i32)
+                    };
+                    self.set_r(*rd, result as u32);
+                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
 
             // --------------------------------------------
             //
             // Group: Parallel add / sub (DSP extension)
             //
             // --------------------------------------------
+            Instruction::UADD8 { rd, rn, rm } => {
+                if self.condition_passed() {
+                    let rm_: u32 = self.get_r(*rm);
+                    let rn_: u32 = self.get_r(*rn);
+
+                    let sum1: u32 = rn_.get_bits(0..8) + rm_.get_bits(0..8);
+                    let sum2: u32 = rn_.get_bits(8..16) + rm_.get_bits(8..16);
+                    let sum3: u32 = rn_.get_bits(16..24) + rm_.get_bits(16..24);
+                    let sum4: u32 = rn_.get_bits(24..32) + rm_.get_bits(24..32);
+
+                    let mut result: u32 = sum1.get_bits(0..8);
+                    result.set_bits(8..16, sum2.get_bits(0..8));
+                    result.set_bits(16..24, sum3.get_bits(0..8));
+                    result.set_bits(24..32, sum4.get_bits(0..8));
+                    self.set_r(*rd, result);
+
+                    self.psr.set_ge0(sum1 >= 0x100);
+                    self.psr.set_ge1(sum2 >= 0x100);
+                    self.psr.set_ge2(sum3 >= 0x100);
+                    self.psr.set_ge3(sum4 >= 0x100);
+
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
 
             // --------------------------------------------
             //
             // Group:  Miscellaneous data-processing instructions
             //
             // --------------------------------------------
+            Instruction::BFC { rd, lsbit, msbit } => {
+                if self.condition_passed() {
+                    if msbit >= lsbit {
+                        let destination_upper_range = msbit + 1;
+                        let mut result: u32 = self.get_r(*rd);
+                        result.set_bits(*lsbit..destination_upper_range, 0);
+                        self.set_r(*rd, result);
+                    }
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+            Instruction::BFI {
+                rd,
+                rn,
+                lsbit,
+                width,
+            } => {
+                if self.condition_passed() {
+                    let r_n: u32 = self.get_r(*rn);
+                    let r_d = self.get_r(*rd);
+
+                    let msbit = (lsbit + width) - 1;
+
+                    let source_upper_range = (msbit - lsbit) + 1;
+                    let destination_upper_range = msbit + 1;
+                    let mut result: u32 = r_d;
+                    let value: u32 = r_n.get_bits(0..source_upper_range);
+                    result.set_bits(*lsbit..destination_upper_range, value);
+
+                    self.set_r(*rd, result);
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::CLZ { rd, rm } => {
+                if self.condition_passed() {
+                    let rm = self.get_r(*rm);
+
+                    self.set_r(*rd, rm.leading_zeros());
+
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::MOVT { rd, imm16 } => {
+                if self.condition_passed() {
+                    let mut result: u32 = self.get_r(*rd);
+                    result.set_bits(16..32, (*imm16).into());
+                    self.set_r(*rd, result);
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::REV { rd, rm, .. } => {
+                if self.condition_passed() {
+                    let rm_ = self.get_r(*rm);
+                    self.set_r(
+                        *rd,
+                        ((rm_ & 0xff) << 24)
+                            + ((rm_ & 0xff00) << 8)
+                            + ((rm_ & 0xff_0000) >> 8)
+                            + ((rm_ & 0xff00_0000) >> 24),
+                    );
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::REV16 { rd, rm, .. } => {
+                if self.condition_passed() {
+                    let rm_ = self.get_r(*rm);
+                    self.set_r(
+                        *rd,
+                        ((rm_ & 0xff) << 8)
+                            + ((rm_ & 0xff00) >> 8)
+                            + ((rm_ & 0xff_0000) << 8)
+                            + ((rm_ & 0xff00_0000) >> 8),
+                    );
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+
+            Instruction::REVSH { rd, rm, .. } => {
+                if self.condition_passed() {
+                    let rm_ = self.get_r(*rm);
+                    self.set_r(
+                        *rd,
+                        ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
+                    );
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
+            // ARMv7-M
+            Instruction::UBFX {
+                rd,
+                rn,
+                lsb,
+                widthminus1,
+            } => {
+                if self.condition_passed() {
+                    let msbit = lsb + widthminus1;
+                    if msbit <= 31 {
+                        let upper = msbit + 1;
+                        let data = self.get_r(*rn).get_bits(*lsb..upper);
+                        self.set_r(*rd, data);
+                    } else {
+                        panic!();
+                    }
+
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
 
             // --------------------------------------------
             //
             // Group:  Miscellaneous data-processing instructions (DSP extensions)
             //
             // --------------------------------------------
+            Instruction::SEL { rd, rn, rm } => {
+                if self.condition_passed() {
+                    let rm_ = self.get_r(*rm);
+                    let rn_ = self.get_r(*rn);
+
+                    let mut result = 0;
+                    result.set_bits(
+                        0..8,
+                        if self.psr.get_ge0() {
+                            rn_.get_bits(0..8)
+                        } else {
+                            rm_.get_bits(0..8)
+                        },
+                    );
+                    result.set_bits(
+                        8..16,
+                        if self.psr.get_ge1() {
+                            rn_.get_bits(8..16)
+                        } else {
+                            rm_.get_bits(8..16)
+                        },
+                    );
+                    result.set_bits(
+                        16..24,
+                        if self.psr.get_ge2() {
+                            rn_.get_bits(16..24)
+                        } else {
+                            rm_.get_bits(16..24)
+                        },
+                    );
+                    result.set_bits(
+                        24..32,
+                        if self.psr.get_ge3() {
+                            rn_.get_bits(24..32)
+                        } else {
+                            rm_.get_bits(24..32)
+                        },
+                    );
+                    self.set_r(*rd, result);
+
+                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
+                }
+                Ok(ExecuteSuccess::NotTaken)
+            }
 
             // --------------------------------------------
             //
@@ -381,41 +665,6 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point data-processing instructions
             //
             // --------------------------------------------
-            Instruction::BFI {
-                rd,
-                rn,
-                lsbit,
-                width,
-            } => {
-                if self.condition_passed() {
-                    let r_n: u32 = self.get_r(*rn);
-                    let r_d = self.get_r(*rd);
-
-                    let msbit = (lsbit + width) - 1;
-
-                    let source_upper_range = (msbit - lsbit) + 1;
-                    let destination_upper_range = msbit + 1;
-                    let mut result: u32 = r_d;
-                    let value: u32 = r_n.get_bits(0..source_upper_range);
-                    result.set_bits(*lsbit..destination_upper_range, value);
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::BFC { rd, lsbit, msbit } => {
-                if self.condition_passed() {
-                    if msbit >= lsbit {
-                        let destination_upper_range = msbit + 1;
-                        let mut result: u32 = self.get_r(*rd);
-                        result.set_bits(*lsbit..destination_upper_range, 0);
-                        self.set_r(*rd, result);
-                    }
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
             #[cfg(armv6m)]
             Instruction::CPS { im } => {
                 if *im {
@@ -459,16 +708,6 @@ impl ExecutorHelper for Processor {
                 } else {
                     Ok(ExecuteSuccess::Taken { cycles: 1 })
                 }
-            }
-            Instruction::CLZ { rd, rm } => {
-                if self.condition_passed() {
-                    let rm = self.get_r(*rm);
-
-                    self.set_r(*rd, rm.leading_zeros());
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
             }
             Instruction::DMB | Instruction::DSB | Instruction::ISB => {
                 if self.condition_passed() {
@@ -600,16 +839,6 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
-            Instruction::MOVT { rd, imm16 } => {
-                if self.condition_passed() {
-                    let mut result: u32 = self.get_r(*rd);
-                    result.set_bits(16..32, (*imm16).into());
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-
-                Ok(ExecuteSuccess::NotTaken)
-            }
             Instruction::BL { imm32 } => {
                 if self.condition_passed() {
                     let pc = self.get_r(Reg::PC);
@@ -637,75 +866,6 @@ impl ExecutorHelper for Processor {
             }
 
             Instruction::NOP { .. } => Ok(ExecuteSuccess::Taken { cycles: 1 }),
-
-            Instruction::SMUL {
-                rd,
-                rn,
-                rm,
-                m_high,
-                n_high,
-            } => {
-                if self.condition_passed() {
-                    let operand1 = i32::from(if *n_high {
-                        let op = self.get_r(*rn).get_bits(16..32);
-                        op as i16
-                    } else {
-                        let op = self.get_r(*rn).get_bits(0..16);
-                        op as i16
-                    });
-                    let operand2 = i32::from(if *m_high {
-                        let op = self.get_r(*rm).get_bits(16..32);
-                        op as i16
-                    } else {
-                        let op = self.get_r(*rm).get_bits(0..16);
-                        op as i16
-                    });
-
-                    let result = operand1.wrapping_mul(operand2);
-
-                    self.set_r(*rd, result as u32);
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::SMLA {
-                rd,
-                rn,
-                rm,
-                ra,
-                m_high,
-                n_high,
-            } => {
-                if self.condition_passed() {
-                    let operand1 = i32::from(if *n_high {
-                        let op: u32 = self.get_r(*rn).get_bits(16..32);
-                        op as i16
-                    } else {
-                        let op: u32 = self.get_r(*rn).get_bits(0..16);
-                        op as i16
-                    });
-                    let operand2 = i32::from(if *m_high {
-                        let op: u32 = self.get_r(*rm).get_bits(16..32);
-                        op as i16
-                    } else {
-                        let op: u32 = self.get_r(*rm).get_bits(0..16);
-                        op as i16
-                    });
-
-                    let result = operand1
-                        .wrapping_mul(operand2)
-                        .wrapping_add(self.get_r(*ra) as i32);
-
-                    self.set_r(*rd, result as u32);
-                    if result != result as i32 {
-                        self.psr.set_q(true);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
 
             Instruction::BX { rm } => {
                 if self.condition_passed() {
@@ -1526,137 +1686,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            // ARMv7-M
-            Instruction::UBFX {
-                rd,
-                rn,
-                lsb,
-                widthminus1,
-            } => {
-                if self.condition_passed() {
-                    let msbit = lsb + widthminus1;
-                    if msbit <= 31 {
-                        let upper = msbit + 1;
-                        let data = self.get_r(*rn).get_bits(*lsb..upper);
-                        self.set_r(*rd, data);
-                    } else {
-                        panic!();
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::UXTB {
-                rd,
-                rm,
-                thumb32,
-                rotation,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, rotated.get_bits(0..8));
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::UXTAB {
-                rd,
-                rn,
-                rm,
-                rotation,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    let rn = self.get_r(*rn);
-                    let result = rn.wrapping_add(rotated.get_bits(0..8));
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::UXTH {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, rotated.get_bits(0..16));
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::SXTB {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, sign_extend(rotated.get_bits(0..8), 7, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::SXTH {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::REV { rd, rm, .. } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    self.set_r(
-                        *rd,
-                        ((rm_ & 0xff) << 24)
-                            + ((rm_ & 0xff00) << 8)
-                            + ((rm_ & 0xff_0000) >> 8)
-                            + ((rm_ & 0xff00_0000) >> 24),
-                    );
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::REV16 { rd, rm, .. } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    self.set_r(
-                        *rd,
-                        ((rm_ & 0xff) << 8)
-                            + ((rm_ & 0xff00) >> 8)
-                            + ((rm_ & 0xff_0000) << 8)
-                            + ((rm_ & 0xff00_0000) >> 8),
-                    );
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::REVSH { rd, rm, .. } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    self.set_r(
-                        *rd,
-                        ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
-                    );
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
             Instruction::SVC { imm32 } => {
                 if self.condition_passed() {
                     println!("SVC {}", imm32);
@@ -1739,136 +1768,6 @@ impl ExecutorHelper for Processor {
                     };
                     self.set_r(*rd, result);
                     return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::UADD8 { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_: u32 = self.get_r(*rm);
-                    let rn_: u32 = self.get_r(*rn);
-
-                    let sum1: u32 = rn_.get_bits(0..8) + rm_.get_bits(0..8);
-                    let sum2: u32 = rn_.get_bits(8..16) + rm_.get_bits(8..16);
-                    let sum3: u32 = rn_.get_bits(16..24) + rm_.get_bits(16..24);
-                    let sum4: u32 = rn_.get_bits(24..32) + rm_.get_bits(24..32);
-
-                    let mut result: u32 = sum1.get_bits(0..8);
-                    result.set_bits(8..16, sum2.get_bits(0..8));
-                    result.set_bits(16..24, sum3.get_bits(0..8));
-                    result.set_bits(24..32, sum4.get_bits(0..8));
-                    self.set_r(*rd, result);
-
-                    self.psr.set_ge0(sum1 >= 0x100);
-                    self.psr.set_ge1(sum2 >= 0x100);
-                    self.psr.set_ge2(sum3 >= 0x100);
-                    self.psr.set_ge3(sum4 >= 0x100);
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::SEL { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let rn_ = self.get_r(*rn);
-
-                    let mut result = 0;
-                    result.set_bits(
-                        0..8,
-                        if self.psr.get_ge0() {
-                            rn_.get_bits(0..8)
-                        } else {
-                            rm_.get_bits(0..8)
-                        },
-                    );
-                    result.set_bits(
-                        8..16,
-                        if self.psr.get_ge1() {
-                            rn_.get_bits(8..16)
-                        } else {
-                            rm_.get_bits(8..16)
-                        },
-                    );
-                    result.set_bits(
-                        16..24,
-                        if self.psr.get_ge2() {
-                            rn_.get_bits(16..24)
-                        } else {
-                            rm_.get_bits(16..24)
-                        },
-                    );
-                    result.set_bits(
-                        24..32,
-                        if self.psr.get_ge3() {
-                            rn_.get_bits(24..32)
-                        } else {
-                            rm_.get_bits(24..32)
-                        },
-                    );
-                    self.set_r(*rd, result);
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            // ARMv7-M
-            Instruction::SDIV { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let result = if rm_ == 0 {
-                        if self.integer_zero_divide_trapping_enabled() {
-                            return Err(Fault::DivByZero);
-                        }
-                        0
-                    } else {
-                        let rn_ = self.get_r(*rn);
-                        (rn_ as i32) / (rm_ as i32)
-                    };
-                    self.set_r(*rd, result as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            // ARMv7-M
-            Instruction::UMLAL { rdlo, rdhi, rn, rm } => {
-                if self.condition_passed() {
-                    let rn_ = u64::from(self.get_r(*rn));
-                    let rm_ = u64::from(self.get_r(*rm));
-                    let rdlo_ = u64::from(self.get_r(*rdlo));
-                    let rdhi_ = u64::from(self.get_r(*rdhi));
-
-                    let rdhilo = (rdhi_ << 32) + rdlo_;
-
-                    let result = rn_.wrapping_mul(rm_).wrapping_add(rdhilo);
-
-                    self.set_r(*rdlo, result.get_bits(0..32) as u32);
-                    self.set_r(*rdhi, result.get_bits(32..64) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            // ARMv7-M
-            Instruction::UMULL { rdlo, rdhi, rn, rm } => {
-                if self.condition_passed() {
-                    let rn_ = u64::from(self.get_r(*rn));
-                    let rm_ = u64::from(self.get_r(*rm));
-                    let result = rn_.wrapping_mul(rm_);
-
-                    self.set_r(*rdlo, result.get_bits(0..32) as u32);
-                    self.set_r(*rdhi, result.get_bits(32..64) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::SMULL { rdlo, rdhi, rn, rm } => {
-                if self.condition_passed() {
-                    let rn_ = i64::from(self.get_r(*rn));
-                    let rm_ = i64::from(self.get_r(*rm));
-                    let result = rn_.wrapping_mul(rm_) as u64;
-
-                    self.set_r(*rdlo, result.get_bits(0..32) as u32);
-                    self.set_r(*rdhi, result.get_bits(32..64) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
@@ -2009,8 +1908,8 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, RegImmCarryParams, SRType,
-        SetFlags, Reg4NoSetFlagsParams,
+        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, Reg4NoSetFlagsParams,
+        RegImmCarryParams, SRType, SetFlags,
     };
 
     #[test]
@@ -2210,12 +2109,14 @@ mod tests {
         core.psr.value = 0;
 
         let instruction = Instruction::SMLA {
-            rd: Reg::R12,
-            rn: Reg::LR,
-            rm: Reg::R8,
-            ra: Reg::R12,
-            n_high: false,
-            m_high: false,
+            params: Reg4HighParams {
+                rd: Reg::R12,
+                rn: Reg::LR,
+                rm: Reg::R8,
+                ra: Reg::R12,
+                n_high: false,
+                m_high: false,
+            },
         };
 
         core.execute_internal(&instruction).unwrap();
