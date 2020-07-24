@@ -10,7 +10,7 @@ use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SetFlags};
 use crate::core::monitor::Monitor;
 use crate::core::operation::{
-    condition_test, ror, shift, sign_extend, zero_extend, zero_extend_u16,
+    condition_test, shift, sign_extend, zero_extend, zero_extend_u16,
 };
 use crate::core::register::{Apsr, BaseReg, ExtensionReg, ExtensionRegOperations, Reg};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
@@ -306,70 +306,18 @@ impl ExecutorHelper for Processor {
             // Group: Packing and unpacking instructions
             //
             // --------------------------------------------
-            Instruction::SXTB { params, thumb32 } => self.exec_sxtb(params),
+            Instruction::SXTB { params, .. } => self.exec_sxtb(params),
+            Instruction::SXTH { params, .. } => self.exec_sxth(params),
 
-            Instruction::SXTH {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, sign_extend(rotated.get_bits(0..16), 15, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::UXTB {
-                rd,
-                rm,
-                thumb32,
-                rotation,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, rotated.get_bits(0..8));
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::UXTH {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    self.set_r(*rd, rotated.get_bits(0..16));
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::UXTB { params, .. } => self.exec_uxtb(params),
+            Instruction::UXTH { params, .. } => self.exec_uxth(params),
 
             // --------------------------------------------
             //
             // Group: Packing and unpacking instructions (DSP extensions)
             //
             // --------------------------------------------
-            Instruction::UXTAB {
-                rd,
-                rn,
-                rm,
-                rotation,
-            } => {
-                if self.condition_passed() {
-                    let rotated = ror(self.get_r(*rm), *rotation);
-                    let rn = self.get_r(*rn);
-                    let result = rn.wrapping_add(rotated.get_bits(0..8));
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::UXTAB { params } => self.exec_uxtab(params),
 
             // --------------------------------------------
             //
@@ -1898,8 +1846,8 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, Reg4NoSetFlagsParams,
-        RegImmCarryParams, SRType, SetFlags, Reg4HighParams,
+        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, Reg4HighParams,
+        Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
     };
 
     #[test]

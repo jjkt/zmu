@@ -95,6 +95,15 @@ pub struct Reg2UsizeParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg3UsizeParams {
+    pub rd: Reg,
+    pub rm: Reg,
+    pub rn: Reg,
+    pub rotation: usize,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg4NoSetFlagsParams {
     pub rd: Reg,
     pub rn: Reg,
@@ -593,23 +602,17 @@ pub enum Instruction {
     },
     /// Signed Extend Halfword
     SXTH {
-        rd: Reg,
-        rm: Reg,
-        rotation: usize,
+        params: Reg2UsizeParams,
         thumb32: bool,
     },
     /// Unsigned Extend Byte
     UXTB {
-        rd: Reg,
-        rm: Reg,
+        params: Reg2UsizeParams,
         thumb32: bool,
-        rotation: usize,
     },
     /// Unsigned Extend Halfword
     UXTH {
-        rd: Reg,
-        rm: Reg,
-        rotation: usize,
+        params: Reg2UsizeParams,
         thumb32: bool,
     },
     // --------------------------------------------
@@ -623,10 +626,7 @@ pub enum Instruction {
     //SXTAH
     //SXTB16
     UXTAB {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
-        rotation: usize,
+        params: Reg3UsizeParams,
     },
     //UXTAB16
     //UXTAH
@@ -2175,19 +2175,14 @@ impl fmt::Display for Instruction {
                 }
             ),
             Self::SVC { imm32 } => write!(f, "svc #{}", imm32),
-            Self::SXTH {
-                rd,
-                rm,
-                thumb32,
-                rotation,
-            } => write!(
+            Self::SXTH { params, thumb32 } => write!(
                 f,
                 "sxth{} {}, {}{}",
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                if rotation > 0 {
-                    format!("{}", rotation)
+                params.rd,
+                params.rm,
+                if params.rotation > 0 {
+                    format!("{}", params.rotation)
                 } else {
                     "".to_string()
                 }
@@ -2272,53 +2267,38 @@ impl fmt::Display for Instruction {
                 "smlal {}, {}, {}, {}",
                 params.rdlo, params.rdhi, params.rn, params.rm
             ),
-            Self::UXTB {
-                rd,
-                rm,
-                thumb32,
-                rotation,
-            } => write!(
+            Self::UXTB { params, thumb32 } => write!(
                 f,
                 "uxtb{} {}, {}{}",
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                if rotation > 0 {
-                    format!("{}", rotation)
+                params.rd,
+                params.rm,
+                if params.rotation > 0 {
+                    format!("{}", params.rotation)
                 } else {
                     "".to_string()
                 }
             ),
-            Self::UXTAB {
-                rd,
-                rn,
-                rm,
-                rotation,
-            } => write!(
+            Self::UXTAB { params } => write!(
                 f,
                 "uxtb.w {},{},{} {}",
-                rd,
-                rn,
-                rm,
-                if rotation > 0 {
-                    format!("{}", rotation)
+                params.rd,
+                params.rn,
+                params.rm,
+                if params.rotation > 0 {
+                    format!("{}", params.rotation)
                 } else {
                     "".to_string()
                 }
             ),
-            Self::UXTH {
-                rd,
-                rm,
-                rotation,
-                thumb32,
-            } => write!(
+            Self::UXTH { params, thumb32 } => write!(
                 f,
                 "uxth{} {}, {}{}",
                 if thumb32 { ".W" } else { "" },
-                rd,
-                rm,
-                if rotation > 0 {
-                    format!("{}", rotation)
+                params.rd,
+                params.rm,
+                if params.rotation > 0 {
+                    format!("{}", params.rotation)
                 } else {
                     "".to_string()
                 }

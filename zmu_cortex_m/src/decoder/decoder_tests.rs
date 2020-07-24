@@ -1,8 +1,8 @@
 use crate::core::instruction::{
     Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
-    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg3Params, Reg3ShiftParams, Reg4NoSetFlagsParams,
-    Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType,
-    SetFlags, Reg3HighParams, Reg4HighParams,
+    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3HighParams, Reg3Params,
+    Reg3ShiftParams, Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, Reg3UsizeParams,
 };
 
 use super::*;
@@ -797,16 +797,11 @@ fn test_decode_strh_imm() {
 fn test_decode_uxtb() {
     // UXTB R1,R1
     match decode_16(0xb2c9) {
-        Instruction::UXTB {
-            rd,
-            rm,
-            thumb32,
-            rotation,
-        } => {
-            assert!(rd == Reg::R1);
-            assert!(rm == Reg::R1);
+        Instruction::UXTB { params, thumb32 } => {
+            assert!(params.rd == Reg::R1);
+            assert!(params.rm == Reg::R1);
             assert!(!thumb32);
-            assert!(rotation == 0);
+            assert!(params.rotation == 0);
         }
         _ => {
             assert!(false);
@@ -1118,16 +1113,11 @@ fn test_decode_ldrsb_reg() {
 fn test_decode_sxth_reg() {
     // SXTH R1,R1
     match decode_16(0xb209) {
-        Instruction::SXTH {
-            rd,
-            rm,
-            thumb32,
-            rotation,
-        } => {
-            assert_eq!(rd, Reg::R1);
-            assert_eq!(rm, Reg::R1);
+        Instruction::SXTH { params, thumb32 } => {
+            assert_eq!(params.rd, Reg::R1);
+            assert_eq!(params.rm, Reg::R1);
             assert_eq!(thumb32, false);
-            assert_eq!(rotation, 0);
+            assert_eq!(params.rotation, 0);
         }
         _ => {
             assert!(false);
@@ -1720,10 +1710,12 @@ fn test_decode_uxtb_w() {
     assert_eq!(
         decode_32(0xfa5ff989),
         Instruction::UXTB {
-            rd: Reg::R9,
-            rm: Reg::R9,
+            params: Reg2UsizeParams {
+                rd: Reg::R9,
+                rm: Reg::R9,
+                rotation: 0,
+            },
             thumb32: true,
-            rotation: 0,
         }
     );
 }
@@ -1819,10 +1811,12 @@ fn test_decode_sxth_w() {
     assert_eq!(
         decode_32(0xfa0ffa8a),
         Instruction::SXTH {
-            rd: Reg::R10,
-            rm: Reg::R10,
+            params: Reg2UsizeParams {
+                rd: Reg::R10,
+                rm: Reg::R10,
+                rotation: 0
+            },
             thumb32: true,
-            rotation: 0
         }
     );
 }
@@ -2551,10 +2545,12 @@ fn test_decode_uxtab_() {
     assert_eq!(
         decode_32(0xfa54f480),
         Instruction::UXTAB {
-            rd: Reg::R4,
-            rn: Reg::R4,
-            rm: Reg::R0,
-            rotation: 0
+            params: Reg3UsizeParams {
+                rd: Reg::R4,
+                rn: Reg::R4,
+                rm: Reg::R0,
+                rotation: 0
+            }
         }
     );
 }
