@@ -2,7 +2,7 @@ use crate::core::bits::Bits;
 use crate::core::operation::{decode_imm_shift, thumb_expand_imm};
 use crate::core::register::Reg;
 
-use crate::core::instruction::{Reg2ImmParams, Reg3ShiftParams, Instruction, SRType, SetFlags};
+use crate::core::instruction::{Instruction, Reg2ImmParams, Reg3ShiftParams, SRType, SetFlags};
 
 #[allow(non_snake_case)]
 #[inline(always)]

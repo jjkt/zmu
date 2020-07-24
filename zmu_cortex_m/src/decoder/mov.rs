@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{Reg2Params, RegImmCarryParams, SetFlags, Reg2ShiftNParams};
+use crate::core::instruction::{Reg2Params, Reg2ShiftNParams, RegImmCarryParams, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::operation::zero_extend;

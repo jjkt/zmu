@@ -665,9 +665,7 @@ pub enum Instruction {
     //SADD8, QADD8, SHADD8, UADD8, UQADD8, UHADD8
     //SSUB8, QSUB8, SHSUB8, USUB8, UQSUB8, UHSUB8
     UADD8 {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
+        params: Reg3NoSetFlagsParams,
     },
 
     // --------------------------------------------
@@ -2230,7 +2228,9 @@ impl fmt::Display for Instruction {
                 imm32, ref opcode, ..
             } => write!(f, "udf {} (opcode = {})", imm32, opcode),
 
-            Self::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
+            Self::UADD8 { params } => {
+                write!(f, "uadd8 {}, {}, {}", params.rd, params.rn, params.rm)
+            }
             Self::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
             // ARMv7-M
             Self::UDIV { params } => write!(f, "udiv {}, {}, {}", params.rd, params.rn, params.rm),

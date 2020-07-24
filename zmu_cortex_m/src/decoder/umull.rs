@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::{Reg643232Params, Instruction};
+use crate::core::instruction::{Instruction, Reg643232Params};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]

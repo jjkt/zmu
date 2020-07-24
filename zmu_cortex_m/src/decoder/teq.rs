@@ -3,7 +3,9 @@ use crate::core::instruction::Instruction;
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 
-use crate::core::instruction::{Imm32Carry, Reg2ShiftNoSetFlagsParams, RegImmCarryNoSetFlagsParams};
+use crate::core::instruction::{
+    Imm32Carry, Reg2ShiftNoSetFlagsParams, RegImmCarryNoSetFlagsParams,
+};
 use crate::core::operation::thumb_expand_imm_c;
 
 #[allow(non_snake_case)]

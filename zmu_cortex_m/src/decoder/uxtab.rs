@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::{Reg3UsizeParams, Instruction};
+use crate::core::instruction::{Instruction, Reg3UsizeParams};
 
 #[allow(non_snake_case)]
 pub fn decode_UXTAB_t1(opcode: u32) -> Instruction {

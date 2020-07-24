@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::{Reg643232Params, Instruction};
+use crate::core::instruction::{Instruction, Reg643232Params};
 
 #[allow(non_snake_case)]
 pub fn decode_SMULL_t1(opcode: u32) -> Instruction {

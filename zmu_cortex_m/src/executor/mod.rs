@@ -19,6 +19,7 @@ use crate::{memory::map::MapMemory, ProcessorMode};
 mod divide;
 mod multiply;
 mod packing;
+mod parallel_add;
 mod shift;
 mod signed_multiply;
 mod std_data_processing;
@@ -28,6 +29,7 @@ use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
 use divide::IsaDivide;
 use packing::IsaPacking;
+use parallel_add::IsaParallelAddSub;
 ///
 /// Stepping processor with instructions
 ///
@@ -333,31 +335,7 @@ impl ExecutorHelper for Processor {
             // Group: Parallel add / sub (DSP extension)
             //
             // --------------------------------------------
-            Instruction::UADD8 { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_: u32 = self.get_r(*rm);
-                    let rn_: u32 = self.get_r(*rn);
-
-                    let sum1: u32 = rn_.get_bits(0..8) + rm_.get_bits(0..8);
-                    let sum2: u32 = rn_.get_bits(8..16) + rm_.get_bits(8..16);
-                    let sum3: u32 = rn_.get_bits(16..24) + rm_.get_bits(16..24);
-                    let sum4: u32 = rn_.get_bits(24..32) + rm_.get_bits(24..32);
-
-                    let mut result: u32 = sum1.get_bits(0..8);
-                    result.set_bits(8..16, sum2.get_bits(0..8));
-                    result.set_bits(16..24, sum3.get_bits(0..8));
-                    result.set_bits(24..32, sum4.get_bits(0..8));
-                    self.set_r(*rd, result);
-
-                    self.psr.set_ge0(sum1 >= 0x100);
-                    self.psr.set_ge1(sum2 >= 0x100);
-                    self.psr.set_ge2(sum3 >= 0x100);
-                    self.psr.set_ge3(sum4 >= 0x100);
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::UADD8 { params } => self.exec_uadd8(params),
 
             // --------------------------------------------
             //

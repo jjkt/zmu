@@ -1,4 +1,8 @@
-use crate::core::{bits::Bits, instruction::{Reg643232Params, Instruction}, register::Reg};
+use crate::core::{
+    bits::Bits,
+    instruction::{Instruction, Reg643232Params},
+    register::Reg,
+};
 
 #[allow(non_snake_case)]
 pub fn decode_SMLAL_t1(opcode: u32) -> Instruction {

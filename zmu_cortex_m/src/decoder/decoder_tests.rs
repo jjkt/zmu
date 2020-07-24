@@ -2636,9 +2636,11 @@ fn test_decode_uadd8() {
     assert_eq!(
         decode_32(0xfa82f24c),
         Instruction::UADD8 {
-            rd: Reg::R2,
-            rn: Reg::R2,
-            rm: Reg::R12,
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R2,
+                rn: Reg::R2,
+                rm: Reg::R12,
+            }
         }
     );
 }

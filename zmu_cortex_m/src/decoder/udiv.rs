@@ -1,4 +1,8 @@
-use crate::core::{bits::Bits, instruction::{Reg3NoSetFlagsParams, Instruction}, register::Reg};
+use crate::core::{
+    bits::Bits,
+    instruction::{Instruction, Reg3NoSetFlagsParams},
+    register::Reg,
+};
 
 #[allow(non_snake_case)]
 pub fn decode_UDIV_t1(opcode: u32) -> Instruction {

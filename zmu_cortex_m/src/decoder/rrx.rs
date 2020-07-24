@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::{Reg2Params, Instruction};
+use crate::core::instruction::{Instruction, Reg2Params};
 
 #[allow(non_snake_case)]
 pub fn decode_RRX_t1(opcode: u32) -> Instruction {

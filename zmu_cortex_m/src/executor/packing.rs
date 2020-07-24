@@ -3,7 +3,7 @@ use crate::Processor;
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
 use super::ExecuteResult;
-use crate::core::instruction::{Reg3UsizeParams, Reg2UsizeParams};
+use crate::core::instruction::{Reg2UsizeParams, Reg3UsizeParams};
 use crate::core::{
     bits::Bits,
     operation::{ror, sign_extend},

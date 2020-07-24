@@ -15,15 +15,15 @@ pub trait IsaDivide {
 impl IsaDivide for Processor {
     fn exec_sdiv(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult {
         if self.condition_passed() {
-            let rm_ = self.get_r(params.rm);
-            let result = if rm_ == 0 {
+            let rm = self.get_r(params.rm);
+            let result = if rm == 0 {
                 if self.integer_zero_divide_trapping_enabled() {
                     return Err(Fault::DivByZero);
                 }
                 0
             } else {
-                let rn_ = self.get_r(params.rn);
-                (rn_ as i32) / (rm_ as i32)
+                let rn = self.get_r(params.rn);
+                (rn as i32) / (rm as i32)
             };
             self.set_r(params.rd, result as u32);
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
