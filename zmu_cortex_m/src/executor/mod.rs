@@ -9,15 +9,14 @@ use crate::core::exception::{Exception, ExceptionHandling};
 use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SetFlags};
 use crate::core::monitor::Monitor;
-use crate::core::operation::{
-    condition_test, shift, sign_extend, zero_extend, zero_extend_u16,
-};
+use crate::core::operation::{condition_test, shift, sign_extend, zero_extend, zero_extend_u16};
 use crate::core::register::{Apsr, BaseReg, ExtensionReg, ExtensionRegOperations, Reg};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 use crate::semihosting::{decode_semihostcmd, semihost_return};
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
+mod divide;
 mod multiply;
 mod packing;
 mod shift;
@@ -27,6 +26,7 @@ use crate::executor::multiply::IsaMultiply;
 use crate::executor::shift::IsaShift;
 use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
+use divide::IsaDivide;
 use packing::IsaPacking;
 ///
 /// Stepping processor with instructions
@@ -325,23 +325,8 @@ impl ExecutorHelper for Processor {
             //
             // --------------------------------------------
             // ARMv7-M
-            Instruction::SDIV { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let result = if rm_ == 0 {
-                        if self.integer_zero_divide_trapping_enabled() {
-                            return Err(Fault::DivByZero);
-                        }
-                        0
-                    } else {
-                        let rn_ = self.get_r(*rn);
-                        (rn_ as i32) / (rm_ as i32)
-                    };
-                    self.set_r(*rd, result as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::SDIV { params } => self.exec_sdiv(params),
+            Instruction::UDIV { params } => self.exec_udiv(params),
 
             // --------------------------------------------
             //
@@ -1691,25 +1676,6 @@ impl ExecutorHelper for Processor {
                 rn,
             } => unimplemented!(),
 
-            // ARMv7-M
-            Instruction::UDIV { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let result = if rm_ == 0 {
-                        if self.integer_zero_divide_trapping_enabled() {
-                            return Err(Fault::DivByZero);
-                        }
-                        0
-                    } else {
-                        let rn_ = self.get_r(*rn);
-                        rn_ / rm_
-                    };
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
             Instruction::UDF { imm32, opcode, .. } => {
                 println!("UDF {}, {}", imm32, opcode);
                 panic!("undefined");
@@ -1846,8 +1812,8 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3ShiftParams, Reg4HighParams,
-        Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
+        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3NoSetFlagsParams, Reg3ShiftParams,
+        Reg4HighParams, Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
     };
 
     #[test]
@@ -1859,9 +1825,11 @@ mod tests {
         core.psr.value = 0;
 
         let instruction = Instruction::UDIV {
-            rd: Reg::R0,
-            rn: Reg::R0,
-            rm: Reg::R1,
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R1,
+            },
         };
 
         // act

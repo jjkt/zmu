@@ -1,8 +1,9 @@
 use crate::core::instruction::{
     Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
-    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3HighParams, Reg3Params,
-    Reg3ShiftParams, Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, Reg3UsizeParams,
+    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3HighParams,
+    Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams,
+    Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams,
+    RegImmParams, SRType, SetFlags,
 };
 
 use super::*;
@@ -1461,9 +1462,11 @@ fn test_decode_udiv() {
     assert_eq!(
         decode_32(0xfbb0f0f1),
         Instruction::UDIV {
-            rd: Reg::R0,
-            rn: Reg::R0,
-            rm: Reg::R1,
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R1,
+            }
         }
     );
 }
@@ -1858,9 +1861,11 @@ fn test_decode_sdiv() {
     assert_eq!(
         decode_32(0xfb99f2fa),
         Instruction::SDIV {
-            rd: Reg::R2,
-            rn: Reg::R9,
-            rm: Reg::R10,
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R2,
+                rn: Reg::R9,
+                rm: Reg::R10,
+            }
         }
     );
 }

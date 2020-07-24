@@ -84,6 +84,13 @@ pub struct Reg3Params {
     pub rm: Reg,
     pub setflags: SetFlags,
 }
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg3NoSetFlagsParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+}
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -639,15 +646,11 @@ pub enum Instruction {
     // --------------------------------------------
     /// signed divide
     SDIV {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
+        params: Reg3NoSetFlagsParams,
     },
     /// Unsigned divide
     UDIV {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
+        params: Reg3NoSetFlagsParams,
     },
 
     // --------------------------------------------
@@ -2230,8 +2233,8 @@ impl fmt::Display for Instruction {
             Self::UADD8 { rd, rn, rm } => write!(f, "uadd8 {}, {}, {}", rd, rn, rm),
             Self::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
             // ARMv7-M
-            Self::UDIV { rd, rn, rm } => write!(f, "udiv {}, {}, {}", rd, rn, rm),
-            Self::SDIV { rd, rn, rm } => write!(f, "sdiv {}, {}, {}", rd, rn, rm),
+            Self::UDIV { params } => write!(f, "udiv {}, {}, {}", params.rd, params.rn, params.rm),
+            Self::SDIV { params } => write!(f, "sdiv {}, {}, {}", params.rd, params.rn, params.rm),
             // ARMv7-M
             Self::UMLAL { params } => write!(
                 f,
