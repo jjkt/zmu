@@ -1,9 +1,9 @@
 use crate::core::instruction::{
-    Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
-    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3HighParams,
+    CondBranchParams, Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
+    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg2VanillaParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams,
     Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams,
-    RegImmParams, SRType, SetFlags,
+    RegImmParams, SRType, SetFlags, ParamsCbz,
 };
 
 use super::*;
@@ -313,13 +313,9 @@ fn test_decode_cmp() {
 fn test_decode_b() {
     // BEQ.N
     match decode_16(0xd001) {
-        Instruction::B_t13 {
-            cond,
-            imm32,
-            thumb32,
-        } => {
-            assert_eq!(cond, Condition::EQ);
-            assert_eq!(imm32, (1 << 1));
+        Instruction::B_t13 { params, thumb32 } => {
+            assert_eq!(params.cond, Condition::EQ);
+            assert_eq!(params.imm32, (1 << 1));
             assert_eq!(thumb32, false);
         }
         _ => {
@@ -329,13 +325,9 @@ fn test_decode_b() {
     }
     // BNE.N
     match decode_16(0xd1f8) {
-        Instruction::B_t13 {
-            cond,
-            imm32,
-            thumb32,
-        } => {
-            assert!(cond == Condition::NE);
-            assert!(imm32 == -16);
+        Instruction::B_t13 { params, thumb32 } => {
+            assert!(params.cond == Condition::NE);
+            assert!(params.imm32 == -16);
             assert_eq!(thumb32, false);
         }
         _ => {
@@ -1242,9 +1234,24 @@ fn test_decode_cbz() {
     assert_eq!(
         decode_16(0xb179),
         Instruction::CBZ {
-            rn: Reg::R1,
-            imm32: 30,
-            nonzero: false,
+            params: ParamsCbz {
+                rn: Reg::R1,
+                imm32: 30,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_cbnz() {
+    // bb4b            cbnz    r3, (82 offset)
+    assert_eq!(
+        decode_16(0xbb4b),
+        Instruction::CBNZ {
+            params: ParamsCbz {
+                rn: Reg::R3,
+                imm32: 82,
+            }
         }
     );
 }
@@ -1347,8 +1354,10 @@ fn test_decode_tbb() {
     assert_eq!(
         decode_32(0xe8dff000),
         Instruction::TBB {
-            rn: Reg::PC,
-            rm: Reg::R0,
+            params: Reg2VanillaParams {
+                rn: Reg::PC,
+                rm: Reg::R0,
+            }
         }
     );
 }
@@ -2105,8 +2114,10 @@ fn test_decode_b_pl_w() {
     assert_eq!(
         decode_32(0xf57fad69),
         Instruction::B_t13 {
-            cond: Condition::PL,
-            imm32: -1326,
+            params: CondBranchParams {
+                cond: Condition::PL,
+                imm32: -1326,
+            },
             thumb32: true
         }
     );
@@ -2632,7 +2643,6 @@ fn test_decode_orn_reg_t2() {
 #[test]
 fn test_decode_uadd8() {
     // fa82 f24c       uadd8   r2, r2, ip
-
     assert_eq!(
         decode_32(0xfa82f24c),
         Instruction::UADD8 {
@@ -2666,8 +2676,10 @@ fn test_decode_tbh() {
     assert_eq!(
         decode_32(0xe8dff013),
         Instruction::TBH {
-            rn: Reg::PC,
-            rm: Reg::R3,
+            params: Reg2VanillaParams {
+                rn: Reg::PC,
+                rm: Reg::R3,
+            }
         }
     );
 }

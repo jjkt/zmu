@@ -1,5 +1,5 @@
 use crate::core::condition::Condition;
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{CondBranchParams, Instruction};
 use crate::core::operation::build_imm_10_11;
 use crate::core::operation::build_imm_6_11;
 use crate::core::{bits::Bits, operation::sign_extend};
@@ -22,8 +22,10 @@ pub fn decode_B_t1_SVC_t1(opcode: u16) -> Instruction {
     }
 
     Instruction::B_t13 {
-        cond: Condition::from_u16(cond).unwrap(),
-        imm32: sign_extend(u32::from(opcode.get_bits(0..8)) << 1, 8, 32) as i32,
+        params: CondBranchParams {
+            cond: Condition::from_u16(cond).unwrap(),
+            imm32: sign_extend(u32::from(opcode.get_bits(0..8)) << 1, 8, 32) as i32,
+        },
         thumb32: false,
     }
 }
@@ -46,8 +48,10 @@ pub fn decode_B_t3(opcode: u32) -> Instruction {
 
     match Condition::from_u16(cond) {
         Some(c) => Instruction::B_t13 {
-            cond: c,
-            imm32: imm as i32,
+            params: CondBranchParams {
+                cond: c,
+                imm32: imm as i32,
+            },
             thumb32: true,
         },
         None => Instruction::B_t24 {

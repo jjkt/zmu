@@ -16,6 +16,7 @@ use crate::semihosting::{decode_semihostcmd, semihost_return};
 use crate::Processor;
 use crate::{memory::map::MapMemory, ProcessorMode};
 
+mod branch;
 mod divide;
 mod multiply;
 mod packing;
@@ -27,6 +28,7 @@ use crate::executor::multiply::IsaMultiply;
 use crate::executor::shift::IsaShift;
 use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
+use branch::IsaBranch;
 use divide::IsaDivide;
 use packing::IsaPacking;
 use parallel_add::IsaParallelAddSub;
@@ -180,6 +182,24 @@ impl ExecutorHelper for Processor {
     #[allow(clippy::too_many_lines)]
     fn execute_internal(&mut self, instruction: &Instruction) -> ExecuteResult {
         match instruction {
+            // --------------------------------------------
+            //
+            // Group: Branch instructions
+            //
+            // --------------------------------------------
+            Instruction::B_t13 { params, .. } => self.exec_b_t13(*params),
+            Instruction::B_t24 { imm32, .. } => self.exec_b_t24(*imm32),
+
+            Instruction::BLX { rm } => self.exec_blx(*rm),
+            Instruction::BX { rm } => self.exec_bx(*rm),
+            Instruction::BL { imm32 } => self.exec_bl(*imm32),
+
+            Instruction::CBZ { params } => self.exec_cbz(*params),
+            Instruction::CBNZ { params } => self.exec_cbnz(*params),
+
+            Instruction::TBB { params } => self.exec_tbb(*params),
+            Instruction::TBH { params } => self.exec_tbh(*params),
+
             // --------------------------------------------
             //
             // Group: Standard data-processing instructions
@@ -601,15 +621,6 @@ impl ExecutorHelper for Processor {
                 self.execution_priority = self.get_execution_priority();
                 Ok(ExecuteSuccess::Taken { cycles: 1 })
             }
-            Instruction::CBZ { rn, nonzero, imm32 } => {
-                if nonzero ^ (self.get_r(*rn) == 0) {
-                    let pc = self.get_r(Reg::PC);
-                    self.branch_write_pc(pc + imm32);
-                    Ok(ExecuteSuccess::Branched { cycles: 1 })
-                } else {
-                    Ok(ExecuteSuccess::Taken { cycles: 1 })
-                }
-            }
             Instruction::DMB | Instruction::DSB | Instruction::ISB => {
                 if self.condition_passed() {
                     return Ok(ExecuteSuccess::Taken { cycles: 4 });
@@ -740,17 +751,6 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
-            Instruction::BL { imm32 } => {
-                if self.condition_passed() {
-                    let pc = self.get_r(Reg::PC);
-                    self.set_r(Reg::LR, pc | 0x01);
-                    let target = ((pc as i32) + imm32) as u32;
-                    self.branch_write_pc(target);
-                    return Ok(ExecuteSuccess::Branched { cycles: 4 });
-                }
-
-                Ok(ExecuteSuccess::NotTaken)
-            }
 
             Instruction::BKPT { imm32 } => {
                 if *imm32 == 0xab {
@@ -767,26 +767,6 @@ impl ExecutorHelper for Processor {
             }
 
             Instruction::NOP { .. } => Ok(ExecuteSuccess::Taken { cycles: 1 }),
-
-            Instruction::BX { rm } => {
-                if self.condition_passed() {
-                    let r_m = self.get_r(*rm);
-                    self.bx_write_pc(r_m)?;
-                    return Ok(ExecuteSuccess::Branched { cycles: 3 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::BLX { rm } => {
-                if self.condition_passed() {
-                    let pc = self.get_r(Reg::PC);
-                    let target = self.get_r(*rm);
-                    self.set_r(Reg::LR, (((pc - 2) >> 1) << 1) | 1);
-                    self.blx_write_pc(target);
-                    return Ok(ExecuteSuccess::Branched { cycles: 3 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
 
             Instruction::LDM {
                 registers,
@@ -820,31 +800,6 @@ impl ExecutorHelper for Processor {
                     return Ok(ExecuteSuccess::Taken { cycles: cc });
                 }
                 Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::B_t13 {
-                cond,
-                imm32,
-                thumb32,
-            } => {
-                if self.condition_passed_b(*cond) {
-                    let pc = self.get_r(Reg::PC);
-                    let target = ((pc as i32) + imm32) as u32;
-                    self.branch_write_pc(target);
-                    Ok(ExecuteSuccess::Branched { cycles: 3 })
-                } else {
-                    Ok(ExecuteSuccess::NotTaken)
-                }
-            }
-            Instruction::B_t24 { imm32, thumb32 } => {
-                if self.condition_passed() {
-                    let pc = self.get_r(Reg::PC);
-                    let target = ((pc as i32) + imm32) as u32;
-                    self.branch_write_pc(target);
-                    Ok(ExecuteSuccess::Branched { cycles: 3 })
-                } else {
-                    Ok(ExecuteSuccess::NotTaken)
-                }
             }
 
             Instruction::PUSH { registers, thumb32 } => {
@@ -1560,33 +1515,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::TBB { rn, rm } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let r_m = self.get_r(*rm);
-                    let pc = self.get_r(Reg::PC);
-                    let halfwords = u32::from(self.read8(r_n + r_m)?);
-
-                    self.branch_write_pc(pc + 2 * halfwords);
-
-                    return Ok(ExecuteSuccess::Branched { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::TBH { rn, rm } => {
-                if self.condition_passed() {
-                    let r_n = self.get_r(*rn);
-                    let r_m = self.get_r(*rm);
-                    let pc = self.get_r(Reg::PC);
-                    let halfwords = u32::from(self.read16(r_n + (r_m << 1))?);
-
-                    self.branch_write_pc(pc + 2 * halfwords);
-
-                    return Ok(ExecuteSuccess::Branched { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
             Instruction::SVC { imm32 } => {
                 if self.condition_passed() {
                     println!("SVC {}", imm32);
@@ -1790,8 +1718,8 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        ITCondition, Reg2ShiftNoSetFlagsParams, Reg3NoSetFlagsParams, Reg3ShiftParams,
-        Reg4HighParams, Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
+        CondBranchParams, ITCondition, Reg2ShiftNoSetFlagsParams, Reg3NoSetFlagsParams,
+        Reg3ShiftParams, Reg4HighParams, Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
     };
 
     #[test]
@@ -1895,8 +1823,10 @@ mod tests {
         core.psr.value = 0;
 
         let instruction = Instruction::B_t13 {
-            cond: Condition::EQ,
-            imm32: 0,
+            params: CondBranchParams {
+                cond: Condition::EQ,
+                imm32: 0,
+            },
             thumb32: true,
         };
 

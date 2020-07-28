@@ -67,6 +67,13 @@ pub enum SetFlags {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct CondBranchParams {
+    pub cond: Condition,
+    pub imm32: i32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg3ShiftParams {
     pub rd: Reg,
     pub rn: Reg,
@@ -189,6 +196,13 @@ pub struct Reg2ShiftNoSetFlagsParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2VanillaParams {
+    pub rn: Reg,
+    pub rm: Reg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct RegImmParams {
     pub r: Reg,
     pub imm32: u32,
@@ -224,6 +238,18 @@ pub struct Reg4HighParams {
     pub m_high: bool,
 }
 
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct ParamsRegImm32 {
+    pub rn: Reg,
+    pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+pub type ParamsCbz = ParamsRegImm32;
+#[allow(missing_docs)]
+pub type ParamsCbnz = ParamsRegImm32;
+
 #[allow(non_camel_case_types, missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 ///
@@ -241,8 +267,7 @@ pub enum Instruction {
     // --------------------------------------------
     /// Branch to target address (on condition)
     B_t13 {
-        cond: Condition,
-        imm32: i32,
+        params: CondBranchParams,
         thumb32: bool,
     },
     /// Branch to target address
@@ -262,21 +287,21 @@ pub enum Instruction {
     BX {
         rm: Reg,
     },
-    /// Compare and branch on Nonzero / Zero
+    /// Compare and branch on  Zero
     CBZ {
-        rn: Reg,
-        nonzero: bool,
-        imm32: u32,
+        params: ParamsCbz,
+    },
+    /// Compare and branch on Nonzero
+    CBNZ {
+        params: ParamsCbnz,
     },
     /// Table branch, byte offsets
     TBB {
-        rn: Reg,
-        rm: Reg,
+        params: Reg2VanillaParams,
     },
     /// Table branch, halfword offsets
     TBH {
-        rn: Reg,
-        rm: Reg,
+        params: Reg2VanillaParams,
     },
 
     // --------------------------------------------
@@ -1494,11 +1519,13 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Self::B_t13 {
-                ref cond,
-                imm32,
-                thumb32,
-            } => write!(f, "b{}{} {}", cond, if thumb32 { ".W" } else { "" }, imm32),
+            Self::B_t13 { params, thumb32 } => write!(
+                f,
+                "b{}{} {}",
+                params.cond,
+                if thumb32 { ".W" } else { "" },
+                params.imm32
+            ),
             Self::B_t24 { imm32, thumb32 } => {
                 write!(f, "b{} {}", if thumb32 { ".W" } else { "" }, imm32)
             }
@@ -1533,13 +1560,8 @@ impl fmt::Display for Instruction {
                 }
             ),
             Self::CMN_imm { params } => write!(f, "cmn.W {}, #{}", params.r, params.imm32),
-            Self::CBZ { rn, nonzero, imm32 } => write!(
-                f,
-                "cb{}z {}, #{}",
-                if nonzero { "n" } else { "" },
-                rn,
-                imm32,
-            ),
+            Self::CBZ { params } => write!(f, "cbz {}, #{}", params.rn, params.imm32,),
+            Self::CBNZ { params } => write!(f, "cbnz {}, #{}", params.rn, params.imm32,),
             Self::CLZ { rd, rm } => write!(f, "clz {},{}", rd, rm),
             Self::CMP_imm { params, thumb32 } => write!(
                 f,
@@ -2201,8 +2223,8 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::TBB { rn, rm } => write!(f, "tbb [{}, {}]", rn, rm),
-            Self::TBH { rn, rm } => write!(f, "tbh [{}, {}, lsl #1]", rn, rm),
+            Self::TBB { params } => write!(f, "tbb [{}, {}]", params.rn, params.rm),
+            Self::TBH { params } => write!(f, "tbh [{}, {}, lsl #1]", params.rn, params.rm),
             Self::TST_reg { params, thumb32 } => write!(
                 f,
                 "tst{} {}, {}{}",
@@ -2408,6 +2430,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::BX { .. } => 2,
 
         Instruction::CBZ { .. } => 2,
+        Instruction::CBNZ { .. } => 2,
         //CDP
         //CLREX
         Instruction::CLZ { .. } => 4,
