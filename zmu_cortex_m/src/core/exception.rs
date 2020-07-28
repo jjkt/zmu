@@ -228,7 +228,7 @@ impl ExceptionHandlingHelpers for Processor {
             | Exception::SysTick
             | Exception::Interrupt { .. } => return_address,
             Exception::UsageFault => return_address - 4,
-            _ => panic!("unsupported exception"),
+            _ => todo!("unsupported exception"),
         }
     }
     fn push_stack(&mut self, exception_type: Exception, return_address: u32) -> Result<(), Fault> {
@@ -318,7 +318,7 @@ impl ExceptionHandlingHelpers for Processor {
                 self.set_psp((psp.wrapping_add(FRAME_SIZE)) | spmask);
             }
             _ => {
-                panic!("wrong exc return");
+                todo!("wrong exc return");
             }
         }
         self.psr.value.set_bits(27..32, psr.get_bits(27..32));

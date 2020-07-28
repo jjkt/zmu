@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{BfcParams, Instruction};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
@@ -13,8 +13,10 @@ pub fn decode_BFC_t1(opcode: u32) -> Instruction {
     let msbit = opcode.get_bits(0..5);
 
     Instruction::BFC {
-        rd: Reg::from(rd),
-        lsbit: lsbit as usize,
-        msbit: msbit as usize,
+        params: BfcParams {
+            rd: Reg::from(rd),
+            lsbit: lsbit as usize,
+            msbit: msbit as usize,
+        },
     }
 }

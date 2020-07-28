@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{BfiParams, Instruction};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
@@ -18,9 +18,11 @@ pub fn decode_BFI_t1(opcode: u32) -> Instruction {
     let width = msbit - lsbit + 1;
 
     Instruction::BFI {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        lsbit: lsbit as usize,
-        width: width as usize,
+        params: BfiParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            lsbit: lsbit as usize,
+            width: width as usize,
+        },
     }
 }

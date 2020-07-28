@@ -364,168 +364,25 @@ impl ExecutorHelper for Processor {
             // Group:  Miscellaneous data-processing instructions
             //
             // --------------------------------------------
-            Instruction::BFC { rd, lsbit, msbit } => {
-                if self.condition_passed() {
-                    if msbit >= lsbit {
-                        let destination_upper_range = msbit + 1;
-                        let mut result: u32 = self.get_r(*rd);
-                        result.set_bits(*lsbit..destination_upper_range, 0);
-                        self.set_r(*rd, result);
-                    }
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            Instruction::BFI {
-                rd,
-                rn,
-                lsbit,
-                width,
-            } => {
-                if self.condition_passed() {
-                    let r_n: u32 = self.get_r(*rn);
-                    let r_d = self.get_r(*rd);
-
-                    let msbit = (lsbit + width) - 1;
-
-                    let source_upper_range = (msbit - lsbit) + 1;
-                    let destination_upper_range = msbit + 1;
-                    let mut result: u32 = r_d;
-                    let value: u32 = r_n.get_bits(0..source_upper_range);
-                    result.set_bits(*lsbit..destination_upper_range, value);
-
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::BFC { params } => self.exec_bfc(params),
+            Instruction::BFI { params } => self.exec_bfi(params),
 
             Instruction::CLZ { params } => self.exec_clz(*params),
 
-            Instruction::MOVT { rd, imm16 } => {
-                if self.condition_passed() {
-                    let mut result: u32 = self.get_r(*rd);
-                    result.set_bits(16..32, (*imm16).into());
-                    self.set_r(*rd, result);
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
+            Instruction::MOVT { params } => self.exec_movt(*params),
 
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::REV { params, .. } => {
-                if self.condition_passed() {
-                    let rm = self.get_r(params.rm);
-                    self.set_r(
-                        params.rd,
-                        ((rm & 0xff) << 24)
-                            + ((rm & 0xff00) << 8)
-                            + ((rm & 0xff_0000) >> 8)
-                            + ((rm & 0xff00_0000) >> 24),
-                    );
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::REV16 { params, .. } => {
-                if self.condition_passed() {
-                    let rm = self.get_r(params.rm);
-                    self.set_r(
-                        params.rd,
-                        ((rm & 0xff) << 8)
-                            + ((rm & 0xff00) >> 8)
-                            + ((rm & 0xff_0000) << 8)
-                            + ((rm & 0xff00_0000) >> 8),
-                    );
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::REVSH { params, .. } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(params.rm);
-                    self.set_r(
-                        params.rd,
-                        ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
-                    );
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-            // ARMv7-M
-            Instruction::UBFX {
-                rd,
-                rn,
-                lsb,
-                widthminus1,
-            } => {
-                if self.condition_passed() {
-                    let msbit = lsb + widthminus1;
-                    if msbit <= 31 {
-                        let upper = msbit + 1;
-                        let data = self.get_r(*rn).get_bits(*lsb..upper);
-                        self.set_r(*rd, data);
-                    } else {
-                        panic!();
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::REV { params, .. } => self.exec_rev(*params),
+            Instruction::REV16 { params, .. } => self.exec_rev16(*params),
+            Instruction::REVSH { params, .. } => self.exec_revsh(*params),
+            
+            Instruction::UBFX { params } => self.exec_ubfx(params),
 
             // --------------------------------------------
             //
             // Group:  Miscellaneous data-processing instructions (DSP extensions)
             //
             // --------------------------------------------
-            Instruction::SEL { rd, rn, rm } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let rn_ = self.get_r(*rn);
-
-                    let mut result = 0;
-                    result.set_bits(
-                        0..8,
-                        if self.psr.get_ge0() {
-                            rn_.get_bits(0..8)
-                        } else {
-                            rm_.get_bits(0..8)
-                        },
-                    );
-                    result.set_bits(
-                        8..16,
-                        if self.psr.get_ge1() {
-                            rn_.get_bits(8..16)
-                        } else {
-                            rm_.get_bits(8..16)
-                        },
-                    );
-                    result.set_bits(
-                        16..24,
-                        if self.psr.get_ge2() {
-                            rn_.get_bits(16..24)
-                        } else {
-                            rm_.get_bits(16..24)
-                        },
-                    );
-                    result.set_bits(
-                        24..32,
-                        if self.psr.get_ge3() {
-                            rn_.get_bits(24..32)
-                        } else {
-                            rm_.get_bits(24..32)
-                        },
-                    );
-                    self.set_r(*rd, result);
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
+            Instruction::SEL { params } => self.exec_sel(params),
             // --------------------------------------------
             //
             // Group: Status register access instructions
@@ -673,7 +530,7 @@ impl ExecutorHelper for Processor {
                             0b100 => {
                                 //let ctrl = u8::from(self.control) as u32;
                                 //value.set_bits(0..2, ctrl);
-                                panic!("unimplemented CONTROL");
+                                todo!("unimplemented CONTROL");
                             }
                             _ => (),
                         },
@@ -1577,7 +1434,7 @@ impl ExecutorHelper for Processor {
 
             Instruction::UDF { imm32, opcode, .. } => {
                 println!("UDF {}, {}", imm32, opcode);
-                panic!("undefined");
+                todo!("undefined");
                 //Some(Fault::UndefinedInstruction)
             }
             Instruction::VLDR {
@@ -1711,7 +1568,7 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        CondBranchParams, ITCondition, Reg2ShiftNoSetFlagsParams, Reg3NoSetFlagsParams,
+        BfiParams, CondBranchParams, ITCondition, Reg2ShiftNoSetFlagsParams, Reg3NoSetFlagsParams,
         Reg3ShiftParams, Reg4HighParams, Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
     };
 
@@ -1840,10 +1697,12 @@ mod tests {
         core.psr.value = 0;
 
         let instruction = Instruction::BFI {
-            rd: Reg::R2,
-            rn: Reg::R3,
-            lsbit: 0,
-            width: 8,
+            params: BfiParams {
+                rd: Reg::R2,
+                rn: Reg::R3,
+                lsbit: 0,
+                width: 8,
+            },
         };
 
         core.execute_internal(&instruction).unwrap();
@@ -1861,10 +1720,12 @@ mod tests {
         core.set_r(Reg::R1, 0x00e000e4);
 
         let instruction = Instruction::BFI {
-            rd: Reg::R0,
-            rn: Reg::R1,
-            lsbit: 8,
-            width: 24,
+            params: BfiParams {
+                rd: Reg::R0,
+                rn: Reg::R1,
+                lsbit: 8,
+                width: 24,
+            },
         };
 
         core.execute_internal(&instruction).unwrap();

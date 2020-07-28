@@ -210,6 +210,22 @@ pub struct Reg2RdRmParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct UbfxParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub lsb: usize,
+    pub widthminus1: usize,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct MovtParams {
+    pub rd: Reg,
+    pub imm16: u16,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct RegImmParams {
     pub r: Reg,
     pub imm32: u32,
@@ -250,6 +266,23 @@ pub struct Reg4HighParams {
 pub struct ParamsRegImm32 {
     pub rn: Reg,
     pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct BfcParams {
+    pub rd: Reg,
+    pub lsbit: usize,
+    pub msbit: usize,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct BfiParams {
+    pub rd: Reg,
+    pub rn: Reg,
+    pub lsbit: usize,
+    pub width: usize,
 }
 
 #[allow(non_camel_case_types, missing_docs)]
@@ -702,16 +735,11 @@ pub enum Instruction {
     // --------------------------------------------
     // Bit Field Clear
     BFC {
-        rd: Reg,
-        lsbit: usize,
-        msbit: usize,
+        params: BfcParams,
     },
     /// Bit Field Insert
     BFI {
-        rd: Reg,
-        rn: Reg,
-        lsbit: usize,
-        width: usize,
+        params: BfiParams,
     },
     /// Count Leading Zeros
     CLZ {
@@ -719,8 +747,7 @@ pub enum Instruction {
     },
     /// Move Top
     MOVT {
-        rd: Reg,
-        imm16: u16,
+        params: MovtParams,
     },
     // RBIT
     /// Byte-reverse word
@@ -744,10 +771,7 @@ pub enum Instruction {
     //SBFX - signed bit field extract
     /// Unsigned bit field extract
     UBFX {
-        rd: Reg,
-        rn: Reg,
-        lsb: usize,
-        widthminus1: usize,
+        params: UbfxParams,
     },
 
     // --------------------------------------------
@@ -757,9 +781,7 @@ pub enum Instruction {
     // --------------------------------------------
     /// Select bytes using GE flags
     SEL {
-        rd: Reg,
-        rn: Reg,
-        rm: Reg,
+        params: Reg3NoSetFlagsParams,
     },
     //USAD8
     //USADA8
@@ -1532,18 +1554,19 @@ impl fmt::Display for Instruction {
             Self::BLX { rm } => write!(f, "blx {}", rm),
             Self::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
 
-            Self::BFI {
-                ref rd,
-                ref rn,
-                ref lsbit,
-                ref width,
-            } => write!(f, "bfi {}, {}, #{}, #{}", rd, rn, lsbit, width),
+            Self::BFI { params } => write!(
+                f,
+                "bfi {}, {}, #{}, #{}",
+                params.rd, params.rn, params.lsbit, params.width
+            ),
 
-            Self::BFC {
-                ref rd,
-                ref lsbit,
-                ref msbit,
-            } => write!(f, "bfc {}, #{}, #{}", rd, lsbit, msbit - lsbit + 1),
+            Self::BFC { params } => write!(
+                f,
+                "bfc {}, #{}, #{}",
+                params.rd,
+                params.lsbit,
+                params.msbit - params.lsbit + 1
+            ),
 
             Self::CMN_reg { params, thumb32 } => write!(
                 f,
@@ -1861,7 +1884,7 @@ impl fmt::Display for Instruction {
                     Imm32Carry::Carry { imm32_c0, imm32_c1 } => imm32_c0.0,
                 }
             ),
-            Self::MOVT { rd, imm16 } => write!(f, "movt {}, #{}", rd, imm16),
+            Self::MOVT { params } => write!(f, "movt {}, #{}", params.rd, params.imm16),
             Self::LDRSH_imm {
                 rt,
                 rn,
@@ -2251,7 +2274,7 @@ impl fmt::Display for Instruction {
             Self::UADD8 { params } => {
                 write!(f, "uadd8 {}, {}, {}", params.rd, params.rn, params.rm)
             }
-            Self::SEL { rd, rn, rm } => write!(f, "sel {}, {}, {}", rd, rn, rm),
+            Self::SEL { params } => write!(f, "sel {}, {}, {}", params.rd, params.rn, params.rm),
             // ARMv7-M
             Self::UDIV { params } => write!(f, "udiv {}, {}, {}", params.rd, params.rn, params.rm),
             Self::SDIV { params } => write!(f, "sdiv {}, {}, {}", params.rd, params.rn, params.rm),
@@ -2326,12 +2349,14 @@ impl fmt::Display for Instruction {
                     "".to_string()
                 }
             ),
-            Self::UBFX {
-                rd,
-                rn,
-                lsb,
-                widthminus1,
-            } => write!(f, "ubfx {}, {}, #{}, #{}", rd, rn, lsb, widthminus1 + 1),
+            Self::UBFX { params } => write!(
+                f,
+                "ubfx {}, {}, #{}, #{}",
+                params.rd,
+                params.rn,
+                params.lsb,
+                params.widthminus1 + 1
+            ),
             Self::VLDR {
                 dd,
                 rn,

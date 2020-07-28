@@ -1,9 +1,10 @@
 use crate::core::instruction::{
-    CondBranchParams, Imm32Carry, ParamsRegImm32, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params,
-    Reg2RnRmParams, Reg2ShiftNParams, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams,
-    Reg3HighParams, Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams,
-    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams,
-    RegImmCarryParams, RegImmParams, SRType, SetFlags, Reg2RdRmParams,
+    BfcParams, BfiParams, CondBranchParams, Imm32Carry, ParamsRegImm32, Reg2ImmCarryParams,
+    Reg2ImmParams, Reg2Params, Reg2RdRmParams, Reg2RnRmParams, Reg2ShiftNParams,
+    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3HighParams,
+    Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams,
+    Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams,
+    RegImmParams, SRType, SetFlags, UbfxParams, MovtParams,
 };
 
 use super::*;
@@ -1457,10 +1458,12 @@ fn test_decode_ubfx() {
     assert_eq!(
         decode_32(0xf3c00140),
         Instruction::UBFX {
-            rd: Reg::R1,
-            rn: Reg::R0,
-            lsb: 1,
-            widthminus1: 0,
+            params: UbfxParams {
+                rd: Reg::R1,
+                rn: Reg::R0,
+                lsb: 1,
+                widthminus1: 0,
+            }
         }
     );
 }
@@ -1856,10 +1859,12 @@ fn test_decode_bfi_w() {
     assert_eq!(
         decode_32(0xf3630407),
         Instruction::BFI {
-            rd: Reg::R4,
-            rn: Reg::R3,
-            lsbit: 0,
-            width: 8,
+            params: BfiParams {
+                rd: Reg::R4,
+                rn: Reg::R3,
+                lsbit: 0,
+                width: 8,
+            }
         }
     );
 }
@@ -2664,9 +2669,11 @@ fn test_decode_sel() {
     assert_eq!(
         decode_32(0xfaa4f28c),
         Instruction::SEL {
-            rd: Reg::R2,
-            rn: Reg::R4,
-            rm: Reg::R12,
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R2,
+                rn: Reg::R4,
+                rm: Reg::R12,
+            }
         }
     );
 }
@@ -2693,8 +2700,10 @@ fn test_decode_movt() {
     assert_eq!(
         decode_32(0xf2c20100),
         Instruction::MOVT {
-            rd: Reg::R1,
-            imm16: 0x2000
+            params: MovtParams {
+                rd: Reg::R1,
+                imm16: 0x2000
+            }
         }
     );
 }
@@ -2839,9 +2848,11 @@ fn test_decode_bfc() {
     assert_eq!(
         decode_32(0xf36f011f),
         Instruction::BFC {
-            rd: Reg::R1,
-            lsbit: 0,
-            msbit: 31,
+            params: BfcParams {
+                rd: Reg::R1,
+                lsbit: 0,
+                msbit: 31,
+            }
         }
     );
 }

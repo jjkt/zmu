@@ -4,19 +4,182 @@ use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
 use super::ExecuteResult;
 
-use crate::core::{instruction::Reg2RdRmParams, register::BaseReg};
+use crate::core::{
+    bits::Bits,
+    instruction::{
+        BfcParams, BfiParams, MovtParams, Reg2RdRmParams, Reg3NoSetFlagsParams, UbfxParams,
+    },
+    operation::sign_extend,
+    register::{Apsr, BaseReg},
+};
 
 /// Branching operations
 pub trait IsaMisc {
+    fn exec_bfc(&mut self, params: &BfcParams) -> ExecuteResult;
+    fn exec_bfi(&mut self, params: &BfiParams) -> ExecuteResult;
+
+    fn exec_movt(&mut self, params: MovtParams) -> ExecuteResult;
+
     fn exec_clz(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
+    fn exec_rev(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
+    fn exec_rev16(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
+    fn exec_revsh(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
+    fn exec_sel(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult;
+    fn exec_ubfx(&mut self, params: &UbfxParams) -> ExecuteResult;
 }
 
 impl IsaMisc for Processor {
+    fn exec_bfc(&mut self, params: &BfcParams) -> ExecuteResult {
+        if self.condition_passed() {
+            if params.msbit >= params.lsbit {
+                let destination_upper_range = params.msbit + 1;
+                let mut result: u32 = self.get_r(params.rd);
+                result.set_bits(params.lsbit..destination_upper_range, 0);
+                self.set_r(params.rd, result);
+            }
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_bfi(&mut self, params: &BfiParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let rn: u32 = self.get_r(params.rn);
+            let rd = self.get_r(params.rd);
+
+            let msbit = (params.lsbit + params.width) - 1;
+
+            let source_upper_range = (msbit - params.lsbit) + 1;
+            let destination_upper_range = msbit + 1;
+            let mut result: u32 = rd;
+            let value: u32 = rn.get_bits(0..source_upper_range);
+            result.set_bits(params.lsbit..destination_upper_range, value);
+
+            self.set_r(params.rd, result);
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_movt(&mut self, params: MovtParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let mut result: u32 = self.get_r(params.rd);
+            result.set_bits(16..32, (params.imm16).into());
+            self.set_r(params.rd, result);
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
     fn exec_clz(&mut self, params: Reg2RdRmParams) -> ExecuteResult {
         if self.condition_passed() {
             let rm = self.get_r(params.rm);
 
             self.set_r(params.rd, rm.leading_zeros());
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_rev(&mut self, params: Reg2RdRmParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let rm = self.get_r(params.rm);
+            self.set_r(
+                params.rd,
+                ((rm & 0xff) << 24)
+                    + ((rm & 0xff00) << 8)
+                    + ((rm & 0xff_0000) >> 8)
+                    + ((rm & 0xff00_0000) >> 24),
+            );
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_rev16(&mut self, params: Reg2RdRmParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let rm = self.get_r(params.rm);
+            self.set_r(
+                params.rd,
+                ((rm & 0xff) << 8)
+                    + ((rm & 0xff00) >> 8)
+                    + ((rm & 0xff_0000) << 8)
+                    + ((rm & 0xff00_0000) >> 8),
+            );
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_revsh(&mut self, params: Reg2RdRmParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let rm = self.get_r(params.rm);
+            self.set_r(
+                params.rd,
+                ((sign_extend(rm & 0xff, 7, 24) as u32) << 8) + ((rm & 0xff00) >> 8),
+            );
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_sel(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let rm = self.get_r(params.rm);
+            let rn = self.get_r(params.rn);
+
+            let mut result = 0;
+            result.set_bits(
+                0..8,
+                if self.psr.get_ge0() {
+                    rn.get_bits(0..8)
+                } else {
+                    rm.get_bits(0..8)
+                },
+            );
+            result.set_bits(
+                8..16,
+                if self.psr.get_ge1() {
+                    rn.get_bits(8..16)
+                } else {
+                    rm.get_bits(8..16)
+                },
+            );
+            result.set_bits(
+                16..24,
+                if self.psr.get_ge2() {
+                    rn.get_bits(16..24)
+                } else {
+                    rm.get_bits(16..24)
+                },
+            );
+            result.set_bits(
+                24..32,
+                if self.psr.get_ge3() {
+                    rn.get_bits(24..32)
+                } else {
+                    rm.get_bits(24..32)
+                },
+            );
+            self.set_r(params.rd, result);
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_ubfx(&mut self, params: &UbfxParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let msbit = params.lsb + params.widthminus1;
+            if msbit <= 31 {
+                let upper = msbit + 1;
+                let data = self.get_r(params.rn).get_bits(params.lsb..upper);
+                self.set_r(params.rd, data);
+            } else {
+                todo!();
+            }
 
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }
