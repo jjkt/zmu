@@ -7,7 +7,7 @@ use super::ExecuteResult;
 use crate::{
     bus::Bus,
     core::{
-        instruction::{CondBranchParams, ParamsCbz, Reg2VanillaParams},
+        instruction::{CondBranchParams, ParamsRegImm32, Reg2RnRmParams},
         register::{BaseReg, Reg},
     },
 };
@@ -21,11 +21,11 @@ pub trait IsaBranch {
     fn exec_b_t13(&mut self, params: CondBranchParams) -> ExecuteResult;
     fn exec_b_t24(&mut self, imm32: i32) -> ExecuteResult;
 
-    fn exec_tbb(&mut self, params: Reg2VanillaParams) -> ExecuteResult;
-    fn exec_tbh(&mut self, params: Reg2VanillaParams) -> ExecuteResult;
+    fn exec_tbb(&mut self, params: Reg2RnRmParams) -> ExecuteResult;
+    fn exec_tbh(&mut self, params: Reg2RnRmParams) -> ExecuteResult;
 
-    fn exec_cbz(&mut self, params: ParamsCbz) -> ExecuteResult;
-    fn exec_cbnz(&mut self, params: ParamsCbz) -> ExecuteResult;
+    fn exec_cbz(&mut self, params: ParamsRegImm32) -> ExecuteResult;
+    fn exec_cbnz(&mut self, params: ParamsRegImm32) -> ExecuteResult;
 }
 
 impl IsaBranch for Processor {
@@ -83,7 +83,7 @@ impl IsaBranch for Processor {
         }
     }
 
-    fn exec_tbb(&mut self, params: Reg2VanillaParams) -> ExecuteResult {
+    fn exec_tbb(&mut self, params: Reg2RnRmParams) -> ExecuteResult {
         if self.condition_passed() {
             let rn = self.get_r(params.rn);
             let rm = self.get_r(params.rm);
@@ -97,7 +97,7 @@ impl IsaBranch for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
-    fn exec_tbh(&mut self, params: Reg2VanillaParams) -> ExecuteResult {
+    fn exec_tbh(&mut self, params: Reg2RnRmParams) -> ExecuteResult {
         if self.condition_passed() {
             let rn = self.get_r(params.rn);
             let rm = self.get_r(params.rm);
@@ -111,7 +111,7 @@ impl IsaBranch for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
-    fn exec_cbz(&mut self, params: ParamsCbz) -> ExecuteResult {
+    fn exec_cbz(&mut self, params: ParamsRegImm32) -> ExecuteResult {
         let rn = self.get_r(params.rn);
         if rn == 0 {
             let pc = self.get_r(Reg::PC);
@@ -122,7 +122,7 @@ impl IsaBranch for Processor {
         }
     }
 
-    fn exec_cbnz(&mut self, params: ParamsCbz) -> ExecuteResult {
+    fn exec_cbnz(&mut self, params: ParamsRegImm32) -> ExecuteResult {
         let rn = self.get_r(params.rn);
         if rn == 0 {
             Ok(ExecuteSuccess::Taken { cycles: 1 })

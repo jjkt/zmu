@@ -1,9 +1,9 @@
 use crate::core::instruction::{
-    CondBranchParams, Imm32Carry, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNParams,
-    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg2VanillaParams, Reg3HighParams,
-    Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams,
-    Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams,
-    RegImmParams, SRType, SetFlags, ParamsCbz,
+    CondBranchParams, Imm32Carry, ParamsRegImm32, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params,
+    Reg2RnRmParams, Reg2ShiftNParams, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams,
+    Reg3HighParams, Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams,
+    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams,
+    RegImmCarryParams, RegImmParams, SRType, SetFlags, Reg2RdRmParams,
 };
 
 use super::*;
@@ -1234,7 +1234,7 @@ fn test_decode_cbz() {
     assert_eq!(
         decode_16(0xb179),
         Instruction::CBZ {
-            params: ParamsCbz {
+            params: ParamsRegImm32 {
                 rn: Reg::R1,
                 imm32: 30,
             }
@@ -1248,7 +1248,7 @@ fn test_decode_cbnz() {
     assert_eq!(
         decode_16(0xbb4b),
         Instruction::CBNZ {
-            params: ParamsCbz {
+            params: ParamsRegImm32 {
                 rn: Reg::R3,
                 imm32: 82,
             }
@@ -1354,7 +1354,7 @@ fn test_decode_tbb() {
     assert_eq!(
         decode_32(0xe8dff000),
         Instruction::TBB {
-            params: Reg2VanillaParams {
+            params: Reg2RnRmParams {
                 rn: Reg::PC,
                 rm: Reg::R0,
             }
@@ -2246,8 +2246,10 @@ fn test_decode_clz_w() {
     assert_eq!(
         decode_32(0xfab0f180),
         Instruction::CLZ {
-            rd: Reg::R1,
-            rm: Reg::R0,
+            params: Reg2RdRmParams {
+                rd: Reg::R1,
+                rm: Reg::R0,
+            }
         }
     );
 }
@@ -2676,7 +2678,7 @@ fn test_decode_tbh() {
     assert_eq!(
         decode_32(0xe8dff013),
         Instruction::TBH {
-            params: Reg2VanillaParams {
+            params: Reg2RnRmParams {
                 rn: Reg::PC,
                 rm: Reg::R3,
             }

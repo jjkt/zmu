@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::{Instruction, ParamsCbnz, ParamsCbz};
+use crate::core::instruction::{Instruction, ParamsRegImm32};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
@@ -10,11 +10,11 @@ pub fn decode_CBZ_t1(opcode: u16) -> Instruction {
 
     if nonzero {
         Instruction::CBNZ {
-            params: ParamsCbnz { rn, imm32 },
+            params: ParamsRegImm32 { rn, imm32 },
         }
     } else {
         Instruction::CBZ {
-            params: ParamsCbz { rn, imm32 },
+            params: ParamsRegImm32 { rn, imm32 },
         }
     }
 }

@@ -196,8 +196,15 @@ pub struct Reg2ShiftNoSetFlagsParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct Reg2VanillaParams {
+pub struct Reg2RnRmParams {
     pub rn: Reg,
+    pub rm: Reg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2RdRmParams {
+    pub rd: Reg,
     pub rm: Reg,
 }
 
@@ -245,11 +252,6 @@ pub struct ParamsRegImm32 {
     pub imm32: u32,
 }
 
-#[allow(missing_docs)]
-pub type ParamsCbz = ParamsRegImm32;
-#[allow(missing_docs)]
-pub type ParamsCbnz = ParamsRegImm32;
-
 #[allow(non_camel_case_types, missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 ///
@@ -289,19 +291,19 @@ pub enum Instruction {
     },
     /// Compare and branch on  Zero
     CBZ {
-        params: ParamsCbz,
+        params: ParamsRegImm32,
     },
     /// Compare and branch on Nonzero
     CBNZ {
-        params: ParamsCbnz,
+        params: ParamsRegImm32,
     },
     /// Table branch, byte offsets
     TBB {
-        params: Reg2VanillaParams,
+        params: Reg2RnRmParams,
     },
     /// Table branch, halfword offsets
     TBH {
-        params: Reg2VanillaParams,
+        params: Reg2RnRmParams,
     },
 
     // --------------------------------------------
@@ -713,8 +715,7 @@ pub enum Instruction {
     },
     /// Count Leading Zeros
     CLZ {
-        rd: Reg,
-        rm: Reg,
+        params: Reg2RdRmParams,
     },
     /// Move Top
     MOVT {
@@ -724,22 +725,19 @@ pub enum Instruction {
     // RBIT
     /// Byte-reverse word
     REV {
-        rd: Reg,
-        rm: Reg,
+        params: Reg2RdRmParams,
         thumb32: bool,
     },
 
     /// Byte-reverse packed half-word
     REV16 {
-        rd: Reg,
-        rm: Reg,
+        params: Reg2RdRmParams,
         thumb32: bool,
     },
 
     /// Byte-reverse signed half-word
     REVSH {
-        rd: Reg,
-        rm: Reg,
+        params: Reg2RdRmParams,
         thumb32: bool,
     },
 
@@ -1562,7 +1560,7 @@ impl fmt::Display for Instruction {
             Self::CMN_imm { params } => write!(f, "cmn.W {}, #{}", params.r, params.imm32),
             Self::CBZ { params } => write!(f, "cbz {}, #{}", params.rn, params.imm32,),
             Self::CBNZ { params } => write!(f, "cbnz {}, #{}", params.rn, params.imm32,),
-            Self::CLZ { rd, rm } => write!(f, "clz {},{}", rd, rm),
+            Self::CLZ { params } => write!(f, "clz {},{}", params.rd, params.rm),
             Self::CMP_imm { params, thumb32 } => write!(
                 f,
                 "cmp{} {}, #{}",
@@ -1986,9 +1984,9 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Self::REV { rd, rm, .. } => write!(f, "rev {}, {}", rd, rm),
-            Self::REV16 { rd, rm, .. } => write!(f, "rev16 {}, {}", rd, rm),
-            Self::REVSH { rd, rm, .. } => write!(f, "revsh {}, {}", rd, rm),
+            Self::REV { params, .. } => write!(f, "rev {}, {}", params.rd, params.rm),
+            Self::REV16 { params, .. } => write!(f, "rev16 {}, {}", params.rd, params.rm),
+            Self::REVSH { params, .. } => write!(f, "revsh {}, {}", params.rd, params.rm),
             Self::ROR_reg { params, .. } => write!(
                 f,
                 "ror{} {}, {}, #{}",

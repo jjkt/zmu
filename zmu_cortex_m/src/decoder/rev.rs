@@ -1,12 +1,14 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{Instruction, Reg2RdRmParams};
 
 #[allow(non_snake_case)]
 #[inline(always)]
 pub fn decode_REVSH_t1(opcode: u16) -> Instruction {
     Instruction::REVSH {
-        rd: From::from(opcode.get_bits(0..3)),
-        rm: From::from(opcode.get_bits(3..6)),
+        params: Reg2RdRmParams {
+            rd: From::from(opcode.get_bits(0..3)),
+            rm: From::from(opcode.get_bits(3..6)),
+        },
         thumb32: false,
     }
 }
@@ -15,8 +17,10 @@ pub fn decode_REVSH_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_REV_t1(opcode: u16) -> Instruction {
     Instruction::REV {
-        rd: From::from(opcode.get_bits(0..3)),
-        rm: From::from(opcode.get_bits(3..6)),
+        params: Reg2RdRmParams {
+            rd: From::from(opcode.get_bits(0..3)),
+            rm: From::from(opcode.get_bits(3..6)),
+        },
         thumb32: false,
     }
 }
@@ -25,8 +29,10 @@ pub fn decode_REV_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_REV16_t1(opcode: u16) -> Instruction {
     Instruction::REV16 {
-        rd: From::from(opcode.get_bits(0..3)),
-        rm: From::from(opcode.get_bits(3..6)),
+        params: Reg2RdRmParams {
+            rd: From::from(opcode.get_bits(0..3)),
+            rm: From::from(opcode.get_bits(3..6)),
+        },
         thumb32: false,
     }
 }

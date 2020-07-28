@@ -18,6 +18,7 @@ use crate::{memory::map::MapMemory, ProcessorMode};
 
 mod branch;
 mod divide;
+mod misc;
 mod multiply;
 mod packing;
 mod parallel_add;
@@ -30,6 +31,7 @@ use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
 use branch::IsaBranch;
 use divide::IsaDivide;
+use misc::IsaMisc;
 use packing::IsaPacking;
 use parallel_add::IsaParallelAddSub;
 ///
@@ -398,16 +400,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::CLZ { rd, rm } => {
-                if self.condition_passed() {
-                    let rm = self.get_r(*rm);
-
-                    self.set_r(*rd, rm.leading_zeros());
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::CLZ { params } => self.exec_clz(*params),
 
             Instruction::MOVT { rd, imm16 } => {
                 if self.condition_passed() {
@@ -420,41 +413,41 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::REV { rd, rm, .. } => {
+            Instruction::REV { params, .. } => {
                 if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
+                    let rm = self.get_r(params.rm);
                     self.set_r(
-                        *rd,
-                        ((rm_ & 0xff) << 24)
-                            + ((rm_ & 0xff00) << 8)
-                            + ((rm_ & 0xff_0000) >> 8)
-                            + ((rm_ & 0xff00_0000) >> 24),
+                        params.rd,
+                        ((rm & 0xff) << 24)
+                            + ((rm & 0xff00) << 8)
+                            + ((rm & 0xff_0000) >> 8)
+                            + ((rm & 0xff00_0000) >> 24),
                     );
                     return Ok(ExecuteSuccess::Taken { cycles: 1 });
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::REV16 { rd, rm, .. } => {
+            Instruction::REV16 { params, .. } => {
                 if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
+                    let rm = self.get_r(params.rm);
                     self.set_r(
-                        *rd,
-                        ((rm_ & 0xff) << 8)
-                            + ((rm_ & 0xff00) >> 8)
-                            + ((rm_ & 0xff_0000) << 8)
-                            + ((rm_ & 0xff00_0000) >> 8),
+                        params.rd,
+                        ((rm & 0xff) << 8)
+                            + ((rm & 0xff00) >> 8)
+                            + ((rm & 0xff_0000) << 8)
+                            + ((rm & 0xff00_0000) >> 8),
                     );
                     return Ok(ExecuteSuccess::Taken { cycles: 1 });
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::REVSH { rd, rm, .. } => {
+            Instruction::REVSH { params, .. } => {
                 if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
+                    let rm_ = self.get_r(params.rm);
                     self.set_r(
-                        *rd,
+                        params.rd,
                         ((sign_extend(rm_ & 0xff, 7, 24) as u32) << 8) + ((rm_ & 0xff00) >> 8),
                     );
                     return Ok(ExecuteSuccess::Taken { cycles: 1 });
