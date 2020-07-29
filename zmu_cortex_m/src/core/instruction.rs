@@ -101,6 +101,21 @@ pub struct Reg3NoSetFlagsParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct MrsParams {
+    pub rd: Reg,
+    pub sysm: u8,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct MsrParams {
+    pub rn: Reg,
+    pub sysm: u8,
+    pub mask: u8,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg2UsizeParams {
     pub rd: Reg,
     pub rm: Reg,
@@ -793,14 +808,11 @@ pub enum Instruction {
     // --------------------------------------------
     /// Move to Register from Special Register
     MRS {
-        rd: Reg,
-        sysm: u8,
+        params: MrsParams,
     },
     /// Move to Special Register from ARM Register
     MSR_reg {
-        rn: Reg,
-        sysm: u8,
-        mask: u8,
+        params: MsrParams,
     },
     /// Change Processor State
     CPS {
@@ -1836,8 +1848,8 @@ impl fmt::Display for Instruction {
                 params.rm,
                 params.shift_n
             ),
-            Self::MSR_reg { sysm, rn, mask } => write!(f, "msr {}, {}", sysm, rn),
-            Self::MRS { rd, sysm } => write!(f, "mrs {}, {}", rd, sysm),
+            Self::MSR_reg { params } => write!(f, "msr {}, {}", params.sysm, params.rn),
+            Self::MRS { params } => write!(f, "mrs {}, {}", params.rd, params.sysm),
             Self::MUL { params, thumb32 } => write!(
                 f,
                 "mul{} {}, {}, {}",
