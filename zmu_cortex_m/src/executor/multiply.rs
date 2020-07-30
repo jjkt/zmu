@@ -93,3 +93,35 @@ impl IsaMultiply for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{instruction::Instruction, register::Reg};
+
+    #[test]
+    fn test_mla() {
+        // arrange
+        let mut core = Processor::new();
+        core.set_r(Reg::R7, 0x2);
+        core.set_r(Reg::R2, 0x29a);
+        core.set_r(Reg::R1, 0x2000089C);
+        core.psr.value = 0;
+
+        let instruction = Instruction::MLA {
+            params: Reg4NoSetFlagsParams {
+                rd: Reg::R1,
+                rn: Reg::R7,
+                rm: Reg::R2,
+                ra: Reg::R1,
+            },
+        };
+
+        // act
+        let result = core.execute_internal(&instruction);
+
+        assert_eq!(result, Ok(ExecuteSuccess::Taken { cycles: 2 }));
+
+        assert_eq!(core.get_r(Reg::R1), 0x20000DD0);
+    }
+}

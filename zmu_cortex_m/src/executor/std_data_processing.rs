@@ -632,3 +632,37 @@ impl IsaStandardDataProcessing for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{instruction::{SRType, Instruction}, register::Reg};
+
+    #[test]
+    fn test_sub() {
+        // arrange
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        //3:418415f7 4:00000418 5:80000000 6:7d17d411
+        core.set_r(Reg::R3, 0x418415f7);
+        core.set_r(Reg::R4, 0x00000418);
+        core.psr.value = 0;
+
+        let instruction = Instruction::SUB_reg {
+            params: Reg3ShiftParams {
+                rd: Reg::R6,
+                rn: Reg::R4,
+                rm: Reg::R3,
+                setflags: SetFlags::False,
+                shift_t: SRType::LSR,
+                shift_n: 20,
+            },
+            thumb32: true,
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R6), 0);
+    }
+}

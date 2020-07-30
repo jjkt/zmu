@@ -8,8 +8,8 @@ use crate::core::condition::Condition;
 use crate::core::exception::{Exception, ExceptionHandling};
 use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SetFlags};
-use crate::core::monitor::Monitor;
-use crate::core::operation::{condition_test, shift, sign_extend, zero_extend, zero_extend_u16};
+
+use crate::core::operation::condition_test;
 use crate::core::register::{Apsr, BaseReg, ExtensionReg, ExtensionRegOperations, Reg};
 use crate::memory::map::MapMemory;
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
@@ -183,8 +183,6 @@ impl ExecutorHelper for Processor {
         }
     }
 
-    #[allow(unused_variables)]
-    #[allow(clippy::cognitive_complexity)]
     #[allow(clippy::too_many_lines)]
     fn execute_internal(&mut self, instruction: &Instruction) -> ExecuteResult {
         match instruction {
@@ -267,13 +265,13 @@ impl ExecutorHelper for Processor {
             //
             // --------------------------------------------
             Instruction::ASR_imm { params, .. } => self.exec_asr_imm(params),
-            Instruction::ASR_reg { params, thumb32 } => self.exec_asr_reg(params),
+            Instruction::ASR_reg { params, .. } => self.exec_asr_reg(params),
 
-            Instruction::LSL_imm { params, thumb32 } => self.exec_lsl_imm(params),
-            Instruction::LSL_reg { params, thumb32 } => self.exec_lsl_reg(params),
+            Instruction::LSL_imm { params, .. } => self.exec_lsl_imm(params),
+            Instruction::LSL_reg { params, .. } => self.exec_lsl_reg(params),
 
-            Instruction::LSR_imm { params, thumb32 } => self.exec_lsr_imm(params),
-            Instruction::LSR_reg { params, thumb32 } => self.exec_lsr_reg(params),
+            Instruction::LSR_imm { params, .. } => self.exec_lsr_imm(params),
+            Instruction::LSR_reg { params, .. } => self.exec_lsr_reg(params),
 
             Instruction::ROR_imm { params } => self.exec_ror_imm(params),
             Instruction::ROR_reg { params, .. } => self.exec_ror_reg(params),
@@ -292,7 +290,7 @@ impl ExecutorHelper for Processor {
             // Group: Signed multiply instructions (ArmV7-m)
             //
             // --------------------------------------------
-            Instruction::SMLAL { params } => unimplemented!(),
+            Instruction::SMLAL { params: _ } => unimplemented!(),
             Instruction::SMULL { params } => self.exec_smull(params),
 
             // --------------------------------------------
@@ -410,258 +408,33 @@ impl ExecutorHelper for Processor {
             // Group:  Load and Store instructions
             //
             // --------------------------------------------
-            Instruction::LDR_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
+            Instruction::LDREX { params } => self.exec_ldrex(*params),
+            Instruction::LDREXB { params } => self.exec_ldrexb(*params),
+            Instruction::LDREXH { params } => self.exec_ldrexh(*params),
 
-                    let data = self.read32(address)?;
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
+            Instruction::LDR_imm { params, .. } => self.exec_ldr_imm(params),
+            Instruction::LDRB_imm { params, .. } => self.exec_ldrb_imm(params),
+            Instruction::LDRH_imm { params, .. } => self.exec_ldrh_imm(params),
+            Instruction::LDRSB_imm { params, .. } => self.exec_ldrsb_imm(params),
+            Instruction::LDRSH_imm { params, .. } => self.exec_ldrsh_imm(params),
 
-                    if rt == &Reg::PC {
-                        self.load_write_pc(data)?;
-                        return Ok(ExecuteSuccess::Branched { cycles: 2 });
-                    } else {
-                        self.set_r(*rt, data);
-                        return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                    }
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::LDR_reg { params, .. } => self.exec_ldr_reg(params),
+            Instruction::LDRB_reg { params, .. } => self.exec_ldrb_reg(params),
+            Instruction::LDRH_reg { params, .. } => self.exec_ldrh_reg(params),
+            Instruction::LDRSB_reg { params, .. } => self.exec_ldrsb_reg(params),
+            Instruction::LDRSH_reg { params, .. } => self.exec_ldrsh_reg(params),
 
-            Instruction::LDREX { rt, rn, imm32 } => {
-                if self.condition_passed() {
-                    let (address, _) = resolve_addressing(self.get_r(*rn), *imm32, true, true);
+            Instruction::STR_imm { params, .. } => self.exec_str_imm(params),
+            Instruction::STRB_imm { params, .. } => self.exec_strb_imm(params),
+            Instruction::STRH_imm { params, .. } => self.exec_strh_imm(params),
 
-                    self.set_exclusive_monitors(address, 4);
+            Instruction::STR_reg { params, .. } => self.exec_str_reg(params),
+            Instruction::STRB_reg { params, .. } => self.exec_strb_reg(params),
+            Instruction::STRH_reg { params, .. } => self.exec_strh_reg(params),
 
-                    let data = self.read32(address)?;
-                    self.set_r(*rt, data);
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDREXB { rt, rn } => {
-                if self.condition_passed() {
-                    let address = self.get_r(*rn);
-                    self.set_exclusive_monitors(address, 1);
-
-                    let data = self.read8(address)?;
-
-                    let params = [data];
-                    let lengths = [32];
-                    self.set_r(*rt, zero_extend(&params, &lengths));
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDREXH { rt, rn } => {
-                if self.condition_passed() {
-                    let address = self.get_r(*rn);
-                    self.set_exclusive_monitors(address, 2);
-
-                    let data = self.read16(address)?;
-
-                    let params = [data];
-                    let lengths = [32];
-                    self.set_r(*rt, zero_extend_u16(&params, &lengths));
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDRSH_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let data = self.read16(address)?;
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.set_r(*rt, sign_extend(u32::from(data), 15, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDRSB_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let data = self.read8(address)?;
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.set_r(*rt, sign_extend(data.into(), 7, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDR_reg { params, thumb32 } => self.exec_ldr_reg(params),
-            Instruction::LDRB_reg { params, thumb32 } => self.exec_ldrb_reg(params),
-            Instruction::LDRH_reg { params, thumb32 } => self.exec_ldrh_reg(params),
-            Instruction::LDRSH_reg { params, thumb32 } => self.exec_ldrsh_reg(params),
-            Instruction::LDRSB_reg { params, thumb32 } => self.exec_ldrsb_reg(params),
-
-            Instruction::LDRB_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let data = self.read8(address)?;
-                    self.set_r(*rt, u32::from(data));
-
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-
-            Instruction::LDRH_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let data = self.read16(address)?;
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-                    self.set_r(*rt, u32::from(data));
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-
-            Instruction::STR_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let value = self.get_r(*rt);
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.write32(address, value)?;
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STREX { rd, rt, rn, imm32 } => {
-                if self.condition_passed() {
-                    let (address, _) = resolve_addressing(self.get_r(*rn), *imm32, true, true);
-
-                    if self.exclusive_monitors_pass(address, 4) {
-                        self.write32(address, self.get_r(*rt))?;
-                        self.set_r(*rd, 0);
-                    } else {
-                        self.set_r(*rd, 1);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STREXB { rd, rt, rn } => {
-                if self.condition_passed() {
-                    let address = self.get_r(*rn);
-
-                    if self.exclusive_monitors_pass(address, 1) {
-                        self.write8(address, self.get_r(*rt) as u8)?;
-                        self.set_r(*rd, 0);
-                    } else {
-                        self.set_r(*rd, 1);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STREXH { rd, rt, rn } => {
-                if self.condition_passed() {
-                    let address = self.get_r(*rn);
-
-                    if self.exclusive_monitors_pass(address, 2) {
-                        self.write16(address, self.get_r(*rt) as u16)?;
-                        self.set_r(*rd, 0);
-                    } else {
-                        self.set_r(*rd, 1);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::STREX { params } => self.exec_strex(*params),
+            Instruction::STREXB { params } => self.exec_strexb(*params),
+            Instruction::STREXH { params } => self.exec_strexh(*params),
 
             Instruction::STRD_imm {
                 rt,
@@ -717,115 +490,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::STR_reg { params, thumb32 } => {
-                if self.condition_passed() {
-                    let c = self.psr.get_c();
-                    let offset = shift(
-                        self.get_r(params.rm),
-                        params.shift_t,
-                        params.shift_n as usize,
-                        c,
-                    );
-                    let address = self.get_r(params.rn) + offset;
-                    let value = self.get_r(params.rt);
-                    self.write32(address, value)?;
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STRB_reg { params, thumb32 } => {
-                if self.condition_passed() {
-                    let c = self.psr.get_c();
-                    let offset = shift(
-                        self.get_r(params.rm),
-                        params.shift_t,
-                        params.shift_n as usize,
-                        c,
-                    );
-                    let address = self.get_r(params.rn) + offset;
-                    let rt: u32 = self.get_r(params.rt);
-                    let value = rt.get_bits(0..8);
-                    self.write8(address, value as u8)?;
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STRB_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let value = self.get_r(*rt);
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.write8(address, value.get_bits(0..8) as u8)?;
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STRH_imm {
-                rt,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let value = self.get_r(*rt);
-                    self.write16(address, value.get_bits(0..16) as u16)?;
-
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STRH_reg { params, thumb32 } => {
-                if self.condition_passed() {
-                    let c = self.psr.get_c();
-                    let offset = shift(
-                        self.get_r(params.rm),
-                        params.shift_t,
-                        params.shift_n as usize,
-                        c,
-                    );
-                    let address = self.get_r(params.rn) + offset;
-                    let value = self.get_r(params.rt).get_bits(0..16);
-                    self.write16(address, value as u16)?;
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDR_lit {
-                rt,
-                imm32,
-                add,
-                thumb32,
-            } => {
+            Instruction::LDR_lit { rt, imm32, add, .. } => {
                 if self.condition_passed() {
                     let base = self.get_r(Reg::PC) & 0xffff_fffc;
                     let address = if *add { base + imm32 } else { base - imm32 };
@@ -851,7 +516,7 @@ impl ExecutorHelper for Processor {
                 registers,
                 rn,
                 wback,
-                thumb32,
+                ..
             } => {
                 if self.condition_passed() {
                     let regs_size = 4 * (registers.len() as u32);
@@ -900,11 +565,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::LDM {
-                registers,
-                rn,
-                thumb32,
-            } => {
+            Instruction::LDM { registers, rn, .. } => {
                 if self.condition_passed() {
                     let regs_size = 4 * (registers.len() as u32);
 
@@ -934,7 +595,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::PUSH { registers, thumb32 } => {
+            Instruction::PUSH { registers, .. } => {
                 if self.condition_passed() {
                     let regs_size = 4 * (registers.len() as u32);
                     let sp = self.get_r(Reg::SP);
@@ -954,7 +615,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::POP { registers, thumb32 } => {
+            Instruction::POP { registers, .. } => {
                 if self.condition_passed() {
                     let regs_size = 4 * (registers.len() as u32);
                     let sp = self.get_r(Reg::SP);
@@ -998,9 +659,9 @@ impl ExecutorHelper for Processor {
             }
 
             Instruction::IT {
-                x,
-                y,
-                z,
+                x: _,
+                y: _,
+                z: _,
                 firstcond,
                 mask,
             } => {
@@ -1010,7 +671,11 @@ impl ExecutorHelper for Processor {
 
             Instruction::NOP { .. } => Ok(ExecuteSuccess::Taken { cycles: 1 }),
 
-            Instruction::PLD_imm { rn, imm32, add } => {
+            Instruction::PLD_imm {
+                rn: _,
+                imm32: _,
+                add: _,
+            } => {
                 if self.condition_passed() {
                     Ok(ExecuteSuccess::Taken { cycles: 1 })
                 } else {
@@ -1018,7 +683,7 @@ impl ExecutorHelper for Processor {
                 }
             }
 
-            Instruction::PLD_lit { imm32, add } => {
+            Instruction::PLD_lit { imm32: _, add: _ } => {
                 if self.condition_passed() {
                     Ok(ExecuteSuccess::Taken { cycles: 1 })
                 } else {
@@ -1027,10 +692,10 @@ impl ExecutorHelper for Processor {
             }
 
             Instruction::PLD_reg {
-                rn,
-                rm,
-                shift_t,
-                shift_n,
+                rn: _,
+                rm: _,
+                shift_t: _,
+                shift_n: _,
             } => {
                 if self.condition_passed() {
                     Ok(ExecuteSuccess::Taken { cycles: 1 })
@@ -1041,7 +706,7 @@ impl ExecutorHelper for Processor {
 
             Instruction::SEV { .. } => {
                 if self.condition_passed() {
-                    println!("SEV");
+                    //TODO
                     return Ok(ExecuteSuccess::Taken { cycles: 1 });
                 }
                 Ok(ExecuteSuccess::NotTaken)
@@ -1070,9 +735,9 @@ impl ExecutorHelper for Processor {
             // Group: Exception generating instructions
             //
             // --------------------------------------------
-            Instruction::SVC { imm32 } => {
+            Instruction::SVC { imm32: _ } => {
                 if self.condition_passed() {
-                    println!("SVC {}", imm32);
+                    //TODO
                     return Ok(ExecuteSuccess::Taken { cycles: 1 });
                 }
                 Ok(ExecuteSuccess::NotTaken)
@@ -1099,51 +764,45 @@ impl ExecutorHelper for Processor {
             // --------------------------------------------
             // ARMv7-M
             Instruction::MCR {
-                rt,
-                coproc,
-                opc1,
-                opc2,
-                crn,
-                crm,
+                rt: _,
+                coproc: _,
+                opc1: _,
+                opc2: _,
+                crn: _,
+                crm: _,
             } => unimplemented!(),
 
             // ARMv7-M
             Instruction::MCR2 {
-                rt,
-                coproc,
-                opc1,
-                opc2,
-                crn,
-                crm,
+                rt: _,
+                coproc: _,
+                opc1: _,
+                opc2: _,
+                crn: _,
+                crm: _,
             } => unimplemented!(),
 
             // ARMv7-M
             Instruction::LDC_imm {
-                coproc,
-                imm32,
-                crd,
-                rn,
+                coproc: _,
+                imm32: _,
+                crd: _,
+                rn: _,
             } => unimplemented!(),
 
             // ARMv7-M
             Instruction::LDC2_imm {
-                coproc,
-                imm32,
-                crd,
-                rn,
+                coproc: _,
+                imm32: _,
+                crd: _,
+                rn: _,
             } => unimplemented!(),
             // --------------------------------------------
             //
             // Group: Floating-point load and store instructions
             //
             // --------------------------------------------
-            Instruction::VLDR {
-                dd,
-                rn,
-                add,
-                imm32,
-                single_reg,
-            } => {
+            Instruction::VLDR { dd, rn, add, imm32 } => {
                 if self.condition_passed() {
                     //self.execute_fp_check();
 
@@ -1170,13 +829,7 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::VSTR {
-                dd,
-                rn,
-                add,
-                imm32,
-                single_reg,
-            } => {
+            Instruction::VSTR { dd, rn, add, imm32 } => {
                 if self.condition_passed() {
                     //self.execute_fp_check();
 
@@ -1286,60 +939,8 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::instruction::{
-        BfiParams, CondBranchParams, ITCondition, Reg2ShiftNoSetFlagsParams, Reg3NoSetFlagsParams,
-        Reg3ShiftParams, Reg4HighParams, Reg4NoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
+        ITCondition, Reg2ShiftNoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
     };
-
-    #[test]
-    fn test_udiv() {
-        // arrange
-        let mut core = Processor::new();
-        core.set_r(Reg::R0, 0x7d0);
-        core.set_r(Reg::R1, 0x3);
-        core.psr.value = 0;
-
-        let instruction = Instruction::UDIV {
-            params: Reg3NoSetFlagsParams {
-                rd: Reg::R0,
-                rn: Reg::R0,
-                rm: Reg::R1,
-            },
-        };
-
-        // act
-        let result = core.execute_internal(&instruction);
-
-        assert_eq!(result, Ok(ExecuteSuccess::Taken { cycles: 2 }));
-
-        assert_eq!(core.get_r(Reg::R0), 0x29a);
-        assert_eq!(core.get_r(Reg::R1), 0x3);
-    }
-
-    #[test]
-    fn test_mla() {
-        // arrange
-        let mut core = Processor::new();
-        core.set_r(Reg::R7, 0x2);
-        core.set_r(Reg::R2, 0x29a);
-        core.set_r(Reg::R1, 0x2000089C);
-        core.psr.value = 0;
-
-        let instruction = Instruction::MLA {
-            params: Reg4NoSetFlagsParams {
-                rd: Reg::R1,
-                rn: Reg::R7,
-                rm: Reg::R2,
-                ra: Reg::R1,
-            },
-        };
-
-        // act
-        let result = core.execute_internal(&instruction);
-
-        assert_eq!(result, Ok(ExecuteSuccess::Taken { cycles: 2 }));
-
-        assert_eq!(core.get_r(Reg::R1), 0x20000DD0);
-    }
 
     #[test]
     fn test_it_block() {
@@ -1382,131 +983,5 @@ mod tests {
 
         assert_eq!(core.get_r(Reg::R4), 0x01);
         assert!(!core.in_it_block());
-    }
-
-    #[test]
-    fn test_b_cond() {
-        // arrange
-        let mut core = Processor::new();
-        core.psr.value = 0;
-
-        let instruction = Instruction::B_t13 {
-            params: CondBranchParams {
-                cond: Condition::EQ,
-                imm32: 0,
-            },
-            thumb32: true,
-        };
-
-        // act
-        let result = core.execute_internal(&instruction);
-
-        assert_eq!(result, Ok(ExecuteSuccess::NotTaken));
-    }
-
-    #[test]
-    fn test_bfi() {
-        // arrange
-        let mut core = Processor::new();
-        core.psr.value = 0;
-
-        core.set_r(Reg::R2, 0x11223344);
-        core.set_r(Reg::R3, 0xaabbccdd);
-        core.psr.value = 0;
-
-        let instruction = Instruction::BFI {
-            params: BfiParams {
-                rd: Reg::R2,
-                rn: Reg::R3,
-                lsbit: 0,
-                width: 8,
-            },
-        };
-
-        core.execute_internal(&instruction).unwrap();
-
-        assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
-        assert_eq!(core.get_r(Reg::R2), 0x112233dd);
-    }
-    #[test]
-    fn test_bfi_with_shift_8() {
-        // arrange
-        let mut core = Processor::new();
-        core.psr.value = 0;
-
-        core.set_r(Reg::R0, 0);
-        core.set_r(Reg::R1, 0x00e000e4);
-
-        let instruction = Instruction::BFI {
-            params: BfiParams {
-                rd: Reg::R0,
-                rn: Reg::R1,
-                lsbit: 8,
-                width: 24,
-            },
-        };
-
-        core.execute_internal(&instruction).unwrap();
-
-        assert_eq!(core.get_r(Reg::R0), 0xe000e400);
-        assert_eq!(core.get_r(Reg::R1), 0x00e000e4);
-    }
-
-    #[test]
-    fn test_sub() {
-        // arrange
-        let mut core = Processor::new();
-        core.psr.value = 0;
-
-        //3:418415f7 4:00000418 5:80000000 6:7d17d411
-        core.set_r(Reg::R3, 0x418415f7);
-        core.set_r(Reg::R4, 0x00000418);
-        core.psr.value = 0;
-
-        let instruction = Instruction::SUB_reg {
-            params: Reg3ShiftParams {
-                rd: Reg::R6,
-                rn: Reg::R4,
-                rm: Reg::R3,
-                setflags: SetFlags::False,
-                shift_t: SRType::LSR,
-                shift_n: 20,
-            },
-            thumb32: true,
-        };
-
-        core.execute_internal(&instruction).unwrap();
-
-        assert_eq!(core.get_r(Reg::R6), 0);
-    }
-
-    #[test]
-    fn test_smlabb() {
-        // arrange
-
-        //itm_file, &code, semihost_func
-        let mut core = Processor::new();
-        core.psr.value = 0;
-
-        //
-        core.set_r(Reg::R8, 0xffff9d88);
-        core.set_r(Reg::R12, 0x0012dfc3);
-        core.set_r(Reg::LR, 0xa1);
-        core.psr.value = 0;
-
-        let instruction = Instruction::SMLA {
-            params: Reg4HighParams {
-                rd: Reg::R12,
-                rn: Reg::LR,
-                rm: Reg::R8,
-                ra: Reg::R12,
-                n_high: false,
-                m_high: false,
-            },
-        };
-
-        core.execute_internal(&instruction).unwrap();
-
-        assert_eq!(core.get_r(Reg::R12), 0xFFD4F24B);
     }
 }

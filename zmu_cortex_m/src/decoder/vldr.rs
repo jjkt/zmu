@@ -14,7 +14,6 @@ pub fn decode_VLDR_t1(opcode: u32) -> Instruction {
         rn: Reg::from(opcode.get_bits(16..20) as u8),
         imm32: opcode.get_bits(0..8) << 2,
         add: opcode.get_bit(23),
-        single_reg: false,
     }
 }
 
@@ -30,6 +29,5 @@ pub fn decode_VLDR_t2(opcode: u32) -> Instruction {
         rn: Reg::from(opcode.get_bits(16..20) as u8),
         imm32: opcode.get_bits(0..8) << 2,
         add: opcode.get_bit(23),
-        single_reg: true,
     }
 }

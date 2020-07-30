@@ -186,3 +186,57 @@ impl IsaMisc for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{instruction::Instruction, register::Reg};
+    #[test]
+    fn test_bfi() {
+        // arrange
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R2, 0x11223344);
+        core.set_r(Reg::R3, 0xaabbccdd);
+        core.psr.value = 0;
+
+        let instruction = Instruction::BFI {
+            params: BfiParams {
+                rd: Reg::R2,
+                rn: Reg::R3,
+                lsbit: 0,
+                width: 8,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
+        assert_eq!(core.get_r(Reg::R2), 0x112233dd);
+    }
+
+    #[test]
+    fn test_bfi_with_shift_8() {
+        // arrange
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0);
+        core.set_r(Reg::R1, 0x00e000e4);
+
+        let instruction = Instruction::BFI {
+            params: BfiParams {
+                rd: Reg::R0,
+                rn: Reg::R1,
+                lsbit: 8,
+                width: 24,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R0), 0xe000e400);
+        assert_eq!(core.get_r(Reg::R1), 0x00e000e4);
+    }
+}

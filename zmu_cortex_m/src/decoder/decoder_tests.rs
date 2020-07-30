@@ -1,10 +1,10 @@
 use crate::core::instruction::{
-    BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32,
+    BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32, Reg2FullParams,
     Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2RdRmParams, Reg2RnRmParams,
-    Reg2ShiftNParams, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams,
-    Reg3HighParams, Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams,
-    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams,
-    RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
+    Reg2RtRnImm32Params, Reg2ShiftNParams, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams,
+    Reg2UsizeParams, Reg3FullParams, Reg3HighParams, Reg3NoSetFlagsParams, Reg3Params,
+    Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams, Reg3RdRtRnImm32Params,
 };
 
 use super::*;
@@ -398,21 +398,13 @@ fn test_decode_ldr() {
     }
     // LDR R2, [R1]
     match decode_16(0x680a) {
-        Instruction::LDR_imm {
-            rt,
-            rn,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R1);
-            assert!(rt == Reg::R2);
-            assert!(imm32 == 0);
-            assert!(index == true);
-            assert!(add == true);
-            assert!(wback == false);
+        Instruction::LDR_imm { params, thumb32 } => {
+            assert!(params.rn == Reg::R1);
+            assert!(params.rt == Reg::R2);
+            assert!(params.imm32 == 0);
+            assert!(params.index == true);
+            assert!(params.add == true);
+            assert!(params.wback == false);
             assert!(thumb32 == false);
         }
         _ => {
@@ -531,12 +523,14 @@ fn test_decode_ldrb_imm() {
     assert_eq!(
         decode_16(0x7800),
         Instruction::LDRB_imm {
-            rt: Reg::R0,
-            rn: Reg::R0,
-            imm32: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::R0,
+                imm32: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
         }
     );
@@ -548,12 +542,14 @@ fn test_decode_ldrb_imm2() {
     assert_eq!(
         decode_16(0x7c02),
         Instruction::LDRB_imm {
-            rt: Reg::R2,
-            rn: Reg::R0,
-            imm32: 0x10,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R2,
+                rn: Reg::R0,
+                imm32: 0x10,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
         }
     );
@@ -621,12 +617,14 @@ fn test_decode_strb() {
     assert_eq!(
         decode_16(0x7008),
         Instruction::STRB_imm {
-            rt: Reg::R0,
-            rn: Reg::R1,
-            imm32: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                imm32: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
         }
     );
@@ -778,13 +776,15 @@ fn test_decode_strh_imm() {
     assert_eq!(
         decode_16(0x8708),
         Instruction::STRH_imm {
-            rt: Reg::R0,
-            rn: Reg::R1,
-            imm32: 0x38,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                imm32: 0x38,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
-            index: true,
-            add: true,
-            wback: false,
         }
     );
 }
@@ -932,21 +932,13 @@ fn test_decode_stm2() {
 fn test_decode_ldrh() {
     // LDRH R0,[R0, #0x38]
     match decode_16(0x8f00) {
-        Instruction::LDRH_imm {
-            rn,
-            rt,
-            imm32,
-            index,
-            add,
-            wback,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R0);
-            assert!(rt == Reg::R0);
-            assert!(imm32 == 0x38);
-            assert!(index);
-            assert!(add);
-            assert!(!wback);
+        Instruction::LDRH_imm { params, thumb32 } => {
+            assert!(params.rn == Reg::R0);
+            assert!(params.rt == Reg::R0);
+            assert!(params.imm32 == 0x38);
+            assert!(params.index);
+            assert!(params.add);
+            assert!(!params.wback);
             assert!(!thumb32);
         }
         _ => {
@@ -1211,12 +1203,14 @@ fn test_decode_ldrw_imm() {
     assert_eq!(
         decode_32(0xf8501b04),
         Instruction::LDR_imm {
-            rt: Reg::R1,
-            rn: Reg::R0,
-            imm32: 0x4,
-            index: false,
-            add: true,
-            wback: true,
+            params: Reg2FullParams {
+                rt: Reg::R1,
+                rn: Reg::R0,
+                imm32: 0x4,
+                index: false,
+                add: true,
+                wback: true,
+            },
             thumb32: true,
         }
     );
@@ -1228,12 +1222,14 @@ fn test_decode_strw_imm() {
     assert_eq!(
         decode_32(0xf8434b04),
         Instruction::STR_imm {
-            rt: Reg::R4,
-            rn: Reg::R3,
-            imm32: 4,
-            index: false,
-            add: true,
-            wback: true,
+            params: Reg2FullParams {
+                rt: Reg::R4,
+                rn: Reg::R3,
+                imm32: 4,
+                index: false,
+                add: true,
+                wback: true,
+            },
             thumb32: true,
         }
     );
@@ -1379,13 +1375,15 @@ fn test_decode_strh_w() {
     assert_eq!(
         decode_32(0xf8ad0010),
         Instruction::STRH_imm {
-            rt: Reg::R0,
-            rn: Reg::SP,
-            imm32: 0x10,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::SP,
+                imm32: 0x10,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
-            index: true,
-            add: true,
-            wback: false,
         }
     );
 }
@@ -1396,13 +1394,15 @@ fn test_decode_strh_w_2() {
     assert_eq!(
         decode_32(0xf8a87000),
         Instruction::STRH_imm {
-            rt: Reg::R7,
-            rn: Reg::R8,
-            imm32: 0x0,
+            params: Reg2FullParams {
+                rt: Reg::R7,
+                rn: Reg::R8,
+                imm32: 0x0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
-            index: true,
-            add: true,
-            wback: false,
         }
     );
 }
@@ -1453,12 +1453,14 @@ fn test_decode_ldrsh_imm_w() {
     assert_eq!(
         decode_32(0xf9bd0010),
         Instruction::LDRSH_imm {
-            rt: Reg::R0,
-            rn: Reg::SP,
-            imm32: 0x10,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::SP,
+                imm32: 0x10,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -1517,12 +1519,14 @@ fn test_decode_ldrb_w() {
     assert_eq!(
         decode_32(0xf8960020),
         Instruction::LDRB_imm {
-            rt: Reg::R0,
-            rn: Reg::R6,
-            imm32: 0x20,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::R6,
+                imm32: 0x20,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -1720,13 +1724,15 @@ fn test_decode_ldrh_w() {
     assert_eq!(
         decode_32(0xf8349b02),
         Instruction::LDRH_imm {
-            rt: Reg::R9,
-            rn: Reg::R4,
-            imm32: 2,
+            params: Reg2FullParams {
+                rt: Reg::R9,
+                rn: Reg::R4,
+                imm32: 2,
+                add: true,
+                index: false,
+                wback: true,
+            },
             thumb32: true,
-            add: true,
-            index: false,
-            wback: true,
         }
     );
 }
@@ -1788,12 +1794,14 @@ fn test_decode_strb_imm_w() {
     assert_eq!(
         decode_32(0xf80eab01),
         Instruction::STRB_imm {
-            rt: Reg::R10,
-            rn: Reg::LR,
-            imm32: 1,
-            index: false,
-            add: true,
-            wback: true,
+            params: Reg2FullParams {
+                rt: Reg::R10,
+                rn: Reg::LR,
+                imm32: 1,
+                index: false,
+                add: true,
+                wback: true,
+            },
             thumb32: true,
         }
     );
@@ -2500,12 +2508,14 @@ fn test_decode_ldrsb_imm_w() {
     assert_eq!(
         decode_32(0xf9956000),
         Instruction::LDRSB_imm {
-            rt: Reg::R6,
-            rn: Reg::R5,
-            imm32: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R6,
+                rn: Reg::R5,
+                imm32: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -2517,12 +2527,14 @@ fn test_decode_ldrsb_imm_t2() {
     assert_eq!(
         decode_32(0xf9170c09),
         Instruction::LDRSB_imm {
-            rt: Reg::R0,
-            rn: Reg::R7,
-            imm32: 9,
-            index: true,
-            add: false,
-            wback: false,
+            params: Reg2FullParams {
+                rt: Reg::R0,
+                rn: Reg::R7,
+                imm32: 9,
+                index: true,
+                add: false,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -2845,9 +2857,11 @@ fn test_decode_ldrex() {
     assert_eq!(
         decode_32(0xe8503f00),
         Instruction::LDREX {
-            rt: Reg::R3,
-            rn: Reg::R0,
-            imm32: 0,
+            params: Reg2RtRnImm32Params {
+                rt: Reg::R3,
+                rn: Reg::R0,
+                imm32: 0,
+            }
         }
     );
 }
@@ -2858,10 +2872,12 @@ fn test_decode_strex() {
     assert_eq!(
         decode_32(0xe8402c00),
         Instruction::STREX {
-            rd: Reg::R12,
-            rt: Reg::R2,
-            rn: Reg::R0,
-            imm32: 0,
+            params: Reg3RdRtRnImm32Params {
+                rd: Reg::R12,
+                rt: Reg::R2,
+                rn: Reg::R0,
+                imm32: 0,
+            }
         }
     );
 }
@@ -2891,7 +2907,6 @@ fn test_decode_vldr() {
             rn: Reg::PC,
             add: true,
             imm32: 0x86 << 2,
-            single_reg: false
         }
     );
 }
@@ -2906,7 +2921,6 @@ fn test_decode_vstr() {
             rn: Reg::SP,
             add: true,
             imm32: 0x48,
-            single_reg: false
         }
     );
 }

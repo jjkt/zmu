@@ -87,3 +87,38 @@ impl IsaSignedMultiply for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{instruction::Instruction, register::Reg};
+
+    #[test]
+    fn test_smlabb() {
+        // arrange
+
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        // act
+        core.set_r(Reg::R8, 0xffff9d88);
+        core.set_r(Reg::R12, 0x0012dfc3);
+        core.set_r(Reg::LR, 0xa1);
+        core.psr.value = 0;
+
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R12,
+                rn: Reg::LR,
+                rm: Reg::R8,
+                ra: Reg::R12,
+                n_high: false,
+                m_high: false,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R12), 0xFFD4F24B);
+    }
+}

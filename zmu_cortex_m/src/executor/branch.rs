@@ -133,3 +133,29 @@ impl IsaBranch for Processor {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{instruction::Instruction, condition::Condition};
+
+    #[test]
+    fn test_b_cond() {
+        // arrange
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        let instruction = Instruction::B_t13 {
+            params: CondBranchParams {
+                cond: Condition::EQ,
+                imm32: 0,
+            },
+            thumb32: true,
+        };
+
+        // act
+        let result = core.execute_internal(&instruction);
+
+        assert_eq!(result, Ok(ExecuteSuccess::NotTaken));
+    }
+}

@@ -49,3 +49,34 @@ impl IsaDivide for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{instruction::Instruction, register::Reg};
+
+    #[test]
+    fn test_udiv() {
+        // arrange
+        let mut core = Processor::new();
+        core.set_r(Reg::R0, 0x7d0);
+        core.set_r(Reg::R1, 0x3);
+        core.psr.value = 0;
+
+        let instruction = Instruction::UDIV {
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R1,
+            },
+        };
+
+        // act
+        let result = core.execute_internal(&instruction);
+
+        assert_eq!(result, Ok(ExecuteSuccess::Taken { cycles: 2 }));
+
+        assert_eq!(core.get_r(Reg::R0), 0x29a);
+        assert_eq!(core.get_r(Reg::R1), 0x3);
+    }
+}
