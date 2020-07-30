@@ -18,6 +18,7 @@ use crate::Processor;
 
 mod branch;
 mod divide;
+mod load_and_store;
 mod misc;
 mod multiply;
 mod packing;
@@ -32,6 +33,7 @@ use crate::executor::signed_multiply::IsaSignedMultiply;
 use crate::executor::std_data_processing::IsaStandardDataProcessing;
 use branch::IsaBranch;
 use divide::IsaDivide;
+use load_and_store::IsaLoadAndStore;
 use misc::IsaMisc;
 use packing::IsaPacking;
 use parallel_add::IsaParallelAddSub;
@@ -506,6 +508,7 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
+
             Instruction::LDRSB_imm {
                 rt,
                 rn,
@@ -530,39 +533,11 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::LDR_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let offset = shift(rm_, *shift_t, *shift_n as usize, self.psr.get_c());
-
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), offset, *add, *index);
-
-                    let data = self.read32(address)?;
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    if rt == &Reg::PC {
-                        self.load_write_pc(data)?;
-                        return Ok(ExecuteSuccess::Branched { cycles: 2 });
-                    } else {
-                        self.set_r(*rt, data);
-                        return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                    }
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::LDR_reg { params, thumb32 } => self.exec_ldr_reg(params),
+            Instruction::LDRB_reg { params, thumb32 } => self.exec_ldrb_reg(params),
+            Instruction::LDRH_reg { params, thumb32 } => self.exec_ldrh_reg(params),
+            Instruction::LDRSH_reg { params, thumb32 } => self.exec_ldrsh_reg(params),
+            Instruction::LDRSB_reg { params, thumb32 } => self.exec_ldrsb_reg(params),
 
             Instruction::LDRB_imm {
                 rt,
@@ -589,34 +564,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::LDRB_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let offset = shift(rm_, *shift_t, *shift_n as usize, self.psr.get_c());
-
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), offset, *add, *index);
-
-                    let data = u32::from(self.read8(address)?);
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.set_r(*rt, data);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
 
             Instruction::LDRH_imm {
                 rt,
@@ -642,92 +589,6 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::LDRH_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let offset = shift(rm_, *shift_t, *shift_n as usize, self.psr.get_c());
-
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), offset, *add, *index);
-
-                    let data = u32::from(self.read16(address)?);
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.set_r(*rt, data);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDRSH_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let offset = shift(rm_, *shift_t, *shift_n as usize, self.psr.get_c());
-
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), offset, *add, *index);
-
-                    let data = u32::from(self.read16(address)?);
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.set_r(*rt, sign_extend(data, 15, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDRSB_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
-                if self.condition_passed() {
-                    let rm_ = self.get_r(*rm);
-                    let offset = shift(rm_, *shift_t, *shift_n as usize, self.psr.get_c());
-
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), offset, *add, *index);
-
-                    let data = u32::from(self.read8(address)?);
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    self.set_r(*rt, sign_extend(data, 7, 32) as u32);
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
 
             Instruction::STR_imm {
                 rt,
@@ -856,22 +717,17 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::STR_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
+            Instruction::STR_reg { params, thumb32 } => {
                 if self.condition_passed() {
                     let c = self.psr.get_c();
-                    let offset = shift(self.get_r(*rm), *shift_t, *shift_n as usize, c);
-                    let address = self.get_r(*rn) + offset;
-                    let value = self.get_r(*rt);
+                    let offset = shift(
+                        self.get_r(params.rm),
+                        params.shift_t,
+                        params.shift_n as usize,
+                        c,
+                    );
+                    let address = self.get_r(params.rn) + offset;
+                    let value = self.get_r(params.rt);
                     self.write32(address, value)?;
 
                     return Ok(ExecuteSuccess::Taken { cycles: 2 });
@@ -879,22 +735,17 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::STRB_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
+            Instruction::STRB_reg { params, thumb32 } => {
                 if self.condition_passed() {
                     let c = self.psr.get_c();
-                    let offset = shift(self.get_r(*rm), *shift_t, *shift_n as usize, c);
-                    let address = self.get_r(*rn) + offset;
-                    let rt: u32 = self.get_r(*rt);
+                    let offset = shift(
+                        self.get_r(params.rm),
+                        params.shift_t,
+                        params.shift_n as usize,
+                        c,
+                    );
+                    let address = self.get_r(params.rn) + offset;
+                    let rt: u32 = self.get_r(params.rt);
                     let value = rt.get_bits(0..8);
                     self.write8(address, value as u8)?;
                     return Ok(ExecuteSuccess::Taken { cycles: 2 });
@@ -952,22 +803,17 @@ impl ExecutorHelper for Processor {
                 Ok(ExecuteSuccess::NotTaken)
             }
 
-            Instruction::STRH_reg {
-                rt,
-                rn,
-                rm,
-                shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => {
+            Instruction::STRH_reg { params, thumb32 } => {
                 if self.condition_passed() {
                     let c = self.psr.get_c();
-                    let offset = shift(self.get_r(*rm), *shift_t, *shift_n as usize, c);
-                    let address = self.get_r(*rn) + offset;
-                    let value = self.get_r(*rt).get_bits(0..16);
+                    let offset = shift(
+                        self.get_r(params.rm),
+                        params.shift_t,
+                        params.shift_n as usize,
+                        c,
+                    );
+                    let address = self.get_r(params.rn) + offset;
+                    let value = self.get_r(params.rt).get_bits(0..16);
                     self.write16(address, value as u16)?;
                     return Ok(ExecuteSuccess::Taken { cycles: 2 });
                 }
@@ -1323,7 +1169,7 @@ impl ExecutorHelper for Processor {
                 }
                 Ok(ExecuteSuccess::NotTaken)
             }
-            
+
             Instruction::VSTR {
                 dd,
                 rn,

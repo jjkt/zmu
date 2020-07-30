@@ -101,6 +101,19 @@ pub struct Reg3NoSetFlagsParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg3FullParams {
+    pub rt: Reg,
+    pub rn: Reg,
+    pub rm: Reg,
+    pub shift_t: SRType,
+    pub shift_n: u8,
+    pub index: bool,
+    pub add: bool,
+    pub wback: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct MrsParams {
     pub rd: Reg,
     pub sysm: u8,
@@ -837,23 +850,19 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
     LDR_lit {
         rt: Reg,
         imm32: u32,
         add: bool,
         thumb32: bool,
     },
+
     LDR_reg {
-        rt: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     LDRB_imm {
         rt: Reg,
         rn: Reg,
@@ -863,17 +872,12 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
     LDRB_reg {
-        rt: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     LDRH_imm {
         rt: Reg,
         rn: Reg,
@@ -883,28 +887,17 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
     LDRH_reg {
-        rt: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     LDRSB_reg {
-        rt: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     LDRSB_imm {
         rt: Reg,
         rn: Reg,
@@ -916,14 +909,7 @@ pub enum Instruction {
     },
 
     LDRSH_reg {
-        rt: Reg,
-        rn: Reg,
-        rm: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
 
@@ -936,6 +922,7 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
     STR_imm {
         rn: Reg,
         rt: Reg,
@@ -945,6 +932,7 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
     STRD_imm {
         rn: Reg,
         rt: Reg,
@@ -954,17 +942,12 @@ pub enum Instruction {
         add: bool,
         wback: bool,
     },
+
     STRB_reg {
-        rm: Reg,
-        rn: Reg,
-        rt: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     STRH_imm {
         rt: Reg,
         rn: Reg,
@@ -974,17 +957,12 @@ pub enum Instruction {
         wback: bool,
         thumb32: bool,
     },
+
     STRH_reg {
-        rm: Reg,
-        rn: Reg,
-        rt: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     LDREX {
         rt: Reg,
         rn: Reg,
@@ -1009,17 +987,12 @@ pub enum Instruction {
         add: bool,
         wback: bool,
     },
+
     STR_reg {
-        rm: Reg,
-        rn: Reg,
-        rt: Reg,
-        shift_t: SRType,
-        shift_n: u8,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg3FullParams,
         thumb32: bool,
     },
+
     STRB_imm {
         rt: Reg,
         rn: Reg,
@@ -1680,23 +1653,13 @@ impl fmt::Display for Instruction {
                 rn,
                 registers
             ),
-            Self::LDR_reg {
-                rt,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => write!(
+            Self::LDR_reg { params, thumb32 } => write!(
                 f,
                 "ldr{} {}, [{}, {}]",
                 if thumb32 { ".W" } else { "" },
-                rt,
-                rn,
-                rm
+                params.rt,
+                params.rn,
+                params.rm
             ),
             Self::LDR_imm {
                 rt,
@@ -1739,23 +1702,13 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrb", f, rn, rt, imm32, index, add, wback, thumb32),
-            Self::LDRB_reg {
-                rt,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => write!(
+            Self::LDRB_reg { params, thumb32 } => write!(
                 f,
                 "ldrb{} {}, [{}, {}]",
                 if thumb32 { ".W" } else { "" },
-                rt,
-                rn,
-                rm
+                params.rt,
+                params.rn,
+                params.rm
             ),
             Self::LDRH_imm {
                 rt,
@@ -1766,52 +1719,24 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("ldrh", f, rn, rt, imm32, index, add, wback, thumb32),
-            Self::LDRH_reg {
-                rt,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => write!(
+            Self::LDRH_reg { params, thumb32 } => write!(
                 f,
                 "ldrh{} {}, [{}, {}]",
                 if thumb32 { ".W" } else { "" },
-                rt,
-                rn,
-                rm
+                params.rt,
+                params.rn,
+                params.rm
             ),
-            Self::LDRSB_reg {
-                rt,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                index,
-                wback,
-                add,
-                thumb32,
-            } => write!(f, "ldrsb {}, [{}, {}]", rt, rn, rm),
-            Self::LDRSH_reg {
-                rt,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => write!(
+            Self::LDRSB_reg { params, thumb32 } => {
+                write!(f, "ldrsb {}, [{}, {}]", params.rt, params.rn, params.rm)
+            }
+            Self::LDRSH_reg { params, thumb32 } => write!(
                 f,
                 "ldrsh{} {}, [{}, {}]",
                 if thumb32 { ".W" } else { "" },
-                rt,
-                rn,
-                rm
+                params.rt,
+                params.rn,
+                params.rm
             ),
             Self::LSL_imm { params, thumb32 } => write!(
                 f,
@@ -2137,17 +2062,9 @@ impl fmt::Display for Instruction {
                 add,
                 wback,
             } => format_adressing_mode2("ldrd", f, rn, rt, rt2, imm32, index, add, wback, true),
-            Self::STR_reg {
-                rn,
-                rm,
-                rt,
-                index,
-                add,
-                wback,
-                thumb32,
-                ref shift_t,
-                shift_n,
-            } => write!(f, "str {}, [{}, {}]", rt, rn, rm),
+            Self::STR_reg { params, thumb32 } => {
+                write!(f, "str {}, [{}, {}]", params.rt, params.rn, params.rm)
+            }
             Self::STRB_imm {
                 rt,
                 rn,
@@ -2157,17 +2074,9 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("strb", f, rn, rt, imm32, index, add, wback, thumb32),
-            Self::STRB_reg {
-                rt,
-                rn,
-                rm,
-                ref shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => write!(f, "strb {}, [{}, {}]", rt, rn, rm),
+            Self::STRB_reg { params, thumb32 } => {
+                write!(f, "strb {}, [{}, {}]", params.rt, params.rn, params.rm)
+            }
             Self::STRH_imm {
                 rt,
                 rn,
@@ -2177,17 +2086,9 @@ impl fmt::Display for Instruction {
                 wback,
                 thumb32,
             } => format_adressing_mode("strh", f, rn, rt, imm32, index, add, wback, thumb32),
-            Self::STRH_reg {
-                rn,
-                rm,
-                rt,
-                ref shift_t,
-                shift_n,
-                index,
-                add,
-                wback,
-                thumb32,
-            } => write!(f, "strh {}, [{}, {}]", rt, rn, rm),
+            Self::STRH_reg { params, thumb32 } => {
+                write!(f, "strh {}, [{}, {}]", params.rt, params.rn, params.rm)
+            }
             Self::SUB_imm { params, thumb32 } => {
                 if params.rd == params.rn {
                     write!(

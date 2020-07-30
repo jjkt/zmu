@@ -1,10 +1,10 @@
 use crate::core::instruction::{
-    BfcParams, BfiParams, CondBranchParams, Imm32Carry, ParamsRegImm32, Reg2ImmCarryParams,
-    Reg2ImmParams, Reg2Params, Reg2RdRmParams, Reg2RnRmParams, Reg2ShiftNParams,
-    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3HighParams,
-    Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams,
-    Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams, RegImmCarryParams,
-    RegImmParams, SRType, SetFlags, UbfxParams, MovtParams,
+    BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32,
+    Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2RdRmParams, Reg2RnRmParams,
+    Reg2ShiftNParams, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams,
+    Reg3HighParams, Reg3NoSetFlagsParams, Reg3Params, Reg3ShiftParams, Reg3UsizeParams,
+    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams,
+    RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
 };
 
 use super::*;
@@ -638,14 +638,16 @@ fn test_decode_str_reg() {
     assert_eq!(
         decode_16(0x5088),
         Instruction::STR_reg {
-            rt: Reg::R0,
-            rn: Reg::R1,
-            rm: Reg::R2,
-            shift_t: SRType::LSL,
-            shift_n: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R2,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
         }
     );
@@ -1014,15 +1016,17 @@ fn test_decode_strb2() {
     assert_eq!(
         decode_16(0x5542),
         Instruction::STRB_reg {
-            rt: Reg::R2,
-            rn: Reg::R0,
-            rm: Reg::R5,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R2,
+                rn: Reg::R0,
+                rm: Reg::R5,
+                index: true,
+                add: true,
+                wback: false,
+                shift_n: 0,
+                shift_t: SRType::LSL,
+            },
             thumb32: false,
-            shift_n: 0,
-            shift_t: SRType::LSL,
         }
     );
 }
@@ -1033,14 +1037,16 @@ fn test_decode_ldrsh() {
     assert_eq!(
         decode_16(0x5e30),
         Instruction::LDRSH_reg {
-            rt: Reg::R0,
-            rn: Reg::R6,
-            rm: Reg::R0,
-            shift_t: SRType::LSL,
-            shift_n: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R6,
+                rm: Reg::R0,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
         }
     );
@@ -1052,15 +1058,17 @@ fn test_decode_strh_reg() {
     assert_eq!(
         decode_16(0x5274),
         Instruction::STRH_reg {
-            rt: Reg::R4,
-            rn: Reg::R6,
-            rm: Reg::R1,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R4,
+                rn: Reg::R6,
+                rm: Reg::R1,
+                index: true,
+                add: true,
+                wback: false,
+                shift_n: 0,
+                shift_t: SRType::LSL,
+            },
             thumb32: false,
-            shift_n: 0,
-            shift_t: SRType::LSL,
         }
     );
 }
@@ -1090,14 +1098,16 @@ fn test_decode_ldrsb_reg() {
     assert_eq!(
         decode_16(0x5624),
         Instruction::LDRSB_reg {
-            rt: Reg::R4,
-            rn: Reg::R4,
-            rm: Reg::R0,
-            shift_t: SRType::LSL,
-            shift_n: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R4,
+                rn: Reg::R4,
+                rm: Reg::R0,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: false,
         }
     );
@@ -1422,14 +1432,16 @@ fn test_decode_ldrsh_reg_w() {
     assert_eq!(
         decode_32(0xf9300000),
         Instruction::LDRSH_reg {
-            rt: Reg::R0,
-            rn: Reg::R0,
-            rm: Reg::R0,
-            shift_t: SRType::LSL,
-            shift_n: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R0,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -1755,14 +1767,16 @@ fn test_decode_ldr_reg_w() {
     assert_eq!(
         decode_32(0xf8594024),
         Instruction::LDR_reg {
-            rt: Reg::R4,
-            rn: Reg::R9,
-            rm: Reg::R4,
-            shift_t: SRType::LSL,
-            shift_n: 2,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R4,
+                rn: Reg::R9,
+                rm: Reg::R4,
+                shift_t: SRType::LSL,
+                shift_n: 2,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -1791,15 +1805,17 @@ fn test_decode_strb_reg_w() {
     assert_eq!(
         decode_32(0xf80ce007),
         Instruction::STRB_reg {
-            rt: Reg::LR,
-            rn: Reg::R12,
-            rm: Reg::R7,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::LR,
+                rn: Reg::R12,
+                rm: Reg::R7,
+                index: true,
+                add: true,
+                wback: false,
+                shift_n: 0,
+                shift_t: SRType::LSL,
+            },
             thumb32: true,
-            shift_n: 0,
-            shift_t: SRType::LSL,
         }
     );
 }
@@ -1906,15 +1922,17 @@ fn test_decode_strh_reg_w() {
     assert_eq!(
         decode_32(0xf826c019),
         Instruction::STRH_reg {
-            rt: Reg::R12,
-            rn: Reg::R6,
-            rm: Reg::R9,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R12,
+                rn: Reg::R6,
+                rm: Reg::R9,
+                index: true,
+                add: true,
+                wback: false,
+                shift_n: 1,
+                shift_t: SRType::LSL,
+            },
             thumb32: true,
-            shift_n: 1,
-            shift_t: SRType::LSL,
         }
     );
 }
@@ -1980,15 +1998,17 @@ fn test_decode_str_reg_w() {
     assert_eq!(
         decode_32(0xf841002a),
         Instruction::STR_reg {
-            rt: Reg::R0,
-            rn: Reg::R1,
-            rm: Reg::R10,
+            params: Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R10,
+                shift_t: SRType::LSL,
+                shift_n: 2,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
-            shift_t: SRType::LSL,
-            shift_n: 2,
-            index: true,
-            add: true,
-            wback: false,
         }
     );
 }
@@ -2213,14 +2233,16 @@ fn test_decode_ldrh_reg_w() {
     assert_eq!(
         decode_32(0xf838301a),
         Instruction::LDRH_reg {
-            rt: Reg::R3,
-            rn: Reg::R8,
-            rm: Reg::R10,
-            shift_t: SRType::LSL,
-            shift_n: 1,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R3,
+                rn: Reg::R8,
+                rm: Reg::R10,
+                shift_t: SRType::LSL,
+                shift_n: 1,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );
@@ -2548,14 +2570,16 @@ fn test_decode_ldrb_reg_w() {
     assert_eq!(
         decode_32(0xf816c004),
         Instruction::LDRB_reg {
-            rt: Reg::R12,
-            rn: Reg::R6,
-            rm: Reg::R4,
-            shift_t: SRType::LSL,
-            shift_n: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg3FullParams {
+                rt: Reg::R12,
+                rn: Reg::R6,
+                rm: Reg::R4,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
             thumb32: true,
         }
     );

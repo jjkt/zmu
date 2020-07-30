@@ -1,20 +1,22 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SRType;
+use crate::core::instruction::{Reg3FullParams, SRType};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
 #[inline(always)]
 pub fn decode_LDRSB_reg_t1(opcode: u16) -> Instruction {
     Instruction::LDRSB_reg {
-        rt: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(3..6) as u8),
-        rm: Reg::from(opcode.get_bits(6..9) as u8),
-        index: true,
-        add: true,
-        wback: false,
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg3FullParams {
+            rt: Reg::from(opcode.get_bits(0..3) as u8),
+            rn: Reg::from(opcode.get_bits(3..6) as u8),
+            rm: Reg::from(opcode.get_bits(6..9) as u8),
+            index: true,
+            add: true,
+            wback: false,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -22,14 +24,16 @@ pub fn decode_LDRSB_reg_t1(opcode: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_LDRSB_reg_t2(opcode: u32) -> Instruction {
     Instruction::LDRSB_reg {
-        rm: Reg::from(opcode.get_bits(0..4) as u8),
-        rt: Reg::from(opcode.get_bits(12..16) as u8),
-        rn: Reg::from(opcode.get_bits(16..20) as u8),
-        shift_t: SRType::LSL,
-        shift_n: opcode.get_bits(4..6) as u8,
-        index: true,
-        add: true,
-        wback: false,
+        params: Reg3FullParams {
+            rm: Reg::from(opcode.get_bits(0..4) as u8),
+            rt: Reg::from(opcode.get_bits(12..16) as u8),
+            rn: Reg::from(opcode.get_bits(16..20) as u8),
+            shift_t: SRType::LSL,
+            shift_n: opcode.get_bits(4..6) as u8,
+            index: true,
+            add: true,
+            wback: false,
+        },
         thumb32: true,
     }
 }
