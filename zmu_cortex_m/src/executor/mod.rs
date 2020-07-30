@@ -436,76 +436,10 @@ impl ExecutorHelper for Processor {
             Instruction::STREXB { params } => self.exec_strexb(*params),
             Instruction::STREXH { params } => self.exec_strexh(*params),
 
-            Instruction::STRD_imm {
-                rt,
-                rt2,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
+            Instruction::STRD_imm { params } => self.exec_strd_imm(params),
+            Instruction::LDRD_imm { params } => self.exec_ldrd_imm(params),
 
-                    let value1 = self.get_r(*rt);
-                    self.write32(address, value1)?;
-                    let value2 = self.get_r(*rt2);
-                    self.write32(address + 4, value2)?;
-
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDRD_imm {
-                rt,
-                rt2,
-                rn,
-                imm32,
-                index,
-                add,
-                wback,
-            } => {
-                if self.condition_passed() {
-                    let (address, offset_address) =
-                        resolve_addressing(self.get_r(*rn), *imm32, *add, *index);
-
-                    let data = self.read32(address)?;
-                    self.set_r(*rt, data);
-                    let data2 = self.read32(address + 4)?;
-                    self.set_r(*rt2, data2);
-
-                    if *wback {
-                        self.set_r(*rn, offset_address);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDR_lit { rt, imm32, add, .. } => {
-                if self.condition_passed() {
-                    let base = self.get_r(Reg::PC) & 0xffff_fffc;
-                    let address = if *add { base + imm32 } else { base - imm32 };
-                    let data = self.read32(address)?;
-
-                    if rt == &Reg::PC {
-                        self.load_write_pc(data)?;
-                    } else {
-                        self.set_r(*rt, data);
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 2 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::LDR_lit { params, .. } => self.exec_ldr_lit(params),
 
             // --------------------------------------------
             //
@@ -910,7 +844,7 @@ impl Executor for Processor {
                 //TODO: cycles not correctly accumulated yet for exception entry
                 self.exception_entry(Exception::HardFault, new_pc)
                     .expect("error handling on exception entry not implemented");
-                //TODO: proper amount of cycles calcuation
+                //TODO: proper amount of cycles calculation
                 12
             }
             Ok(ExecuteSuccess::NotTaken) => {

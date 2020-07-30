@@ -9,8 +9,8 @@ use crate::{
     core::{
         bits::Bits,
         instruction::{
-            Reg2FullParams, Reg2RtRnImm32Params, Reg2RtRnParams, Reg3FullParams,
-            Reg3RdRtRnImm32Params, Reg3RdRtRnParams,
+            Reg2DoubleParams, Reg2FullParams, Reg2RtRnImm32Params, Reg2RtRnParams, Reg3FullParams,
+            Reg3RdRtRnImm32Params, Reg3RdRtRnParams, RegImm32AddParams,
         },
         monitor::Monitor,
         operation::{shift, sign_extend, zero_extend, zero_extend_u16},
@@ -47,6 +47,11 @@ pub trait IsaLoadAndStore {
     fn exec_strex(&mut self, params: Reg3RdRtRnImm32Params) -> ExecuteResult;
     fn exec_strexb(&mut self, params: Reg3RdRtRnParams) -> ExecuteResult;
     fn exec_strexh(&mut self, params: Reg3RdRtRnParams) -> ExecuteResult;
+
+    fn exec_ldrd_imm(&mut self, params: &Reg2DoubleParams) -> ExecuteResult;
+    fn exec_strd_imm(&mut self, params: &Reg2DoubleParams) -> ExecuteResult;
+
+    fn exec_ldr_lit(&mut self, params: &RegImm32AddParams) -> ExecuteResult;
 }
 
 impl IsaLoadAndStore for Processor {
@@ -437,7 +442,7 @@ impl IsaLoadAndStore for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
-    
+
     fn exec_strexb(&mut self, params: Reg3RdRtRnParams) -> ExecuteResult {
         if self.condition_passed() {
             let address = self.get_r(params.rn);
@@ -463,6 +468,72 @@ impl IsaLoadAndStore for Processor {
                 self.set_r(params.rd, 0);
             } else {
                 self.set_r(params.rd, 1);
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 2 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+    fn exec_ldrd_imm(&mut self, params: &Reg2DoubleParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let (address, offset_address) = resolve_addressing(
+                self.get_r(params.rn),
+                params.imm32,
+                params.add,
+                params.index,
+            );
+
+            let data = self.read32(address)?;
+            self.set_r(params.rt, data);
+            let data2 = self.read32(address + 4)?;
+            self.set_r(params.rt2, data2);
+
+            if params.wback {
+                self.set_r(params.rn, offset_address);
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 2 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_strd_imm(&mut self, params: &Reg2DoubleParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let (address, offset_address) = resolve_addressing(
+                self.get_r(params.rn),
+                params.imm32,
+                params.add,
+                params.index,
+            );
+
+            let value1 = self.get_r(params.rt);
+            self.write32(address, value1)?;
+            let value2 = self.get_r(params.rt2);
+            self.write32(address + 4, value2)?;
+
+            if params.wback {
+                self.set_r(params.rn, offset_address);
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 2 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_ldr_lit(&mut self, params: &RegImm32AddParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let base = self.get_r(Reg::PC) & 0xffff_fffc;
+            let address = if params.add {
+                base + params.imm32
+            } else {
+                base - params.imm32
+            };
+            let data = self.read32(address)?;
+
+            if params.rt == Reg::PC {
+                self.load_write_pc(data)?;
+            } else {
+                self.set_r(params.rt, data);
             }
 
             return Ok(ExecuteSuccess::Taken { cycles: 2 });

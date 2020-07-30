@@ -125,6 +125,26 @@ pub struct Reg2FullParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct RegImm32AddParams {
+    pub rt: Reg,
+    pub imm32: u32,
+    pub add: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Reg2DoubleParams {
+    pub rn: Reg,
+    pub rt: Reg,
+    pub rt2: Reg,
+    pub imm32: u32,
+    pub index: bool,
+    pub add: bool,
+    pub wback: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct MrsParams {
     pub rd: Reg,
     pub sysm: u8,
@@ -931,20 +951,12 @@ pub enum Instruction {
     },
 
     LDR_lit {
-        rt: Reg,
-        imm32: u32,
-        add: bool,
+        params: RegImm32AddParams,
         thumb32: bool,
     },
 
     STRD_imm {
-        rn: Reg,
-        rt: Reg,
-        rt2: Reg,
-        imm32: u32,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg2DoubleParams,
     },
 
     STR_imm {
@@ -987,13 +999,7 @@ pub enum Instruction {
     },
 
     LDRD_imm {
-        rn: Reg,
-        rt: Reg,
-        rt2: Reg,
-        imm32: u32,
-        index: bool,
-        add: bool,
-        wback: bool,
+        params: Reg2DoubleParams,
     },
 
     STREX {
@@ -1270,28 +1276,22 @@ fn format_adressing_mode(
 fn format_adressing_mode2(
     name: &str,
     f: &mut fmt::Formatter,
-    rn: Reg,
-    rt: Reg,
-    rt2: Reg,
-    imm32: u32,
-    index: bool,
-    add: bool,
-    wback: bool,
+    params: Reg2DoubleParams,
     thumb32: bool,
 ) -> fmt::Result {
-    if index {
-        if wback {
+    if params.index {
+        if params.wback {
             // Pre-indexed
             write!(
                 f,
                 "{}{} {}, {}, [{} , #{}{}]!",
                 name,
                 if thumb32 { ".W" } else { "" },
-                rt,
-                rt2,
-                rn,
-                if add { "+" } else { "-" },
-                imm32
+                params.rt,
+                params.rt2,
+                params.rn,
+                if params.add { "+" } else { "-" },
+                params.imm32
             )
         } else {
             // Offset
@@ -1300,11 +1300,11 @@ fn format_adressing_mode2(
                 "{}{} {}, {}, [{} {{, #{}{}}}]",
                 name,
                 if thumb32 { ".W" } else { "" },
-                rt,
-                rt2,
-                rn,
-                if add { "+" } else { "-" },
-                imm32
+                params.rt,
+                params.rt2,
+                params.rn,
+                if params.add { "+" } else { "-" },
+                params.imm32
             )
         }
     } else {
@@ -1314,11 +1314,11 @@ fn format_adressing_mode2(
             "{}{} {}, {},  [{}], #{}{}",
             name,
             if thumb32 { ".W" } else { "" },
-            rt,
-            rt2,
-            rn,
-            if add { "+" } else { "-" },
-            imm32
+            params.rt,
+            params.rt2,
+            params.rn,
+            if params.add { "+" } else { "-" },
+            params.imm32
         )
     }
 }
@@ -1640,22 +1640,22 @@ impl fmt::Display for Instruction {
                 params.rm
             ),
             Self::LDR_imm { params, thumb32 } => format_adressing_mode("ldr", f, params, thumb32),
-            Self::LDR_lit {
-                rt,
-                imm32,
-                thumb32,
-                add,
-            } => {
-                if imm32 == 0 {
-                    write!(f, "ldr{} {}, [pc]", if thumb32 { ".W" } else { "" }, rt)
+            Self::LDR_lit { params, thumb32 } => {
+                if params.imm32 == 0 {
+                    write!(
+                        f,
+                        "ldr{} {}, [pc]",
+                        if thumb32 { ".W" } else { "" },
+                        params.rt
+                    )
                 } else {
                     write!(
                         f,
                         "ldr{} {}, [pc, #{}{}]",
                         if thumb32 { ".W" } else { "" },
-                        rt,
-                        if add { "+" } else { "-" },
-                        imm32
+                        params.rt,
+                        if params.add { "+" } else { "-" },
+                        params.imm32
                     )
                 }
             }
@@ -1985,24 +1985,8 @@ impl fmt::Display for Instruction {
                 write!(f, "strexh {}, {}, {} ", params.rd, params.rt, params.rn)
             }
 
-            Self::STRD_imm {
-                rn,
-                rt,
-                rt2,
-                imm32,
-                index,
-                add,
-                wback,
-            } => format_adressing_mode2("strd", f, rn, rt, rt2, imm32, index, add, wback, true),
-            Self::LDRD_imm {
-                rn,
-                rt,
-                rt2,
-                imm32,
-                index,
-                add,
-                wback,
-            } => format_adressing_mode2("ldrd", f, rn, rt, rt2, imm32, index, add, wback, true),
+            Self::STRD_imm { params } => format_adressing_mode2("strd", f, params, true),
+            Self::LDRD_imm { params } => format_adressing_mode2("ldrd", f, params, true),
             Self::STR_reg { params, thumb32 } => {
                 write!(f, "str {}, [{}, {}]", params.rt, params.rn, params.rm)
             }
@@ -2195,18 +2179,8 @@ impl fmt::Display for Instruction {
                 params.lsb,
                 params.widthminus1 + 1
             ),
-            Self::VLDR {
-                dd,
-                rn,
-                add,
-                imm32,
-            } => write!(f, "vldr {}, {}", dd, rn),
-            Self::VSTR {
-                dd,
-                rn,
-                add,
-                imm32,
-            } => write!(f, "vstr {}, {}", dd, rn),
+            Self::VLDR { dd, rn, add, imm32 } => write!(f, "vldr {}, {}", dd, rn),
+            Self::VSTR { dd, rn, add, imm32 } => write!(f, "vstr {}, {}", dd, rn),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),

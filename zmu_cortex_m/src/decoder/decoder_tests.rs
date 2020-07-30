@@ -1,10 +1,11 @@
 use crate::core::instruction::{
-    BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32, Reg2FullParams,
-    Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2RdRmParams, Reg2RnRmParams,
-    Reg2RtRnImm32Params, Reg2ShiftNParams, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams,
-    Reg2UsizeParams, Reg3FullParams, Reg3HighParams, Reg3NoSetFlagsParams, Reg3Params,
-    Reg3ShiftParams, Reg3UsizeParams, Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams, Reg3RdRtRnImm32Params,
+    BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32,
+    Reg2DoubleParams, Reg2FullParams, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params,
+    Reg2RdRmParams, Reg2RnRmParams, Reg2RtRnImm32Params, Reg2ShiftNParams,
+    Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
+    Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
+    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams,
+    RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams, RegImm32AddParams,
 };
 
 use super::*;
@@ -381,16 +382,11 @@ fn test_decode_pop() {
 fn test_decode_ldr() {
     // LDR.N R1, [PC, 0x1c]
     match decode_16(0x4907) {
-        Instruction::LDR_lit {
-            rt,
-            imm32,
-            thumb32,
-            add,
-        } => {
-            assert!(rt == Reg::R1);
-            assert!(imm32 == (7 << 2));
+        Instruction::LDR_lit { params, thumb32 } => {
+            assert!(params.rt == Reg::R1);
+            assert!(params.imm32 == (7 << 2));
             assert!(thumb32 == false);
-            assert!(add);
+            assert!(params.add);
         }
         _ => {
             assert!(false);
@@ -1759,9 +1755,11 @@ fn test_decode_ldr_lit_w() {
     assert_eq!(
         decode_32(0xf8df90cc),
         Instruction::LDR_lit {
-            rt: Reg::R9,
-            imm32: 0xcc,
-            add: true,
+            params: RegImm32AddParams {
+                rt: Reg::R9,
+                imm32: 0xcc,
+                add: true,
+            },
             thumb32: true,
         }
     );
@@ -2047,13 +2045,15 @@ fn test_decode_strd_w() {
     assert_eq!(
         decode_32(0xe9cd0100),
         Instruction::STRD_imm {
-            rt: Reg::R0,
-            rt2: Reg::R1,
-            rn: Reg::SP,
-            imm32: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2DoubleParams {
+                rt: Reg::R0,
+                rt2: Reg::R1,
+                rn: Reg::SP,
+                imm32: 0,
+                index: true,
+                add: true,
+                wback: false,
+            }
         }
     );
 }
@@ -2064,13 +2064,15 @@ fn test_decode_ldrd_w() {
     assert_eq!(
         decode_32(0xe9d50100),
         Instruction::LDRD_imm {
-            rt: Reg::R0,
-            rt2: Reg::R1,
-            rn: Reg::R5,
-            imm32: 0,
-            index: true,
-            add: true,
-            wback: false,
+            params: Reg2DoubleParams {
+                rt: Reg::R0,
+                rt2: Reg::R1,
+                rn: Reg::R5,
+                imm32: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
         }
     );
 }

@@ -1,6 +1,9 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{Reg2FullParams, Reg2RtRnParams, Reg3FullParams, SRType, Reg2RtRnImm32Params};
+use crate::core::instruction::{
+    Reg2DoubleParams, Reg2FullParams, Reg2RtRnImm32Params, Reg2RtRnParams, Reg3FullParams,
+    RegImm32AddParams, SRType,
+};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
@@ -39,9 +42,11 @@ pub fn decode_LDR_imm_t2(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_LDR_lit_t1(opcode: u16) -> Instruction {
     Instruction::LDR_lit {
-        rt: Reg::from(opcode.get_bits(8..11) as u8),
-        imm32: u32::from(opcode.get_bits(0..8)) << 2,
-        add: true,
+        params: RegImm32AddParams {
+            rt: Reg::from(opcode.get_bits(8..11) as u8),
+            imm32: u32::from(opcode.get_bits(0..8)) << 2,
+            add: true,
+        },
         thumb32: false,
     }
 }
@@ -100,9 +105,11 @@ pub fn decode_LDR_imm_t4(opcode: u32) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_LDR_lit_t2(opcode: u32) -> Instruction {
     Instruction::LDR_lit {
-        rt: Reg::from(opcode.get_bits(12..16) as u8),
-        imm32: (opcode.get_bits(0..12) as u32),
-        add: opcode.get_bit(23),
+        params: RegImm32AddParams {
+            rt: Reg::from(opcode.get_bits(12..16) as u8),
+            imm32: (opcode.get_bits(0..12) as u32),
+            add: opcode.get_bit(23),
+        },
         thumb32: true,
     }
 }
@@ -136,13 +143,15 @@ pub fn decode_LDRBT_t1(opcode: u32) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_LDRD_imm_t1(opcode: u32) -> Instruction {
     Instruction::LDRD_imm {
-        rt2: From::from(opcode.get_bits(8..12) as u8),
-        rt: From::from(opcode.get_bits(12..16) as u8),
-        rn: From::from(opcode.get_bits(16..20) as u8),
-        imm32: opcode.get_bits(0..8) << 2,
-        index: opcode.get_bit(24),
-        add: opcode.get_bit(23),
-        wback: opcode.get_bit(21),
+        params: Reg2DoubleParams {
+            rt2: From::from(opcode.get_bits(8..12) as u8),
+            rt: From::from(opcode.get_bits(12..16) as u8),
+            rn: From::from(opcode.get_bits(16..20) as u8),
+            imm32: opcode.get_bits(0..8) << 2,
+            index: opcode.get_bit(24),
+            add: opcode.get_bit(23),
+            wback: opcode.get_bit(21),
+        },
     }
 }
 
