@@ -19,6 +19,7 @@ use crate::Processor;
 mod branch;
 mod divide;
 mod load_and_store;
+mod load_and_store_multiple;
 mod misc;
 mod multiply;
 mod packing;
@@ -34,6 +35,7 @@ use crate::executor::std_data_processing::IsaStandardDataProcessing;
 use branch::IsaBranch;
 use divide::IsaDivide;
 use load_and_store::IsaLoadAndStore;
+use load_and_store_multiple::IsaLoadAndStoreMultiple;
 use misc::IsaMisc;
 use packing::IsaPacking;
 use parallel_add::IsaParallelAddSub;
@@ -446,139 +448,12 @@ impl ExecutorHelper for Processor {
             // Group:  Load and Store Multiple instructions
             //
             // --------------------------------------------
-            Instruction::STM {
-                registers,
-                rn,
-                wback,
-                ..
-            } => {
-                if self.condition_passed() {
-                    let regs_size = 4 * (registers.len() as u32);
+            Instruction::STM { params, .. } => self.exec_stm(params),
+            Instruction::STMDB { params } => self.exec_stmdb(params),
+            Instruction::LDM { params, .. } => self.exec_ldm(params),
 
-                    let mut address = self.get_r(*rn);
-
-                    for reg in registers.iter() {
-                        let r = self.get_r(reg);
-                        self.write32(address, r)?;
-                        address += 4;
-                    }
-
-                    if *wback {
-                        self.add_r(*rn, regs_size);
-                    }
-                    return Ok(ExecuteSuccess::Taken {
-                        cycles: 1 + registers.len() as u32,
-                    });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::STMDB {
-                registers,
-                rn,
-                wback,
-            } => {
-                if self.condition_passed() {
-                    let regs_size = 4 * (registers.len() as u32);
-
-                    let mut address = self.get_r(*rn) - regs_size;
-
-                    for reg in registers.iter() {
-                        let r = self.get_r(reg);
-                        self.write32(address, r)?;
-                        address += 4;
-                    }
-
-                    if *wback {
-                        self.sub_r(*rn, regs_size);
-                    }
-                    return Ok(ExecuteSuccess::Taken {
-                        cycles: 1 + registers.len() as u32,
-                    });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::LDM { registers, rn, .. } => {
-                if self.condition_passed() {
-                    let regs_size = 4 * (registers.len() as u32);
-
-                    let mut address = self.get_r(*rn);
-
-                    let mut branched = false;
-                    for reg in registers.iter() {
-                        let value = self.read32(address)?;
-                        if reg == Reg::PC {
-                            self.load_write_pc(value)?;
-                            branched = true;
-                        } else {
-                            self.set_r(reg, value);
-                        }
-                        address += 4;
-                    }
-
-                    if !registers.contains(rn) {
-                        self.add_r(*rn, regs_size);
-                    }
-                    let cc = 1 + registers.len() as u32;
-                    if branched {
-                        return Ok(ExecuteSuccess::Branched { cycles: cc });
-                    }
-                    return Ok(ExecuteSuccess::Taken { cycles: cc });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::PUSH { registers, .. } => {
-                if self.condition_passed() {
-                    let regs_size = 4 * (registers.len() as u32);
-                    let sp = self.get_r(Reg::SP);
-                    let mut address = sp - regs_size;
-
-                    for reg in registers.iter() {
-                        let value = self.get_r(reg);
-                        self.write32(address, value)?;
-                        address += 4;
-                    }
-
-                    self.set_r(Reg::SP, sp - regs_size);
-                    return Ok(ExecuteSuccess::Taken {
-                        cycles: 1 + registers.len() as u32,
-                    });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::POP { registers, .. } => {
-                if self.condition_passed() {
-                    let regs_size = 4 * (registers.len() as u32);
-                    let sp = self.get_r(Reg::SP);
-                    let mut address = sp;
-
-                    self.set_r(Reg::SP, sp + regs_size);
-
-                    for reg in registers.iter() {
-                        let val = self.read32(address)?;
-                        if reg == Reg::PC {
-                            self.bx_write_pc(val)?;
-                        } else {
-                            self.set_r(reg, val);
-                        }
-                        address += 4;
-                    }
-
-                    if registers.contains(&Reg::PC) {
-                        return Ok(ExecuteSuccess::Branched {
-                            cycles: 4 + registers.len() as u32,
-                        });
-                    } else {
-                        return Ok(ExecuteSuccess::Taken {
-                            cycles: 1 + registers.len() as u32,
-                        });
-                    }
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::PUSH { registers, .. } => self.exec_push(*registers),
+            Instruction::POP { registers, .. } => self.exec_pop(*registers),
 
             // --------------------------------------------
             //

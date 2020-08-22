@@ -284,6 +284,14 @@ pub struct Reg3RdRtRnParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct LoadAndStoreMultipleParams {
+    pub rn: Reg,
+    pub registers: EnumSet<Reg>,
+    pub wback: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg3RdRtRnImm32Params {
     pub rd: Reg,
     pub rt: Reg,
@@ -1020,8 +1028,7 @@ pub enum Instruction {
     //
     // --------------------------------------------
     LDM {
-        rn: Reg,
-        registers: EnumSet<Reg>,
+        params: LoadAndStoreMultipleParams,
         thumb32: bool,
     },
     POP {
@@ -1033,15 +1040,11 @@ pub enum Instruction {
         thumb32: bool,
     },
     STM {
-        rn: Reg,
-        registers: EnumSet<Reg>,
-        wback: bool,
+        params: LoadAndStoreMultipleParams,
         thumb32: bool,
     },
     STMDB {
-        rn: Reg,
-        registers: EnumSet<Reg>,
-        wback: bool,
+        params: LoadAndStoreMultipleParams,
     },
 
     // --------------------------------------------
@@ -1620,16 +1623,12 @@ impl fmt::Display for Instruction {
                 write!(f, "it{}{}{} {}", x_str, y_str, z_str, firstcond)
             }
 
-            Self::LDM {
-                rn,
-                registers,
-                thumb32,
-            } => write!(
+            Self::LDM { params, thumb32 } => write!(
                 f,
                 "ldm{} {}, {{{:?}}}",
                 if thumb32 { ".W" } else { "" },
-                rn,
-                registers
+                params.rn,
+                params.registers
             ),
             Self::LDR_reg { params, thumb32 } => write!(
                 f,
@@ -1948,29 +1947,20 @@ impl fmt::Display for Instruction {
                 params.rn,
                 params.rm
             ),
-            Self::STM {
-                rn,
-                wback,
-                registers,
-                thumb32,
-            } => write!(
+            Self::STM { params, thumb32 } => write!(
                 f,
                 "stm{} {}{}, {{{:?}}}",
                 if thumb32 { ".W" } else { "" },
-                rn,
-                if wback { "!" } else { "" },
-                registers
+                params.rn,
+                if params.wback { "!" } else { "" },
+                params.registers
             ),
-            Self::STMDB {
-                rn,
-                wback,
-                registers,
-            } => write!(
+            Self::STMDB { params } => write!(
                 f,
                 "stmdb {}{}, {{{:?}}}",
-                rn,
-                if wback { "!" } else { "" },
-                registers
+                params.rn,
+                if params.wback { "!" } else { "" },
+                params.registers
             ),
             Self::STR_imm { params, thumb32 } => format_adressing_mode("str", f, params, thumb32),
             Self::STREX { params } => write!(

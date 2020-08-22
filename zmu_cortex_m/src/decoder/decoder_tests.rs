@@ -4,8 +4,8 @@ use crate::core::instruction::{
     Reg2RdRmParams, Reg2RnRmParams, Reg2RtRnImm32Params, Reg2ShiftNParams,
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
-    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImmCarryNoSetFlagsParams,
-    RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams, RegImm32AddParams,
+    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
 };
 
 use super::*;
@@ -824,13 +824,9 @@ fn test_decode_bic() {
 fn test_decode_ldm() {
     // LDM R2!, {R0, R1}
     match decode_16(0xca03) {
-        Instruction::LDM {
-            rn,
-            registers,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R2);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::LDM { params, thumb32 } => {
+            assert!(params.rn == Reg::R2);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
             assert!(!thumb32);
         }
@@ -844,13 +840,9 @@ fn test_decode_ldm() {
 fn test_decode_ldm2() {
     // LDM R1!, {R3}
     match decode_16(0xc908) {
-        Instruction::LDM {
-            rn,
-            registers,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R1);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::LDM { params, thumb32 } => {
+            assert!(params.rn == Reg::R1);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R3], elems);
             assert!(!thumb32);
         }
@@ -864,13 +856,9 @@ fn test_decode_ldm2() {
 fn test_decode_ldm3() {
     // LDM R4!, {R0-R2}
     match decode_16(0xcc07) {
-        Instruction::LDM {
-            rn,
-            registers,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R4);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::LDM { params, thumb32 } => {
+            assert!(params.rn == Reg::R4);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
             assert!(!thumb32);
         }
@@ -884,16 +872,11 @@ fn test_decode_ldm3() {
 fn test_decode_stm() {
     // STM R2!, {R0, R1}
     match decode_16(0xc203) {
-        Instruction::STM {
-            rn,
-            registers,
-            wback,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R2);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::STM { params, thumb32 } => {
+            assert!(params.rn == Reg::R2);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1], elems);
-            assert!(wback);
+            assert!(params.wback);
             assert!(!thumb32);
         }
         _ => {
@@ -906,16 +889,11 @@ fn test_decode_stm() {
 fn test_decode_stm2() {
     // STM R3!, {R0-R2}
     match decode_16(0xc307) {
-        Instruction::STM {
-            rn,
-            registers,
-            wback,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R3);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::STM { params, thumb32 } => {
+            assert!(params.rn == Reg::R3);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R0, Reg::R1, Reg::R2], elems);
-            assert!(wback);
+            assert!(params.wback);
             assert!(!thumb32);
         }
         _ => {
@@ -2200,15 +2178,11 @@ fn test_decode_sbc_reg_w() {
 fn test_decode_stmdb_w() {
     //0xe920003c -> STMDB R0!, {R2-R5}
     match decode_32(0xe920003c) {
-        Instruction::STMDB {
-            rn,
-            registers,
-            wback,
-        } => {
-            assert!(rn == Reg::R0);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::STMDB { params } => {
+            assert!(params.rn == Reg::R0);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R2, Reg::R3, Reg::R4, Reg::R5], elems);
-            assert!(wback);
+            assert!(params.wback);
         }
         _ => {
             assert!(false);
@@ -2471,13 +2445,9 @@ fn test_decode_ldm_t2_w() {
     // 0xe8b11008 -> LDM R1!, {R3, R12}
 
     match decode_32(0xe8b11008) {
-        Instruction::LDM {
-            rn,
-            registers,
-            thumb32,
-        } => {
-            assert!(rn == Reg::R1);
-            let elems: Vec<_> = registers.iter().collect();
+        Instruction::LDM { params, thumb32 } => {
+            assert!(params.rn == Reg::R1);
+            let elems: Vec<_> = params.registers.iter().collect();
             assert_eq!(vec![Reg::R3, Reg::R12], elems);
             assert!(thumb32);
         }
