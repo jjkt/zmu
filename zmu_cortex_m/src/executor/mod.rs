@@ -570,10 +570,16 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point data-processing instructions
             //
             // --------------------------------------------
+
+            // --------------------------------------------
+            //
+            // Fallback: unknown instruction
+            //
+            // --------------------------------------------
             Instruction::UDF { imm32, opcode, .. } => {
                 println!("UDF {}, {}", imm32, opcode);
-                todo!("undefined");
-                //Some(Fault::UndefinedInstruction)
+                todo!("undefined")
+                //Err(Fault::UndefInstr)
             }
         }
     }
