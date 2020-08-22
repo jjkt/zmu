@@ -17,6 +17,7 @@ use crate::peripheral::{dwt::Dwt, systick::SysTick};
 use crate::Processor;
 
 mod branch;
+mod coproc;
 mod divide;
 mod exception;
 mod load_and_store;
@@ -30,7 +31,9 @@ mod shift;
 mod signed_multiply;
 mod status_register;
 mod std_data_processing;
+
 use branch::IsaBranch;
+use coproc::IsaCoprocessor;
 use divide::IsaDivide;
 use exception::IsaException;
 use load_and_store::IsaLoadAndStore;
@@ -496,41 +499,10 @@ impl ExecutorHelper for Processor {
             // Group: Coprocessor instructions
             //
             // --------------------------------------------
-            // ARMv7-M
-            Instruction::MCR {
-                rt: _,
-                coproc: _,
-                opc1: _,
-                opc2: _,
-                crn: _,
-                crm: _,
-            } => unimplemented!(),
-
-            // ARMv7-M
-            Instruction::MCR2 {
-                rt: _,
-                coproc: _,
-                opc1: _,
-                opc2: _,
-                crn: _,
-                crm: _,
-            } => unimplemented!(),
-
-            // ARMv7-M
-            Instruction::LDC_imm {
-                coproc: _,
-                imm32: _,
-                crd: _,
-                rn: _,
-            } => unimplemented!(),
-
-            // ARMv7-M
-            Instruction::LDC2_imm {
-                coproc: _,
-                imm32: _,
-                crd: _,
-                rn: _,
-            } => unimplemented!(),
+            Instruction::MCR { .. } => self.exec_mcr(),
+            Instruction::MCR2 { .. } => self.exec_mcr2(),
+            Instruction::LDC_imm { .. } => self.exec_ldc_imm(),
+            Instruction::LDC2_imm { .. } => self.exec_ldc2_imm(),
             // --------------------------------------------
             //
             // Group: Floating-point load and store instructions
