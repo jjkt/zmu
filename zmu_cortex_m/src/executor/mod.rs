@@ -21,6 +21,7 @@ mod divide;
 mod load_and_store;
 mod load_and_store_multiple;
 mod misc;
+mod misc_data_processing;
 mod multiply;
 mod packing;
 mod parallel_add;
@@ -28,18 +29,19 @@ mod shift;
 mod signed_multiply;
 mod status_register;
 mod std_data_processing;
-use crate::executor::multiply::IsaMultiply;
-use crate::executor::shift::IsaShift;
-use crate::executor::signed_multiply::IsaSignedMultiply;
-use crate::executor::std_data_processing::IsaStandardDataProcessing;
 use branch::IsaBranch;
 use divide::IsaDivide;
 use load_and_store::IsaLoadAndStore;
 use load_and_store_multiple::IsaLoadAndStoreMultiple;
 use misc::IsaMisc;
+use misc_data_processing::IsaMiscDataProcessing;
+use multiply::IsaMultiply;
 use packing::IsaPacking;
 use parallel_add::IsaParallelAddSub;
+use shift::IsaShift;
+use signed_multiply::IsaSignedMultiply;
 use status_register::IsaStatusRegister;
+use std_data_processing::IsaStandardDataProcessing;
 ///
 /// Stepping processor with instructions
 ///
@@ -79,9 +81,9 @@ pub enum ExecuteSuccess {
 }
 
 trait ExecutorHelper {
-    fn condition_passed(&mut self) -> bool;
-    fn condition_passed_b(&mut self, cond: Condition) -> bool;
-    fn integer_zero_divide_trapping_enabled(&mut self) -> bool;
+    fn condition_passed(&self) -> bool;
+    fn condition_passed_b(&self, cond: Condition) -> bool;
+    fn integer_zero_divide_trapping_enabled(&self) -> bool;
     fn set_itstate(&mut self, state: u8);
     fn it_advance(&mut self);
     fn in_it_block(&self) -> bool;
@@ -147,12 +149,12 @@ impl ExecutorHelper for Processor {
     fn last_in_it_block(&self) -> bool {
         self.itstate.get_bits(0..4) == 0b1000
     }
-    fn integer_zero_divide_trapping_enabled(&mut self) -> bool {
+    fn integer_zero_divide_trapping_enabled(&self) -> bool {
         true
     }
 
     #[inline(always)]
-    fn condition_passed(&mut self) -> bool {
+    fn condition_passed(&self) -> bool {
         let itstate = self.itstate;
 
         if itstate == 0 {
@@ -166,7 +168,7 @@ impl ExecutorHelper for Processor {
         }
     }
 
-    fn condition_passed_b(&mut self, cond: Condition) -> bool {
+    fn condition_passed_b(&self, cond: Condition) -> bool {
         condition_test(cond, &self.psr)
     }
 
@@ -460,84 +462,24 @@ impl ExecutorHelper for Processor {
             // Group: Miscellaneous
             //
             // --------------------------------------------
-            Instruction::DMB | Instruction::DSB | Instruction::ISB => {
-                if self.condition_passed() {
-                    return Ok(ExecuteSuccess::Taken { cycles: 4 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::DMB => self.exec_dmb(),
+            Instruction::DSB => self.exec_dsb(),
+            Instruction::ISB => self.exec_isb(),
 
             Instruction::IT {
-                x: _,
-                y: _,
-                z: _,
-                firstcond,
-                mask,
-            } => {
-                self.set_itstate((((firstcond.value() as u32) << 4) + u32::from(*mask)) as u8);
-                Ok(ExecuteSuccess::Taken { cycles: 4 })
-            }
+                firstcond, mask, ..
+            } => self.exec_it(*firstcond, *mask),
 
             Instruction::NOP { .. } => Ok(ExecuteSuccess::Taken { cycles: 1 }),
 
-            Instruction::PLD_imm {
-                rn: _,
-                imm32: _,
-                add: _,
-            } => {
-                if self.condition_passed() {
-                    Ok(ExecuteSuccess::Taken { cycles: 1 })
-                } else {
-                    Ok(ExecuteSuccess::NotTaken)
-                }
-            }
+            Instruction::PLD_imm { .. } => self.exec_pld_imm(),
+            Instruction::PLD_lit { .. } => self.exec_pld_lit(),
+            Instruction::PLD_reg { .. } => self.exec_pld_reg(),
 
-            Instruction::PLD_lit { imm32: _, add: _ } => {
-                if self.condition_passed() {
-                    Ok(ExecuteSuccess::Taken { cycles: 1 })
-                } else {
-                    Ok(ExecuteSuccess::NotTaken)
-                }
-            }
-
-            Instruction::PLD_reg {
-                rn: _,
-                rm: _,
-                shift_t: _,
-                shift_n: _,
-            } => {
-                if self.condition_passed() {
-                    Ok(ExecuteSuccess::Taken { cycles: 1 })
-                } else {
-                    Ok(ExecuteSuccess::NotTaken)
-                }
-            }
-
-            Instruction::SEV { .. } => {
-                if self.condition_passed() {
-                    //TODO
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::WFE { .. } | Instruction::YIELD { .. } => {
-                if self.condition_passed() {
-                    //TODO
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::WFI { .. } => {
-                if self.condition_passed() {
-                    if self.get_pending_exception() == None {
-                        self.state.set_bit(1, true); // sleeping == true
-                    }
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::SEV { .. } => self.exec_sev(),
+            Instruction::WFE { .. } => self.exec_wfe(),
+            Instruction::YIELD { .. } => self.exec_yield(),
+            Instruction::WFI { .. } => self.exec_wfi(),
 
             // --------------------------------------------
             //
