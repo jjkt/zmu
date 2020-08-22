@@ -13,11 +13,12 @@ use crate::core::operation::condition_test;
 use crate::core::register::{Apsr, BaseReg, ExtensionReg, ExtensionRegOperations, Reg};
 use crate::memory::map::MapMemory;
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
-use crate::semihosting::{decode_semihostcmd, semihost_return};
+
 use crate::Processor;
 
 mod branch;
 mod divide;
+mod exception;
 mod load_and_store;
 mod load_and_store_multiple;
 mod misc;
@@ -31,6 +32,7 @@ mod status_register;
 mod std_data_processing;
 use branch::IsaBranch;
 use divide::IsaDivide;
+use exception::IsaException;
 use load_and_store::IsaLoadAndStore;
 use load_and_store_multiple::IsaLoadAndStoreMultiple;
 use misc::IsaMisc;
@@ -486,27 +488,8 @@ impl ExecutorHelper for Processor {
             // Group: Exception generating instructions
             //
             // --------------------------------------------
-            Instruction::SVC { imm32: _ } => {
-                if self.condition_passed() {
-                    //TODO
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::BKPT { imm32 } => {
-                if *imm32 == 0xab {
-                    let r0 = self.get_r(Reg::R0);
-                    let r1 = self.get_r(Reg::R1);
-                    let semihost_cmd = decode_semihostcmd(r0, r1, self)?;
-
-                    if let Some(sh_func) = &mut self.semihost_func {
-                        let semihost_response = (sh_func)(&semihost_cmd);
-                        semihost_return(self, &semihost_response);
-                    }
-                }
-                Ok(ExecuteSuccess::Taken { cycles: 1 })
-            }
+            Instruction::SVC { .. } => self.exec_svc(),
+            Instruction::BKPT { imm32 } => self.exec_bkpt(*imm32),
 
             // --------------------------------------------
             //
