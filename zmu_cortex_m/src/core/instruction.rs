@@ -292,6 +292,15 @@ pub struct LoadAndStoreMultipleParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VLoadAndStoreParams {
+    pub dd: ExtensionReg,
+    pub rn: Reg,
+    pub add: bool,
+    pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg3RdRtRnImm32Params {
     pub rd: Reg,
     pub rt: Reg,
@@ -1173,17 +1182,11 @@ pub enum Instruction {
     // --------------------------------------------
     /// FP Load register
     VLDR {
-        dd: ExtensionReg,
-        rn: Reg,
-        add: bool,
-        imm32: u32,
+        params: VLoadAndStoreParams,
     },
     /// FP Store register
     VSTR {
-        dd: ExtensionReg,
-        rn: Reg,
-        add: bool,
-        imm32: u32,
+        params: VLoadAndStoreParams,
     },
     // VLDM
     // VPOP
@@ -2169,8 +2172,8 @@ impl fmt::Display for Instruction {
                 params.lsb,
                 params.widthminus1 + 1
             ),
-            Self::VLDR { dd, rn, add, imm32 } => write!(f, "vldr {}, {}", dd, rn),
-            Self::VSTR { dd, rn, add, imm32 } => write!(f, "vstr {}, {}", dd, rn),
+            Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
+            Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),

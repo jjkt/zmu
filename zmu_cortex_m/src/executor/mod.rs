@@ -2,7 +2,7 @@
 //! Functionality for running instructions on a Processor.
 //!
 
-use crate::bus::Bus;
+
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::{Exception, ExceptionHandling};
@@ -10,7 +10,7 @@ use crate::core::fault::Fault;
 use crate::core::instruction::{Imm32Carry, Instruction, SetFlags};
 
 use crate::core::operation::condition_test;
-use crate::core::register::{Apsr, BaseReg, ExtensionReg, ExtensionRegOperations, Reg};
+use crate::core::register::{Apsr, BaseReg};
 use crate::memory::map::MapMemory;
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 
@@ -20,6 +20,7 @@ mod branch;
 mod coproc;
 mod divide;
 mod exception;
+mod fp_load_and_store;
 mod load_and_store;
 mod load_and_store_multiple;
 mod misc;
@@ -36,6 +37,7 @@ use branch::IsaBranch;
 use coproc::IsaCoprocessor;
 use divide::IsaDivide;
 use exception::IsaException;
+use fp_load_and_store::IsaFloatingPointLoadAndStore;
 use load_and_store::IsaLoadAndStore;
 use load_and_store_multiple::IsaLoadAndStoreMultiple;
 use misc::IsaMisc;
@@ -508,56 +510,9 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point load and store instructions
             //
             // --------------------------------------------
-            Instruction::VLDR { dd, rn, add, imm32 } => {
-                if self.condition_passed() {
-                    //self.execute_fp_check();
+            Instruction::VLDR { params } => self.exec_vldr(params),
 
-                    let base = match *rn {
-                        Reg::PC => self.get_r(Reg::PC) & 0xffff_fffc,
-                        _ => self.get_r(*rn),
-                    };
-
-                    let address = if *add { base + imm32 } else { base - imm32 };
-                    match *dd {
-                        ExtensionReg::Single { reg } => {
-                            let data = self.read32(address)?;
-                            self.set_sr(reg, data);
-                        }
-                        ExtensionReg::Double { reg } => {
-                            let word1 = self.read32(address)?;
-                            let word2 = self.read32(address + 4)?;
-                            self.set_dr(reg, word1, word2);
-                        }
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
-
-            Instruction::VSTR { dd, rn, add, imm32 } => {
-                if self.condition_passed() {
-                    //self.execute_fp_check();
-
-                    let base = self.get_r(*rn);
-
-                    let address = if *add { base + imm32 } else { base - imm32 };
-                    match *dd {
-                        ExtensionReg::Single { reg } => {
-                            let value = self.get_sr(reg);
-                            self.write32(address, value)?;
-                        }
-                        ExtensionReg::Double { reg } => {
-                            let (low_word, high_word) = self.get_dr(reg);
-                            self.write32(address, low_word)?;
-                            self.write32(address + 4, high_word)?;
-                        }
-                    }
-
-                    return Ok(ExecuteSuccess::Taken { cycles: 1 });
-                }
-                Ok(ExecuteSuccess::NotTaken)
-            }
+            Instruction::VSTR { params } => self.exec_vstr(params),
 
             // --------------------------------------------
             //
@@ -650,9 +605,9 @@ mod tests {
     use super::*;
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
-    use crate::core::instruction::{
+    use crate::core::{register::Reg, instruction::{
         ITCondition, Reg2ShiftNoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
-    };
+    }};
 
     #[test]
     fn test_it_block() {

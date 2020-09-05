@@ -5,7 +5,7 @@ use crate::core::instruction::{
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams, VLoadAndStoreParams,
 };
 
 use super::*;
@@ -2875,10 +2875,12 @@ fn test_decode_vldr() {
     assert_eq!(
         decode_32(0xed9f7b86),
         Instruction::VLDR {
-            dd: ExtensionReg::Double { reg: DoubleReg::D7 },
-            rn: Reg::PC,
-            add: true,
-            imm32: 0x86 << 2,
+            params: VLoadAndStoreParams {
+                dd: ExtensionReg::Double { reg: DoubleReg::D7 },
+                rn: Reg::PC,
+                add: true,
+                imm32: 0x86 << 2,
+            }
         }
     );
 }
@@ -2889,10 +2891,12 @@ fn test_decode_vstr() {
     assert_eq!(
         decode_32(0xed8d7b12),
         Instruction::VSTR {
-            dd: ExtensionReg::Double { reg: DoubleReg::D7 },
-            rn: Reg::SP,
-            add: true,
-            imm32: 0x48,
+            params: VLoadAndStoreParams {
+                dd: ExtensionReg::Double { reg: DoubleReg::D7 },
+                rn: Reg::SP,
+                add: true,
+                imm32: 0x48,
+            }
         }
     );
 }
