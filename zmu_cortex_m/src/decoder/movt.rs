@@ -1,4 +1,4 @@
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{MovtParams, Instruction};
 use crate::core::operation::zero_extend;
 
 use crate::core::bits::Bits;
@@ -14,7 +14,9 @@ pub fn decode_MOVT_t1(opcode: u32) -> Instruction {
     let lengths = [4, 1, 3, 8];
 
     Instruction::MOVT {
-        rd: opcode.get_bits(8..12).into(),
-        imm16: zero_extend(&params, &lengths) as u16,
+        params: MovtParams {
+            rd: opcode.get_bits(8..12).into(),
+            imm16: zero_extend(&params, &lengths) as u16,
+        },
     }
 }

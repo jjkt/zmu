@@ -3,7 +3,9 @@ use crate::core::instruction::Instruction;
 use crate::core::operation::decode_imm_shift;
 use crate::core::register::Reg;
 
-use crate::core::instruction::Imm32Carry;
+use crate::core::instruction::{
+    Imm32Carry, Reg2ShiftNoSetFlagsParams, RegImmCarryNoSetFlagsParams,
+};
 use crate::core::operation::thumb_expand_imm_c;
 
 #[allow(non_snake_case)]
@@ -14,10 +16,12 @@ pub fn decode_TEQ_reg_t1(opcode: u32) -> Instruction {
 
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
     Instruction::TEQ_reg {
-        rm: Reg::from(opcode.get_bits(0..4)),
-        rn: Reg::from(opcode.get_bits(16..20)),
-        shift_t,
-        shift_n,
+        params: Reg2ShiftNoSetFlagsParams {
+            rm: Reg::from(opcode.get_bits(0..4)),
+            rn: Reg::from(opcode.get_bits(16..20)),
+            shift_t,
+            shift_n,
+        },
     }
 }
 
@@ -33,10 +37,12 @@ pub fn decode_TEQ_imm_t1(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::TEQ_imm {
-        rn: Reg::from(rn),
-        imm32: Imm32Carry::Carry {
-            imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
-            imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+        params: RegImmCarryNoSetFlagsParams {
+            rn: Reg::from(rn),
+            imm32: Imm32Carry::Carry {
+                imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
+                imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+            },
         },
     }
 }

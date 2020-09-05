@@ -234,9 +234,9 @@ impl NVIC for Processor {
 mod tests {
     use super::*;
     use crate::core::exception::ExceptionHandling;
-    use crate::core::executor::Executor;
     use crate::core::instruction::Instruction;
     use crate::core::reset::Reset;
+    use crate::executor::Executor;
 
     #[test]
     fn test_nvic_iser_icer() {

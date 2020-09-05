@@ -139,7 +139,7 @@ pub fn decode_imm_shift(typebits: u8, imm5: u8) -> (SRType, u8) {
             0 => (SRType::RRX, 1),
             _ => (SRType::ROR, imm5),
         },
-        _ => panic!("invalid typebits"),
+        _ => todo!("invalid typebits"),
     }
 }
 

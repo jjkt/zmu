@@ -1,20 +1,21 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType, SetFlags};
-use crate::core::operation::decode_imm_shift;
-use crate::core::operation::thumb_expand_imm;
+use crate::core::operation::{decode_imm_shift, thumb_expand_imm};
 use crate::core::register::Reg;
+
+use crate::core::instruction::{Instruction, Reg2ImmParams, Reg3ShiftParams, SRType, SetFlags};
 
 #[allow(non_snake_case)]
 #[inline(always)]
 pub fn decode_ADC_reg_t1(opcode: u16) -> Instruction {
     Instruction::ADC_reg {
-        rd: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..6) as u8),
-        setflags: SetFlags::NotInITBlock,
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg3ShiftParams {
+            rd: Reg::from(opcode.get_bits(0..3) as u8),
+            rn: Reg::from(opcode.get_bits(0..3) as u8),
+            rm: Reg::from(opcode.get_bits(3..6) as u8),
+            setflags: SetFlags::NotInITBlock,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -33,16 +34,18 @@ pub fn decode_ADC_reg_t2(opcode: u32) -> Instruction {
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
 
     Instruction::ADC_reg {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        rm: Reg::from(rm),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: Reg3ShiftParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            rm: Reg::from(rm),
+            setflags: if s == 1 {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
+            shift_t,
+            shift_n,
         },
-        shift_t,
-        shift_n,
         thumb32: true,
     }
 }
@@ -59,13 +62,15 @@ pub fn decode_ADC_imm_t1(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::ADC_imm {
-        rd: Reg::from(opcode.get_bits(8..12) as u8),
-        rn: Reg::from(opcode.get_bits(16..20) as u8),
-        imm32: thumb_expand_imm(&params, &lengths),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: Reg2ImmParams {
+            rd: Reg::from(opcode.get_bits(8..12) as u8),
+            rn: Reg::from(opcode.get_bits(16..20) as u8),
+            imm32: thumb_expand_imm(&params, &lengths),
+            setflags: if s == 1 {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
         },
     }
 }

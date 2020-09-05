@@ -3,10 +3,10 @@
 //!
 
 use crate::core::bits::Bits;
-use crate::core::executor::Executor;
 use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
+use crate::executor::Executor;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 use crate::MemoryMapConfig;

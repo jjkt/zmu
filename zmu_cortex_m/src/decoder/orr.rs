@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{SRType, SetFlags};
+use crate::core::instruction::{Reg2ImmCarryParams, Reg3ShiftParams, SRType, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::register::Reg;
@@ -10,12 +10,14 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_ORR_reg_t1(opcode: u16) -> Instruction {
     Instruction::ORR_reg {
-        rd: Reg::from(opcode.get_bits(0..3) as u8),
-        rn: Reg::from(opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..6) as u8),
-        setflags: SetFlags::NotInITBlock,
-        shift_t: SRType::LSL,
-        shift_n: 0,
+        params: Reg3ShiftParams {
+            rd: Reg::from(opcode.get_bits(0..3) as u8),
+            rn: Reg::from(opcode.get_bits(0..3) as u8),
+            rm: Reg::from(opcode.get_bits(3..6) as u8),
+            setflags: SetFlags::NotInITBlock,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+        },
         thumb32: false,
     }
 }
@@ -25,7 +27,7 @@ pub fn decode_ORR_reg_t2(opcode: u32) -> Instruction {
     let rn: u8 = opcode.get_bits(16..20) as u8;
     let rm: u8 = opcode.get_bits(0..4) as u8;
     let rd: u8 = opcode.get_bits(8..12) as u8;
-    let s: u8 = opcode.get_bit(20) as u8;
+    let s = opcode.get_bit(20);
 
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm2: u8 = opcode.get_bits(6..8) as u8;
@@ -34,16 +36,14 @@ pub fn decode_ORR_reg_t2(opcode: u32) -> Instruction {
     let (shift_t, shift_n) = decode_imm_shift(type_, (imm3 << 2) + imm2);
 
     Instruction::ORR_reg {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        rm: Reg::from(rm),
-        setflags: if s == 1 {
-            SetFlags::True
-        } else {
-            SetFlags::False
+        params: Reg3ShiftParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            rm: Reg::from(rm),
+            setflags: if s { SetFlags::True } else { SetFlags::False },
+            shift_t,
+            shift_n,
         },
-        shift_t,
-        shift_n,
         thumb32: true,
     }
 }
@@ -64,12 +64,14 @@ pub fn decode_ORR_imm_t1(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::ORR_imm {
-        rd: Reg::from(rd),
-        rn: Reg::from(rn),
-        imm32: Imm32Carry::Carry {
-            imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
-            imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+        params: Reg2ImmCarryParams {
+            rd: Reg::from(rd),
+            rn: Reg::from(rn),
+            imm32: Imm32Carry::Carry {
+                imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
+                imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+            },
+            setflags: s == 1,
         },
-        setflags: s == 1,
     }
 }

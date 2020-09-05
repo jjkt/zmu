@@ -1,4 +1,4 @@
-use crate::core::instruction::Instruction;
+use crate::core::instruction::{Instruction, RegImmParams};
 use crate::core::operation::zero_extend;
 use crate::core::{bits::Bits, register::Reg};
 
@@ -6,8 +6,10 @@ use crate::core::{bits::Bits, register::Reg};
 #[inline(always)]
 pub fn decode_ADR_t1(command: u16) -> Instruction {
     Instruction::ADR {
-        rd: From::from(command.get_bits(8..11)),
-        imm32: u32::from(command.get_bits(0..8)) << 2,
+        params: RegImmParams {
+            r: From::from(command.get_bits(8..11)),
+            imm32: u32::from(command.get_bits(0..8)) << 2,
+        },
         thumb32: false,
     }
 }
@@ -33,8 +35,10 @@ pub fn decode_ADR_t3(opcode: u32) -> Instruction {
     let params = [i, imm3, imm8];
     let lengths = [1, 3, 8];
     Instruction::ADR {
-        rd: Reg::from(rd),
-        imm32: zero_extend(&params, &lengths),
+        params: RegImmParams {
+            r: Reg::from(rd),
+            imm32: zero_extend(&params, &lengths),
+        },
         thumb32: true,
     }
 }

@@ -1,7 +1,7 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Imm32Carry;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::SetFlags;
+use crate::core::instruction::{Reg2Params, Reg2ShiftNParams, RegImmCarryParams, SetFlags};
 use crate::core::operation::decode_imm_shift;
 use crate::core::operation::thumb_expand_imm_c;
 use crate::core::operation::zero_extend;
@@ -11,11 +11,13 @@ use crate::core::register::Reg;
 #[inline(always)]
 pub fn decode_MOV_imm_t1(opcode: u16) -> Instruction {
     Instruction::MOV_imm {
-        rd: Reg::from(opcode.get_bits(8..11) as u8),
-        imm32: Imm32Carry::NoCarry {
-            imm32: u32::from(opcode.get_bits(0..8)),
+        params: RegImmCarryParams {
+            rd: Reg::from(opcode.get_bits(8..11) as u8),
+            imm32: Imm32Carry::NoCarry {
+                imm32: u32::from(opcode.get_bits(0..8)),
+            },
+            setflags: SetFlags::NotInITBlock,
         },
-        setflags: SetFlags::NotInITBlock,
         thumb32: false,
     }
 }
@@ -24,9 +26,11 @@ pub fn decode_MOV_imm_t1(opcode: u16) -> Instruction {
 #[inline(always)]
 pub fn decode_MOV_reg_t1(opcode: u16) -> Instruction {
     Instruction::MOV_reg {
-        rd: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
-        rm: Reg::from(opcode.get_bits(3..7) as u8),
-        setflags: false,
+        params: Reg2Params {
+            rd: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
+            rm: Reg::from(opcode.get_bits(3..7) as u8),
+            setflags: false,
+        },
         thumb32: false,
     }
 }
@@ -34,9 +38,11 @@ pub fn decode_MOV_reg_t1(opcode: u16) -> Instruction {
 #[allow(non_snake_case)]
 pub fn decode_MOV_reg_t3(opcode: u32) -> Instruction {
     Instruction::MOV_reg {
-        rd: Reg::from(opcode.get_bits(8..12) as u8),
-        rm: Reg::from(opcode.get_bits(0..4) as u8),
-        setflags: opcode.get_bit(20),
+        params: Reg2Params {
+            rd: Reg::from(opcode.get_bits(8..12) as u8),
+            rm: Reg::from(opcode.get_bits(0..4) as u8),
+            setflags: opcode.get_bit(20),
+        },
         thumb32: true,
     }
 }
@@ -48,18 +54,22 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(opcode: u16) -> Instruction {
 
     if imm5 == 0 {
         Instruction::MOV_reg {
-            rd: Reg::from(opcode.get_bits(0..3) as u8),
-            rm: Reg::from(opcode.get_bits(3..6) as u8),
-            setflags: true,
+            params: Reg2Params {
+                rd: Reg::from(opcode.get_bits(0..3) as u8),
+                rm: Reg::from(opcode.get_bits(3..6) as u8),
+                setflags: true,
+            },
             thumb32: false,
         }
     } else {
         let (_, shift_n) = decode_imm_shift(0b00, imm5);
         Instruction::LSL_imm {
-            rd: Reg::from(opcode.get_bits(0..3) as u8),
-            rm: Reg::from(opcode.get_bits(3..6) as u8),
-            shift_n,
-            setflags: SetFlags::NotInITBlock,
+            params: Reg2ShiftNParams {
+                rd: Reg::from(opcode.get_bits(0..3) as u8),
+                rm: Reg::from(opcode.get_bits(3..6) as u8),
+                shift_n,
+                setflags: SetFlags::NotInITBlock,
+            },
             thumb32: false,
         }
     }
@@ -78,12 +88,14 @@ pub fn decode_MOV_imm_t2(opcode: u32) -> Instruction {
     let lengths = [1, 3, 8];
 
     Instruction::MOV_imm {
-        rd: Reg::from(rd),
-        imm32: Imm32Carry::Carry {
-            imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
-            imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+        params: RegImmCarryParams {
+            rd: Reg::from(rd),
+            imm32: Imm32Carry::Carry {
+                imm32_c0: thumb_expand_imm_c(&params, &lengths, false),
+                imm32_c1: thumb_expand_imm_c(&params, &lengths, true),
+            },
+            setflags: if s { SetFlags::True } else { SetFlags::False },
         },
-        setflags: if s { SetFlags::True } else { SetFlags::False },
         thumb32: true,
     }
 }
@@ -101,11 +113,13 @@ pub fn decode_MOV_imm_t3(opcode: u32) -> Instruction {
     let lengths = [4, 1, 3, 8];
 
     Instruction::MOV_imm {
-        rd: Reg::from(rd),
-        imm32: Imm32Carry::NoCarry {
-            imm32: zero_extend(&params, &lengths),
+        params: RegImmCarryParams {
+            rd: Reg::from(rd),
+            imm32: Imm32Carry::NoCarry {
+                imm32: zero_extend(&params, &lengths),
+            },
+            setflags: SetFlags::False,
         },
-        setflags: SetFlags::False,
         thumb32: true,
     }
 }

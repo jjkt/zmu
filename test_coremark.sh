@@ -34,7 +34,7 @@ do
    echo -e "\e[1mCOREMARK GCC: $i"
    echo -e "\e[1m========================================\e[0m"
    make -s PORT_DIR=zmu clean
-   make PORT_DIR=zmu XCFLAGS="-mcpu=$i"
+   make -s PORT_DIR=zmu XCFLAGS="-mcpu=$i"
    cp run1.log "run1_$i.log"
    cp run2.log "run2_$i.log"
    cat run2.log

@@ -333,7 +333,7 @@ pub fn decode_semihostcmd(
             reason: SysExceptionReason::from_u32(r1),
         },
         _ => {
-            panic!("unknown semihosting command {}", r0);
+            todo!("unknown semihosting command {}", r0);
         }
     };
     Ok(result)
