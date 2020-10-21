@@ -17,7 +17,9 @@ else
 fi
 
 
-declare -a arr=("baseline" "binds" "capacity" "cfg"  "destructure" "generics" "hardware" "idle" "init" "late" "lock" "message" "not-send" "not-sync" "only-shared-access" "periodic" "pool" "preempt" "resource"  "schedule" "smallest" "shared-with-init" "task" "types")
+# 
+#  
+declare -a arr=("baseline" "binds" "capacity" "cfg"  "destructure" "generics" "hardware" "idle" "init" "late" "lock" "message" "not-sync" "only-shared-access" "periodic" "pool" "preempt" "resource" "schedule"  "smallest" "shared-with-init" "spawn" "spawn2" "static" "task" "task-local" "task-local-minimal" "types")
 cd tests/cortex-m-rtic
 cargo build --target thumbv7m-none-eabi
 for i in "${arr[@]}"
