@@ -7,5 +7,9 @@
 			"path": "zmu_cortex_m"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"rust-analyzer.cargo.features": [
+			"armv7em generic-device"
+		]
+	}
 }
