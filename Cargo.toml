@@ -8,10 +8,10 @@ edition = "2018"
 zmu_cortex_m = {path =  "zmu_cortex_m"}
 clap = "2.19"
 tabwriter = "1"
-error-chain = "0.12.0"
-goblin = "0.0.12"
-pad = "0.1.4"
-stderrlog = "0.4"
+error-chain = "0.12"
+goblin = "0.5"
+pad = "0.1.6"
+stderrlog = "0.5"
 log = "0.4"
 
 

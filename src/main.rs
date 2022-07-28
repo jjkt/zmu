@@ -125,10 +125,10 @@ fn run_bin(
         let mut symboltable = HashMap::new();
         let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
 
-        for sym in elf.syms {
+        for sym in &elf.syms {
             if sym.st_type() != goblin::elf::sym::STT_FILE {
-                if let Some(maybe_name) = elf.strtab.get(sym.st_name) {
-                    let name = maybe_name.unwrap_or("unknown");
+                if let Some(maybe_name) = elf.strtab.get_at(sym.st_name) {
+                    let name = maybe_name;
                     let mut count = 0;
                     let mut pos = sym.st_value as u32;
                     while count <= sym.st_size {
