@@ -2,7 +2,7 @@
 name = "zmu"
 version = "0.1.0"
 authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 zmu_cortex_m = {path =  "zmu_cortex_m"}
