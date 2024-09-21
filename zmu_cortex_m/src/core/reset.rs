@@ -42,7 +42,7 @@ impl Reset for Processor {
         self.psr = PSR { value: 0 };
         self.primask = false;
 
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         {
             self.faultmask = false;
         }

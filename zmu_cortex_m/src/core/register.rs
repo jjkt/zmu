@@ -514,22 +514,22 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn get_isr_number(&self) -> usize {
         (*self).value.get_bits(0..9) as usize
     }
 
-    #[cfg(any(armv6m))]
+    #[cfg(any(feature="armv6m"))]
     fn get_isr_number(&self) -> usize {
         (*self).value.get_bits(0..6) as usize
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..9, exception_number as u32);
     }
 
-    #[cfg(any(armv6m))]
+    #[cfg(any(feature="armv6m"))]
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..6, exception_number as u32);
     }

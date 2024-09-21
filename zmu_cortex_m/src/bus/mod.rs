@@ -53,11 +53,11 @@ impl Bus for Processor {
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_read_ipr_u8(((addr - 0xE000_E400) >> 2) as usize)
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => self.read_shpr1_u8((addr - 0xE000_ED18) as usize),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C..=0xE000_ED1F => self.read_shpr2_u8((addr - 0xE000_ED1C) as usize),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => self.read_shpr3_u8((addr - 0xE000_ED20) as usize),
 
             _ => {
@@ -78,15 +78,15 @@ impl Bus for Processor {
     fn read16(&self, bus_addr: u32) -> Result<u16, Fault> {
         let addr = self.map_address(bus_addr);
         match addr {
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => {
                 Ok(self.read_shpr1_u16(((addr - 0xE000_ED18) >> 1) as usize))
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C..=0xE000_ED1F => {
                 Ok(self.read_shpr2_u16(((addr - 0xE000_ED1C) >> 1) as usize))
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => {
                 Ok(self.read_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize))
             }
@@ -135,11 +135,11 @@ impl Bus for Processor {
             0xE000_ED0C => self.aircr,
             0xE000_ED10 => self.read_scr(),
             0xE000_ED14 => self.ccr,
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18 => self.read_shpr1(),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C => self.read_shpr2(),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20 => self.read_shpr3(),
             0xE000_ED24 => self.shcsr,
             0xE000_ED28 => self.cfsr,
@@ -192,11 +192,11 @@ impl Bus for Processor {
             0xE000_ED04 => self.write_icsr(value),
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED10 => self.write_scr(value),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18 => self.write_shpr1(value),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C => self.write_shpr2(value),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20 => self.write_shpr3(value),
 
             0xE000_EDFC => self.write_demcr(value),
@@ -220,7 +220,7 @@ impl Bus for Processor {
                 self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value)
             }
 
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_EF00 => self.write_stir(value),
             _ => {
                 if self.sram.in_range(addr) {
@@ -242,15 +242,15 @@ impl Bus for Processor {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value)
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => {
                 self.write_shpr1_u16(((addr - 0xE000_ED18) >> 1) as usize, value)
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C..=0xE000_ED1F => {
                 self.write_shpr2_u16(((addr - 0xE000_ED1C) >> 1) as usize, value)
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => {
                 self.write_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize, value)
             }
@@ -280,11 +280,11 @@ impl Bus for Processor {
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_write_ipr_u8((addr - 0xE000_E400) as usize, value)
             }
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => self.write_shpr1_u8((addr - 0xE000_ED18) as usize, value),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C..=0xE000_ED1F => self.write_shpr2_u8((addr - 0xE000_ED1C) as usize, value),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => self.write_shpr3_u8((addr - 0xE000_ED20) as usize, value),
 
             _ => {

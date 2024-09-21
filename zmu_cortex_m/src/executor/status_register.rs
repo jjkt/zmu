@@ -19,10 +19,10 @@ pub trait IsaStatusRegister {
     fn exec_mrs(&mut self, params: MrsParams) -> ExecuteResult;
     fn exec_msr(&mut self, params: MsrParams) -> ExecuteResult;
 
-    #[cfg(armv6m)]
+    #[cfg(feature="armv6m")]
     fn exec_cps(&mut self, im: bool) -> ExecuteResult;
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn exec_cps(&mut self, im: bool, affect_pri: bool, affect_fault: bool) -> ExecuteResult;
 }
 
@@ -62,7 +62,7 @@ impl IsaStatusRegister for Processor {
                     0b010 => {
                         value.set_bits(0..8, u32::from(self.basepri));
                     }
-                    #[cfg(any(armv7m, armv7em))]
+                    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
                     0b011 => {
                         value.set_bit(0, self.faultmask);
                     }
@@ -119,7 +119,7 @@ impl IsaStatusRegister for Processor {
                             self.execution_priority = self.get_execution_priority();
                         }
                     }
-                    #[cfg(any(armv7m, armv7em))]
+                    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
                     0b011 => {
                         if self.execution_priority > -1 {
                             self.faultmask = r_n.get_bit(0);
@@ -142,7 +142,7 @@ impl IsaStatusRegister for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
-    #[cfg(armv6m)]
+    #[cfg(feature="armv6m")]
     fn exec_cps(&mut self, im: bool) -> ExecuteResult {
         if im {
             self.primask = true;
@@ -153,7 +153,7 @@ impl IsaStatusRegister for Processor {
         Ok(ExecuteSuccess::Taken { cycles: 1 })
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn exec_cps(&mut self, im: bool, affect_pri: bool, affect_fault: bool) -> ExecuteResult {
         if im {
             if affect_pri {

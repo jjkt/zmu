@@ -1124,14 +1124,14 @@ fn test_decode_mrs() {
     );
 }*/
 
-#[cfg(any(armv6m))]
+#[cfg(any(feature="armv6m"))]
 #[test]
 fn test_decode_cpsid() {
     // CPSID i
     assert_eq!(decode_16(0xB672), Instruction::CPS { im: true });
 }
 
-#[cfg(any(armv7m, armv7em))]
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
 #[test]
 fn test_decode_cpsid() {
     // CPSID i

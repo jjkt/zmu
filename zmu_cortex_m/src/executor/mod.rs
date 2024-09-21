@@ -404,10 +404,10 @@ impl ExecutorHelper for Processor {
             Instruction::MRS { params } => self.exec_mrs(*params),
             Instruction::MSR_reg { params } => self.exec_msr(*params),
 
-            #[cfg(armv6m)]
+            #[cfg(feature="armv6m")]
             Instruction::CPS { im } => self.exec_cps(*im),
 
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             Instruction::CPS {
                 im,
                 affect_pri,

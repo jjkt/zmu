@@ -190,7 +190,7 @@ impl ExceptionHandlingHelpers for Processor {
             .unwrap()
             .active = false;
 
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         {
             if self.psr.get_isr_number() != 0b10 {
                 self.faultmask = false;
@@ -373,7 +373,7 @@ impl ExceptionHandling for Processor {
         if self.primask {
             boostedpri = 0;
         }
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         {
             if self.faultmask {
                 boostedpri = -1;
@@ -388,7 +388,7 @@ impl ExceptionHandling for Processor {
     }
 
     fn set_exception_pending(&mut self, exception: Exception) {
-        let mut exp = self.exceptions.get_mut(&exception.into()).unwrap();
+        let exp = self.exceptions.get_mut(&exception.into()).unwrap();
 
         if !exp.pending {
             exp.pending = true;
@@ -577,12 +577,12 @@ impl From<usize> for Exception {
 mod tests {
     use super::*;
     use crate::bus::Bus;
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     use crate::core::instruction::Instruction;
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     use crate::executor::Executor;
 
     #[test]
@@ -681,7 +681,7 @@ mod tests {
         );
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     #[test]
     fn test_faultmask_priority() {
         // Arrange

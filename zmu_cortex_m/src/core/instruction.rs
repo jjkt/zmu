@@ -910,9 +910,9 @@ pub enum Instruction {
     /// Change Processor State
     CPS {
         im: bool,
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         affect_pri: bool,
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         affect_fault: bool,
     },
 
@@ -1573,9 +1573,9 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            #[cfg(any(armv6m))]
+            #[cfg(any(feature="armv6m"))]
             Self::CPS { im } => write!(f, "cps{} i", if im { "ID" } else { "IE" }),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             Self::CPS {
                 im,
                 affect_pri,

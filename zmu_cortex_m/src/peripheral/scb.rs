@@ -31,109 +31,109 @@ pub trait SystemControlBlock {
     ///
     /// Write System Handler Priority Register 1
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr1(&mut self, value: u32);
 
     ///
     /// Write System Handler Priority Register 2
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr2(&mut self, value: u32);
 
     ///
     /// Write System Handler Priority Register 3
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr3(&mut self, value: u32);
 
     ///
     /// Write System Handler Priority Register 1, 8-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr1_u8(&mut self, offset: usize, value: u8);
 
     ///
     /// Write System Handler Priority Register 2, 8-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr2_u8(&mut self, offset: usize, value: u8);
 
     ///
     /// Write System Handler Priority Register 3, 8-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr3_u8(&mut self, offset: usize, value: u8);
 
     ///
     /// Write System Handler Priority Register 1, 16-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr1_u16(&mut self, offset: usize, value: u16);
 
     ///
     /// Write System Handler Priority Register 2, 16-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr2_u16(&mut self, offset: usize, value: u16);
 
     ///
     /// Write System Handler Priority Register 3, 16-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr3_u16(&mut self, offset: usize, value: u16);
 
     ///
     /// Read System Handler Priority Register 1
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1(&self) -> u32;
 
     ///
     /// Read System Handler Priority Register 2
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr2(&self) -> u32;
 
     ///
     /// Read System Handler Priority Register 3
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr3(&self) -> u32;
 
     ///
     /// Read System Handler Priority Register 1, 8-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1_u8(&self, offset: usize) -> u8;
 
     ///
     /// Read System Handler Priority Register 2, 8-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr2_u8(&self, offset: usize) -> u8;
 
     ///
     /// Read System Handler Priority Register 3, 8-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr3_u8(&self, offset: usize) -> u8;
 
     ///
     /// Read System Handler Priority Register 1, 16-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1_u16(&self, offset: usize) -> u16;
 
     ///
     /// Read System Handler Priority Register 2, 16-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr2_u16(&self, offset: usize) -> u16;
 
     ///
     /// Read System Handler Priority Register 3, 16-bit access
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr3_u16(&self, offset: usize) -> u16;
 
     ///
@@ -164,7 +164,7 @@ pub trait SystemControlBlock {
     ///
     /// Write "Software Triggered Interrupt Register"
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_stir(&mut self, value: u32);
 }
 
@@ -201,7 +201,7 @@ impl SystemControlBlock for Processor {
         self.vtor = value
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr1(&mut self, value: u32) {
         self.write_shpr1_u8(0, value.get_bits(0..8) as u8);
         self.write_shpr1_u8(1, value.get_bits(8..16) as u8);
@@ -209,7 +209,7 @@ impl SystemControlBlock for Processor {
         self.write_shpr1_u8(3, value.get_bits(24..32) as u8);
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr2(&mut self, value: u32) {
         self.write_shpr2_u8(0, value.get_bits(0..8) as u8);
         self.write_shpr2_u8(1, value.get_bits(8..16) as u8);
@@ -217,7 +217,7 @@ impl SystemControlBlock for Processor {
         self.write_shpr2_u8(3, value.get_bits(24..32) as u8);
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr3(&mut self, value: u32) {
         self.write_shpr3_u8(0, value.get_bits(0..8) as u8);
         self.write_shpr3_u8(1, value.get_bits(8..16) as u8);
@@ -225,7 +225,7 @@ impl SystemControlBlock for Processor {
         self.write_shpr3_u8(3, value.get_bits(24..32) as u8);
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr1_u16(&mut self, offset: usize, value: u16) {
         match offset {
             0 | 1 => {
@@ -237,7 +237,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr2_u16(&mut self, offset: usize, value: u16) {
         match offset {
             0 | 1 => {
@@ -249,7 +249,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr3_u16(&mut self, offset: usize, value: u16) {
         match offset {
             0 | 1 => {
@@ -261,7 +261,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr1_u8(&mut self, offset: usize, value: u8) {
         match offset {
             0 => self.set_exception_priority(Exception::MemoryManagementFault, value),
@@ -271,14 +271,14 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr2_u8(&mut self, offset: usize, value: u8) {
         if 3 == offset {
             self.set_exception_priority(Exception::SVCall, value);
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_shpr3_u8(&mut self, offset: usize, value: u8) {
         match offset {
             0 => self.set_exception_priority(Exception::DebugMonitor, value),
@@ -294,7 +294,7 @@ impl SystemControlBlock for Processor {
 
     fn write_demcr(&mut self, _value: u32) {}
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1(&self) -> u32 {
         (u32::from(self.read_shpr1_u8(3)) << 24)
             + (u32::from(self.read_shpr1_u8(2)) << 16)
@@ -302,7 +302,7 @@ impl SystemControlBlock for Processor {
             + u32::from(self.read_shpr1_u8(0))
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr2(&self) -> u32 {
         (u32::from(self.read_shpr2_u8(3)) << 24)
             + (u32::from(self.read_shpr2_u8(2)) << 16)
@@ -310,7 +310,7 @@ impl SystemControlBlock for Processor {
             + u32::from(self.read_shpr2_u8(0))
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr3(&self) -> u32 {
         (u32::from(self.read_shpr3_u8(3)) << 24)
             + (u32::from(self.read_shpr3_u8(2)) << 16)
@@ -318,7 +318,7 @@ impl SystemControlBlock for Processor {
             + u32::from(self.read_shpr3_u8(0))
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1_u8(&self, offset: usize) -> u8 {
         match offset {
             0 => self.get_exception_priority(Exception::MemoryManagementFault) as u8,
@@ -328,7 +328,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr2_u8(&self, offset: usize) -> u8 {
         match offset {
             3 => self.get_exception_priority(Exception::SVCall) as u8,
@@ -336,7 +336,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr3_u8(&self, offset: usize) -> u8 {
         match offset {
             0 => self.get_exception_priority(Exception::DebugMonitor) as u8,
@@ -346,7 +346,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1_u16(&self, offset: usize) -> u16 {
         match offset {
             0 | 1 => {
@@ -357,7 +357,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr2_u16(&self, offset: usize) -> u16 {
         match offset {
             0 | 1 => {
@@ -368,7 +368,7 @@ impl SystemControlBlock for Processor {
         }
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr3_u16(&self, offset: usize) -> u16 {
         match offset {
             0 | 1 => {
@@ -390,7 +390,7 @@ impl SystemControlBlock for Processor {
         0
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn write_stir(&mut self, value: u32) {
         self.set_exception_pending(Exception::Interrupt {
             n: value.get_bits(0..9) as usize,
@@ -399,14 +399,14 @@ impl SystemControlBlock for Processor {
 }
 
 #[cfg(test)]
-#[cfg(any(armv7m, armv7em))]
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
 mod tests {
     use super::*;
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
 
     #[test]
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn test_shpr_read_write_32() {
         // Arrange
         let mut processor = Processor::new();
@@ -443,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn test_shpr_read_write_16() {
         // Arrange
         let mut processor = Processor::new();
