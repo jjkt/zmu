@@ -2,10 +2,10 @@
 name = "zmu_cortex_m"
 version = "0.1.0"
 authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-byteorder = "1.3"
+byteorder = "1"
 enum-set = "0.0.8"
 
 
