@@ -95,7 +95,7 @@ fn run_bin(
     }
 
     let flash_start_address = min_address as u32;
-    let flash_size = (max_address - min_address) as usize;
+    let flash_size = max_address - min_address;
     info!(
         "Auto configuring flash: address space is 0x{:x}..0x{:x}, size= {} bytes",
         flash_start_address, max_address, flash_size
@@ -228,7 +228,7 @@ fn run(args: &ArgMatches) -> Result<()> {
 
             let buffer = {
                 let mut v = Vec::new();
-                let mut f = File::open(&filename).chain_err(|| "unable to open file")?;
+                let mut f = File::open(filename).chain_err(|| "unable to open file")?;
                 f.read_to_end(&mut v).chain_err(|| "failed to read file")?;
                 v
             };

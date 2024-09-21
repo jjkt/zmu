@@ -37,6 +37,7 @@ use branch::IsaBranch;
 use coproc::IsaCoprocessor;
 use divide::IsaDivide;
 use exception::IsaException;
+#[cfg(any(feature = "armv7em"))]
 use fp_load_and_store::IsaFloatingPointLoadAndStore;
 use load_and_store::IsaLoadAndStore;
 use load_and_store_multiple::IsaLoadAndStoreMultiple;
@@ -94,6 +95,7 @@ trait ExecutorHelper {
     fn set_itstate(&mut self, state: u8);
     fn it_advance(&mut self);
     fn in_it_block(&self) -> bool;
+    #[allow(dead_code)]
     fn last_in_it_block(&self) -> bool;
     fn execute_internal(&mut self, instruction: &Instruction) -> ExecuteResult;
     fn update_flags_check_it_block(
@@ -404,10 +406,10 @@ impl ExecutorHelper for Processor {
             Instruction::MRS { params } => self.exec_mrs(*params),
             Instruction::MSR_reg { params } => self.exec_msr(*params),
 
-            #[cfg(armv6m)]
+            #[cfg(feature="armv6m")]
             Instruction::CPS { im } => self.exec_cps(*im),
 
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             Instruction::CPS {
                 im,
                 affect_pri,
@@ -510,9 +512,12 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point load and store instructions
             //
             // --------------------------------------------
+            #[cfg(any(feature = "armv7em"))]
             Instruction::VLDR { params } => self.exec_vldr(params),
-
+            #[cfg(any(feature = "armv7em"))]
             Instruction::VSTR { params } => self.exec_vstr(params),
+            #[cfg(any(feature = "armv7em"))]
+            Instruction::VPUSH{ params} => self.exec_vpush(params),
 
             // --------------------------------------------
             //
@@ -532,8 +537,8 @@ impl ExecutorHelper for Processor {
             //
             // --------------------------------------------
             Instruction::UDF { imm32, opcode, .. } => {
-                println!("UDF {}, {}", imm32, opcode);
-                todo!("undefined")
+                println!("unsupported instruction, opcode {}, imm32 {}", opcode, imm32);
+                todo!("should give undefined instruction fault")
                 //Err(Fault::UndefInstr)
             }
         }

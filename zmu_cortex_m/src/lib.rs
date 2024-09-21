@@ -103,7 +103,7 @@ pub struct Processor {
     /// interrupt fault mask, a 1 bit mask register for
     /// global interrupt masking
     ///
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     faultmask: bool,
     ///
     /// basepri for selection of executed interrupt priorities
@@ -278,7 +278,7 @@ impl Processor {
             vtor: 0,
             psr: PSR { value: 0 },
             primask: false,
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             faultmask: false,
             basepri: 0,
             control: Control {
@@ -385,6 +385,14 @@ impl Processor {
                 pc += 2;
             }
         }
+    }
+    
+    ///
+    /// BigEndian() returns true if the processor is big endian
+    /// TODO: check architectures where this is supported
+    pub fn big_endian(&self) -> bool {
+        // TODO: should be AIRCR.ENDIANNESS==1
+        false
     }
 }
 

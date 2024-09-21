@@ -1,8 +1,14 @@
+#[cfg(any(feature = "armv7em"))]
+use crate::core::instruction::VPushPopParams;
+#[cfg(any(feature = "armv7em"))]
 use crate::Processor;
 
+#[cfg(any(feature = "armv7em"))]
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
+#[cfg(any(feature = "armv7em"))]
 use super::ExecuteResult;
+#[cfg(any(feature = "armv7em"))]
 use crate::{
     bus::Bus,
     core::{
@@ -12,11 +18,14 @@ use crate::{
 };
 
 /// Multiply operations
+#[cfg(any(feature = "armv7em"))]
 pub trait IsaFloatingPointLoadAndStore {
     fn exec_vldr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult;
     fn exec_vstr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult;
+    fn exec_vpush(&mut self, params: &VPushPopParams) -> ExecuteResult;
 }
 
+#[cfg(any(feature = "armv7em"))]
 impl IsaFloatingPointLoadAndStore for Processor {
     fn exec_vldr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult {
         if self.condition_passed() {
@@ -48,7 +57,7 @@ impl IsaFloatingPointLoadAndStore for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
-    
+
     fn exec_vstr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult {
         if self.condition_passed() {
             //self.execute_fp_check();
@@ -69,6 +78,39 @@ impl IsaFloatingPointLoadAndStore for Processor {
                     let (low_word, high_word) = self.get_dr(reg);
                     self.write32(address, low_word)?;
                     self.write32(address + 4, high_word)?;
+                }
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_vpush(&mut self, params: &VPushPopParams) -> ExecuteResult {
+        if self.condition_passed() {
+            //self.execute_fp_check();
+
+            let sp = self.get_r(Reg::SP);
+            let mut address = sp - params.imm32;
+            self.set_r(Reg::SP, address);
+
+            if params.single_regs {
+                for reg in params.single_precision_registers.iter() {
+                    let value = self.get_sr(reg);
+                    self.write32(address, value)?;
+                    address += 4;
+                }
+            } else {
+                for reg in params.double_precision_registers.iter() {
+                    let (low_word, high_word) = self.get_dr(reg);
+                    if self.big_endian() {
+                        self.write32(address, high_word)?;
+                        self.write32(address + 4, low_word)?;
+                    } else {
+                        self.write32(address, low_word)?;
+                        self.write32(address + 4, high_word)?;
+                    }
+                    address += 8;
                 }
             }
 

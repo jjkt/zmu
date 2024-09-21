@@ -514,22 +514,22 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn get_isr_number(&self) -> usize {
         (*self).value.get_bits(0..9) as usize
     }
 
-    #[cfg(any(armv6m))]
+    #[cfg(any(feature="armv6m"))]
     fn get_isr_number(&self) -> usize {
         (*self).value.get_bits(0..6) as usize
     }
 
-    #[cfg(any(armv7m, armv7em))]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..9, exception_number as u32);
     }
 
-    #[cfg(any(armv6m))]
+    #[cfg(any(feature="armv6m"))]
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..6, exception_number as u32);
     }
@@ -584,6 +584,7 @@ pub enum Reg {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
 ///
 /// Single precision floating point registers
 ///
@@ -655,6 +656,7 @@ pub enum SingleReg {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
 ///
 /// Double precision floating point registers
 ///
@@ -740,6 +742,26 @@ pub enum SpecialReg {
 }
 
 impl CLike for Reg {
+    fn to_u32(&self) -> u32 {
+        *self as u32
+    }
+
+    unsafe fn from_u32(v: u32) -> Self {
+        mem::transmute(v)
+    }
+}
+
+impl CLike for SingleReg {
+    fn to_u32(&self) -> u32 {
+        *self as u32
+    }
+
+    unsafe fn from_u32(v: u32) -> Self {
+        mem::transmute(v)
+    }
+}
+
+impl CLike for DoubleReg {
     fn to_u32(&self) -> u32 {
         *self as u32
     }

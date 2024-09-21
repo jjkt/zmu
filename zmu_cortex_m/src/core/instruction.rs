@@ -3,7 +3,7 @@
 //!
 
 use crate::core::condition::Condition;
-use crate::core::register::{ExtensionReg, Reg};
+use crate::core::register::{DoubleReg, ExtensionReg, Reg, SingleReg};
 use crate::core::thumb::ThumbCode;
 use enum_set::EnumSet;
 
@@ -296,6 +296,15 @@ pub struct VLoadAndStoreParams {
     pub dd: ExtensionReg,
     pub rn: Reg,
     pub add: bool,
+    pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VPushPopParams {
+    pub single_regs: bool,
+    pub single_precision_registers: EnumSet<SingleReg>,
+    pub double_precision_registers: EnumSet<DoubleReg>,
     pub imm32: u32,
 }
 
@@ -910,9 +919,9 @@ pub enum Instruction {
     /// Change Processor State
     CPS {
         im: bool,
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         affect_pri: bool,
-        #[cfg(any(armv7m, armv7em))]
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
         affect_fault: bool,
     },
 
@@ -1181,16 +1190,21 @@ pub enum Instruction {
     //
     // --------------------------------------------
     /// FP Load register
+    #[cfg(any(feature = "armv7em"))]
     VLDR {
         params: VLoadAndStoreParams,
     },
     /// FP Store register
+    #[cfg(any(feature = "armv7em"))]
     VSTR {
         params: VLoadAndStoreParams,
     },
     // VLDM
     // VPOP
-    // VPUSH
+    #[cfg(any(feature = "armv7em"))]
+    VPUSH {
+        params: VPushPopParams,
+    },
     // VSTM
 
     // --------------------------------------------
@@ -1573,9 +1587,9 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            #[cfg(any(armv6m))]
+            #[cfg(any(feature = "armv6m"))]
             Self::CPS { im } => write!(f, "cps{} i", if im { "ID" } else { "IE" }),
-            #[cfg(any(armv7m, armv7em))]
+            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             Self::CPS {
                 im,
                 affect_pri,
@@ -2172,8 +2186,20 @@ impl fmt::Display for Instruction {
                 params.lsb,
                 params.widthminus1 + 1
             ),
+            #[cfg(any(feature = "armv7em"))]
             Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
+            #[cfg(any(feature = "armv7em"))]
             Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
+            #[cfg(any(feature = "armv7em"))]
+            Self::VPUSH { params } => write!(
+                f,
+                "vpush {}",
+                if params.single_regs {
+                    format!("{:?}", params.single_precision_registers)
+                } else {
+                    format!("{:?}", params.double_precision_registers)
+                }
+            ),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2487,7 +2513,8 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //VNEG
         //VNMLA,VNMLS, VNMUL
         //VPOP
-        //VPUSH
+        #[cfg(any(feature = "armv7em"))]
+        Instruction::VPUSH { .. } => 4,
         //VRINTA, VRINTN, VRINTP, VRiNTM
         //VRINTX,
         //VRINTZ, VRINTR
@@ -2499,7 +2526,9 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),
+        #[cfg(any(feature = "armv7em"))]
         Instruction::VLDR { .. } => 4,
+        #[cfg(any(feature = "armv7em"))]
         Instruction::VSTR { .. } => 4,
     }
 }
