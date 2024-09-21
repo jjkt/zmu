@@ -152,11 +152,8 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
             }
             SemihostingCommand::SysException { ref reason } => {
                 // println!("sysexception {:?}", reason);
-                let stop = match reason {
-                    SysExceptionReason::ADPStoppedApplicationExit
-                    | SysExceptionReason::ADPStopped => true,
-                    _ => false,
-                };
+                let stop = matches!(reason, SysExceptionReason::ADPStoppedApplicationExit
+                                         | SysExceptionReason::ADPStopped);
 
                 SemihostingResponse::SysException {
                     success: true,
