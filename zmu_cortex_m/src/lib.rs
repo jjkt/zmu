@@ -386,6 +386,14 @@ impl Processor {
             }
         }
     }
+    
+    ///
+    /// BigEndian() returns true if the processor is big endian
+    /// TODO: check architectures where this is supported
+    pub fn big_endian(&self) -> bool {
+        // TODO: should be AIRCR.ENDIANNESS==1
+        false
+    }
 }
 
 impl fmt::Display for Processor {

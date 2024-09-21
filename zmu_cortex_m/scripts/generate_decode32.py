@@ -191,6 +191,8 @@ INSTRUCTIONS = {
     '11101101..01........1011........': 'VLDR_t1',
     '11101101..01........1010........': 'VLDR_t2',
 
+    '111011010.101101....1011........': 'VPUSH_t1',
+    '111011010.101101....1010........': 'VPUSH_t2',
     '11101101..00........1011........': 'VSTR_t1',
     '11101101..00........1010........': 'VSTR_t2',
 
@@ -206,7 +208,7 @@ def main():
     #   - test first the ones that have most bits set
     #   - first one to match is the one
     #
-    maskstrings = sorted(INSTRUCTIONS.iterkeys(),
+    maskstrings = sorted(INSTRUCTIONS.keys(),
                          key=lambda string: string.count('.'))
     onemasks = [key.replace('0', '1')
                 for key in maskstrings]
@@ -220,9 +222,9 @@ def main():
         result = resultmasks[i]
         instr = INSTRUCTIONS[maskstrings[i]]
         if onemask == 0xffffffff:
-            print '{} if opcode == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', result, instr)
+            print('{} if opcode == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', result, instr))
         else:
-            print '{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr)
+            print('{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}'.format('' if i == 0 else 'else', onemask, result, instr))
 
 
 main()

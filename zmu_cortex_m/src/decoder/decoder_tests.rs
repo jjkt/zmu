@@ -5,11 +5,17 @@ use crate::core::instruction::{
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams, VLoadAndStoreParams,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
 };
 
+#[cfg(any(feature = "armv7em"))]
+use crate::core::instruction::VLoadAndStoreParams;
+#[cfg(any(feature = "armv7em"))]
+use crate::core::register::{DoubleReg, ExtensionReg};
+
 use super::*;
-use crate::core::register::{DoubleReg, ExtensionReg, Reg};
+
+use crate::core::register::Reg;
 
 #[test]
 fn test_is_thumb32() {
@@ -1124,7 +1130,7 @@ fn test_decode_mrs() {
     );
 }*/
 
-#[cfg(any(feature="armv6m"))]
+#[cfg(any(feature = "armv6m"))]
 #[test]
 fn test_decode_cpsid() {
     // CPSID i
@@ -2870,6 +2876,7 @@ fn test_decode_bfc() {
 }
 
 #[test]
+#[cfg(any(feature = "armv7em"))]
 fn test_decode_vldr() {
     //  ed9f 7b86       vldr    d7, [pc, #536]  ; 448 <_vfprintf_r+0x290>
     assert_eq!(
@@ -2886,6 +2893,7 @@ fn test_decode_vldr() {
 }
 
 #[test]
+#[cfg(any(feature = "armv7em"))]
 fn test_decode_vstr() {
     //250:       ed8d 7b12       vstr    d7, [sp, #72]   ; 0x48
     assert_eq!(
@@ -2899,4 +2907,22 @@ fn test_decode_vstr() {
             }
         }
     );
+}
+
+#[test]
+#[cfg(any(feature = "armv7em"))]
+fn test_decode_vpush() {
+    //  ed2d 8b02       vpush   {d8}
+
+    match decode_32(0xed2d8b02) {
+        Instruction::VPUSH { params } => {
+            assert_eq!(params.single_regs, false);
+            let double_regs: Vec<_> = params.double_precision_registers.iter().collect();
+            assert_eq!(vec![DoubleReg::D8], double_regs);
+            assert_eq!(params.imm32, 8);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
 }

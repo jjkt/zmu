@@ -10,8 +10,9 @@ enum-set = "0.0.8"
 
 
 [features]
+VFPSmallRegisterBank = []
 armv6m = []
-armv7m = []
-armv7em = []
+armv7m = ["VFPSmallRegisterBank"]
+armv7em = ["VFPSmallRegisterBank"]
 generic-device = []
 stm32f103 = []

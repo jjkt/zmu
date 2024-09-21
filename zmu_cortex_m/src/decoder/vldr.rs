@@ -1,9 +1,13 @@
+#[cfg(any(feature = "armv7em"))]
 use crate::core::bits::Bits;
+#[cfg(any(feature = "armv7em"))]
 use crate::core::instruction::{Instruction, VLoadAndStoreParams};
+#[cfg(any(feature = "armv7em"))]
 use crate::core::register::{DoubleReg, ExtensionReg, Reg, SingleReg};
 
 #[allow(non_snake_case)]
 #[inline(always)]
+#[cfg(any(feature = "armv7em"))]
 pub fn decode_VLDR_t1(opcode: u32) -> Instruction {
     Instruction::VLDR {
         params: VLoadAndStoreParams {
@@ -21,6 +25,7 @@ pub fn decode_VLDR_t1(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline(always)]
+#[cfg(any(feature = "armv7em"))]
 pub fn decode_VLDR_t2(opcode: u32) -> Instruction {
     Instruction::VLDR {
         params: VLoadAndStoreParams {

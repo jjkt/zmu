@@ -584,6 +584,7 @@ pub enum Reg {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
 ///
 /// Single precision floating point registers
 ///
@@ -655,6 +656,7 @@ pub enum SingleReg {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[repr(u32)]
 ///
 /// Double precision floating point registers
 ///
@@ -740,6 +742,26 @@ pub enum SpecialReg {
 }
 
 impl CLike for Reg {
+    fn to_u32(&self) -> u32 {
+        *self as u32
+    }
+
+    unsafe fn from_u32(v: u32) -> Self {
+        mem::transmute(v)
+    }
+}
+
+impl CLike for SingleReg {
+    fn to_u32(&self) -> u32 {
+        *self as u32
+    }
+
+    unsafe fn from_u32(v: u32) -> Self {
+        mem::transmute(v)
+    }
+}
+
+impl CLike for DoubleReg {
     fn to_u32(&self) -> u32 {
         *self as u32
     }
