@@ -310,6 +310,65 @@ pub struct VPushPopParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovImmParams {
+    pub dp_operation: bool,
+    pub dd: DoubleReg,
+    pub sd: SingleReg,
+    pub imm32: u32,
+    pub imm64: u64,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovRegParamsf32 {
+    pub sd: SingleReg,
+    pub sm: SingleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovRegParamsf64 {
+    pub dd: DoubleReg,
+    pub dm: DoubleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovCrScalarParams {
+    pub rt: Reg,
+    pub dd: DoubleReg,
+    pub x: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovCrSpParams {
+    pub to_arm_register: bool,
+    pub rt: Reg,
+    pub sn: SingleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovCr2Sp2Params {
+    pub to_arm_registers: bool,
+    pub rt: Reg,
+    pub rt2: Reg,
+    pub sm: SingleReg,
+    pub sm1: SingleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovCr2DpParams {
+    pub to_arm_registers: bool,
+    pub rt: Reg,
+    pub rt2: Reg,
+    pub dm: DoubleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Reg3RdRtRnImm32Params {
     pub rd: Reg,
     pub rt: Reg,
@@ -1190,19 +1249,18 @@ pub enum Instruction {
     //
     // --------------------------------------------
     /// FP Load register
-    #[cfg(any(feature = "armv7em"))]
     VLDR {
         params: VLoadAndStoreParams,
     },
     /// FP Store register
-    #[cfg(any(feature = "armv7em"))]
     VSTR {
         params: VLoadAndStoreParams,
     },
     // VLDM
-    // VPOP
-    #[cfg(any(feature = "armv7em"))]
     VPUSH {
+        params: VPushPopParams,
+    },
+    VPOP {
         params: VPushPopParams,
     },
     // VSTM
@@ -1212,8 +1270,30 @@ pub enum Instruction {
     // Group: Floating-point register transfer instructions
     //
     // --------------------------------------------
-
-    // VMOV
+    VMOV_imm {
+        params: VMovImmParams,
+    },
+    VMOV_reg_f32 {
+        params: VMovRegParamsf32,
+    },
+    VMOV_reg_f64 {
+        params: VMovRegParamsf64,
+    },
+    VMOV_cr_scalar {
+        params: VMovCrScalarParams,
+    },
+    VMOV_scalar_cr {
+        params: VMovCrScalarParams,
+    },
+    VMOV_cr_sp {
+        params: VMovCrSpParams,
+    },
+    VMOV_cr2_sp2 {
+        params: VMovCr2Sp2Params,
+    },
+    VMOV_cr2_dp {
+        params: VMovCr2DpParams,
+    },
     //VMRS
     //VMRS
 
@@ -2186,11 +2266,8 @@ impl fmt::Display for Instruction {
                 params.lsb,
                 params.widthminus1 + 1
             ),
-            #[cfg(any(feature = "armv7em"))]
             Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
-            #[cfg(any(feature = "armv7em"))]
             Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
-            #[cfg(any(feature = "armv7em"))]
             Self::VPUSH { params } => write!(
                 f,
                 "vpush {}",
@@ -2200,6 +2277,84 @@ impl fmt::Display for Instruction {
                     format!("{:?}", params.double_precision_registers)
                 }
             ),
+            Self::VPOP { params } => write!(
+                f,
+                "vpop {}",
+                if params.single_regs {
+                    format!("{:?}", params.single_precision_registers)
+                } else {
+                    format!("{:?}", params.double_precision_registers)
+                }
+            ),
+
+            Self::VMOV_imm { params } => write!(
+                f,
+                "vmov{}",
+                if params.dp_operation {
+                    format!(".f64 {}, #{}", params.dd, params.imm64)
+                } else {
+                    format!(".f32 {}, #{}", params.sd, params.imm32)
+                }
+            ),
+            Self::VMOV_reg_f32 { params } => {
+                write!(f, "vmov{}", format!(".f32 {}, {}", params.sd, params.sm))
+            }
+            Self::VMOV_reg_f64 { params } => {
+                write!(f, "vmov{}", format!(".f64 {}, {}", params.dd, params.dm))
+            }
+            Self::VMOV_cr_scalar { params } => {
+                write!(
+                    f,
+                    "vmov {}",
+                    format!("{}[{}], {}", params.dd, params.x, params.rt)
+                )
+            }
+            Self::VMOV_scalar_cr { params } => {
+                write!(
+                    f,
+                    "vmov {}",
+                    format!("{}, {}[{}]", params.rt, params.dd, params.x)
+                )
+            }
+            Self::VMOV_cr_sp { params } => {
+                write!(
+                    f,
+                    "vmov {}",
+                    if params.to_arm_register {
+                        format!("{}, {}", params.rt, params.sn)
+                    } else {
+                        format!("{}, {}", params.sn, params.rt)
+                    }
+                )
+            }
+            Self::VMOV_cr2_sp2 { params } => {
+                write!(
+                    f,
+                    "vmov {}",
+                    if params.to_arm_registers {
+                        format!(
+                            "{}, {}, {}, {}",
+                            params.rt, params.rt2, params.sm, params.sm1
+                        )
+                    } else {
+                        format!(
+                            "{}, {}, {}, {}",
+                            params.sm, params.sm1, params.rt, params.rt2
+                        )
+                    }
+                )
+            }
+            Self::VMOV_cr2_dp { params } => {
+                write!(
+                    f,
+                    "vmov {}",
+                    if params.to_arm_registers {
+                        format!("{}, {}, {}", params.rt, params.rt2, params.dm)
+                    } else {
+                        format!("{}, {}, {}", params.dm, params.rt, params.rt2)
+                    }
+                )
+            }
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2504,17 +2659,22 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //VMINNM
         //VMLA
         //VMLS
-        //VMOV_imm
-        //VMON_reg
-        //VMOVX
+        Instruction::VMOV_imm { .. } => 4,
+        Instruction::VMOV_reg_f32 { .. } => 4,
+        Instruction::VMOV_reg_f64 { .. } => 4,
+        Instruction::VMOV_cr_scalar { .. } => 4,
+        Instruction::VMOV_scalar_cr { .. } => 4,
+        Instruction::VMOV_cr_sp { .. } => 4,
+        Instruction::VMOV_cr2_sp2 { .. } => 4,
+        Instruction::VMOV_cr2_dp { .. } => 4,
+
         //VMRS
         //VMSR
         //VMUL
         //VNEG
         //VNMLA,VNMLS, VNMUL
-        //VPOP
-        #[cfg(any(feature = "armv7em"))]
         Instruction::VPUSH { .. } => 4,
+        Instruction::VPOP { .. } => 4,
         //VRINTA, VRINTN, VRINTP, VRiNTM
         //VRINTX,
         //VRINTZ, VRINTR
@@ -2526,9 +2686,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),
-        #[cfg(any(feature = "armv7em"))]
         Instruction::VLDR { .. } => 4,
-        #[cfg(any(feature = "armv7em"))]
         Instruction::VSTR { .. } => 4,
     }
 }
