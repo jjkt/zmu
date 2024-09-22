@@ -1197,7 +1197,7 @@ impl From<u8> for DoubleReg {
 
 impl From<u8> for SingleReg {
     fn from(value: u8) -> Self {
-        match value & 0xf {
+        match value & 0x1f {
             0 => Self::S0,
             1 => Self::S1,
             2 => Self::S2,

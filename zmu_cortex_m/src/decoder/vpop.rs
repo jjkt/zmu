@@ -6,7 +6,7 @@ use crate::core::register::{DoubleReg, SingleReg};
 
 #[allow(non_snake_case)]
 #[inline(always)]
-pub fn decode_VPUSH_t1(opcode: u32) -> Instruction {
+pub fn decode_VPOP_t1(opcode: u32) -> Instruction {
     let imm32 = opcode.get_bits(0..8) << 2;
     let D = opcode.get_bit(22) as u8;
     let Vd = opcode.get_bits(12..16) as u8;
@@ -37,7 +37,7 @@ pub fn decode_VPUSH_t1(opcode: u32) -> Instruction {
         double_regs.insert(DoubleReg::from(d + i));
     }
 
-    Instruction::VPUSH {
+    Instruction::VPOP {
         params: VPushPopParams {
             single_regs: false,
             single_precision_registers: EnumSet::new(),
@@ -49,7 +49,7 @@ pub fn decode_VPUSH_t1(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 #[inline(always)]
-pub fn decode_VPUSH_t2(opcode: u32) -> Instruction {
+pub fn decode_VPOP_t2(opcode: u32) -> Instruction {
     let imm32 = opcode.get_bits(0..8) << 2;
     let D = opcode.get_bit(22) as u8;
     let Vd = opcode.get_bits(12..16) as u8;
@@ -69,7 +69,7 @@ pub fn decode_VPUSH_t2(opcode: u32) -> Instruction {
         single_regs.insert(SingleReg::from(d + i));
     }
 
-    Instruction::VPUSH {
+    Instruction::VPOP {
         params: VPushPopParams {
             single_regs: true,
             single_precision_registers: single_regs,

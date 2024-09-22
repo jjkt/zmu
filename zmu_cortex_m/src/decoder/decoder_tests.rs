@@ -6,12 +6,11 @@ use crate::core::instruction::{
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
     RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
+    VMovCr2DpParams, VMovCrSpParams, VMovRegParamsf32,
 };
 
-#[cfg(any(feature = "armv7em"))]
 use crate::core::instruction::VLoadAndStoreParams;
-#[cfg(any(feature = "armv7em"))]
-use crate::core::register::{DoubleReg, ExtensionReg};
+use crate::core::register::{DoubleReg, ExtensionReg, SingleReg};
 
 use super::*;
 
@@ -2876,7 +2875,6 @@ fn test_decode_bfc() {
 }
 
 #[test]
-#[cfg(any(feature = "armv7em"))]
 fn test_decode_vldr() {
     //  ed9f 7b86       vldr    d7, [pc, #536]  ; 448 <_vfprintf_r+0x290>
     assert_eq!(
@@ -2893,7 +2891,6 @@ fn test_decode_vldr() {
 }
 
 #[test]
-#[cfg(any(feature = "armv7em"))]
 fn test_decode_vstr() {
     //250:       ed8d 7b12       vstr    d7, [sp, #72]   ; 0x48
     assert_eq!(
@@ -2910,7 +2907,6 @@ fn test_decode_vstr() {
 }
 
 #[test]
-#[cfg(any(feature = "armv7em"))]
 fn test_decode_vpush() {
     //  ed2d 8b02       vpush   {d8}
 
@@ -2925,4 +2921,101 @@ fn test_decode_vpush() {
             assert!(false);
         }
     }
+}
+
+#[test]
+fn test_decode_vpop() {
+    //  ecbd 8b06       vpop    {d8-d10}
+
+    match decode_32(0xecbd8b06) {
+        Instruction::VPOP { params } => {
+            assert_eq!(params.single_regs, false);
+            let double_regs: Vec<_> = params.double_precision_registers.iter().collect();
+            assert_eq!(vec![DoubleReg::D8, DoubleReg::D9, DoubleReg::D10], double_regs);
+            assert_eq!(params.imm32, 3*8);
+        }
+        _ => {
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_decode_vmov_cr_sp() {
+    //  ee09 0a10       vmov    s18, r0
+
+    assert_eq!(
+        decode_32(0xee090a10),
+        Instruction::VMOV_cr_sp {
+            params: VMovCrSpParams {
+                to_arm_register: false,
+                rt: Reg::R0,
+                sn: SingleReg::S18,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vmov_cr_sp_2() {
+    //  ee08 3a90       vmov    s17, r3
+
+    assert_eq!(
+        decode_32(0xee083a90),
+        Instruction::VMOV_cr_sp {
+            params: VMovCrSpParams {
+                to_arm_register: false,
+                rt: Reg::R3,
+                sn: SingleReg::S17,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vmov_cr_sp_3() {
+    //  ee19 0a10       vmov    r0, s18
+
+    assert_eq!(
+        decode_32(0xee190a10),
+        Instruction::VMOV_cr_sp {
+            params: VMovCrSpParams {
+                to_arm_register: true,
+                rt: Reg::R0,
+                sn: SingleReg::S18,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vmov_cr2_dp() {
+    //  ec51 0b18       vmov    r0, r1, d8
+
+    assert_eq!(
+        decode_32(0xec510b18),
+        Instruction::VMOV_cr2_dp {
+            params: VMovCr2DpParams {
+                to_arm_registers: true,
+                rt: Reg::R0,
+                rt2: Reg::R1,
+                dm: DoubleReg::D8,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vmov_reg_f32() {
+    //eeb0 0a4a       vmov.f32        s0, s20
+
+    assert_eq!(
+        decode_32(0xeeb00a4a),
+        Instruction::VMOV_reg_f32 {
+            params: VMovRegParamsf32 {
+                sd: SingleReg::S0,
+                sm: SingleReg::S20,
+            }
+        }
+    );
 }

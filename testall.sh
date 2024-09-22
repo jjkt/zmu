@@ -19,7 +19,8 @@ echo "building..."
 ##
 ## Cortex-M RTIC tests
 ##
-./test_cortex-m-rtic.sh
+# TODO .. RTIC has changed the examples completely, need actual device simulation support..
+#./test_cortex-m-rtic.sh
 
 ##
 ## Coremark

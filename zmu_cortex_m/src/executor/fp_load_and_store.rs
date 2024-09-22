@@ -1,14 +1,9 @@
-#[cfg(any(feature = "armv7em"))]
 use crate::core::instruction::VPushPopParams;
-#[cfg(any(feature = "armv7em"))]
 use crate::Processor;
 
-#[cfg(any(feature = "armv7em"))]
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
-#[cfg(any(feature = "armv7em"))]
 use super::ExecuteResult;
-#[cfg(any(feature = "armv7em"))]
 use crate::{
     bus::Bus,
     core::{
@@ -18,14 +13,13 @@ use crate::{
 };
 
 /// Multiply operations
-#[cfg(any(feature = "armv7em"))]
 pub trait IsaFloatingPointLoadAndStore {
     fn exec_vldr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult;
     fn exec_vstr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult;
     fn exec_vpush(&mut self, params: &VPushPopParams) -> ExecuteResult;
+    fn exec_vpop(&mut self, params: &VPushPopParams) -> ExecuteResult;
 }
 
-#[cfg(any(feature = "armv7em"))]
 impl IsaFloatingPointLoadAndStore for Processor {
     fn exec_vldr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult {
         if self.condition_passed() {
@@ -113,6 +107,34 @@ impl IsaFloatingPointLoadAndStore for Processor {
                     address += 8;
                 }
             }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_vpop(&mut self, params: &VPushPopParams) -> ExecuteResult {
+        if self.condition_passed() {
+            //self.execute_fp_check();
+
+            let sp = self.get_r(Reg::SP);
+            let mut address = sp;
+            self.set_r(Reg::SP, sp + params.imm32);
+            if params.single_regs {
+                for reg in params.single_precision_registers.iter() {
+                    address += 4;
+                    let value = self.read32(address)?;
+                    self.set_sr(reg, value);
+                }
+            } else {
+                for reg in params.double_precision_registers.iter() {
+                    address += 8;
+                    let low_word = self.read32(address)?;
+                    let high_word = self.read32(address + 4)?;
+                    self.set_dr(reg, low_word, high_word);
+                }
+            }
+
 
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }

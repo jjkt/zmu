@@ -2,7 +2,6 @@
 //! Functionality for running instructions on a Processor.
 //!
 
-
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::{Exception, ExceptionHandling};
@@ -20,7 +19,6 @@ mod branch;
 mod coproc;
 mod divide;
 mod exception;
-mod fp_load_and_store;
 mod load_and_store;
 mod load_and_store_multiple;
 mod misc;
@@ -33,12 +31,13 @@ mod signed_multiply;
 mod status_register;
 mod std_data_processing;
 
+mod fp_load_and_store;
+mod fp_register_transfer;
+
 use branch::IsaBranch;
 use coproc::IsaCoprocessor;
 use divide::IsaDivide;
 use exception::IsaException;
-#[cfg(any(feature = "armv7em"))]
-use fp_load_and_store::IsaFloatingPointLoadAndStore;
 use load_and_store::IsaLoadAndStore;
 use load_and_store_multiple::IsaLoadAndStoreMultiple;
 use misc::IsaMisc;
@@ -50,6 +49,10 @@ use shift::IsaShift;
 use signed_multiply::IsaSignedMultiply;
 use status_register::IsaStatusRegister;
 use std_data_processing::IsaStandardDataProcessing;
+
+use fp_load_and_store::IsaFloatingPointLoadAndStore;
+use fp_register_transfer::IsaFloatingPointRegisterTransfer;
+
 ///
 /// Stepping processor with instructions
 ///
@@ -406,7 +409,7 @@ impl ExecutorHelper for Processor {
             Instruction::MRS { params } => self.exec_mrs(*params),
             Instruction::MSR_reg { params } => self.exec_msr(*params),
 
-            #[cfg(feature="armv6m")]
+            #[cfg(feature = "armv6m")]
             Instruction::CPS { im } => self.exec_cps(*im),
 
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
@@ -512,12 +515,18 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point load and store instructions
             //
             // --------------------------------------------
-            #[cfg(any(feature = "armv7em"))]
             Instruction::VLDR { params } => self.exec_vldr(params),
-            #[cfg(any(feature = "armv7em"))]
             Instruction::VSTR { params } => self.exec_vstr(params),
-            #[cfg(any(feature = "armv7em"))]
-            Instruction::VPUSH{ params} => self.exec_vpush(params),
+            Instruction::VPUSH { params } => self.exec_vpush(params),
+            Instruction::VPOP { params } => self.exec_vpop(params),
+            Instruction::VMOV_imm { .. } => unimplemented!(),
+            Instruction::VMOV_reg_f32 { params } => self.exec_vmov_reg_f32(params),
+            Instruction::VMOV_reg_f64 { params } => self.exec_vmov_reg_f64(params),
+            Instruction::VMOV_cr_scalar { .. } => unimplemented!(),
+            Instruction::VMOV_scalar_cr { .. } => unimplemented!(),
+            Instruction::VMOV_cr_sp { params } => self.exec_vmov_cr_sp(params),
+            Instruction::VMOV_cr2_sp2 { .. } => unimplemented!(),
+            Instruction::VMOV_cr2_dp { params } => self.exec_vmov_cr2_dp(params),
 
             // --------------------------------------------
             //
@@ -537,7 +546,10 @@ impl ExecutorHelper for Processor {
             //
             // --------------------------------------------
             Instruction::UDF { imm32, opcode, .. } => {
-                println!("unsupported instruction, opcode {}, imm32 {}", opcode, imm32);
+                println!(
+                    "unsupported instruction, opcode {}, imm32 {}",
+                    opcode, imm32
+                );
                 todo!("should give undefined instruction fault")
                 //Err(Fault::UndefInstr)
             }
@@ -610,9 +622,12 @@ mod tests {
     use super::*;
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
-    use crate::core::{register::Reg, instruction::{
-        ITCondition, Reg2ShiftNoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
-    }};
+    use crate::core::{
+        instruction::{
+            ITCondition, Reg2ShiftNoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
+        },
+        register::Reg,
+    };
 
     #[test]
     fn test_it_block() {
