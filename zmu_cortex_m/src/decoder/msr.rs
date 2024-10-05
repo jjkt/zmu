@@ -1,4 +1,4 @@
-use crate::core::instruction::{MsrParams, Instruction};
+use crate::core::instruction::{Instruction, MsrParams};
 use crate::core::{bits::Bits, register::Reg};
 
 #[allow(non_snake_case)]

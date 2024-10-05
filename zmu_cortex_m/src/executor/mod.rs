@@ -519,10 +519,10 @@ impl ExecutorHelper for Processor {
             Instruction::VSTR { params } => self.exec_vstr(params),
             Instruction::VPUSH { params } => self.exec_vpush(params),
             Instruction::VPOP { params } => self.exec_vpop(params),
-            Instruction::VMOV_imm_32 { params } => self.exec_vmov_imm_32(params),
-            Instruction::VMOV_imm_64 { params } => self.exec_vmov_imm_64(params),
-            Instruction::VMOV_reg_f32 { params } => self.exec_vmov_reg_f32(params),
-            Instruction::VMOV_reg_f64 { params } => self.exec_vmov_reg_f64(params),
+            Instruction::VMOV_imm_32 { params } => self.exec_vmov_imm_32(*params),
+            Instruction::VMOV_imm_64 { params } => self.exec_vmov_imm_64(*params),
+            Instruction::VMOV_reg_f32 { params } => self.exec_vmov_reg_f32(*params),
+            Instruction::VMOV_reg_f64 { params } => self.exec_vmov_reg_f64(*params),
             Instruction::VMOV_cr_scalar { .. } => unimplemented!(),
             Instruction::VMOV_scalar_cr { .. } => unimplemented!(),
             Instruction::VMOV_cr_sp { params } => self.exec_vmov_cr_sp(params),
@@ -547,10 +547,7 @@ impl ExecutorHelper for Processor {
             //
             // --------------------------------------------
             Instruction::UDF { imm32, opcode, .. } => {
-                println!(
-                    "unsupported instruction, opcode {}, imm32 {}",
-                    opcode, imm32
-                );
+                println!("unsupported instruction, opcode {opcode}, imm32 {imm32}");
                 todo!("should give undefined instruction fault")
                 //Err(Fault::UndefInstr)
             }
@@ -586,7 +583,7 @@ impl Executor for Processor {
 
         let in_it_block = self.in_it_block();
 
-        match self.execute_internal(&instruction) {
+        match self.execute_internal(instruction) {
             Err(_fault) => {
                 // all faults are mapped to hardfaults on armv6m
                 let new_pc = self.get_pc();

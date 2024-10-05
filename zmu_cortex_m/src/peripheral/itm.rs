@@ -33,7 +33,7 @@ pub trait InstrumentationTraceMacrocell {
 
     ///
     /// write value to LAR register. (Lock Access Register)
-    /// Value of 0xC5ACCE55 unlocks the access to debug registers.
+    /// Value of `0xC5AC_CE55` unlocks the access to debug registers.
     ///
     fn itm_write_lar_u32(&mut self, value: u32);
 }

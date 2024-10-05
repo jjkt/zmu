@@ -97,7 +97,7 @@ impl IsaMisc for Processor {
 
     fn exec_wfi(&mut self) -> ExecuteResult {
         if self.condition_passed() {
-            if self.get_pending_exception() == None {
+            if self.get_pending_exception().is_none() {
                 self.state.set_bit(1, true); // sleeping == true
             }
             return Ok(ExecuteSuccess::Taken { cycles: 1 });

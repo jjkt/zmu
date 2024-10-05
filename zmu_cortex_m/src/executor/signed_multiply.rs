@@ -78,6 +78,7 @@ impl IsaSignedMultiply for Processor {
                 .wrapping_add(self.get_r(params.ra) as i32);
 
             self.set_r(params.rd, result as u32);
+            // FIXME: this is likely wrong .. make a test and investigate.
             if result != result as i32 {
                 self.psr.set_q(true);
             }
@@ -101,8 +102,8 @@ mod tests {
         core.psr.value = 0;
 
         // act
-        core.set_r(Reg::R8, 0xffff9d88);
-        core.set_r(Reg::R12, 0x0012dfc3);
+        core.set_r(Reg::R8, 0xffff_9d88);
+        core.set_r(Reg::R12, 0x0012_dfc3);
         core.set_r(Reg::LR, 0xa1);
         core.psr.value = 0;
 
@@ -119,6 +120,6 @@ mod tests {
 
         core.execute_internal(&instruction).unwrap();
 
-        assert_eq!(core.get_r(Reg::R12), 0xFFD4F24B);
+        assert_eq!(core.get_r(Reg::R12), 0xFFD4_F24B);
     }
 }

@@ -1486,7 +1486,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::ADD_sp_reg { params, thumb32 } => write!(
@@ -1499,7 +1499,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::ADC_reg { params, thumb32 } => write!(
@@ -1513,7 +1513,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::ADR { params, thumb32 } => write!(
@@ -1534,7 +1534,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::AND_imm { params } => write!(
@@ -1586,7 +1586,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::BIC_imm { params } => write!(
@@ -1617,12 +1617,12 @@ impl fmt::Display for Instruction {
                 params.imm32
             ),
             Self::B_t24 { imm32, thumb32 } => {
-                write!(f, "b{} {}", if thumb32 { ".W" } else { "" }, imm32)
+                write!(f, "b{} {imm32}", if thumb32 { ".W" } else { "" })
             }
-            Self::BL { imm32 } => write!(f, "bl 0x#{:x}", imm32),
-            Self::BX { rm } => write!(f, "bx {}", rm),
-            Self::BLX { rm } => write!(f, "blx {}", rm),
-            Self::BKPT { imm32 } => write!(f, "bkpt #{}", imm32),
+            Self::BL { imm32 } => write!(f, "bl 0x#{imm32:x}"),
+            Self::BX { rm } => write!(f, "bx {rm}"),
+            Self::BLX { rm } => write!(f, "blx {rm}"),
+            Self::BKPT { imm32 } => write!(f, "bkpt #{imm32}"),
 
             Self::BFI { params } => write!(
                 f,
@@ -1647,7 +1647,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::CMN_imm { params } => write!(f, "cmn.W {}, #{}", params.r, params.imm32),
@@ -1670,11 +1670,11 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
 
-            #[cfg(any(feature = "armv6m"))]
+            #[cfg(feature = "armv6m")]
             Self::CPS { im } => write!(f, "cps{} i", if im { "ID" } else { "IE" }),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             Self::CPS {
@@ -1701,7 +1701,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::ISB => write!(f, "isb"),
@@ -1713,18 +1713,18 @@ impl fmt::Display for Instruction {
                 ref mask,
             } => {
                 let x_str = match x {
-                    Some(c) => format!("{}", c),
+                    Some(c) => format!("{c}"),
                     None => String::new(),
                 };
                 let y_str = match y {
-                    Some(c) => format!("{}", c),
+                    Some(c) => format!("{c}"),
                     None => String::new(),
                 };
                 let z_str = match z {
-                    Some(c) => format!("{}", c),
+                    Some(c) => format!("{c}"),
                     None => String::new(),
                 };
-                write!(f, "it{}{}{} {}", x_str, y_str, z_str, firstcond)
+                write!(f, "it{x_str}{y_str}{z_str} {firstcond}")
             }
 
             Self::LDM { params, thumb32 } => write!(
@@ -1898,7 +1898,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::MVN_imm { params } => write!(
@@ -1923,7 +1923,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::ORR_imm { params } => write!(
@@ -1947,7 +1947,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::EOR_imm { params } => write!(
@@ -1984,9 +1984,9 @@ impl fmt::Display for Instruction {
                 rn,
                 rm,
                 if shift_n > 0 {
-                    format!(", {:?} {}", shift_t, shift_n)
+                    format!(", {shift_t:?} {shift_n}")
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
 
@@ -2037,7 +2037,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
 
@@ -2131,10 +2131,10 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
-            Self::SVC { imm32 } => write!(f, "svc #{}", imm32),
+            Self::SVC { imm32 } => write!(f, "svc #{imm32}"),
             Self::SXTH { params, thumb32 } => write!(
                 f,
                 "sxth{} {}, {}{}",
@@ -2144,7 +2144,7 @@ impl fmt::Display for Instruction {
                 if params.rotation > 0 {
                     format!("{}", params.rotation)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
 
@@ -2157,7 +2157,7 @@ impl fmt::Display for Instruction {
                 if params.rotation > 0 {
                     format!("{}", params.rotation)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::TBB { params } => write!(f, "tbb [{}, {}]", params.rn, params.rm),
@@ -2171,7 +2171,7 @@ impl fmt::Display for Instruction {
                 if params.shift_n > 0 {
                     format!(", {:?} {}", params.shift_t, params.shift_n)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::TST_imm { params } => write!(
@@ -2185,7 +2185,7 @@ impl fmt::Display for Instruction {
             ),
             Self::UDF {
                 imm32, ref opcode, ..
-            } => write!(f, "udf {} (opcode = {})", imm32, opcode),
+            } => write!(f, "udf {imm32} (opcode = {opcode})"),
 
             Self::UADD8 { params } => {
                 write!(f, "uadd8 {}, {}, {}", params.rd, params.rn, params.rm)
@@ -2238,7 +2238,7 @@ impl fmt::Display for Instruction {
                 if params.rotation > 0 {
                     format!("{}", params.rotation)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::UXTAB { params } => write!(
@@ -2250,7 +2250,7 @@ impl fmt::Display for Instruction {
                 if params.rotation > 0 {
                     format!("{}", params.rotation)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::UXTH { params, thumb32 } => write!(
@@ -2262,7 +2262,7 @@ impl fmt::Display for Instruction {
                 if params.rotation > 0 {
                     format!("{}", params.rotation)
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             ),
             Self::UBFX { params } => write!(
@@ -2294,36 +2294,17 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Self::VMOV_imm_32 { params } => write!(
-                f,
-                "vmov{}",
-                format!(".f32 {}, #{}", params.sd, params.imm32)
-            ),
-            Self::VMOV_imm_64 { params } => write!(
-                f,
-                "vmov{}",
-                format!(".f64 {}, #{}", params.dd, params.imm64)
-            ),
-            Self::VMOV_reg_f32 { params } => {
-                write!(f, "vmov{}", format!(".f32 {}, {}", params.sd, params.sm))
-            }
-            Self::VMOV_reg_f64 { params } => {
-                write!(f, "vmov{}", format!(".f64 {}, {}", params.dd, params.dm))
-            }
+            Self::VMOV_imm_32 { params } => write!(f, "vmov.f32 {}, #{}", params.sd, params.imm32),
+            Self::VMOV_imm_64 { params } => write!(f, "vmov.f64 {}, #{}", params.dd, params.imm64),
+            Self::VMOV_reg_f32 { params } => write!(f, "vmov.f32 {}, {}", params.sd, params.sm),
+            Self::VMOV_reg_f64 { params } => write!(f, "vmov.f64 {}, {}", params.dd, params.dm),
             Self::VMOV_cr_scalar { params } => {
-                write!(
-                    f,
-                    "vmov {}",
-                    format!("{}[{}], {}", params.dd, params.x, params.rt)
-                )
+                write!(f, "vmov {}[{}], {}", params.dd, params.x, params.rt)
             }
             Self::VMOV_scalar_cr { params } => {
-                write!(
-                    f,
-                    "vmov {}",
-                    format!("{}, {}[{}]", params.rt, params.dd, params.x)
-                )
+                write!(f, "vmov {}, {}[{}]", params.rt, params.dd, params.x)
             }
+
             Self::VMOV_cr_sp { params } => {
                 write!(
                     f,

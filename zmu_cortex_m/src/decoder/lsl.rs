@@ -39,7 +39,7 @@ pub fn decode_LSL_reg_t2(opcode: u32) -> Instruction {
 pub fn decode_LSL_imm_t2(opcode: u32) -> Instruction {
     let rm: u8 = opcode.get_bits(0..4) as u8;
     let rd: u8 = opcode.get_bits(8..12) as u8;
-    let s: u8 = opcode.get_bit(20) as u8;
+    let s: u8 = u8::from(opcode.get_bit(20));
 
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm2: u8 = opcode.get_bits(6..8) as u8;

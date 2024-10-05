@@ -1,6 +1,6 @@
 use crate::core::bits::Bits;
 use crate::core::instruction::Instruction;
-use crate::core::instruction::{Reg2FullParams, Reg3FullParams, SRType, Reg2DoubleParams};
+use crate::core::instruction::{Reg2DoubleParams, Reg2FullParams, Reg3FullParams, SRType};
 use crate::core::register::Reg;
 
 #[allow(non_snake_case)]
@@ -187,7 +187,7 @@ pub fn decode_STRH_imm_t2(opcode: u32) -> Instruction {
         params: Reg2FullParams {
             rt: Reg::from(opcode.get_bits(12..16) as u8),
             rn: Reg::from(opcode.get_bits(16..20) as u8),
-            imm32: opcode.get_bits(0..12) as u32,
+            imm32: opcode.get_bits(0..12),
             index: true,
             add: true,
             wback: false,
@@ -202,7 +202,7 @@ pub fn decode_STRH_imm_t3(opcode: u32) -> Instruction {
         params: Reg2FullParams {
             rt: Reg::from(opcode.get_bits(12..16) as u8),
             rn: Reg::from(opcode.get_bits(16..20) as u8),
-            imm32: opcode.get_bits(0..8) as u32,
+            imm32: opcode.get_bits(0..8),
             wback: opcode.get_bit(8),
             add: opcode.get_bit(9),
             index: opcode.get_bit(10),

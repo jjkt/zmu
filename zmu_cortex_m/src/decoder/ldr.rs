@@ -107,7 +107,7 @@ pub fn decode_LDR_lit_t2(opcode: u32) -> Instruction {
     Instruction::LDR_lit {
         params: RegImm32AddParams {
             rt: Reg::from(opcode.get_bits(12..16) as u8),
-            imm32: (opcode.get_bits(0..12) as u32),
+            imm32: opcode.get_bits(0..12),
             add: opcode.get_bit(23),
         },
         thumb32: true,

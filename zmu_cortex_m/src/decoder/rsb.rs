@@ -50,8 +50,8 @@ pub fn decode_RSB_reg_t1(opcode: u32) -> Instruction {
 pub fn decode_RSB_imm_t2(opcode: u32) -> Instruction {
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm8: u8 = opcode.get_bits(0..8) as u8;
-    let i: u8 = opcode.get_bit(26) as u8;
-    let s: u8 = opcode.get_bit(20) as u8;
+    let i: u8 = u8::from(opcode.get_bit(26));
+    let s: u8 = u8::from(opcode.get_bit(20));
 
     let params = [i, imm3, imm8];
     let lengths = [1, 3, 8];

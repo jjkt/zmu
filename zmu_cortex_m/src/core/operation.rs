@@ -85,10 +85,10 @@ pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
 /// return tuple of (result, carry, overflow)
 ///
 pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
-    let unsigned_sum = u64::from(x) + u64::from(y) + (carry_in as u64);
+    let unsigned_sum = u64::from(x) + u64::from(y) + u64::from(carry_in);
     let signed_sum = (x as i32)
         .wrapping_add(y as i32)
-        .wrapping_add(carry_in as i32);
+        .wrapping_add(i32::from(carry_in));
     let result = (unsigned_sum & 0xffff_ffff) as u32; // same value as signed_sum<N-1:0>
     let carry_out = u64::from(result) != unsigned_sum;
     let overflow = (result as i32) != signed_sum;
@@ -216,7 +216,7 @@ pub fn ror(value: u32, shift: usize) -> u32 {
 
 fn rrx_c(value: u32, carry_in: bool) -> (u32, bool) {
     let carry_out = value.get_bit(0);
-    let result = (value >> 1) + ((carry_in as u32) << 31);
+    let result = (value >> 1) + (u32::from(carry_in) << 31);
     (result, carry_out)
 }
 
@@ -272,17 +272,12 @@ pub fn thumb_expand_imm_c(params: &[u8], lengths: &[u8], carry_in: bool) -> (u32
     let imm12 = zero_extend(params, lengths);
 
     let (result, carry_out) = if imm12.get_bits(10..12) == 0 {
-        let low_word = imm12.get_bits(0..8) as u32;
+        let low_word = imm12.get_bits(0..8);
         let imm32 = match imm12.get_bits(8..10) {
-            0b00 => low_word as u32,
+            0b00 => low_word,
             0b01 => (low_word << 16) + low_word,
             0b10 => (low_word << 24) + (low_word << 8),
-            0b11 => {
-                (low_word << 24) as u32
-                    + (low_word << 16) as u32
-                    + (low_word << 8) as u32
-                    + low_word
-            }
+            0b11 => (low_word << 24) + (low_word << 16) + (low_word << 8) + low_word,
             _ => unreachable!(),
         };
 
@@ -335,15 +330,15 @@ pub fn build_imm_10_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;
 
-    let s = ((t1 >> 10) & 1) as u32;
-    let imm10 = (t1 & 0x3ff) as u32;
+    let s = (t1 >> 10) & 1;
+    let imm10 = t1 & 0x3ff;
 
-    let j1 = ((t2 >> 13) & 1) as u32;
-    let j2 = ((t2 >> 11) & 1) as u32;
-    let imm11 = (t2 & 0x7ff) as u32;
+    let j1 = (t2 >> 13) & 1;
+    let j2 = (t2 >> 11) & 1;
+    let imm11 = t2 & 0x7ff;
 
-    let i1 = ((j1 ^ s) ^ 1) as u32;
-    let i2 = ((j2 ^ s) ^ 1) as u32;
+    let i1 = (j1 ^ s) ^ 1;
+    let i2 = (j2 ^ s) ^ 1;
 
     sign_extend(
         (imm11 << 1) + (imm10 << 12) + (i2 << 22) + (i1 << 23) + (s << 24),
@@ -359,14 +354,14 @@ pub fn build_imm_6_11(opcode: u32) -> i32 {
     let t1 = opcode >> 16;
     let t2 = opcode & 0xffff;
 
-    let imm6 = (t1 & 0x3f) as u32;
+    let imm6 = t1 & 0x3f;
 
-    let s = ((t1 >> 10) & 1) as u32;
+    let s = (t1 >> 10) & 1;
 
-    let j1 = ((t2 >> 13) & 1) as u32;
-    let j2 = ((t2 >> 11) & 1) as u32;
+    let j1 = (t2 >> 13) & 1;
+    let j2 = (t2 >> 11) & 1;
 
-    let imm11 = (t2 & 0x7ff) as u32;
+    let imm11 = t2 & 0x7ff;
 
     sign_extend(
         (imm11 << 1) + (imm6 << 12) + (j2 << 18) + (j1 << 19) + (s << 20),
@@ -383,35 +378,35 @@ mod tests {
     #[test]
     fn test_shift_c() {
         {
-            let (result, carry) = shift_c(0xFFFFFFF8, SRType::ASR, 8, false);
-            assert!(result == 0xFFFFFFFF);
-            assert!(carry == true);
+            let (result, carry) = shift_c(0xFFFF_FFF8, SRType::ASR, 8, false);
+            assert!(result == 0xFFFF_FFFF);
+            assert!(carry);
         }
         {
             let (result, carry) = shift_c(0xef, SRType::ASR, 9, false);
             assert!(result == 0);
-            assert!(carry == false);
+            assert!(!carry);
         }
         {
-            let (result, carry) = shift_c(0xFFFFFFC0, SRType::ASR, 1, false);
-            assert!(result == 0xFFFFFFE0);
-            assert!(carry == false);
+            let (result, carry) = shift_c(0xFFF_FFFC0, SRType::ASR, 1, false);
+            assert!(result == 0xFFFF_FFE0);
+            assert!(!carry);
         }
 
         {
             let (result, carry) = shift_c(0, SRType::ROR, 0, false);
             assert!(result == 0x0);
-            assert!(carry == false);
+            assert!(!carry);
         }
         {
             let (result, carry) = shift_c(2, SRType::ROR, 1, false);
             assert!(result == 0x1);
-            assert!(carry == false);
+            assert!(!carry);
         }
         {
             let (result, carry) = shift_c(1, SRType::ROR, 1, false);
             assert!(result == 0x8000_0000);
-            assert!(carry == true);
+            assert!(carry);
         }
     }
 
@@ -419,60 +414,60 @@ mod tests {
     fn test_add_with_carry() {
         let (result, carry, overflow) = add_with_carry(0x410, 4, false);
         assert_eq!(result, 0x414);
-        assert_eq!(carry, false);
-        assert_eq!(overflow, false);
+        assert!(!carry);
+        assert!(!overflow);
     }
 
     #[test]
     fn test_add_with_carry_basic() {
         let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, false);
         assert_eq!(result, 0xffff_ffff);
-        assert_eq!(carry, false);
-        assert_eq!(overflow, false);
+        assert!(!carry);
+        assert!(!overflow);
     }
 
     #[test]
     fn test_add_with_carry_basic2() {
         let (result, carry, overflow) = add_with_carry(0x0, 0xffff_ffff, true);
         assert_eq!(result, 0);
-        assert_eq!(carry, true);
-        assert_eq!(overflow, false);
+        assert!(carry);
+        assert!(!overflow);
     }
 
     #[test]
     fn test_add_with_carry_basic3() {
         let (result, carry, overflow) = add_with_carry(0x0, 0, true);
         assert_eq!(result, 1);
-        assert_eq!(carry, false);
-        assert_eq!(overflow, false);
+        assert!(!carry);
+        assert!(!overflow);
     }
 
     #[test]
     fn test_add_with_carry_basic4() {
         let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0, true);
         assert_eq!(result, 0);
-        assert_eq!(carry, true);
-        assert_eq!(overflow, false);
+        assert!(carry);
+        assert!(!overflow);
     }
 
     #[test]
     fn test_add_with_carry_basic5() {
         let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, true);
         assert_eq!(result, 0xffff_ffff);
-        assert_eq!(carry, true);
-        assert_eq!(overflow, false);
+        assert!(carry);
+        assert!(!overflow);
     }
 
     #[test]
     fn test_add_with_carry_basic6() {
         let (result, carry, overflow) = add_with_carry(0xffff_ffff, 0xffff_ffff, false);
         assert_eq!(result, 0xffff_fffe);
-        assert_eq!(carry, true);
-        assert_eq!(overflow, false);
+        assert!(carry);
+        assert!(!overflow);
     }
     #[test]
     fn test_build_imm_6_11() {
-        assert_eq!(build_imm_6_11(0xF00080C4), 0xc4 << 1);
-        assert_eq!(build_imm_6_11(0xf57fad69), -1326);
+        assert_eq!(build_imm_6_11(0xF000_80C4), 0xc4 << 1);
+        assert_eq!(build_imm_6_11(0xf57f_ad69), -1326);
     }
 }

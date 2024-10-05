@@ -110,10 +110,10 @@ fn test_in_range() {
 fn test_write_read() {
     {
         let mut mem = RAM::new(0, 1024);
-        mem.write32(0, 0xAABBCCDD).unwrap();
-        assert_eq!(mem.read32(0).unwrap(), 0xAABBCCDD);
-        mem.write32(1020, 0xAABBCCDD).unwrap();
-        assert_eq!(mem.read32(1020).unwrap(), 0xAABBCCDD);
+        mem.write32(0, 0xAABB_CCDD).unwrap();
+        assert_eq!(mem.read32(0).unwrap(), 0xAABB_CCDD);
+        mem.write32(1020, 0xAABB_CCDD).unwrap();
+        assert_eq!(mem.read32(1020).unwrap(), 0xAABB_CCDD);
     }
 
     {

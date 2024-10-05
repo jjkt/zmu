@@ -89,13 +89,13 @@ impl IsaFloatingPointLoadAndStore for Processor {
             self.set_r(Reg::SP, address);
 
             if params.single_regs {
-                for reg in params.single_precision_registers.iter() {
+                for reg in &params.single_precision_registers {
                     let value = self.get_sr(reg);
                     self.write32(address, value)?;
                     address += 4;
                 }
             } else {
-                for reg in params.double_precision_registers.iter() {
+                for reg in &params.double_precision_registers {
                     let (low_word, high_word) = self.get_dr(reg);
                     if self.big_endian() {
                         self.write32(address, high_word)?;
@@ -121,20 +121,19 @@ impl IsaFloatingPointLoadAndStore for Processor {
             let mut address = sp;
             self.set_r(Reg::SP, sp + params.imm32);
             if params.single_regs {
-                for reg in params.single_precision_registers.iter() {
+                for reg in &params.single_precision_registers {
                     address += 4;
                     let value = self.read32(address)?;
                     self.set_sr(reg, value);
                 }
             } else {
-                for reg in params.double_precision_registers.iter() {
+                for reg in &params.double_precision_registers {
                     address += 8;
                     let low_word = self.read32(address)?;
                     let high_word = self.read32(address + 4)?;
                     self.set_dr(reg, low_word, high_word);
                 }
             }
-
 
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }

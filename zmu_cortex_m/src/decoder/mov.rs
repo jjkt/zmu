@@ -27,7 +27,7 @@ pub fn decode_MOV_imm_t1(opcode: u16) -> Instruction {
 pub fn decode_MOV_reg_t1(opcode: u16) -> Instruction {
     Instruction::MOV_reg {
         params: Reg2Params {
-            rd: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
+            rd: Reg::from(((u8::from(opcode.get_bit(7))) << 3) + opcode.get_bits(0..3) as u8),
             rm: Reg::from(opcode.get_bits(3..7) as u8),
             setflags: false,
         },
@@ -81,7 +81,7 @@ pub fn decode_MOV_imm_t2(opcode: u32) -> Instruction {
     let rd: u8 = opcode.get_bits(8..12) as u8;
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm8: u8 = opcode.get_bits(0..8) as u8;
-    let i: u8 = opcode.get_bit(26) as u8;
+    let i: u8 = u8::from(opcode.get_bit(26));
     let s = opcode.get_bit(20);
 
     let params = [i, imm3, imm8];
@@ -107,7 +107,7 @@ pub fn decode_MOV_imm_t3(opcode: u32) -> Instruction {
     let imm4: u8 = opcode.get_bits(16..20) as u8;
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm8: u8 = opcode.get_bits(0..8) as u8;
-    let i: u8 = opcode.get_bit(26) as u8;
+    let i: u8 = u8::from(opcode.get_bit(26));
 
     let params = [imm4, i, imm3, imm8];
     let lengths = [4, 1, 3, 8];

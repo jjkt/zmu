@@ -27,7 +27,7 @@ impl IsaLoadAndStoreMultiple for Processor {
 
             let mut address = self.get_r(params.rn);
 
-            for reg in params.registers.iter() {
+            for reg in &params.registers {
                 let r = self.get_r(reg);
                 self.write32(address, r)?;
                 address += 4;
@@ -49,7 +49,7 @@ impl IsaLoadAndStoreMultiple for Processor {
 
             let mut address = self.get_r(params.rn) - regs_size;
 
-            for reg in params.registers.iter() {
+            for reg in &params.registers {
                 let r = self.get_r(reg);
                 self.write32(address, r)?;
                 address += 4;
@@ -72,7 +72,7 @@ impl IsaLoadAndStoreMultiple for Processor {
             let mut address = self.get_r(params.rn);
 
             let mut branched = false;
-            for reg in params.registers.iter() {
+            for reg in &params.registers {
                 let value = self.read32(address)?;
                 if reg == Reg::PC {
                     self.load_write_pc(value)?;
@@ -101,7 +101,7 @@ impl IsaLoadAndStoreMultiple for Processor {
             let sp = self.get_r(Reg::SP);
             let mut address = sp - regs_size;
 
-            for reg in registers.iter() {
+            for reg in &registers {
                 let value = self.get_r(reg);
                 self.write32(address, value)?;
                 address += 4;
@@ -123,7 +123,7 @@ impl IsaLoadAndStoreMultiple for Processor {
 
             self.set_r(Reg::SP, sp + regs_size);
 
-            for reg in registers.iter() {
+            for reg in &registers {
                 let val = self.read32(address)?;
                 if reg == Reg::PC {
                     self.bx_write_pc(val)?;

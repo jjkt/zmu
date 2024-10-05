@@ -100,7 +100,7 @@ pub trait ExceptionHandling {
     fn exceptions_reset(&mut self);
 
     ///
-    ///
+    /// Check if any exceptions have happened.
     ///
     fn check_exceptions(&mut self);
 }
@@ -149,7 +149,7 @@ pub enum Exception {
     /// Debugging related exceptions
     DebugMonitor,
     /// Supervisor call exception, used typically for OS supervisor API handling.
-    /// SVC instruction triggers SVCall exception.
+    /// SVC instruction triggers `SVCall` exception.
     SVCall,
     /// Reserved for future
     Reserved8,
@@ -238,15 +238,15 @@ impl ExceptionHandlingHelpers for Processor {
         //TODO forcealign
         // forces 8 byte alignment on the stack
         let forcealign = true;
-        let spmask = ((forcealign as u32) << 2) ^ 0xFFFF_FFFF;
+        let spmask = (u32::from(forcealign) << 2) ^ 0xFFFF_FFFF;
 
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
-                let align = (self.psp.get_bit(2) & forcealign) as u32;
+                let align = u32::from(self.psp.get_bit(2) & forcealign);
                 self.set_psp((self.psp.wrapping_sub(FRAME_SIZE)) & spmask);
                 (self.psp, align)
             } else {
-                let align = self.msp.get_bit(2) as u32;
+                let align = u32::from(self.msp.get_bit(2));
                 self.set_msp((self.msp.wrapping_sub(FRAME_SIZE)) & spmask);
                 (self.msp, align)
             };
@@ -267,8 +267,8 @@ impl ExceptionHandlingHelpers for Processor {
         self.write32(frameptr.wrapping_add(0x10), r12)?;
         self.write32(frameptr.wrapping_add(0x14), lr)?;
         self.write32(frameptr.wrapping_add(0x18), ret_addr)?;
-        let xpsr = (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111)
-            | (frameptralign << 9) as u32;
+        let xpsr =
+            (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111) | frameptralign << 9;
         self.write32(frameptr.wrapping_add(0x1c), xpsr)?;
 
         if self.mode == ProcessorMode::HandlerMode {
@@ -306,8 +306,7 @@ impl ExceptionHandlingHelpers for Processor {
 
         self.branch_write_pc(pc);
 
-        let spmask = ((psr.get_bit(9) && forcealign) as u32) << 2;
-
+        let spmask = u32::from(psr.get_bit(9) && forcealign) << 2;
         match exc_return.get_bits(0..4) {
             0b0001 | 0b1001 => {
                 let msp = self.get_msp();
@@ -640,10 +639,10 @@ mod tests {
         core.exception_taken(Exception::BusFault).unwrap();
 
         // Assert
-        assert_eq!(core.control.sp_sel, false);
+        assert!(!core.control.sp_sel);
         assert_eq!(core.mode, ProcessorMode::HandlerMode);
         assert_eq!(core.psr.get_isr_number(), Exception::BusFault.into());
-        assert_eq!(core.exception_active(Exception::BusFault), true);
+        assert!(core.exception_active(Exception::BusFault));
     }
 
     #[test]

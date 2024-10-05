@@ -11,6 +11,7 @@ pub trait Bits {
     ///
     /// Get a range of bits from source
     ///
+    #[must_use]
     fn get_bits(&self, range: Range<usize>) -> Self;
     ///
     /// Get value of single bit in source word
@@ -27,8 +28,7 @@ pub trait Bits {
     /// # Algorithm
     ///
     /// 1. count = (range.end - range.start)
-    /// 2. set lowest count bits to 1
-    ///   (1 << count) - 1                               |  0000 1111
+    /// 2. set lowest count bits to 1: (1 << count) - 1  |  0000 1111
     /// 3. left shift by range.start                     |  0001 1110
     /// 4. invert                                        |  1110 0001
     fn set_bits(&mut self, range: Range<usize>, value: Self);
@@ -56,7 +56,7 @@ impl Bits for u32 {
     #[inline(always)]
     fn set_bit(&mut self, bit: usize, value: bool) {
         *self &= !0 ^ (1 << bit);
-        *self |= (value as Self) << bit;
+        *self |= Self::from(value) << bit;
     }
 }
 
@@ -79,7 +79,7 @@ impl Bits for u64 {
     #[inline(always)]
     fn set_bit(&mut self, bit: usize, value: bool) {
         *self &= !0 ^ (1 << bit);
-        *self |= (value as Self) << bit;
+        *self |= Self::from(value) << bit;
     }
 }
 
@@ -103,7 +103,7 @@ impl Bits for u16 {
     #[inline(always)]
     fn set_bit(&mut self, bit: usize, value: bool) {
         *self &= !0 ^ (1 << bit);
-        *self |= (value as Self) << bit;
+        *self |= Self::from(value) << bit;
     }
 }
 
@@ -127,7 +127,7 @@ impl Bits for u8 {
     #[inline(always)]
     fn set_bit(&mut self, bit: usize, value: bool) {
         *self &= !0 ^ (1 << bit);
-        *self |= (value as Self) << bit;
+        *self |= Self::from(value) << bit;
     }
 }
 
@@ -150,7 +150,7 @@ mod tests {
             // assert
             assert_eq!(o1, 0b1111_1111_u32);
             assert_eq!(o2, 0b1111_u32);
-            assert_eq!(o3, true);
+            assert!(o3);
         }
         {
             // arrange

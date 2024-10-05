@@ -197,8 +197,8 @@ mod tests {
         let mut core = Processor::new();
         core.psr.value = 0;
 
-        core.set_r(Reg::R2, 0x11223344);
-        core.set_r(Reg::R3, 0xaabbccdd);
+        core.set_r(Reg::R2, 0x1122_3344);
+        core.set_r(Reg::R3, 0xaabb_ccdd);
         core.psr.value = 0;
 
         let instruction = Instruction::BFI {
@@ -212,8 +212,8 @@ mod tests {
 
         core.execute_internal(&instruction).unwrap();
 
-        assert_eq!(core.get_r(Reg::R3), 0xaabbccdd);
-        assert_eq!(core.get_r(Reg::R2), 0x112233dd);
+        assert_eq!(core.get_r(Reg::R3), 0xaabb_ccdd);
+        assert_eq!(core.get_r(Reg::R2), 0x1122_33dd);
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
         core.psr.value = 0;
 
         core.set_r(Reg::R0, 0);
-        core.set_r(Reg::R1, 0x00e000e4);
+        core.set_r(Reg::R1, 0x00e0_00e4);
 
         let instruction = Instruction::BFI {
             params: BfiParams {
@@ -236,7 +236,7 @@ mod tests {
 
         core.execute_internal(&instruction).unwrap();
 
-        assert_eq!(core.get_r(Reg::R0), 0xe000e400);
-        assert_eq!(core.get_r(Reg::R1), 0x00e000e4);
+        assert_eq!(core.get_r(Reg::R0), 0xe000_e400);
+        assert_eq!(core.get_r(Reg::R1), 0x00e0_00e4);
     }
 }

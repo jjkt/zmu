@@ -105,7 +105,7 @@ mod tests {
         let mut core = Processor::new();
         core.set_r(Reg::R7, 0x2);
         core.set_r(Reg::R2, 0x29a);
-        core.set_r(Reg::R1, 0x2000089C);
+        core.set_r(Reg::R1, 0x2000_089C);
         core.psr.value = 0;
 
         let instruction = Instruction::MLA {
@@ -122,6 +122,6 @@ mod tests {
 
         assert_eq!(result, Ok(ExecuteSuccess::Taken { cycles: 2 }));
 
-        assert_eq!(core.get_r(Reg::R1), 0x20000DD0);
+        assert_eq!(core.get_r(Reg::R1), 0x2000_0DD0);
     }
 }

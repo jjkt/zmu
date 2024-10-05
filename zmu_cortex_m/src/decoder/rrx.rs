@@ -5,7 +5,7 @@ use crate::core::instruction::{Instruction, Reg2Params};
 pub fn decode_RRX_t1(opcode: u32) -> Instruction {
     let rm: u8 = opcode.get_bits(0..4) as u8;
     let rd: u8 = opcode.get_bits(8..12) as u8;
-    let s: u8 = opcode.get_bit(20) as u8;
+    let s: u8 = u8::from(opcode.get_bit(20));
 
     Instruction::RRX {
         params: Reg2Params {

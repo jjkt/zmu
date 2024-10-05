@@ -1002,17 +1002,17 @@ impl TIM for Device {
 
 impl Bus for Device {
     fn read8(&self, bus_addr: u32) -> Result<u8, Fault> {
-        println!("read8 0x{:x}", bus_addr);
+        println!("read8 0x{bus_addr:x}");
         Ok(0)
     }
 
     fn read16(&self, bus_addr: u32) -> Result<u16, Fault> {
-        println!("read16 0x{:x}", bus_addr);
+        println!("read16 0x{bus_addr:x}");
         Ok(0)
     }
 
     fn read32(&mut self, bus_addr: u32) -> Result<u32, Fault> {
-        println!("read32 0x{:x}", bus_addr);
+        println!("read32 0x{bus_addr:x}");
         match bus_addr {
             AFIO_BASE..=AFIO_BASE_END => self.afio_read32(bus_addr - AFIO_BASE),
             RCC_BASE..=RCC_BASE_END => self.rcc_read32(bus_addr - RCC_BASE),
@@ -1083,7 +1083,7 @@ impl Bus for Device {
     }
 
     fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault> {
-        println!("write32 0x{:x}=0x{:x}", addr, value);
+        println!("write32 0x{addr:x}=0x{value:x}");
         match addr {
             AFIO_BASE..=AFIO_BASE_END => self.afio_write32(addr - AFIO_BASE, value),
             RCC_BASE..=RCC_BASE_END => self.rcc_write32(addr - RCC_BASE, value),
@@ -1166,18 +1166,18 @@ impl Bus for Device {
     }
 
     fn write16(&mut self, addr: u32, value: u16) -> Result<(), Fault> {
-        println!("write16 0x{:x}=0x{:x}", addr, value);
+        println!("write16 0x{addr:x}=0x{value:x}");
         Ok(())
     }
 
     fn write8(&mut self, addr: u32, value: u8) -> Result<(), Fault> {
-        println!("write8 0x{:x}=0x{:x}", addr, value);
+        println!("write8 0x{addr:x}=0x{value:x}");
         Ok(())
     }
 
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
-        addr >= PERIPH_BASE && addr < FLASH_R_BASE_END
+        (PERIPH_BASE..FLASH_R_BASE_END).contains(&addr)
     }
 }
 
