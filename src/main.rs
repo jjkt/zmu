@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate error_chain;
 
-#[macro_use]
 extern crate clap;
 extern crate goblin;
 extern crate pad;
@@ -14,7 +13,11 @@ extern crate zmu_cortex_m;
 extern crate log;
 extern crate stderrlog;
 
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::value_parser;
+use clap::Arg;
+use clap::ArgAction;
+use clap::ArgMatches;
+use clap::Command;
 use goblin::elf::program_header::pt_to_str;
 use goblin::Object;
 use std::fs::File;
@@ -207,21 +210,14 @@ fn open_itm_file(filename: &str) -> Option<Box<dyn io::Write + 'static>> {
 
 fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
-        ("run", Some(run_matches)) => {
+        Some(("run", run_matches)) => {
             let filename = run_matches
-                .value_of("EXECUTABLE")
+                .get_one::<String>("EXECUTABLE")
                 .chain_err(|| "filename missing")?;
 
-            let trace_start = match run_matches.value_of("trace-start") {
-                Some(instr) => Some(
-                    instr
-                        .parse::<u64>()
-                        .chain_err(|| "invalid trace start point")?,
-                ),
-                None => None,
-            };
+            let trace_start = run_matches.get_one::<u64>("trace-start").copied();
 
-            let itm_output = match run_matches.value_of("itm") {
+            let itm_output = match run_matches.get_one::<String>("itm") {
                 Some(filename) => open_itm_file(filename),
                 None => None,
             };
@@ -235,67 +231,69 @@ fn run(args: &ArgMatches) -> Result<()> {
 
             run_bin(
                 &buffer,
-                run_matches.is_present("trace"),
+                run_matches.get_flag("trace"),
                 trace_start,
                 itm_output,
             )?;
         }
-        ("", None) => bail!("No sub command found"),
-        _ => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
+        Some((_, _)) => unreachable!(),
+        None => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
     }
 
     Ok(())
 }
 
 fn main() {
-    let args = App::new("zmu")
-        .version(crate_version!())
+    let cmd = Command::new("zmu")
+        .bin_name("zmu")
         .arg(
-            Arg::with_name("verbosity")
-                .short("v")
-                .multiple(true)
-                .help("Increase message verbosity"),
+            Arg::new("verbosity")
+                .short('v')
+                .help("Increase message verbosity")
+                .action(ArgAction::Count),
         )
         .about("a Low level emulator for microcontrollers")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(true)
         .subcommand(
-            SubCommand::with_name("run")
+            Command::new("run")
                 .about("Load and run <EXECUTABLE>")
                 .arg(
-                    Arg::with_name("trace")
-                        .short("t")
+                    Arg::new("trace")
+                        .action(ArgAction::SetTrue)
+                        .short('t')
                         .long("trace")
                         .help("Print instruction trace to stdout"),
                 )
                 .arg(
-                    Arg::with_name("trace-start")
+                    Arg::new("trace-start")
                         .long("trace-start")
                         .help("Instruction on which to start tracing")
-                        .takes_value(true),
+                        .action(ArgAction::Set)
+                        .value_parser(value_parser!(u64)),
                 )
                 .arg(
-                    Arg::with_name("itm")
+                    Arg::new("itm")
                         .long("itm")
                         .help("Name of file to which itm trace data is written to. ")
-                        .takes_value(true),
+                        .num_args(1),
                 )
                 .arg(
-                    Arg::with_name("EXECUTABLE")
+                    Arg::new("EXECUTABLE")
                         .index(1)
                         .help("Set executable to load")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("ARGS")
+                    Arg::new("ARGS")
                         .required(false)
                         .help("List of free arguments to pass to runtime as parameters")
                         .index(2)
-                        .multiple(true),
+                        .action(ArgAction::Append),
                 ),
         )
         .get_matches();
 
-    let verbose = args.occurrences_of("verbosity") as usize;
+    let verbose = cmd.get_count("verbosity") as usize;
 
     stderrlog::new()
         .module(module_path!())
@@ -303,7 +301,7 @@ fn main() {
         .init()
         .unwrap();
 
-    if let Err(ref e) = run(&args) {
+    if let Err(ref e) = run(&cmd) {
         error!("error: {}", e);
 
         for e in e.iter().skip(1) {
