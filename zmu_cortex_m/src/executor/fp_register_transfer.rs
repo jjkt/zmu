@@ -1,4 +1,7 @@
-use crate::core::instruction::{VMovCr2DpParams, VMovCrSpParams, VMovRegParamsf32, VMovRegParamsf64};
+use crate::core::instruction::{
+    VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64, VMovRegParamsf32,
+    VMovRegParamsf64,
+};
 use crate::Processor;
 
 use crate::executor::ExecuteSuccess;
@@ -12,6 +15,9 @@ pub trait IsaFloatingPointRegisterTransfer {
 
     fn exec_vmov_reg_f32(&mut self, params: &VMovRegParamsf32) -> ExecuteResult;
     fn exec_vmov_reg_f64(&mut self, params: &VMovRegParamsf64) -> ExecuteResult;
+
+    fn exec_vmov_imm_32(&mut self, params: &VMovImmParams32) -> ExecuteResult;
+    fn exec_vmov_imm_64(&mut self, params: &VMovImmParams64) -> ExecuteResult;
 }
 
 impl IsaFloatingPointRegisterTransfer for Processor {
@@ -48,6 +54,17 @@ impl IsaFloatingPointRegisterTransfer for Processor {
 
     fn exec_vmov_reg_f64(&mut self, params: &VMovRegParamsf64) -> ExecuteResult {
         let (low, high) = self.get_dr(params.dm);
+        self.set_dr(params.dd, low, high);
+        Ok(ExecuteSuccess::Taken { cycles: 1 })
+    }
+
+    fn exec_vmov_imm_32(&mut self, params: &VMovImmParams32) -> ExecuteResult {
+        self.set_sr(params.sd, params.imm32);
+        Ok(ExecuteSuccess::Taken { cycles: 1 })
+    }
+
+    fn exec_vmov_imm_64(&mut self, params: &VMovImmParams64) -> ExecuteResult {
+        let (low, high) = (params.imm64 as u32, (params.imm64 >> 32) as u32);
         self.set_dr(params.dd, low, high);
         Ok(ExecuteSuccess::Taken { cycles: 1 })
     }

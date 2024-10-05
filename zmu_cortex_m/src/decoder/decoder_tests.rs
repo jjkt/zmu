@@ -6,7 +6,7 @@ use crate::core::instruction::{
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
     RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
-    VMovCr2DpParams, VMovCrSpParams, VMovRegParamsf32,
+    VMovCr2DpParams, VMovCrSpParams, VMovRegParamsf32,VMovImmParams64
 };
 
 use crate::core::instruction::VLoadAndStoreParams;
@@ -2931,8 +2931,11 @@ fn test_decode_vpop() {
         Instruction::VPOP { params } => {
             assert_eq!(params.single_regs, false);
             let double_regs: Vec<_> = params.double_precision_registers.iter().collect();
-            assert_eq!(vec![DoubleReg::D8, DoubleReg::D9, DoubleReg::D10], double_regs);
-            assert_eq!(params.imm32, 3*8);
+            assert_eq!(
+                vec![DoubleReg::D8, DoubleReg::D9, DoubleReg::D10],
+                double_regs
+            );
+            assert_eq!(params.imm32, 3 * 8);
         }
         _ => {
             assert!(false);
@@ -3015,6 +3018,21 @@ fn test_decode_vmov_reg_f32() {
             params: VMovRegParamsf32 {
                 sd: SingleReg::S0,
                 sm: SingleReg::S20,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vmov_imm() {
+    // eeb7 6b08       vmov.f64        d6, #120
+
+    assert_eq!(
+        decode_32(0xeeb76b08),
+        Instruction::VMOV_imm_64 {
+            params: VMovImmParams64 {
+                dd: DoubleReg::D6,
+                imm64: 1.5f64.to_bits()
             }
         }
     );

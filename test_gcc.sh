@@ -19,7 +19,7 @@ function arch_supports_cores()
       cores=("cm0" "cm0p" "cm3")
       ;;
    "armv7em") 
-      cores=("cm0" "cm0p" "cm3" "cm4" "cm4f")
+      cores=("cm0" "cm0p" "cm3" "cm4" "cm4f" "cm7-d16" "cm7-sp-d16")
       ;;
    esac
 }

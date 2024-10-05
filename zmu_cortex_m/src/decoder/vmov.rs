@@ -1,15 +1,97 @@
 use crate::core::{
     bits::Bits,
     instruction::{
-        Instruction, VMovCr2DpParams, VMovCrSpParams, VMovRegParamsf32, VMovRegParamsf64,
+        Instruction, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
+        VMovRegParamsf32, VMovRegParamsf64,
     },
     register::{DoubleReg, Reg, SingleReg},
 };
 
+// Example:
+//
+// e = 11
+// f = 64 - e - 1 = 52
+// bits 7654 3210
+// ..............
+//      0111 1000
+//
+// sign = 0
+// exp = NOT(imm8[6]) : Replicate(imm8[6], e-3) :imm8[5:4]
+//     = NOT(1) : Replicate(1, 8) : 11
+//     = 0 : 1111 1111 : 11
+//     = 0b01111 1111 11
+//     = 0x3ff
+//
+// frac = imm8[3:0] : Zeros(F-4)
+//      = imm8[3:0] : Zeros(48)
+//      = 1000 : 48 zeroes
+//      = 0x8 0000 0000 0000
+//
+// result = sign : exp : frac
+//        = 0 : 0x3ff : 0x8000000000000
+//        = 0x3ff8000000000000
+fn vfpexpand_imm64(imm8: u8) -> u64 {
+    let e = 11;
+    let f = 64 - e - 1;
+    let sign = imm8.get_bit(7);
+
+    // exp is bitwise concatenation of following:
+    // NOT(bit 6 of imm8) : replicate 'bit 6' of imm8 "e-3" times) : imm8 bits 5:4
+
+    let bit6_vec = if imm8.get_bit(6) { 0xff } else { 0 };
+
+    let exp: u64 = (!imm8.get_bit(6) as u64) << e | bit6_vec << 2 | imm8.get_bits(4..6) as u64;
+    // frac is concatenation of: imm8 bits 3:0 : zeroes F-4 times
+    let upper = imm8.get_bits(0..4) as u64;
+    let frac: u64 = upper << (f - 4);
+    // result is contatenation of sign : exp : frac
+
+    (sign as u64) << 63 | (exp as u64) << f | frac as u64
+}
+
+fn vfpexpand_imm32(imm8: u8) -> u32 {
+    let e = 8;
+    let f = 32 - e - 1;
+    let sign = imm8.get_bit(7);
+
+    // exp is bitwise concatenation of following:
+    // NOT(bit 6 of imm8) : replicate 'bit 6' of imm8 "e-3" times) : imm8 bits 5:4
+
+    let bit6_vec = if imm8.get_bit(6) { 0x1f } else { 0 };
+
+    let exp: u32 = (!imm8.get_bit(6) as u32) << e | bit6_vec << 2 | imm8.get_bits(4..6) as u32;
+    // frac is concatenation of: imm8 bits 3:0 : zeroes F-4 times
+    let frac: u32 = (imm8.get_bits(0..4) as u32) << (f - 4);
+
+    // result is contatenation of sign : exp : frac
+    (sign as u32) << 31 | (exp as u32) << f | frac as u32
+}
+
 #[allow(non_snake_case)]
 #[inline(always)]
-pub fn decode_VMOV_imm(_opcode: u32) -> Instruction {
-    unimplemented!()
+pub fn decode_VMOV_imm(opcode: u32) -> Instruction {
+    let sz = opcode.get_bit(8);
+    let D = opcode.get_bit(22) as u8;
+    let vd = opcode.get_bits(12..16) as u8;
+    let imm4l = opcode.get_bits(0..4) as u8;
+    let imm4h = opcode.get_bits(16..20) as u8;
+    let imm8 = imm4h << 4 | imm4l;
+
+    if sz {
+        Instruction::VMOV_imm_64 {
+            params: VMovImmParams64 {
+                dd: DoubleReg::from(D << 4 | vd),
+                imm64: vfpexpand_imm64(imm8),
+            },
+        }
+    } else {
+        Instruction::VMOV_imm_32 {
+            params: VMovImmParams32 {
+                sd: SingleReg::from(vd << 4 | D),
+                imm32: vfpexpand_imm32(imm8),
+            },
+        }
+    }
 }
 
 #[allow(non_snake_case)]
