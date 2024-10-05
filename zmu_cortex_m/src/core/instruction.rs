@@ -310,11 +310,15 @@ pub struct VPushPopParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct VMovImmParams {
-    pub dp_operation: bool,
-    pub dd: DoubleReg,
+pub struct VMovImmParams32 {
     pub sd: SingleReg,
     pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VMovImmParams64 {
+    pub dd: DoubleReg,
     pub imm64: u64,
 }
 
@@ -1270,8 +1274,11 @@ pub enum Instruction {
     // Group: Floating-point register transfer instructions
     //
     // --------------------------------------------
-    VMOV_imm {
-        params: VMovImmParams,
+    VMOV_imm_32 {
+        params: VMovImmParams32,
+    },
+    VMOV_imm_64 {
+        params: VMovImmParams64,
     },
     VMOV_reg_f32 {
         params: VMovRegParamsf32,
@@ -2287,14 +2294,15 @@ impl fmt::Display for Instruction {
                 }
             ),
 
-            Self::VMOV_imm { params } => write!(
+            Self::VMOV_imm_32 { params } => write!(
                 f,
                 "vmov{}",
-                if params.dp_operation {
-                    format!(".f64 {}, #{}", params.dd, params.imm64)
-                } else {
-                    format!(".f32 {}, #{}", params.sd, params.imm32)
-                }
+                format!(".f32 {}, #{}", params.sd, params.imm32)
+            ),
+            Self::VMOV_imm_64 { params } => write!(
+                f,
+                "vmov{}",
+                format!(".f64 {}, #{}", params.dd, params.imm64)
             ),
             Self::VMOV_reg_f32 { params } => {
                 write!(f, "vmov{}", format!(".f32 {}, {}", params.sd, params.sm))
@@ -2659,7 +2667,8 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //VMINNM
         //VMLA
         //VMLS
-        Instruction::VMOV_imm { .. } => 4,
+        Instruction::VMOV_imm_32 { .. } => 4,
+        Instruction::VMOV_imm_64 { .. } => 4,
         Instruction::VMOV_reg_f32 { .. } => 4,
         Instruction::VMOV_reg_f64 { .. } => 4,
         Instruction::VMOV_cr_scalar { .. } => 4,

@@ -19,7 +19,7 @@ else
 	$(error startup dir not found !)
 endif
 
-all: $(PROG)-cm0.elf $(PROG)-cm0p.elf $(PROG)-cm3.elf $(PROG)-cm4.elf $(PROG)-cm4f.elf
+all: $(PROG)-cm0.elf $(PROG)-cm0p.elf $(PROG)-cm3.elf $(PROG)-cm4.elf $(PROG)-cm4f.elf $(PROG)-cm7-d16.elf $(PROG)-cm7-sp-d16.elf
 
 
 $(PROG)-cm0.elf:
@@ -36,6 +36,13 @@ $(PROG)-cm4.elf:
 
 $(PROG)-cm4f.elf:
 	$(CC) $(CFLAGS) -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM4.S -o $@
+
+$(PROG)-cm7-d16.elf:
+	$(CC) $(CFLAGS) -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM7.S -o $@
+
+$(PROG)-cm7-sp-d16.elf:
+	$(CC) $(CFLAGS) -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM7.S -o $@
+
 
 clean:
 	rm -f *.elf
