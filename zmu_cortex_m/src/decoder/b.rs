@@ -50,12 +50,12 @@ pub fn decode_B_t3(opcode: u32) -> Instruction {
         Some(c) => Instruction::B_t13 {
             params: CondBranchParams {
                 cond: c,
-                imm32: imm as i32,
+                imm32: imm,
             },
             thumb32: true,
         },
         None => Instruction::B_t24 {
-            imm32: imm as i32,
+            imm32: imm,
             thumb32: true,
         },
     }
@@ -67,7 +67,7 @@ pub fn decode_B_t4(opcode: u32) -> Instruction {
     let imm = build_imm_10_11(opcode);
 
     Instruction::B_t24 {
-        imm32: imm as i32,
+        imm32: imm,
         thumb32: true,
     }
 }

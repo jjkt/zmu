@@ -8,7 +8,7 @@ use crate::core::register::{DoubleReg, SingleReg};
 #[inline(always)]
 pub fn decode_VPOP_t1(opcode: u32) -> Instruction {
     let imm32 = opcode.get_bits(0..8) << 2;
-    let D = opcode.get_bit(22) as u8;
+    let D = u8::from(opcode.get_bit(22));
     let Vd = opcode.get_bits(12..16) as u8;
     let d = D << 4 | Vd;
     let regs = opcode.get_bits(0..8) as u8 / 2;
@@ -30,7 +30,7 @@ pub fn decode_VPOP_t1(opcode: u32) -> Instruction {
                 thumb32: true,
             };
         }
-    } 
+    }
 
     let mut double_regs = EnumSet::new();
     for i in 0..regs {
@@ -51,7 +51,7 @@ pub fn decode_VPOP_t1(opcode: u32) -> Instruction {
 #[inline(always)]
 pub fn decode_VPOP_t2(opcode: u32) -> Instruction {
     let imm32 = opcode.get_bits(0..8) << 2;
-    let D = opcode.get_bit(22) as u8;
+    let D = u8::from(opcode.get_bit(22));
     let Vd = opcode.get_bits(12..16) as u8;
     let d = D | Vd << 4;
     let regs = opcode.get_bits(0..8) as u8;

@@ -6,5 +6,5 @@ use crate::core::operation::build_imm_10_11;
 pub fn decode_BL_t1(opcode: u32) -> Instruction {
     let imm = build_imm_10_11(opcode);
 
-    Instruction::BL { imm32: imm as i32 }
+    Instruction::BL { imm32: imm }
 }

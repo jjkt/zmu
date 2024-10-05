@@ -137,7 +137,7 @@ impl IsaBranch for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{instruction::Instruction, condition::Condition};
+    use crate::core::{condition::Condition, instruction::Instruction};
 
     #[test]
     fn test_b_cond() {

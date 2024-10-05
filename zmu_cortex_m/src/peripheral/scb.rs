@@ -198,7 +198,7 @@ impl SystemControlBlock for Processor {
     }
 
     fn write_vtor(&mut self, value: u32) {
-        self.vtor = value
+        self.vtor = value;
     }
 
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
@@ -412,9 +412,9 @@ mod tests {
         let mut processor = Processor::new();
 
         // Act
-        processor.write_shpr1(0xffeeccbb);
-        processor.write_shpr2(0xaa998877);
-        processor.write_shpr3(0x66554433);
+        processor.write_shpr1(0xffee_ccbb);
+        processor.write_shpr2(0xaa99_8877);
+        processor.write_shpr3(0x6655_4433);
 
         // Assert
         assert_eq!(
@@ -426,11 +426,11 @@ mod tests {
             processor.get_exception_priority(Exception::MemoryManagementFault),
             0xbb
         );
-        assert_eq!(processor.read_shpr1(), 0x00eeccbb);
+        assert_eq!(processor.read_shpr1(), 0x00ee_ccbb);
 
         assert_eq!(processor.get_exception_priority(Exception::SVCall), 0xaa);
 
-        assert_eq!(processor.read_shpr2(), 0xaa000000);
+        assert_eq!(processor.read_shpr2(), 0xaa00_0000);
 
         assert_eq!(processor.get_exception_priority(Exception::SysTick), 0x66);
         assert_eq!(processor.get_exception_priority(Exception::PendSV), 0x55);
@@ -439,7 +439,7 @@ mod tests {
             0x33
         );
 
-        assert_eq!(processor.read_shpr3(), 0x66550033);
+        assert_eq!(processor.read_shpr3(), 0x6655_0033);
     }
 
     #[test]
@@ -468,14 +468,14 @@ mod tests {
             processor.get_exception_priority(Exception::MemoryManagementFault),
             0xbb
         );
-        assert_eq!(processor.read_shpr1(), 0x00eeccbb);
+        assert_eq!(processor.read_shpr1(), 0x00ee_ccbb);
 
         assert_eq!(processor.read_shpr1_u16(0), 0xccbb);
         assert_eq!(processor.read_shpr1_u16(1), 0x00ee);
 
         assert_eq!(processor.get_exception_priority(Exception::SVCall), 0xaa);
 
-        assert_eq!(processor.read_shpr2(), 0xaa000000);
+        assert_eq!(processor.read_shpr2(), 0xaa00_0000);
         assert_eq!(processor.read_shpr2_u16(0), 0x0000);
         assert_eq!(processor.read_shpr2_u16(1), 0xaa00);
 
@@ -486,7 +486,7 @@ mod tests {
             0x33
         );
 
-        assert_eq!(processor.read_shpr3(), 0x66550033);
+        assert_eq!(processor.read_shpr3(), 0x6655_0033);
         assert_eq!(processor.read_shpr3_u16(0), 0x0033);
         assert_eq!(processor.read_shpr3_u16(1), 0x6655);
     }

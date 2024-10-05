@@ -10,6 +10,7 @@ fn generate_decode(
     func_name: &str,
     undefined_else: &str,
     instructions: &HashMap<&str, &str>,
+    bits: u32,
 ) -> Result<(), Box<dyn Error>> {
     let mut file = fs::File::create(dest_path)?;
 
@@ -21,18 +22,17 @@ fn generate_decode(
     //
 
     // collect mask keys to string vector
-    let mut maskstrings: Vec<&str> = instructions.keys().map(|key| *key).collect();
+    let mut maskstrings: Vec<&str> = instructions.keys().copied().collect();
 
     // sort by number of dots in the string
-    maskstrings.sort_by(|a, b| a.matches(".").count().cmp(&b.matches(".").count()));
+    maskstrings.sort_by_key(|a| a.matches(".").count());
 
     let onemasks: Vec<u32> = maskstrings
         .iter()
         .map(|key| {
             let key = key.replace("0", "1");
             let key = key.replace(".", "0");
-            let key = u32::from_str_radix(&key, 2).unwrap();
-            key
+            u32::from_str_radix(&key, 2).unwrap()
         })
         .collect();
 
@@ -40,30 +40,51 @@ fn generate_decode(
         .iter()
         .map(|key| {
             let key = key.replace(".", "0");
-            let key = u32::from_str_radix(&key, 2).unwrap();
-            key
+            u32::from_str_radix(&key, 2).unwrap()
         })
         .collect();
 
     writeln!(file, "/// automatically generated decoder function")?;
     writeln!(file, "pub fn {} -> Instruction {{", func_name)?;
-    
+
     for i in 0..onemasks.len() {
         let onemask = onemasks[i];
         let result = resultmasks[i];
         let instr = instructions[maskstrings[i]];
-        if onemask == 0xffffffff {
+        if (bits == 32 && onemask == 0xffff_ffff) || (bits == 16 && onemask == 0xffff) {
+            if bits == 32 {
+                writeln!(
+                    file,
+                    "{} if opcode == 0x{:04x}_{:04x} {{ decode_{}(opcode)}}",
+                    if i == 0 { "" } else { "else" },
+                    result >> 16,    // high 16 bits
+                    result & 0xffff, // low 16 bits
+                    instr
+                )?;
+            } else {
+                writeln!(
+                    file,
+                    "{} if opcode == 0x{:04x} {{ decode_{}(opcode)}}",
+                    if i == 0 { "" } else { "else" },
+                    result,
+                    instr
+                )?;
+            }
+        } else if bits == 32 {
             writeln!(
                 file,
-                "{} if opcode == 0x{:x} {{ decode_{}(opcode)}}",
+                "{} if (opcode & 0x{:04x}_{:04x}) == 0x{:04x}_{:04x} {{ decode_{}(opcode)}}",
                 if i == 0 { "" } else { "else" },
-                result,
+                onemask >> 16,    // high 16 bits
+                onemask & 0xffff, // low 16 bits
+                result >> 16,     // high 16 bits
+                result & 0xffff,  // low 16 bits
                 instr
             )?;
         } else {
             writeln!(
                 file,
-                "{} if (opcode & 0x{:x}) == 0x{:x} {{ decode_{}(opcode)}}",
+                "{} if (opcode & 0x{:04x}) == 0x{:04x} {{ decode_{}(opcode)}}",
                 if i == 0 { "" } else { "else" },
                 onemask,
                 result,
@@ -362,8 +383,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     let dest_path_16 = Path::new(&out_dir).join("decode_16.rs");
     let dest_path_32 = Path::new(&out_dir).join("decode_32.rs");
 
-    generate_decode(&dest_path_32, "decode_32(opcode: u32)", "decode_UDF_t2(opcode)", &instructions_thumb32)?;
-    generate_decode(&dest_path_16, "decode_16(opcode: u16)", "decode_undefined(opcode)", &instructions_thumb16)?;
+    generate_decode(
+        &dest_path_32,
+        "decode_32(opcode: u32)",
+        "decode_UDF_t2(opcode)",
+        &instructions_thumb32,
+        32,
+    )?;
+    generate_decode(
+        &dest_path_16,
+        "decode_16(opcode: u16)",
+        "decode_undefined(opcode)",
+        &instructions_thumb16,
+        16,
+    )?;
 
     println!("cargo:rerun-if-changed=build.rs");
     Ok(())

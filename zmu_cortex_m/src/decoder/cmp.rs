@@ -23,7 +23,7 @@ pub fn decode_CMP_imm_t2(opcode: u32) -> Instruction {
 
     let imm3: u8 = opcode.get_bits(12..15) as u8;
     let imm8: u8 = opcode.get_bits(0..8) as u8;
-    let i: u8 = opcode.get_bit(26) as u8;
+    let i: u8 = u8::from(opcode.get_bit(26));
 
     let params = [i, imm3, imm8];
     let lengths = [1, 3, 8];
@@ -56,7 +56,7 @@ pub fn decode_CMP_reg_t1(opcode: u16) -> Instruction {
 pub fn decode_CMP_reg_t2(opcode: u16) -> Instruction {
     Instruction::CMP_reg {
         params: Reg2ShiftNoSetFlagsParams {
-            rn: Reg::from(((opcode.get_bit(7) as u8) << 3) + opcode.get_bits(0..3) as u8),
+            rn: Reg::from(((u8::from(opcode.get_bit(7))) << 3) + opcode.get_bits(0..3) as u8),
             rm: Reg::from(opcode.get_bits(3..7) as u8),
             shift_t: SRType::LSL,
             shift_n: 0,

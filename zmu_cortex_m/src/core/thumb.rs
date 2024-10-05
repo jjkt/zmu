@@ -34,8 +34,8 @@ impl From<u32> for ThumbCode {
 impl fmt::Display for ThumbCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Self::Thumb16 { opcode } => write!(f, "0x{:x}", opcode),
-            Self::Thumb32 { opcode } => write!(f, "0x{:x}", opcode),
+            Self::Thumb16 { opcode } => write!(f, "0x{opcode:x}"),
+            Self::Thumb32 { opcode } => write!(f, "0x{opcode:x}"),
         }
     }
 }

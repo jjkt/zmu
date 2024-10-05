@@ -19,7 +19,7 @@ pub trait IsaStatusRegister {
     fn exec_mrs(&mut self, params: MrsParams) -> ExecuteResult;
     fn exec_msr(&mut self, params: MsrParams) -> ExecuteResult;
 
-    #[cfg(feature="armv6m")]
+    #[cfg(feature = "armv6m")]
     fn exec_cps(&mut self, im: bool) -> ExecuteResult;
 
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
@@ -142,7 +142,7 @@ impl IsaStatusRegister for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
-    #[cfg(feature="armv6m")]
+    #[cfg(feature = "armv6m")]
     fn exec_cps(&mut self, im: bool) -> ExecuteResult {
         if im {
             self.primask = true;

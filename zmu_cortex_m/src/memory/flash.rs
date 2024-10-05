@@ -22,12 +22,12 @@ impl FlashMemory {
         Self { data }
     }
 
-    ///
+    /// Get the length
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
-    ///
+    /// check if the memory is empty
     pub fn is_empty(&self) -> bool {
         self.data.len() == 0
     }

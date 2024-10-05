@@ -181,7 +181,7 @@ impl Bus for Processor {
     fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault> {
         match addr {
             0xE000_0000..=0xE000_007C => {
-                self.write_stim_u32(((addr - 0xE000_0000) >> 2) as u8, value)
+                self.write_stim_u32(((addr - 0xE000_0000) >> 2) as u8, value);
             }
 
             0xE000_1000 => self.dwt_write_ctrl(value),
@@ -205,19 +205,19 @@ impl Bus for Processor {
             0xE000_E014 => self.syst_write_rvr(value),
             0xE000_E018 => self.syst_write_cvr(value),
             0xE000_E100..=0xE000_E13C => {
-                self.nvic_write_iser(((addr - 0xE000_E100) >> 5) as usize, value)
+                self.nvic_write_iser(((addr - 0xE000_E100) >> 5) as usize, value);
             }
             0xE000_E180..=0xE000_E1BC => {
-                self.nvic_write_icer(((addr - 0xE000_E180) >> 5) as usize, value)
+                self.nvic_write_icer(((addr - 0xE000_E180) >> 5) as usize, value);
             }
             0xE000_E200..=0xE000_E23C => {
-                self.nvic_write_ispr(((addr - 0xE000_E200) >> 5) as usize, value)
+                self.nvic_write_ispr(((addr - 0xE000_E200) >> 5) as usize, value);
             }
             0xE000_E280..=0xE000_E2BC => {
-                self.nvic_write_icpr(((addr - 0xE000_E280) >> 5) as usize, value)
+                self.nvic_write_icpr(((addr - 0xE000_E280) >> 5) as usize, value);
             }
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value)
+                self.nvic_write_ipr(((addr - 0xE000_E400) >> 2) as usize, value);
             }
 
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
@@ -240,22 +240,22 @@ impl Bus for Processor {
     fn write16(&mut self, addr: u32, value: u16) -> Result<(), Fault> {
         match addr {
             0xE000_0000..=0xE000_007C => {
-                self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value)
+                self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value);
             }
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => {
-                self.write_shpr1_u16(((addr - 0xE000_ED18) >> 1) as usize, value)
+                self.write_shpr1_u16(((addr - 0xE000_ED18) >> 1) as usize, value);
             }
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED1C..=0xE000_ED1F => {
-                self.write_shpr2_u16(((addr - 0xE000_ED1C) >> 1) as usize, value)
+                self.write_shpr2_u16(((addr - 0xE000_ED1C) >> 1) as usize, value);
             }
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => {
-                self.write_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize, value)
+                self.write_shpr3_u16(((addr - 0xE000_ED20) >> 1) as usize, value);
             }
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_write_ipr_u16(((addr - 0xE000_E400) >> 1) as usize, value)
+                self.nvic_write_ipr_u16(((addr - 0xE000_E400) >> 1) as usize, value);
             }
             _ => {
                 if self.sram.in_range(addr) {
@@ -275,10 +275,10 @@ impl Bus for Processor {
     fn write8(&mut self, addr: u32, value: u8) -> Result<(), Fault> {
         match addr {
             0xE000_0000..=0xE000_007C => {
-                self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value)
+                self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value);
             }
             0xE000_E400..=0xE000_E5EC => {
-                self.nvic_write_ipr_u8((addr - 0xE000_E400) as usize, value)
+                self.nvic_write_ipr_u8((addr - 0xE000_E400) as usize, value);
             }
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => self.write_shpr1_u8((addr - 0xE000_ED18) as usize, value),

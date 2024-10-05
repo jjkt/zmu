@@ -636,7 +636,10 @@ impl IsaStandardDataProcessing for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{instruction::{SRType, Instruction}, register::Reg};
+    use crate::core::{
+        instruction::{Instruction, SRType},
+        register::Reg,
+    };
 
     #[test]
     fn test_sub() {
@@ -645,8 +648,8 @@ mod tests {
         core.psr.value = 0;
 
         //3:418415f7 4:00000418 5:80000000 6:7d17d411
-        core.set_r(Reg::R3, 0x418415f7);
-        core.set_r(Reg::R4, 0x00000418);
+        core.set_r(Reg::R3, 0x4184_15f7);
+        core.set_r(Reg::R4, 0x0000_0418);
         core.psr.value = 0;
 
         let instruction = Instruction::SUB_reg {

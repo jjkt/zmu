@@ -1,4 +1,8 @@
-use crate::core::{bits::Bits, instruction::{MrsParams, Instruction}, register::Reg};
+use crate::core::{
+    bits::Bits,
+    instruction::{Instruction, MrsParams},
+    register::Reg,
+};
 
 #[allow(non_snake_case)]
 pub fn decode_MRS_t1(opcode: u32) -> Instruction {

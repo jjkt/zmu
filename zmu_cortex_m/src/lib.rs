@@ -6,7 +6,6 @@
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
-#![allow(clippy::pub_enum_variant_names)]
 #![allow(clippy::inline_always)]
 // TODO: check these case by case, add unit tests
 #![allow(clippy::cast_possible_truncation)]
@@ -14,13 +13,16 @@
 #![allow(clippy::cast_possible_wrap)]
 // TODO: check these case by case, there might be need to add more error handling
 #![allow(clippy::match_same_arms)]
-// TODO check if some filtering can be simplified
-#![allow(clippy::filter_map)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::upper_case_acronyms)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::redundant_else)]
+#![allow(clippy::empty_docs)]
 
 extern crate byteorder;
 extern crate enum_set;
@@ -69,6 +71,7 @@ pub enum ProcessorMode {
     HandlerMode,
 }
 
+type SemihostingCall = Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse>>;
 ///
 /// Representation of all Processor related data
 ///
@@ -111,7 +114,7 @@ pub struct Processor {
     basepri: u8,
 
     ///
-    /// Control bits: currently used stack and execution privilege if core.mode == ThreadMode
+    /// Control bits: currently used stack and execution privilege if core.mode == `ThreadMode`
     ///
     control: Control,
 
@@ -198,7 +201,7 @@ pub struct Processor {
     ///
     /// semihosting plug
     ///
-    semihost_func: Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse>>,
+    semihost_func: SemihostingCall,
 
     instruction_cache: Vec<(Instruction, usize)>,
 
@@ -267,6 +270,9 @@ fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
 
     priorities
 }
+
+type SemihostingStaticCall =
+    Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>>;
 
 impl Processor {
     ///
@@ -361,10 +367,7 @@ impl Processor {
     }
 
     /// Configure semihosting
-    pub fn semihost<'a>(
-        &'a mut self,
-        func: Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>>,
-    ) -> &'a mut Self {
+    pub fn semihost(&mut self, func: SemihostingStaticCall) -> &mut Self {
         self.semihost_func = func;
         self
     }
@@ -386,9 +389,9 @@ impl Processor {
             }
         }
     }
-    
+
     ///
-    /// BigEndian() returns true if the processor is big endian
+    /// `BigEndian()` returns true if the processor is big endian
     /// TODO: check architectures where this is supported
     pub fn big_endian(&self) -> bool {
         // TODO: should be AIRCR.ENDIANNESS==1

@@ -188,9 +188,9 @@ impl BaseReg for Processor {
             }
             Reg::SP => {
                 if self.control.sp_sel {
-                    self.set_psp(value)
+                    self.set_psp(value);
                 } else {
-                    self.set_msp(value)
+                    self.set_msp(value);
                 }
             }
             Reg::LR => {
@@ -224,7 +224,7 @@ impl BaseReg for Processor {
     }
 
     fn set_pc(&mut self, value: u32) {
-        self.pc = value
+        self.pc = value;
     }
 
     //
@@ -250,9 +250,9 @@ impl BaseReg for Processor {
             }
             Reg::SP => {
                 if self.control.sp_sel {
-                    self.psp += value
+                    self.psp += value;
                 } else {
-                    self.msp += value
+                    self.msp += value;
                 }
             }
             Reg::LR => self.lr += value,
@@ -282,9 +282,9 @@ impl BaseReg for Processor {
             }
             Reg::SP => {
                 if self.control.sp_sel {
-                    self.psp -= value
+                    self.psp -= value;
                 } else {
-                    self.msp -= value
+                    self.msp -= value;
                 }
             }
             Reg::LR => self.lr -= value,
@@ -430,96 +430,96 @@ pub trait Epsr {
 
 impl Apsr for PSR {
     fn get_n(&self) -> bool {
-        (*self).value.get_bit(31)
+        self.value.get_bit(31)
     }
 
     fn set_n(&mut self, result: u32) {
-        (*self).value &= 0x7fff_ffff;
-        (*self).value |= result & 0x8000_0000;
+        self.value &= 0x7fff_ffff;
+        self.value |= result & 0x8000_0000;
     }
 
     fn get_z(&self) -> bool {
-        (*self).value.get_bit(30)
+        self.value.get_bit(30)
     }
     fn set_z(&mut self, result: u32) {
         if result == 0 {
-            (*self).value |= 0x4000_0000;
+            self.value |= 0x4000_0000;
         } else {
-            (*self).value &= 0x4000_0000 ^ 0xffff_ffff;
+            self.value &= 0x4000_0000 ^ 0xffff_ffff;
         }
     }
 
     fn get_c(&self) -> bool {
-        (*self).value.get_bit(29)
+        self.value.get_bit(29)
     }
     fn set_c(&mut self, c: bool) {
         if c {
-            (*self).value |= 0x2000_0000;
+            self.value |= 0x2000_0000;
         } else {
-            (*self).value &= 0x2000_0000 ^ 0xffff_ffff;
+            self.value &= 0x2000_0000 ^ 0xffff_ffff;
         }
     }
     fn get_v(&self) -> bool {
-        (*self).value.get_bit(28)
+        self.value.get_bit(28)
     }
     fn set_v(&mut self, v: bool) {
         if v {
-            (*self).value |= 0x1000_0000;
+            self.value |= 0x1000_0000;
         } else {
-            (*self).value &= 0x1000_0000 ^ 0xffff_ffff;
+            self.value &= 0x1000_0000 ^ 0xffff_ffff;
         }
     }
 
     fn get_q(&self) -> bool {
-        (*self).value.get_bit(27)
+        self.value.get_bit(27)
     }
     fn set_q(&mut self, q: bool) {
-        (*self).value.set_bit(27, q);
+        self.value.set_bit(27, q);
     }
 
     fn set_ge0(&mut self, bit: bool) {
-        (*self).value.set_bit(16, bit);
+        self.value.set_bit(16, bit);
     }
     fn set_ge1(&mut self, bit: bool) {
-        (*self).value.set_bit(17, bit);
+        self.value.set_bit(17, bit);
     }
     fn set_ge2(&mut self, bit: bool) {
-        (*self).value.set_bit(18, bit);
+        self.value.set_bit(18, bit);
     }
     fn set_ge3(&mut self, bit: bool) {
-        (*self).value.set_bit(19, bit);
+        self.value.set_bit(19, bit);
     }
 
     fn get_ge0(&self) -> bool {
-        (*self).value.get_bit(16)
+        self.value.get_bit(16)
     }
     fn get_ge1(&self) -> bool {
-        (*self).value.get_bit(17)
+        self.value.get_bit(17)
     }
     fn get_ge2(&self) -> bool {
-        (*self).value.get_bit(18)
+        self.value.get_bit(18)
     }
     fn get_ge3(&self) -> bool {
-        (*self).value.get_bit(19)
+        self.value.get_bit(19)
     }
 }
 
 impl Epsr for PSR {
     fn get_t(&self) -> bool {
-        (*self).value.get_bit(24)
+        self.value.get_bit(24)
     }
     fn set_t(&mut self, n: bool) {
-        (*self).value.set_bit(24, n);
+        self.value.set_bit(24, n);
     }
 }
 
 impl Ipsr for PSR {
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn get_isr_number(&self) -> usize {
-        (*self).value.get_bits(0..9) as usize
+        self.value.get_bits(0..9) as usize
     }
 
-    #[cfg(any(feature="armv6m"))]
+    #[cfg(feature = "armv6m")]
     fn get_isr_number(&self) -> usize {
         (*self).value.get_bits(0..6) as usize
     }
@@ -529,7 +529,7 @@ impl Ipsr for PSR {
         self.value.set_bits(0..9, exception_number as u32);
     }
 
-    #[cfg(any(feature="armv6m"))]
+    #[cfg(feature = "armv6m")]
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..6, exception_number as u32);
     }
@@ -1001,8 +1001,8 @@ impl fmt::Display for Reg {
 impl fmt::Display for ExtensionReg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Self::Single { reg } => write!(f, "{}", reg),
-            Self::Double { reg } => write!(f, "{}", reg),
+            Self::Single { reg } => write!(f, "{reg}"),
+            Self::Double { reg } => write!(f, "{reg}"),
         }
     }
 }
@@ -1099,7 +1099,7 @@ pub struct Control {
 
 impl From<Control> for u8 {
     fn from(control: Control) -> Self {
-        control.n_priv as Self + ((control.sp_sel as Self) << 1)
+        Self::from(control.n_priv) + (Self::from(control.sp_sel) << 1)
     }
 }
 

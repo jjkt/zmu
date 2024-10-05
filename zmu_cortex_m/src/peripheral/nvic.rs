@@ -221,7 +221,7 @@ impl NVIC for Processor {
 
     fn nvic_read_ipr_u8(&self, index: usize) -> u8 {
         let priority = self.get_exception_priority(Interrupt { n: index });
-        assert!(priority >= 0 && priority < 256);
+        assert!((0..256).contains(&priority));
         priority as u8
     }
 
@@ -346,7 +346,7 @@ mod tests {
         processor.reset().unwrap();
 
         // Act
-        processor.nvic_write_ipr(0, 0xaabbccdd);
+        processor.nvic_write_ipr(0, 0xaabb_ccdd);
 
         // Assert
         assert_eq!(
@@ -365,10 +365,10 @@ mod tests {
             processor.get_exception_priority(Exception::Interrupt { n: 3 }),
             0xaa
         );
-        assert_eq!(processor.nvic_read_ipr(0), 0xaabbccdd);
+        assert_eq!(processor.nvic_read_ipr(0), 0xaabb_ccdd);
 
         // Act
-        processor.nvic_write_ipr(1, 0x12345678);
+        processor.nvic_write_ipr(1, 0x1234_5678);
 
         // Assert
         assert_eq!(
@@ -387,8 +387,8 @@ mod tests {
             processor.get_exception_priority(Exception::Interrupt { n: 7 }),
             0x12
         );
-        assert_eq!(processor.nvic_read_ipr(0), 0xaabbccdd);
-        assert_eq!(processor.nvic_read_ipr(1), 0x12345678);
+        assert_eq!(processor.nvic_read_ipr(0), 0xaabb_ccdd);
+        assert_eq!(processor.nvic_read_ipr(1), 0x1234_5678);
     }
 
     #[test]

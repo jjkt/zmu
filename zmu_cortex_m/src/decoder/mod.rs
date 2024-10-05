@@ -116,10 +116,10 @@ mod uxt;
 mod uxtab;
 
 mod vldr;
-mod vpush;
-mod vpop;
-mod vstr;
 mod vmov;
+mod vpop;
+mod vpush;
+mod vstr;
 
 use {
     crate::decoder::str::{
@@ -258,18 +258,18 @@ use crate::core::thumb::ThumbCode;
 use crate::Processor;
 use {
     vldr::{decode_VLDR_t1, decode_VLDR_t2},
-    vpush::decode_VPUSH_t1,
-    vpush::decode_VPUSH_t2,
-    vpop::decode_VPOP_t1,
-    vpop::decode_VPOP_t2,
-    vstr::{decode_VSTR_t1, decode_VSTR_t2},
-    vmov::decode_VMOV_scalar_cr,
+    vmov::decode_VMOV_cr2_dp,
+    vmov::decode_VMOV_cr2_sp2,
     vmov::decode_VMOV_cr_scalar,
     vmov::decode_VMOV_cr_sp,
-    vmov::decode_VMOV_reg,
     vmov::decode_VMOV_imm,
-    vmov::decode_VMOV_cr2_sp2,
-    vmov::decode_VMOV_cr2_dp
+    vmov::decode_VMOV_reg,
+    vmov::decode_VMOV_scalar_cr,
+    vpop::decode_VPOP_t1,
+    vpop::decode_VPOP_t2,
+    vpush::decode_VPUSH_t1,
+    vpush::decode_VPUSH_t2,
+    vstr::{decode_VSTR_t1, decode_VSTR_t2},
 };
 
 ///
@@ -293,10 +293,7 @@ impl Decoder for Processor {
 
 /// determine if 16 bit word is start of 32 thumb value
 pub fn is_thumb32(word: u16) -> bool {
-    match word.get_bits(11..16) {
-        0b11101 | 0b11110 | 0b11111 => true,
-        _ => false,
-    }
+    matches!(word.get_bits(11..16), 0b11101..=0b11111)
 }
 
 #[allow(non_snake_case)]

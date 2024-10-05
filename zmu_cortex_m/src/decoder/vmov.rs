@@ -28,8 +28,8 @@ use crate::core::{
 //      = 0x8 0000 0000 0000
 //
 // result = sign : exp : frac
-//        = 0 : 0x3ff : 0x8000000000000
-//        = 0x3ff8000000000000
+//        = 0 : 0x3ff : 0x8000_000000000
+//        = 0x3ff8_000000000000
 fn vfpexpand_imm64(imm8: u8) -> u64 {
     let e = 11;
     let f = 64 - e - 1;
@@ -40,13 +40,14 @@ fn vfpexpand_imm64(imm8: u8) -> u64 {
 
     let bit6_vec = if imm8.get_bit(6) { 0xff } else { 0 };
 
-    let exp: u64 = (!imm8.get_bit(6) as u64) << e | bit6_vec << 2 | imm8.get_bits(4..6) as u64;
+    let exp: u64 =
+        u64::from(!imm8.get_bit(6)) << e | bit6_vec << 2 | u64::from(imm8.get_bits(4..6));
     // frac is concatenation of: imm8 bits 3:0 : zeroes F-4 times
-    let upper = imm8.get_bits(0..4) as u64;
+    let upper = u64::from(imm8.get_bits(0..4));
     let frac: u64 = upper << (f - 4);
     // result is contatenation of sign : exp : frac
 
-    (sign as u64) << 63 | (exp as u64) << f | frac as u64
+    u64::from(sign) << 63 | exp << f | frac
 }
 
 fn vfpexpand_imm32(imm8: u8) -> u32 {
@@ -59,19 +60,20 @@ fn vfpexpand_imm32(imm8: u8) -> u32 {
 
     let bit6_vec = if imm8.get_bit(6) { 0x1f } else { 0 };
 
-    let exp: u32 = (!imm8.get_bit(6) as u32) << e | bit6_vec << 2 | imm8.get_bits(4..6) as u32;
+    let exp: u32 =
+        (u32::from(!imm8.get_bit(6))) << e | bit6_vec << 2 | u32::from(imm8.get_bits(4..6));
     // frac is concatenation of: imm8 bits 3:0 : zeroes F-4 times
-    let frac: u32 = (imm8.get_bits(0..4) as u32) << (f - 4);
+    let frac: u32 = u32::from(imm8.get_bits(0..4)) << (f - 4);
 
     // result is contatenation of sign : exp : frac
-    (sign as u32) << 31 | (exp as u32) << f | frac as u32
+    u32::from(sign) << 31 | exp << f | frac
 }
 
 #[allow(non_snake_case)]
 #[inline(always)]
 pub fn decode_VMOV_imm(opcode: u32) -> Instruction {
     let sz = opcode.get_bit(8);
-    let D = opcode.get_bit(22) as u8;
+    let D = u8::from(opcode.get_bit(22));
     let vd = opcode.get_bits(12..16) as u8;
     let imm4l = opcode.get_bits(0..4) as u8;
     let imm4h = opcode.get_bits(16..20) as u8;
@@ -100,9 +102,9 @@ pub fn decode_VMOV_reg(opcode: u32) -> Instruction {
     let sz = opcode.get_bit(8);
 
     let vm = opcode.get_bits(0..4) as u8;
-    let M = opcode.get_bit(5) as u8;
+    let M = u8::from(opcode.get_bit(5));
     let vd = opcode.get_bits(12..16) as u8;
-    let D = opcode.get_bit(22) as u8;
+    let D = u8::from(opcode.get_bit(22));
 
     let dp_operation = sz;
 
@@ -162,7 +164,7 @@ pub fn decode_VMOV_cr_sp(opcode: u32) -> Instruction {
 
     let N = opcode.get_bit(7);
     let vn = (opcode.get_bits(16..20) as u8) << 1;
-    let sn = SingleReg::from(vn | (N as u8));
+    let sn = SingleReg::from(vn | u8::from(N));
     Instruction::VMOV_cr_sp {
         params: VMovCrSpParams {
             to_arm_register: opcode.get_bit(20),
@@ -211,7 +213,7 @@ pub fn decode_VMOV_cr2_dp(opcode: u32) -> Instruction {
 
     let M = opcode.get_bit(5);
     let vm = opcode.get_bits(0..4) as u8;
-    let m = ((M as u8) << 4) + vm;
+    let m = ((u8::from(M)) << 4) + vm;
 
     let dm = DoubleReg::from(m);
 
