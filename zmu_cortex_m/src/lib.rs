@@ -23,6 +23,7 @@
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::redundant_else)]
 #![allow(clippy::empty_docs)]
+#![allow(clippy::nonminimal_bool)]
 
 extern crate byteorder;
 extern crate enum_set;

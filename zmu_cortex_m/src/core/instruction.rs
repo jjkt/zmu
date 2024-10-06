@@ -310,6 +310,33 @@ pub struct VPushPopParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub enum AddressingMode {
+    IncrementAfter,
+    DecrementBefore,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VStoreMultipleParams32 {
+    pub mode: AddressingMode,
+    pub rn: Reg,
+    pub write_back: bool,
+    pub list: EnumSet<SingleReg>,
+    pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VStoreMultipleParams64 {
+    pub mode: AddressingMode,
+    pub rn: Reg,
+    pub write_back: bool,
+    pub list: EnumSet<DoubleReg>,
+    pub imm32: u32,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct VMovImmParams32 {
     pub sd: SingleReg,
     pub imm32: u32,
@@ -1267,7 +1294,12 @@ pub enum Instruction {
     VPOP {
         params: VPushPopParams,
     },
-    // VSTM
+    VSTM_T1 {
+        params: VStoreMultipleParams64,
+    },
+    VSTM_T2 {
+        params: VStoreMultipleParams32,
+    },
 
     // --------------------------------------------
     //
@@ -2275,6 +2307,30 @@ impl fmt::Display for Instruction {
             ),
             Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
             Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
+            Self::VSTM_T1 { params } => write!(
+                f,
+                "vstm{}.64, {}{} {:?}",
+                if params.mode == AddressingMode::IncrementAfter {
+                    "ia"
+                } else {
+                    "db"
+                },
+                params.rn,
+                if params.write_back { "!" } else { "" },
+                params.list
+            ),
+            Self::VSTM_T2 { params } => write!(
+                f,
+                "vstm{}.32, {}{} {:?}",
+                if params.mode == AddressingMode::IncrementAfter {
+                    "ia"
+                } else {
+                    "db"
+                },
+                params.rn,
+                if params.write_back { "!" } else { "" },
+                params.list
+            ),
             Self::VPUSH { params } => write!(
                 f,
                 "vpush {}",
@@ -2670,7 +2726,8 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //VRINTZ, VRINTR
         //VSEL
         //VSQRT
-        //VSTM
+        Instruction::VSTM_T1 { .. } => 4,
+        Instruction::VSTM_T2 { .. } => 4,
         //VSTR
         //VSUB
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),

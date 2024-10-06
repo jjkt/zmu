@@ -517,6 +517,8 @@ impl ExecutorHelper for Processor {
             // --------------------------------------------
             Instruction::VLDR { params } => self.exec_vldr(params),
             Instruction::VSTR { params } => self.exec_vstr(params),
+            Instruction::VSTM_T1 { params } => self.exec_vstm_t1(params),
+            Instruction::VSTM_T2 { params } => self.exec_vstm_t2(params),
             Instruction::VPUSH { params } => self.exec_vpush(params),
             Instruction::VPOP { params } => self.exec_vpop(params),
             Instruction::VMOV_imm_32 { params } => self.exec_vmov_imm_32(*params),

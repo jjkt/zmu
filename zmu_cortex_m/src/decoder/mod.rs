@@ -120,6 +120,7 @@ mod vmov;
 mod vpop;
 mod vpush;
 mod vstr;
+mod vstm;
 
 use {
     crate::decoder::str::{
@@ -270,6 +271,7 @@ use {
     vpush::decode_VPUSH_t1,
     vpush::decode_VPUSH_t2,
     vstr::{decode_VSTR_t1, decode_VSTR_t2},
+    vstm::{decode_VSTM_t1, decode_VSTM_t2},
 };
 
 ///
