@@ -1,5 +1,5 @@
 use crate::core::instruction::{
-    BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32,
+    AddressingMode, BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32,
     Reg2DoubleParams, Reg2FullParams, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params,
     Reg2RdRmParams, Reg2RnRmParams, Reg2RtRnImm32Params, Reg2ShiftNParams,
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
@@ -3033,4 +3033,23 @@ fn test_decode_vmov_imm() {
             }
         }
     );
+}
+
+#[test]
+fn test_decode_vstm_32_ia() {
+    //ecee 7a01       vstmia  lr!, {s15}
+
+    match decode_32(0xecee_7a01) {
+        Instruction::VSTM_T2 { params } => {
+            assert_eq!(params.mode, AddressingMode::IncrementAfter);
+            let single_regs: Vec<_> = params.list.iter().collect();
+            assert_eq!(vec![SingleReg::S15], single_regs);
+            assert_eq!(params.imm32, 4);
+            assert_eq!(params.rn, Reg::LR);
+            assert!(params.write_back);
+        }
+        _ => {
+            unreachable!();
+        }
+    }
 }

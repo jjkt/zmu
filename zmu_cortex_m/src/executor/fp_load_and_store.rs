@@ -1,4 +1,6 @@
-use crate::core::instruction::VPushPopParams;
+use crate::core::instruction::{
+    AddressingMode, VPushPopParams, VStoreMultipleParams32, VStoreMultipleParams64,
+};
 use crate::Processor;
 
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
@@ -18,6 +20,8 @@ pub trait IsaFloatingPointLoadAndStore {
     fn exec_vstr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult;
     fn exec_vpush(&mut self, params: &VPushPopParams) -> ExecuteResult;
     fn exec_vpop(&mut self, params: &VPushPopParams) -> ExecuteResult;
+    fn exec_vstm_t1(&mut self, params: &VStoreMultipleParams64) -> ExecuteResult;
+    fn exec_vstm_t2(&mut self, params: &VStoreMultipleParams32) -> ExecuteResult;
 }
 
 impl IsaFloatingPointLoadAndStore for Processor {
@@ -133,6 +137,72 @@ impl IsaFloatingPointLoadAndStore for Processor {
                     let high_word = self.read32(address + 4)?;
                     self.set_dr(reg, low_word, high_word);
                 }
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_vstm_t1(&mut self, params: &VStoreMultipleParams64) -> ExecuteResult {
+        if self.condition_passed() {
+            //self.execute_fp_check();
+
+            let mut address = if params.mode == AddressingMode::IncrementAfter {
+                self.get_r(params.rn)
+            } else {
+                self.get_r(params.rn) - params.imm32
+            };
+
+            if params.write_back {
+                let write_back_value = if params.mode == AddressingMode::IncrementAfter {
+                    self.get_r(params.rn) + params.imm32
+                } else {
+                    self.get_r(params.rn) - params.imm32
+                };
+                self.set_r(params.rn, write_back_value);
+            }
+
+            for reg in &params.list {
+                let (low_word, high_word) = self.get_dr(reg);
+                if self.big_endian() {
+                    self.write32(address, high_word)?;
+                    self.write32(address + 4, low_word)?;
+                } else {
+                    self.write32(address, low_word)?;
+                    self.write32(address + 4, high_word)?;
+                }
+                address += 8;
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_vstm_t2(&mut self, params: &VStoreMultipleParams32) -> ExecuteResult {
+        if self.condition_passed() {
+            //self.execute_fp_check();
+
+            let mut address = if params.mode == AddressingMode::IncrementAfter {
+                self.get_r(params.rn)
+            } else {
+                self.get_r(params.rn) - params.imm32
+            };
+
+            if params.write_back {
+                let write_back_value = if params.mode == AddressingMode::IncrementAfter {
+                    self.get_r(params.rn) + params.imm32
+                } else {
+                    self.get_r(params.rn) - params.imm32
+                };
+                self.set_r(params.rn, write_back_value);
+            }
+
+            for reg in &params.list {
+                let value = self.get_sr(reg);
+                self.write32(address, value)?;
+                address += 4;
             }
 
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
