@@ -39,3 +39,4 @@ tests/coremark/coremark/
 tests/cortex-m-rtic/
 .idea/
 
+tests/cmsis/builddir-*/
