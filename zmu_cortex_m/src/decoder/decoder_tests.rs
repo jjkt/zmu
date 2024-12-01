@@ -5,7 +5,7 @@ use crate::core::instruction::{
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, UbfxParams,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, BfxParams,
     VMovCr2DpParams, VMovCrSpParams, VMovImmParams64, VMovRegParamsf32,
 };
 
@@ -1448,10 +1448,26 @@ fn test_decode_ubfx() {
     assert_eq!(
         decode_32(0xf3c0_0140),
         Instruction::UBFX {
-            params: UbfxParams {
+            params: BfxParams {
                 rd: Reg::R1,
                 rn: Reg::R0,
                 lsb: 1,
+                widthminus1: 0,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_sbfx() {
+    // SBFX    r3, r3, #0, #1
+    assert_eq!(
+        decode_32(0xf343_0300),
+        Instruction::SBFX {
+            params: BfxParams {
+                rd: Reg::R3,
+                rn: Reg::R3,
+                lsb: 0,
                 widthminus1: 0,
             }
         }

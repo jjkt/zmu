@@ -7,7 +7,7 @@ use super::ExecuteResult;
 use crate::core::{
     bits::Bits,
     instruction::{
-        BfcParams, BfiParams, MovtParams, Reg2RdRmParams, Reg3NoSetFlagsParams, UbfxParams,
+        BfcParams, BfiParams, MovtParams, Reg2RdRmParams, Reg3NoSetFlagsParams, BfxParams,
     },
     operation::sign_extend,
     register::{Apsr, BaseReg},
@@ -25,7 +25,8 @@ pub trait IsaMiscDataProcessing {
     fn exec_rev16(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
     fn exec_revsh(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
     fn exec_sel(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult;
-    fn exec_ubfx(&mut self, params: &UbfxParams) -> ExecuteResult;
+    fn exec_ubfx(&mut self, params: &BfxParams) -> ExecuteResult;
+    fn exec_sbfx(&mut self, params: &BfxParams) -> ExecuteResult;
 }
 
 impl IsaMiscDataProcessing for Processor {
@@ -170,13 +171,30 @@ impl IsaMiscDataProcessing for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
-    fn exec_ubfx(&mut self, params: &UbfxParams) -> ExecuteResult {
+    fn exec_ubfx(&mut self, params: &BfxParams) -> ExecuteResult {
         if self.condition_passed() {
             let msbit = params.lsb + params.widthminus1;
             if msbit <= 31 {
                 let upper = msbit + 1;
                 let data = self.get_r(params.rn).get_bits(params.lsb..upper);
                 self.set_r(params.rd, data);
+            } else {
+                todo!();
+            }
+
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_sbfx(&mut self, params: &BfxParams) -> ExecuteResult {
+        if self.condition_passed() {
+            let msbit = params.lsb + params.widthminus1;
+            if msbit <= 31 {
+                let upper = msbit + 1;
+                let data = self.get_r(params.rn).get_bits(params.lsb..upper);
+                let data = sign_extend(data, msbit, 32) as i32;
+                self.set_r(params.rd, data as u32);
             } else {
                 todo!();
             }

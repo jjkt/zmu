@@ -394,6 +394,7 @@ impl ExecutorHelper for Processor {
             Instruction::REVSH { params, .. } => self.exec_revsh(*params),
 
             Instruction::UBFX { params } => self.exec_ubfx(params),
+            Instruction::SBFX { params } => self.exec_sbfx(params),
 
             // --------------------------------------------
             //
