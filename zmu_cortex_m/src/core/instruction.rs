@@ -417,7 +417,7 @@ pub struct Reg2RtRnImm32Params {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct UbfxParams {
+pub struct BfxParams {
     pub rd: Reg,
     pub rn: Reg,
     pub lsb: usize,
@@ -976,9 +976,12 @@ pub enum Instruction {
     },
 
     //SBFX - signed bit field extract
+    SBFX {
+        params: BfxParams,
+    },
     /// Unsigned bit field extract
     UBFX {
-        params: UbfxParams,
+        params: BfxParams,
     },
 
     // --------------------------------------------
@@ -2305,6 +2308,14 @@ impl fmt::Display for Instruction {
                 params.lsb,
                 params.widthminus1 + 1
             ),
+            Self::SBFX { params } => write!(
+                f,
+                "sbfx {}, {}, #{}, #{}",
+                params.rd,
+                params.rn,
+                params.lsb,
+                params.widthminus1 + 1
+            ),
             Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
             Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
             Self::VSTM_T1 { params } => write!(
@@ -2589,7 +2600,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         //SASX
         Instruction::SBC_imm { .. } => 4,
         Instruction::SBC_reg { thumb32, .. } => isize_t(*thumb32),
-        //SBFX
+        Instruction::SBFX { .. } => 4,
         Instruction::SDIV { .. } => 4,
         Instruction::SEL { .. } => 4,
         Instruction::SEV { thumb32, .. } => isize_t(*thumb32),
