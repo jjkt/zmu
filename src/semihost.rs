@@ -82,6 +82,12 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     SemihostingResponse::SysIstty { result: Err(-1) }
                 }
             }
+            SemihostingCommand::SysWriteC {ref data} => {
+                // println!("writec: data={:?}", data);
+                print!("{}", *data as char);
+                io::stdout().flush().expect("Could not flush stdout");
+                SemihostingResponse::SysWrite { result: Ok(0) }
+            }
             SemihostingCommand::SysWrite { handle, ref data } => {
                 // println!("write: handle={}, data={:?}", handle, data);
                 if *handle == TT_HANDLE_STDOUT {
