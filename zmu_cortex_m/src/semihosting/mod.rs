@@ -107,6 +107,13 @@ pub enum SemihostingCommand {
         handle: u32,
     },
     ///
+    /// Write single char to the debug console
+    /// 
+    SysWriteC {
+        /// char to write
+        data: u8,
+    },
+    ///
     /// Write data to open file handle
     ///
     SysWrite {
@@ -230,6 +237,7 @@ pub enum SemihostingResponse {
 
 const SYS_OPEN: u32 = 0x01;
 const SYS_CLOSE: u32 = 0x02;
+const SYS_WRITEC: u32 = 0x03;
 const SYS_WRITE: u32 = 0x05;
 const SYS_READ: u32 = 0x06;
 const SYS_ISTTY: u32 = 0x09;
@@ -272,6 +280,13 @@ pub fn decode_semihostcmd(
             let params_ptr = r1;
             let handle = processor.read32(params_ptr)?;
             SemihostingCommand::SysClose { handle }
+        }
+        SYS_WRITEC => {
+            let params_ptr = r1;
+            let ch = processor.read8(params_ptr)?;
+            SemihostingCommand::SysWriteC {
+                data: ch,
+            }
         }
         SYS_WRITE => {
             let params_ptr = r1;
