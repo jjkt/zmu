@@ -1,7 +1,7 @@
 use crate::Processor;
 
 use crate::{
-    core::{bits::Bits, condition::Condition, exception::ExceptionHandling},
+    core::{condition::Condition, exception::ExceptionHandling},
     executor::{ExecuteSuccess, ExecutorHelper},
 };
 
@@ -98,7 +98,7 @@ impl IsaMisc for Processor {
     fn exec_wfi(&mut self) -> ExecuteResult {
         if self.condition_passed() {
             if self.get_pending_exception().is_none() {
-                self.state.set_bit(1, true); // sleeping == true
+                self.sleeping = true;
             }
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }

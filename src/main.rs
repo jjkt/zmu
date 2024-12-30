@@ -59,7 +59,7 @@ fn run_bin(
     trace: bool,
     option_trace_start: Option<u64>,
     itm_file: Option<Box<dyn io::Write + 'static>>,
-) -> Result<()> {
+) -> Result<u32> {
     let res = Object::parse(buffer).unwrap();
 
     let elf = match res {
@@ -196,7 +196,7 @@ fn run_bin(
         cycles_per_sec,
         cycles_per_sec / 1_000_000.0,
     );
-    Ok(())
+    Ok(statistics.exit_code)
 }
 
 fn open_itm_file(filename: &str) -> Option<Box<dyn io::Write + 'static>> {
@@ -208,8 +208,8 @@ fn open_itm_file(filename: &str) -> Option<Box<dyn io::Write + 'static>> {
     }
 }
 
-fn run(args: &ArgMatches) -> Result<()> {
-    match args.subcommand() {
+fn run(args: &ArgMatches) -> Result<u32> {
+    let exit_code = match args.subcommand() {
         Some(("run", run_matches)) => {
             let filename = run_matches
                 .get_one::<String>("EXECUTABLE")
@@ -234,13 +234,13 @@ fn run(args: &ArgMatches) -> Result<()> {
                 run_matches.get_flag("trace"),
                 trace_start,
                 itm_output,
-            )?;
+            )?
         }
         Some((_, _)) => unreachable!(),
         None => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
-    }
+    };
 
-    Ok(())
+    Ok(exit_code)
 }
 
 fn main() {
@@ -301,17 +301,23 @@ fn main() {
         .init()
         .unwrap();
 
-    if let Err(ref e) = run(&cmd) {
-        error!("error: {}", e);
-
-        for e in e.iter().skip(1) {
-            error!("caused by: {}", e);
+    let result = run(&cmd);
+    match result {
+        Ok(exit_code) => {
+            std::process::exit(exit_code as i32);
         }
+        Err(ref e) => {
+            error!("error: {}", e);
 
-        if let Some(backtrace) = e.backtrace() {
-            error!("backtrace: {:?}", backtrace);
+            for e in e.iter().skip(1) {
+                error!("caused by: {}", e);
+            }
+
+            if let Some(backtrace) = e.backtrace() {
+                error!("backtrace: {:?}", backtrace);
+            }
+
+            ::std::process::exit(1);
         }
-
-        ::std::process::exit(1);
     }
 }
