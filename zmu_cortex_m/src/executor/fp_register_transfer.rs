@@ -1,13 +1,17 @@
 use crate::core::instruction::{
-    VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64, VMovRegParamsf32,
-    VMovRegParamsf64,
+    VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
+    VMovRegParamsf32, VMovRegParamsf64,
 };
+
+use crate::core::fpregister::Fpscr;
 use crate::Processor;
 
 use crate::executor::ExecuteSuccess;
 
 use super::ExecuteResult;
-use crate::core::register::{BaseReg, ExtensionRegOperations};
+use crate::core::register::{BaseReg, ExtensionRegOperations, Apsr};
+
+use crate::executor::ExecutorHelper;
 
 pub trait IsaFloatingPointRegisterTransfer {
     fn exec_vmov_cr_sp(&mut self, params: &VMovCrSpParams) -> ExecuteResult;
@@ -18,6 +22,8 @@ pub trait IsaFloatingPointRegisterTransfer {
 
     fn exec_vmov_imm_32(&mut self, params: VMovImmParams32) -> ExecuteResult;
     fn exec_vmov_imm_64(&mut self, params: VMovImmParams64) -> ExecuteResult;
+
+    fn exec_vmrs(&mut self, params: VMRSTarget) -> ExecuteResult;
 }
 
 impl IsaFloatingPointRegisterTransfer for Processor {
@@ -66,6 +72,33 @@ impl IsaFloatingPointRegisterTransfer for Processor {
     fn exec_vmov_imm_64(&mut self, params: VMovImmParams64) -> ExecuteResult {
         let (low, high) = (params.imm64 as u32, (params.imm64 >> 32) as u32);
         self.set_dr(params.dd, low, high);
+        Ok(ExecuteSuccess::Taken { cycles: 1 })
+    }
+
+    fn exec_vmrs(&mut self, params: VMRSTarget) -> ExecuteResult {
+        if self.condition_passed() {
+            //EncodingSpecificOperations();
+            //ExecuteFPCheck();
+            //SerializeVFP();
+            //VFPExcBarrier();
+
+            match params {
+                VMRSTarget::APSRNZCV => {
+                    let n = self.fpscr.get_n();
+                    let z = self.fpscr.get_z();
+                    let c = self.fpscr.get_c();
+                    let v = self.fpscr.get_v();
+
+                    self.psr.set_n_bit(n);
+                    self.psr.set_z_bit(z);
+                    self.psr.set_c(c);
+                    self.psr.set_v(v);
+                }
+                VMRSTarget::Register(reg) => {
+                    self.set_r(reg, self.fpscr);
+                }
+            }
+        }
         Ok(ExecuteSuccess::Taken { cycles: 1 })
     }
 }

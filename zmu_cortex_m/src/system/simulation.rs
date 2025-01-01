@@ -2,7 +2,6 @@
 //! Cortex system simulation framework
 //!
 
-use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
@@ -44,6 +43,11 @@ pub struct SimulationStatistics {
     /// Wallclock time spent for the simulation
     ///
     pub duration: Duration,
+
+    ///
+    /// exit code from process, if any
+    /// 
+    pub exit_code: u32
 }
 
 impl From<Fault> for SimulationError {
@@ -74,15 +78,15 @@ pub fn simulate(
 
     let start = Instant::now();
     processor.reset()?;
-    processor.state.set_bit(0, true); // running
+    processor.running = true;
 
-    while processor.state & 1 == 1 {
-        while processor.state == 0b01 {
+    while processor.running {
+        while !processor.sleeping && processor.running {
             //running, !sleeping
             processor.step();
         }
 
-        while processor.state == 0b11 {
+        while processor.sleeping && processor.running{
             //running, sleeping
             processor.step_sleep();
         }
@@ -93,6 +97,7 @@ pub fn simulate(
         instruction_count: processor.instruction_count,
         cycle_count: processor.cycle_count,
         duration: end.duration_since(start),
+        exit_code: processor.exit_code,
     })
 }
 
@@ -120,17 +125,17 @@ where
     let start = Instant::now();
 
     processor.reset().unwrap();
-    processor.state.set_bit(0, true); // running
+    processor.running = true;
 
-    while processor.state & 1 == 1 {
-        while processor.state == 0b01 {
+    while processor.running {
+        while !processor.sleeping && processor.running {
             //running, !sleeping
             processor.last_pc = processor.get_pc();
             processor.step();
             trace_func(&processor);
         }
         processor.last_pc = processor.get_pc();
-        while processor.state == 0b11 {
+        while processor.sleeping && processor.running {
             //running, sleeping
             processor.step_sleep();
         }
@@ -142,5 +147,6 @@ where
         instruction_count: processor.instruction_count,
         cycle_count: processor.cycle_count,
         duration: end.duration_since(start),
+        exit_code: processor.exit_code
     })
 }

@@ -10,6 +10,9 @@
 	"settings": {
 		"rust-analyzer.cargo.features": [
 			"armv7em generic-device"
-		]
+		],
+		"files.associations": {
+			"assert.h": "c"
+		}
 	}
 }

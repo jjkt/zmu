@@ -6,6 +6,8 @@ use crate::core::condition::Condition;
 use crate::core::register::{DoubleReg, ExtensionReg, Reg, SingleReg};
 use crate::core::thumb::ThumbCode;
 use enum_set::EnumSet;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 ///
@@ -358,6 +360,24 @@ pub struct VMovRegParamsf32 {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VCmpParamsf32 {
+    pub sd: SingleReg,
+    pub sm: SingleReg,
+    pub quiet_nan_exc: bool,
+    pub with_zero: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VCmpParamsf64 {
+    pub dd: DoubleReg,
+    pub dm: DoubleReg,
+    pub quiet_nan_exc: bool,
+    pub with_zero: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct VMovRegParamsf64 {
     pub dd: DoubleReg,
     pub dm: DoubleReg,
@@ -490,6 +510,21 @@ pub struct BfiParams {
     pub rn: Reg,
     pub lsbit: usize,
     pub width: usize,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum VMRSTarget {
+    APSRNZCV,
+    Register(Reg),
+}
+impl Display for VMRSTarget {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            VMRSTarget::APSRNZCV => write!(f, "APSR_nzcv"),
+            VMRSTarget::Register(r) => write!(f, "{:?}", r),
+        }
+    }
 }
 
 #[allow(non_camel_case_types, missing_docs)]
@@ -773,6 +808,10 @@ pub enum Instruction {
     // Group: Multiply instructions
     //
     // --------------------------------------------
+
+    //
+    // Subgroup: General multiply instructions
+    //
     /// Multipy and Accumulate
     MLA {
         params: Reg4NoSetFlagsParams,
@@ -786,11 +825,10 @@ pub enum Instruction {
         params: Reg3Params,
         thumb32: bool,
     },
-    // --------------------------------------------
+
     //
-    // Group: Signed multiply instructions (ArmV7-m)
+    // Subgroup: Signed multiply instructions (ArmV7-m)
     //
-    // --------------------------------------------
     /// Signed Multiply and Accumulate (Long)
     SMLAL {
         params: Reg643232Params,
@@ -800,22 +838,9 @@ pub enum Instruction {
         params: Reg643232Params,
     },
 
-    // --------------------------------------------
     //
-    // Group: Unsigned Multiply instructions (ARMv7-M base architecture)
+    // Subgroup: Signed Multiply instructions (ARMv7-M DSP extension)
     //
-    // --------------------------------------------
-    UMLAL {
-        params: Reg643232Params,
-    },
-    UMULL {
-        params: Reg643232Params,
-    },
-    // --------------------------------------------
-    //
-    // Group: Signed Multiply instructions (ARMv7-M DSP extension)
-    //
-    // --------------------------------------------
     /// Signed multiply: halfwords
     /// variants: SMULTT, SMULBB, SMULTB, SMULBT
     SMUL {
@@ -828,37 +853,85 @@ pub enum Instruction {
     },
 
     //SMLAL second variant?
-    //SMLALD
-    //SMLAW
-    //SMLSD
-    //SMLSLD
-    //SMMLA
-    //SMMLS
-    //SMMUL
-    //SMUAD
+
+    // Signed Multiply Accumulate Long, halfwords
+    // SMLABB, SMLABT, SMLATT, SMLATB
+
+    // Signed Multiply Accumulate Dual
+    // SMLAD, SMLADX
+
+    // Signed Multiply Accumulate Long, halfwords
+    // SMLALBB, SMLALBT, SMLALTT, SMLALTB
+
+    // Signed Multiply Accumulate Long Dual
+    // SMLALD, SMLALDX
+
+    // Signed Multiply Accumulate, word by halfword
+    // SMLAWB, SMLAWT
+
+    // Signed Multiply Subtract Dual
+    // SMLSD, SMLSDX
+
+    // Signed Multiply Subtract Long Dual
+    // SMLSLD, SMLSLDX
+
+    // Signed most significant word Multiply Accumulate
+    // SMMLA, SMMLAR
+
+    // Signed most significant word Multiply Subtract
+    // SMMLS, SMMLSR
+
+    // Signed most significant Word Multiply
+    // SMMUL, SMMULR
+
+    // Signed Dual Multiply Add
+    // SMUAD, SMUADX
+
+    // Signed Multiply, halfwords
+    // SMULBB, SMULBT, SMULTB, SMULTT
+
+    // Signed Multiply, word by halfword
+    // SMULWB, SMULWT
+
+    // Signed Dual Multiply Subtract
+    // SMUSD, SMUSDX
+
+    //
+    // Subgroup: Unsigned Multiply instructions (ARMv7-M base architecture)
+    //
+    UMLAL {
+        params: Reg643232Params,
+    },
+    UMULL {
+        params: Reg643232Params,
+    },
+
+    //
+    // Subgroup: Unsigned multiply instructions (Armv7-M DSP extension)
+    //
+    // UMAAL
 
     // --------------------------------------------
     //
-    // Group: Saturating instructions (ARMv7-M base arch)
+    // Group: Saturating instructions
     //
     // --------------------------------------------
 
+    //
+    // Subgroup: Saturating instructions (ARMv7-M base arch)
+    //
     //SSAT
     //USAT
 
-    // --------------------------------------------
     //
-    // Group: Unsigned Saturating instructions (ARMv7-M DSP extensions)
+    // Subgroup: Halfword saturating instructions, (ARMv7-M DSP extensions)
     //
-    // --------------------------------------------
     //USAT16
     //SSAT16
 
-    // --------------------------------------------
     //
-    // Group: Saturating add/sub (ARMv7-M DSP extensions)
+    // Subgroup: Saturating addition and subtraction instructions, Armv7-M DSP extension
     //
-    // --------------------------------------------
     //QADD
     //QSUB
     //QDADD
@@ -869,6 +942,10 @@ pub enum Instruction {
     // Group: Packing and unpacking instructions
     //
     // --------------------------------------------
+
+    //
+    // Subgroup: Packing and unpacking instructions (ARMv7-M base arch)
+    //
     /// Signed Extend Byte
     SXTB {
         params: Reg2UsizeParams,
@@ -889,11 +966,10 @@ pub enum Instruction {
         params: Reg2UsizeParams,
         thumb32: bool,
     },
-    // --------------------------------------------
+
     //
-    // Group: Packing and unpacking instructions (DSP extensions)
+    // Subgroup: Packing and unpacking instructions, Armv7-M DSP extension
     //
-    // --------------------------------------------
     //PKHBT, PKHTB
     //SXTAB
     //SXTAB16
@@ -940,6 +1016,10 @@ pub enum Instruction {
     // Group: Miscellaneous data-processing instructions
     //
     // --------------------------------------------
+
+    //
+    // Subgroup: Miscellaneous data-processing instructions, Armv7-M base architecture
+    //
     /// Bit Field Clear
     BFC {
         params: BfcParams,
@@ -984,11 +1064,9 @@ pub enum Instruction {
         params: BfxParams,
     },
 
-    // --------------------------------------------
     //
-    // Group: Miscellaneous data-processing instructions (DSP extensions)
+    // Subgroup: Miscellaneous data-processing instructions, Armv7-M DSP extension
     //
-    // --------------------------------------------
     /// Select bytes using GE flags
     SEL {
         params: Reg3NoSetFlagsParams,
@@ -1020,7 +1098,7 @@ pub enum Instruction {
 
     // --------------------------------------------
     //
-    // Group:  Load and Store instructions
+    // Group: Load and Store instructions
     //
     // --------------------------------------------
     LDR_reg {
@@ -1135,7 +1213,7 @@ pub enum Instruction {
 
     // --------------------------------------------
     //
-    // Group:  Load and Store Multiple instructions
+    // Group: Load and Store Multiple instructions
     //
     // --------------------------------------------
     LDM {
@@ -1160,7 +1238,7 @@ pub enum Instruction {
 
     // --------------------------------------------
     //
-    // Group: Miscellaneous
+    // Group: Miscellaneous instructions
     //
     // --------------------------------------------
     //CLREX
@@ -1336,17 +1414,28 @@ pub enum Instruction {
     VMOV_cr2_dp {
         params: VMovCr2DpParams,
     },
-    //VMRS
-    //VMRS
+    VMRS {
+        rt: VMRSTarget,
+    },
 
     // --------------------------------------------
     //
     // Group: Floating-point data-processing instructions
     //
     // --------------------------------------------
-    // VABS
+    VABS_f32 {
+        params: VMovRegParamsf32,
+    },
+    VABS_f64 {
+        params: VMovRegParamsf64,
+    },
     //VADD
-    //VCMP
+    VCMP_f32 {
+        params: VCmpParamsf32,
+    },
+    VCMP_f64 {
+        params: VCmpParamsf64,
+    },
     //VCVT
     //VDIV
     //VFMA
@@ -2411,6 +2500,29 @@ impl fmt::Display for Instruction {
                     }
                 )
             }
+            Self::VABS_f32 { params } => write!(f, "vabs.f32 {}, {}", params.sd, params.sm),
+            Self::VABS_f64 { params } => write!(f, "vabs.f64 {}, {}", params.dd, params.dm),
+            Self::VMRS { rt } => write!(f, "vmrs {}, fpscr", rt),
+            Self::VCMP_f32 { params } => write!(
+                f,
+                "vcmp.f32 {}, {}",
+                params.sd,
+                if params.with_zero {
+                    "#0".to_string()
+                } else {
+                    format!("{}", params.sm)
+                }
+            ),
+            Self::VCMP_f64 { params } => write!(
+                f,
+                "vcmp.f64 {}, {}",
+                params.dd,
+                if params.with_zero {
+                    "#0".to_string()
+                } else {
+                    format!("{}", params.dm)
+                }
+            ),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2698,9 +2810,11 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::UXTB { thumb32, .. } => isize_t(*thumb32),
         Instruction::UXTH { thumb32, .. } => isize_t(*thumb32),
 
-        //VABS
+        Instruction::VABS_f32 { params } => 4,
+        Instruction::VABS_f64 { params } => 4,
         //VADD
-        //VCMP
+        Instruction::VCMP_f32 { params } => 4,
+        Instruction::VCMP_f64 { params } => 4,
         //VCVTX
         //VCVT
         //VCVTB
@@ -2725,7 +2839,7 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::VMOV_cr2_sp2 { .. } => 4,
         Instruction::VMOV_cr2_dp { .. } => 4,
 
-        //VMRS
+        Instruction::VMRS { .. } => 4,
         //VMSR
         //VMUL
         //VNEG

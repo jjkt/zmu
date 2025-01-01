@@ -25,13 +25,13 @@ function arch_supports_cores()
 }
 
 declare -a archs=("armv6m" "armv7m" "armv7em")
-declare -a gcc_tests=("hello_world" "pi" "instruction-test-bench")
+declare -a gcc_tests=("hello_world" "instruction-test-bench" "pi")
 
 for i in "${gcc_tests[@]}"
 do
    cd tests/$i
    make -s clean
-   make -s
+   make
    cd ../..
    for a in "${archs[@]}"
    do
@@ -42,7 +42,12 @@ do
       for c in "${cores[@]}"
       do
          echo "./target/release/zmu-$a run tests/$i/$i-$c.elf"
+         # read return code and abort on failure:
          ./target/release/zmu-$a run tests/$i/$i-$c.elf
+         if [[ $? -ne 0 ]]; then
+            echo "Test failed"
+            exit $?
+         fi
          echo ""
       done
    done

@@ -168,12 +168,24 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     stop,
                 }
             }
-            SemihostingCommand::SysExitExtended { ref reason, .. } => {
+            SemihostingCommand::SysExitExtended { ref reason, subcode    } => {
                 // println!("sys exit {:?}", reason);
+
+                let stop = matches!(
+                    reason,
+                    SysExceptionReason::ADPStoppedApplicationExit | SysExceptionReason::ADPStoppedRunTimeErrorUnknown
+                );
+
+                let exit_code = if reason == &SysExceptionReason::ADPStoppedApplicationExit {
+                    Some(*subcode)
+                } else {
+                    None
+                };
 
                 SemihostingResponse::SysExitExtended {
                     success: true,
-                    stop: reason == &SysExceptionReason::ADPStoppedApplicationExit,
+                    stop,
+                    exit_code
                 }
             }
             SemihostingCommand::SysErrno { .. } => {

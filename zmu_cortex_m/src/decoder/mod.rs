@@ -115,12 +115,15 @@ mod umull;
 mod uxt;
 mod uxtab;
 
+mod vabs;
+mod vcmp;
 mod vldr;
 mod vmov;
+mod vmrs;
 mod vpop;
 mod vpush;
-mod vstr;
 mod vstm;
+mod vstr;
 
 use {
     crate::decoder::str::{
@@ -258,6 +261,8 @@ use {
 use crate::core::thumb::ThumbCode;
 use crate::Processor;
 use {
+    vabs::decode_VABS_t1,
+    vcmp::{decode_VCMP_t1, decode_VCMP_t2},
     vldr::{decode_VLDR_t1, decode_VLDR_t2},
     vmov::decode_VMOV_cr2_dp,
     vmov::decode_VMOV_cr2_sp2,
@@ -266,12 +271,13 @@ use {
     vmov::decode_VMOV_imm,
     vmov::decode_VMOV_reg,
     vmov::decode_VMOV_scalar_cr,
+    vmrs::decode_VMRS,
     vpop::decode_VPOP_t1,
     vpop::decode_VPOP_t2,
     vpush::decode_VPUSH_t1,
     vpush::decode_VPUSH_t2,
-    vstr::{decode_VSTR_t1, decode_VSTR_t2},
     vstm::{decode_VSTM_t1, decode_VSTM_t2},
+    vstr::{decode_VSTR_t1, decode_VSTR_t2},
 };
 
 ///

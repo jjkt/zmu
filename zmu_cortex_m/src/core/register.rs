@@ -336,13 +336,24 @@ pub trait Apsr {
     fn set_n(&mut self, result: u32);
 
     ///
+    /// Set N bit
+    ///
+    fn set_n_bit(&mut self, n: bool);
+
+    ///
     /// Get "Z"ero flag value
     ///
     fn get_z(&self) -> bool;
+
     ///
     /// Set "Z"ero flag value
     ///
     fn set_z(&mut self, result: u32);
+
+    ///
+    /// Set Z bit
+    ///
+    fn set_z_bit(&mut self, z: bool);
 
     ///
     /// Get "C"arry flag value
@@ -438,6 +449,10 @@ impl Apsr for PSR {
         self.value |= result & 0x8000_0000;
     }
 
+    fn set_n_bit(&mut self, n: bool) {
+        self.value.set_bit(31, n);
+    }
+
     fn get_z(&self) -> bool {
         self.value.get_bit(30)
     }
@@ -447,6 +462,9 @@ impl Apsr for PSR {
         } else {
             self.value &= 0x4000_0000 ^ 0xffff_ffff;
         }
+    }
+    fn set_z_bit(&mut self, z: bool) {
+        self.value.set_bit(30, z);
     }
 
     fn get_c(&self) -> bool {

@@ -103,12 +103,14 @@ pub struct Processor {
     /// global interrupt masking
     ///
     primask: bool,
+
     ///
     /// interrupt fault mask, a 1 bit mask register for
     /// global interrupt masking
     ///
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     faultmask: bool,
+
     ///
     /// basepri for selection of executed interrupt priorities
     ///
@@ -127,9 +129,10 @@ pub struct Processor {
     ///
     /// processor simulation state
     ///
-    /// bit 0 : 1= simulation running, 0 : simulation terminating
     /// bit 1 : 1= processor sleeping, 0 : processor awake
-    pub state: u32,
+    pub running: bool,
+    pub sleeping: bool,
+    pub exit_code: u32,
 
     ///
     /// lookup table for exceptions and their states
@@ -176,6 +179,7 @@ pub struct Processor {
     pub fpccr: u32,
     pub fpcar: u32,
     pub fpdscr: u32,
+    pub fpscr: u32,
 
     pub mvfr0: u32,
     pub mvfr1: u32,
@@ -302,7 +306,9 @@ impl Processor {
             // TODO make RAM size configurable
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
             itm_file: None,
-            state: 0,
+            sleeping: false,
+            running: true,
+            exit_code: 0,
             cycle_count: 0,
             instruction_count: 0,
             exceptions: make_default_exception_priorities(),
@@ -327,6 +333,7 @@ impl Processor {
             fpccr: 0,
             fpcar: 0,
             fpdscr: 0,
+            fpscr: 0,
             mvfr0: 0,
             mvfr1: 0,
             mvfr2: 0,

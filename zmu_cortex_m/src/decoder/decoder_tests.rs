@@ -1,12 +1,13 @@
 use crate::core::instruction::{
-    AddressingMode, BfcParams, BfiParams, CondBranchParams, Imm32Carry, MovtParams, ParamsRegImm32,
-    Reg2DoubleParams, Reg2FullParams, Reg2ImmCarryParams, Reg2ImmParams, Reg2Params,
-    Reg2RdRmParams, Reg2RnRmParams, Reg2RtRnImm32Params, Reg2ShiftNParams,
+    AddressingMode, BfcParams, BfiParams, BfxParams, CondBranchParams, Imm32Carry, MovtParams,
+    ParamsRegImm32, Reg2DoubleParams, Reg2FullParams, Reg2ImmCarryParams, Reg2ImmParams,
+    Reg2Params, Reg2RdRmParams, Reg2RnRmParams, Reg2RtRnImm32Params, Reg2ShiftNParams,
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, BfxParams,
-    VMovCr2DpParams, VMovCrSpParams, VMovImmParams64, VMovRegParamsf32,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, VCmpParamsf32,
+    VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
+    VMovRegParamsf32,
 };
 
 use crate::core::instruction::VLoadAndStoreParams;
@@ -2904,6 +2905,24 @@ fn test_decode_vldr() {
 }
 
 #[test]
+fn test_decode_vldr_2() {
+    //  eddf 7a23             vldr    s15, [pc, #140] @ 180 <floating_point+0xb0>
+    assert_eq!(
+        decode_32(0xeddf_7a23),
+        Instruction::VLDR {
+            params: VLoadAndStoreParams {
+                dd: ExtensionReg::Single {
+                    reg: SingleReg::S15
+                },
+                rn: Reg::PC,
+                add: true,
+                imm32: 140,
+            }
+        }
+    );
+}
+
+#[test]
 fn test_decode_vstr() {
     //250:       ed8d 7b12       vstr    d7, [sp, #72]   ; 0x48
     assert_eq!(
@@ -3052,6 +3071,21 @@ fn test_decode_vmov_imm() {
 }
 
 #[test]
+fn test_decode_vmov_imm_2() {
+    //eeff 7a00       vmov.f32        s15, #240       @ 0xbf800000 -1.0
+
+    assert_eq!(
+        decode_32(0xeeff_7a00),
+        Instruction::VMOV_imm_32 {
+            params: VMovImmParams32 {
+                sd: SingleReg::S15,
+                imm32: 0xbf800000 // -1.0
+            }
+        }
+    );
+}
+
+#[test]
 fn test_decode_vstm_32_ia() {
     //ecee 7a01       vstmia  lr!, {s15}
 
@@ -3068,4 +3102,48 @@ fn test_decode_vstm_32_ia() {
             unreachable!();
         }
     }
+}
+
+#[test]
+fn test_decode_vabs_32() {
+    //eef0 7ae7       vabs.f32        s15, s15
+
+    assert_eq!(
+        decode_32(0xeef07ae7),
+        Instruction::VABS_f32 {
+            params: VMovRegParamsf32 {
+                sd: SingleReg::S15,
+                sm: SingleReg::S15,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vcmp_f32() {
+    //eef4 7a47       vcmp.f32        s15, s14
+
+    assert_eq!(
+        decode_32(0xeef47a47),
+        Instruction::VCMP_f32 {
+            params: VCmpParamsf32 {
+                sd: SingleReg::S15,
+                sm: SingleReg::S14,
+                with_zero: false,
+                quiet_nan_exc: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vmrs() {
+    //0xeef1 fa10       vmrs    APSR_nzcv, fpscr
+
+    assert_eq!(
+        decode_32(0xeef1fa10),
+        Instruction::VMRS {
+            rt: VMRSTarget::APSRNZCV
+        }
+    );
 }

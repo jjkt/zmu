@@ -33,6 +33,8 @@ mod std_data_processing;
 
 mod fp_load_and_store;
 mod fp_register_transfer;
+mod fp_data_processing;
+mod fp_generic;
 
 use branch::IsaBranch;
 use coproc::IsaCoprocessor;
@@ -52,6 +54,7 @@ use std_data_processing::IsaStandardDataProcessing;
 
 use fp_load_and_store::IsaFloatingPointLoadAndStore;
 use fp_register_transfer::IsaFloatingPointRegisterTransfer;
+use fp_data_processing::IsaFloatingPointDataProcessing;
 
 ///
 /// Stepping processor with instructions
@@ -538,11 +541,17 @@ impl ExecutorHelper for Processor {
             //
             // --------------------------------------------
 
+            Instruction::VMRS { rt } => self.exec_vmrs(*rt),
+
             // --------------------------------------------
             //
             // Group: Floating-point data-processing instructions
             //
             // --------------------------------------------
+            Instruction::VABS_f32 { params } => self.exec_vabs_f32(params),
+            Instruction::VABS_f64 { params } => self.exec_vabs_f64(params),
+            Instruction::VCMP_f32 { params } => self.exec_vcmp_f32(params),
+            Instruction::VCMP_f64 { params } => self.exec_vcmp_f64(params),
 
             // --------------------------------------------
             //

@@ -3,7 +3,6 @@
 //!
 
 use crate::bus::Bus;
-use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::register::Reg;
@@ -108,7 +107,7 @@ pub enum SemihostingCommand {
     },
     ///
     /// Write single char to the debug console
-    /// 
+    ///
     SysWriteC {
         /// char to write
         data: u8,
@@ -222,6 +221,8 @@ pub enum SemihostingResponse {
         success: bool,
         /// system is stopping
         stop: bool,
+        /// subcode of the exit, dependant of the reason
+        exit_code: Option<u32>,
     },
     /// sysclock command response
     SysClock {
@@ -284,9 +285,7 @@ pub fn decode_semihostcmd(
         SYS_WRITEC => {
             let params_ptr = r1;
             let ch = processor.read8(params_ptr)?;
-            SemihostingCommand::SysWriteC {
-                data: ch,
-            }
+            SemihostingCommand::SysWriteC { data: ch }
         }
         SYS_WRITE => {
             let params_ptr = r1;
@@ -339,6 +338,10 @@ pub fn decode_semihostcmd(
         SYS_ERRNO => SemihostingCommand::SysErrno,
         SYS_EXIT_EXTENDED => {
             let params_ptr = r1;
+
+            // see: https://github.com/ARM-software/abi-aa/blob/main/semihosting/semihosting.rst#sys-exit-extended-0x20
+
+            // read field 1 and field 2
             let reason = SysExceptionReason::from_u32(processor.read32(params_ptr)?);
             let subcode = processor.read32(params_ptr + 4)?;
 
@@ -372,10 +375,21 @@ pub fn semihost_return(processor: &mut Processor, response: &SemihostingResponse
             Ok(response) => processor.set_r(Reg::R0, response),
             Err(error_code) => processor.set_r(Reg::R0, error_code as u32),
         },
-        SemihostingResponse::SysException { success, stop }
-        | SemihostingResponse::SysExitExtended { success, stop } => {
-            if success {
-                processor.state.set_bit(0, !stop);
+        SemihostingResponse::SysException { success, stop } => {
+            if success && stop {
+                processor.running = false;
+            }
+        }
+        SemihostingResponse::SysExitExtended {
+            success,
+            stop,
+            exit_code,
+        } => {
+            if success && stop {
+                processor.running = false;
+                if let Some(exit_code) = exit_code {
+                    processor.exit_code = exit_code;
+                }
             }
         }
         SemihostingResponse::SysClose { success } | SemihostingResponse::SysSeek { success } => {

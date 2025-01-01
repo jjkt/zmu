@@ -13,3 +13,6 @@ pub mod operation;
 pub mod register;
 pub mod reset;
 pub mod thumb;
+
+// FP extension registers
+pub mod fpregister;
