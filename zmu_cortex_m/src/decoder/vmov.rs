@@ -89,7 +89,7 @@ pub fn decode_VMOV_imm(opcode: u32) -> Instruction {
     } else {
         Instruction::VMOV_imm_32 {
             params: VMovImmParams32 {
-                sd: SingleReg::from(vd << 4 | D),
+                sd: SingleReg::from(vd << 1 | D),
                 imm32: vfpexpand_imm32(imm8),
             },
         }

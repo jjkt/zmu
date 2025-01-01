@@ -103,12 +103,14 @@ pub struct Processor {
     /// global interrupt masking
     ///
     primask: bool,
+
     ///
     /// interrupt fault mask, a 1 bit mask register for
     /// global interrupt masking
     ///
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     faultmask: bool,
+
     ///
     /// basepri for selection of executed interrupt priorities
     ///
@@ -177,6 +179,7 @@ pub struct Processor {
     pub fpccr: u32,
     pub fpcar: u32,
     pub fpdscr: u32,
+    pub fpscr: u32,
 
     pub mvfr0: u32,
     pub mvfr1: u32,
@@ -330,6 +333,7 @@ impl Processor {
             fpccr: 0,
             fpcar: 0,
             fpdscr: 0,
+            fpscr: 0,
             mvfr0: 0,
             mvfr1: 0,
             mvfr2: 0,
