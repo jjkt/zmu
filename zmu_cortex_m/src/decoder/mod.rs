@@ -116,6 +116,7 @@ mod uxt;
 mod uxtab;
 
 mod vabs;
+mod vadd;
 mod vcmp;
 mod vldr;
 mod vmov;

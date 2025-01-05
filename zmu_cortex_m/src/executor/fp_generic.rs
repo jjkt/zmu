@@ -47,9 +47,21 @@ pub trait FloatingPointInternalOperations {
     ) -> (bool, bool, bool, bool);
 
     fn fp_process_exception(&mut self, exc: FPExc, fpscr_val: u32);
+    fn fp_process_nan_f32(&mut self, type1: FPType, op: u32, fpscr_val: u32) -> u32;
+    fn fp_process_nans_f32(
+        &mut self,
+        type1: FPType,
+        type2: FPType,
+        op1: u32,
+        op2: u32,
+        fpscr_val: u32,
+    ) -> (bool, u32);
 
     fn fp_unpack_f32(&mut self, fpval: u32, fpscr_val: u32) -> (FPType, bool, f32);
     fn fp_unpack_f64(&mut self, fpval: u64, fpscr_val: u32) -> (FPType, bool, f64);
+
+    fn fp_add_f32(&mut self, op1: u32, op2: u32, fpscr_controlled: bool) -> u32;
+    fn fp_add_f64(&mut self, op1: u64, op2: u64, fpscr_controlled: bool) -> u64;
 }
 
 fn is_zero_32(value: u32) -> bool {
@@ -66,6 +78,52 @@ fn is_ones_32(value: u32, len: usize) -> bool {
 
 fn is_ones_64(value: u64, len: usize) -> bool {
     value.count_ones() == len as u32
+}
+
+fn fp_default_nan_f32() -> u32 {
+    0x7FC00000
+}
+
+fn fp_default_nan_f64() -> u64 {
+    0x7FF8000000000000
+}
+
+fn fp_infinity_f32(sign: bool) -> u32 {
+    if sign {
+        0xFF800000
+    } else {
+        0x7F800000
+    }
+}
+
+fn fp_infinity_f64(sign: bool) -> u64 {
+    if sign {
+        0xFFF0000000000000
+    } else {
+        0x7FF0000000000000
+    }
+}
+
+fn fp_zero_f32(sign: bool) -> u32 {
+    if sign {
+        0x80000000
+    } else {
+        0x00000000
+    }
+}
+
+fn fp_zero_f64(sign: bool) -> u64 {
+    if sign {
+        0x8000000000000000
+    } else {
+        0x0000000000000000
+    }
+}
+
+
+fn fp_round_f32(value: f32, fpscr_val: u32) -> u32 {
+    let N = 32;
+    let e = 
 }
 
 impl FloatingPointInternalOperations for Processor {
@@ -160,6 +218,44 @@ impl FloatingPointInternalOperations for Processor {
         }
     }
 
+    fn fp_process_nan_f32(&mut self, type1: FPType, op: u32, fpscr_val: u32) -> u32 {
+        let topfrac = 22;
+        let mut result = op;
+        if type1 == FPType::SNaN {
+            result.set_bit(topfrac, true);
+            self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+        }
+        if fpscr_val.get_bit(25) {
+            result = fp_default_nan_f32();
+        }
+        result
+    }
+
+    fn fp_process_nans_f32(
+        &mut self,
+        type1: FPType,
+        type2: FPType,
+        op1: u32,
+        op2: u32,
+        fpscr_val: u32,
+    ) -> (bool, u32) {
+        if type1 == FPType::SNaN {
+            let result = self.fp_process_nan_f32(type1, op1, fpscr_val);
+            return (true, result);
+        } else if type2 == FPType::SNaN {
+            let result = self.fp_process_nan_f32(type2, op2, fpscr_val);
+            return (true, result);
+        } else if type1 == FPType::QNaN {
+            let result = self.fp_process_nan_f32(type1, op1, fpscr_val);
+            return (true, result);
+        } else if type2 == FPType::QNaN {
+            let result = self.fp_process_nan_f32(type2, op2, fpscr_val);
+            return (true, result);
+        } else {
+            return (false, 0);
+        }
+    }
+
     fn fp_unpack_f32(&mut self, fpval: u32, fpscr_val: u32) -> (FPType, bool, f32) {
         let sign = fpval.get_bit(31);
         let exp32 = fpval.get_bits(23..31);
@@ -239,6 +335,75 @@ impl FloatingPointInternalOperations for Processor {
         };
         (ret_type, sign, value)
     }
+
+    fn fp_add_f32(&mut self, op1: u32, op2: u32, fpscr_controlled: bool) -> u32 {
+        //fpscr_val = if fpscr_controlled then FPSCR else StandardFPSCRValue();
+        //(type1,sign1,value1) = FPUnpack(op1, fpscr_val);
+        //(type2,sign2,value2) = FPUnpack(op2, fpscr_val);
+        //(done,result) = FPProcessNaNs(type1, type2, op1, op2, fpscr_val);
+        //if !done then
+        //inf1 = (type1 == FPType_Infinity); inf2 = (type2 == FPType_Infinity);
+        //zero1 = (type1 == FPType_Zero); zero2 = (type2 == FPType_Zero);
+        //if inf1 && inf2 && sign1 == NOT(sign2) then
+        //result = FPDefaultNaN(N);
+        //FPProcessException(FPExc_InvalidOp, fpscr_val);
+        //elsif (inf1 && sign1 == ‘0’) || (inf2 && sign2 == ‘0’) then
+        //result = FPInfinity(‘0’, N);
+        //elsif (inf1 && sign1 == ‘1’) || (inf2 && sign2 == ‘1’) then
+        //result = FPInfinity(‘1’, N);
+        //elsif zero1 && zero2 && sign1 == sign2 then
+        //result = FPZero(sign1, N);
+        //else
+        //result_value = value1 + value2;
+        //if result_value == 0.0 then // Sign of exact zero result depends on rounding mode
+        //result_sign = if fpscr_val<23:22> == ‘10’ then ‘1’ else ‘0’;
+        //result = FPZero(result_sign, N);
+        //else
+        //result = FPRound(result_value, N, fpscr_val);
+        //return result;
+        let fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+        let (type1, _sign1, value1) = self.fp_unpack_f32(op1, fpscr_val);
+        let (type2, _sign2, value2) = self.fp_unpack_f32(op2, fpscr_val);
+        let (done, result) = self.fp_process_nans_f32(type1, type2, op1, op2, fpscr_val);
+        if !done {
+            let inf1 = type1 == FPType::Infinity;
+            let inf2 = type2 == FPType::Infinity;
+            let zero1 = type1 == FPType::Zero;
+            let zero2 = type2 == FPType::Zero;
+            let result = if inf1 && inf2 && _sign1 != _sign2 {
+                self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+                fp_default_nan_f32()
+            } else if (inf1 && _sign1 == false) || (inf2 && _sign2 == false) {
+                fp_infinity_f32(false)
+            } else if (inf1 && _sign1 == true) || (inf2 && _sign2 == true) {
+                fp_infinity_f32(true)
+            } else if zero1 && zero2 && _sign1 == _sign2 {
+                fp_zero_f32(sign1)
+            } else {
+                let result_value = value1 + value2;
+                if result_value == 0.0 {
+                    // Sign of exact zero result depends on rounding mode
+                    let result_sign = if fpscr_val.get_bits(22..24) == 0b10 {
+                        true
+                    } else {
+                        false
+                    };
+                    fp_zero_f32(result_sign)
+                } else {
+                    fp_round_f32(result_value, fpscr_val)
+                }
+            };
+            return result;
+        } else {
+            return result;
+        }
+    }
+
+    fn fp_add_f64(&mut self, op1: u64, op2: u64, fpscr_controlled: bool) -> u64 {}
 }
 
 #[cfg(test)]

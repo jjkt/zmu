@@ -5,8 +5,8 @@ use crate::core::instruction::{
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, VCmpParamsf32,
-    VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, VAddParamsf32,
+    VCmpParamsf32, VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
     VMovRegParamsf32,
 };
 
@@ -3144,6 +3144,22 @@ fn test_decode_vmrs() {
         decode_32(0xeef1fa10),
         Instruction::VMRS {
             rt: VMRSTarget::APSRNZCV
+        }
+    );
+}
+
+#[test]
+fn test_decode_vadd_f32() {
+    // ee77 5a26       vadd.f32        s11, s14, s13
+
+    assert_eq!(
+        decode_32(0xee775a26),
+        Instruction::VADD_f32 {
+            params: VAddParamsf32 {
+                sd: SingleReg::S11,
+                sn: SingleReg::S14,
+                sm: SingleReg::S13,
+            }
         }
     );
 }
