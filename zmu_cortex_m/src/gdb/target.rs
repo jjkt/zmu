@@ -5,6 +5,8 @@ use gdbstub::target::ext::monitor_cmd::MonitorCmd;
 use gdbstub::common::Signal;
 use gdbstub::outputln;
 
+use log::debug;
+
 use crate::MemoryMapConfig;
 use crate::gdb::simulation;
 
@@ -45,11 +47,6 @@ impl ZmuTarget {
     pub fn run(&mut self, poll_incomming_data: impl FnMut() -> bool ) -> SimulationRunEvent {
         self.simulation.run(poll_incomming_data)
     }
-
-    // pub fn reset(&mut self) -> Result<(), &'static str> {
-    //     self.simulation.reset();
-
-    // }
 
     pub fn step(&mut self) -> SimulationEvent {
         self.simulation.step()
@@ -93,7 +90,7 @@ impl SingleThreadBase for ZmuTarget {
         &mut self,
         regs: &mut gdbstub_arch::arm::reg::ArmCoreRegs,
     ) -> TargetResult<(), Self> {
-        print!("> read_registers");
+        debug!("> read_registers");
         regs.r = self.simulation.processor.r0_12;
         regs.sp = self.simulation.processor.get_r(Reg::SP);
         regs.lr = self.simulation.processor.lr;
@@ -107,7 +104,7 @@ impl SingleThreadBase for ZmuTarget {
         &mut self,
         _regs: &gdbstub_arch::arm::reg::ArmCoreRegs
     ) -> TargetResult<(), Self> {
-        print!("> write_registers");
+        debug!("> write_registers");
         Ok(())
     }
 
@@ -117,7 +114,7 @@ impl SingleThreadBase for ZmuTarget {
         _start_addr: u32,
         data: &mut [u8],
     ) -> TargetResult<usize, Self> {
-        print!("> read_addrs");
+        debug!("> read_addrs");
         data.iter_mut().for_each(|b| *b = 0x55);
         Ok(data.len())
     }
@@ -128,7 +125,7 @@ impl SingleThreadBase for ZmuTarget {
         _start_addr: u32,
         _data: &[u8],
     ) -> TargetResult<(), Self> {
-        print!("> write_addrs");
+        debug!("> write_addrs");
         Ok(())
     }
 
@@ -221,7 +218,7 @@ impl MonitorCmd for ZmuTarget {
         cmd: &[u8],
         mut out: gdbstub::target::ext::monitor_cmd::ConsoleOutput<'_>,
     ) -> Result<(), Self::Error> {
-        print!("> handle_monitor_cmd {:?}", cmd);
+        debug!("> handle_monitor_cmd {:?}", cmd);
         let cmd = core::str::from_utf8(cmd).map_err(|_| "Invalid UTF-8")?;
         match cmd  {
             "reset" => {

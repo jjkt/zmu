@@ -1,5 +1,5 @@
 //!
-//! Flash Memory simulation
+//! GDB Server implementation
 //!
 //!
 
@@ -27,14 +27,19 @@ use crate::semihosting::SemihostingResponse;
 /// The gdb Server
 /// 
 pub struct GdbServer {
-    // number: i32,
     target: ZmuTarget,
 }
 
-/// 
 impl GdbServer {
 
-    ///
+    /// Create a new GDB server. 
+    /// 
+    /// # Arguments
+    /// 
+    /// * `code` - The binary code to run in the emulator
+    /// * `semihost_func` - A function that will be called when a semihosting command is issued
+    /// * `map` - The memory map configuration
+    /// * `flash_size` - The size of the flash memory
     pub fn new(
         code: &[u8],
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
@@ -47,9 +52,10 @@ impl GdbServer {
         Ok(GdbServer {target})
     }
 
-    ///
+    /// Start the GDB Server. This function will block until the GDB client disconnects.
+    /// or program execution is complete..
     pub fn start(&mut self) -> Result<u32, &'static str> {
-        println!("Starting GDB server");
+        println!("GDB Server listening on port 9001");
         let mut exit_code = 0;
         let conn = match conn::TcpConnection::new_localhost(9001) {
             Ok(conn) => conn,

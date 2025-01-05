@@ -29,6 +29,10 @@ zmu supports Linux and Windows operating systems.
 - DWT
     - Cycle counter
 - Instruction trace
+- GDB Server
+    - single stepping
+    - range stepping
+    - breakpoints
 
 ## Missing / Planned features
 - Time simulation / sync to real time
@@ -43,6 +47,10 @@ zmu supports Linux and Windows operating systems.
 - System Simulation:
     - device profiles, eg stm32 device support
     - board profiles, external peripheral simulation
+- GDB Server:
+    - Reading/Writting memory
+    - Writting Registers
+    - Pass the port on the command line
 
 ## Depedencies
 
@@ -177,4 +185,44 @@ Run the emulator:
 ```
 $zmu run tests/hello_world/hello_world-cm0.elf
 hello, world
+```
+
+Run the GDB Server:
+```
+$zmu run --gdb tests/hello_world/hello_world-cm0.elf
+Starting GDB Server on port 9001 ...
+```
+
+On a separate terminal start the gdb client:
+```
+$ gdb-multiarch tests/hello_world/hello_world-cm0.elf
+GNU gdb (Debian 13.1-3) 13.1
+Copyright (C) 2023 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from tests/hello_world/hello_world-cm0.elf...
+(gdb) target remote localhost:9001
+Remote debugging using localhost:9001
+Reset_Handler ()
+    at /usr/share/doc/gcc-arm-none-eabi/examples/startup/startup_ARMCM0.S:150
+150             ldr     r1, =__etext
+(gdb) b main
+Breakpoint 1 at 0x5c: file main.c, line 6.
+(gdb) c
+Continuing.
+
+Breakpoint 1, main () at main.c:6
+6           printf("hello, world\n");
+(gdb)
 ```

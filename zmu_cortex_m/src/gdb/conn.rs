@@ -12,10 +12,9 @@ impl TcpConnection {
         let listener = TcpListener::bind(("127.0.0.1", port)).unwrap();
 
         for stream in listener.incoming() {
-            let stream = stream.unwrap();
+            let stream = stream.map_err(|_| "Error accepting socket connection")?;
             stream.set_read_timeout(Some(std::time::Duration::from_millis(1)))
-                .expect("set_read_timeout call failed");
-            // stream.set_nonblocking(true).expect("set_nonblocking call failed");
+                .map_err(|_| "Error setting timeout")?;
             return Ok(TcpConnection { stream });
         };
         
@@ -79,7 +78,6 @@ impl ConnectionExt for TcpConnection {
                     #[cfg(unix)]
                     std::io::ErrorKind::WouldBlock => return Ok(None),
                     _ => {
-                        println!("peek error: {:?}", e);
                         return Err("socket peek failed")
                     }
                 }
