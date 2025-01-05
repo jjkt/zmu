@@ -37,6 +37,7 @@ pub mod memory;
 pub mod peripheral;
 pub mod semihosting;
 pub mod system;
+pub mod gdb;
 
 use crate::core::instruction::instruction_size;
 

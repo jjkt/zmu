@@ -39,6 +39,7 @@ use zmu_cortex_m::Processor;
 
 use zmu_cortex_m::system::simulation::simulate_trace;
 use zmu_cortex_m::system::simulation::{simulate, SimulationError};
+use zmu_cortex_m::gdb::server::GdbServer;
 
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
@@ -59,6 +60,7 @@ fn run_bin(
     trace: bool,
     option_trace_start: Option<u64>,
     itm_file: Option<Box<dyn io::Write + 'static>>,
+    gdb: bool,
 ) -> Result<u32> {
     let res = Object::parse(buffer).unwrap();
 
@@ -121,6 +123,22 @@ fn run_bin(
 
     let trace_start = option_trace_start.unwrap_or(0);
     let semihost_func = Box::new(get_semihost_func(Instant::now()));
+
+    if gdb {
+        let gdb = GdbServer::new(
+            &flash_mem,
+            semihost_func,
+            if flash_start_address != 0 {
+                Some(MemoryMapConfig::new(flash_start_address, 0, flash_size))
+            } else {
+                None
+            },
+            flash_size,
+        );
+
+        let exit_code = gdb?.start().expect("GDB server failed");
+        return Ok(exit_code);
+    }
 
     let statistics = if trace {
         debug!("Configuring tracing.");
@@ -234,6 +252,7 @@ fn run(args: &ArgMatches) -> Result<u32> {
                 run_matches.get_flag("trace"),
                 trace_start,
                 itm_output,
+                run_matches.get_flag("gdb"),
             )?
         }
         Some((_, _)) => unreachable!(),
@@ -289,6 +308,13 @@ fn main() {
                         .help("List of free arguments to pass to runtime as parameters")
                         .index(2)
                         .action(ArgAction::Append),
+                )
+                .arg(
+                    Arg::new("gdb")
+                        .action(ArgAction::SetTrue)
+                        .long("gdb")
+                        .help("Enable the gdb server")
+                        .num_args(0)
                 ),
         )
         .get_matches();

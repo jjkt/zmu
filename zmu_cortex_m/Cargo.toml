@@ -7,6 +7,9 @@ edition = "2021"
 [dependencies]
 byteorder = "1"
 enum-set = "0.0.8"
+gdbstub = "0.7"
+gdbstub_arch = "0.3"
+log = "0.4"
 
 
 [features]
