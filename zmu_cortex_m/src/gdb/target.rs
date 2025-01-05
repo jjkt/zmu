@@ -7,6 +7,7 @@ use gdbstub::outputln;
 
 use log::debug;
 
+use crate::bus::Bus;
 use crate::MemoryMapConfig;
 use crate::gdb::simulation;
 
@@ -94,7 +95,7 @@ impl SingleThreadBase for ZmuTarget {
         regs.r = self.simulation.processor.r0_12;
         regs.sp = self.simulation.processor.get_r(Reg::SP);
         regs.lr = self.simulation.processor.lr;
-        regs.pc = self.simulation.processor.get_pc();
+        regs.pc = self.simulation.processor.pc;
         regs.cpsr = self.simulation.processor.cfsr;
         Ok(())
     }
@@ -102,30 +103,48 @@ impl SingleThreadBase for ZmuTarget {
     #[inline(never)]
     fn write_registers(
         &mut self,
-        _regs: &gdbstub_arch::arm::reg::ArmCoreRegs
+        regs: &gdbstub_arch::arm::reg::ArmCoreRegs
     ) -> TargetResult<(), Self> {
         debug!("> write_registers");
+        self.simulation.processor.r0_12 = regs.r;
+        self.simulation.processor.set_r(Reg::SP, regs.sp);
+        self.simulation.processor.lr = regs.lr;
+        self.simulation.processor.pc = regs.pc;
+        self.simulation.processor.cfsr = regs.cpsr;
         Ok(())
     }
 
     #[inline(never)]
     fn read_addrs(
         &mut self,
-        _start_addr: u32,
+        start_addr: u32,
         data: &mut [u8],
     ) -> TargetResult<usize, Self> {
-        debug!("> read_addrs");
-        data.iter_mut().for_each(|b| *b = 0x55);
+        for i in 0..data.len() {
+            match self.simulation.processor.read8(start_addr + i as u32) {
+                Ok(b) => data[i] = b,
+                Err(_) => {
+                    return Ok(i);
+                }
+            }
+        }
         Ok(data.len())
     }
 
     #[inline(never)]
     fn write_addrs(
         &mut self,
-        _start_addr: u32,
-        _data: &[u8],
+        start_addr: u32,
+        data: &[u8],
     ) -> TargetResult<(), Self> {
-        debug!("> write_addrs");
+        for i in 0..data.len() {
+            match self.simulation.processor.write8(start_addr + i as u32, data[i]) {
+                Ok(_) => (),
+                Err(_) => {
+                    return Err(target::TargetError::NonFatal);
+                }
+            }
+        }
         Ok(())
     }
 
