@@ -355,11 +355,29 @@ impl ExceptionHandling for Processor {
         let mut highestpri: i16 = 256;
         let mut boostedpri: i16 = 256;
         let subgroupshift = self.aircr.get_bits(8..11);
-        let groupvalue = 2 << subgroupshift;
+        let mut groupvalue = 2 << subgroupshift;
 
         for (_, exp) in self.exceptions.iter().filter(|&(_, e)| e.active) {
             if exp.priority < highestpri {
                 highestpri = exp.priority;
+                
+                /* 
+                ARMV7-M Arch Reference Manual. Version E. Page B1-157
+                Priority Grouping. The group priority for Reset, NMI 
+                and HardFault are -3, -2 and -1 respectively, regardless
+                of the value of PRIGROUP. Note that we dont check reset because
+                after setting the reset pending flag, the simulator resets the
+                processor.
+                */
+
+                if exp.exception_number == Exception::NMI.into() {
+                    groupvalue = -2;
+                }
+
+                if exp.exception_number == Exception::HardFault.into() {
+                    groupvalue = -1;
+                }
+
                 let subgroupvalue = highestpri % groupvalue;
                 highestpri -= subgroupvalue;
             }
@@ -643,6 +661,24 @@ mod tests {
         assert_eq!(core.mode, ProcessorMode::HandlerMode);
         assert_eq!(core.psr.get_isr_number(), Exception::BusFault.into());
         assert!(core.exception_active(Exception::BusFault));
+    }
+
+    #[test]
+    fn test_get_execution_priority() {
+        let mut p = Processor::new();
+
+        p.reset().unwrap();
+        p.msp = 0x2000_0400;
+        p.set_exception_pending(Exception::HardFault);
+        p.check_exceptions();
+
+        assert_eq!(p.get_execution_priority(), -1);
+
+        p.reset().unwrap();
+        p.msp = 0x2000_0400;
+        p.set_exception_pending(Exception::NMI);
+        p.check_exceptions();
+        assert_eq!(p.get_execution_priority(), -2);
     }
 
     #[test]
