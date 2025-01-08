@@ -362,7 +362,7 @@ impl ExceptionHandling for Processor {
                 highestpri = exp.priority;
                 
                 /* 
-                ARMV7-M Arch Reference Manual. Version E. Page B1-157
+                ARMV7-M Arch Reference Manual. Version E. Page B1-527
                 Priority Grouping. The group priority for Reset, NMI 
                 and HardFault are -3, -2 and -1 respectively, regardless
                 of the value of PRIGROUP. Note that we dont check reset because
