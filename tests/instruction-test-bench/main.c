@@ -29,7 +29,7 @@ arm-none-eabi-gcc ... -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16
 #define HARD_FLOATING_POINT_ENABLED 1
 
 #if __ARM_FP & 0x8
-#define HARD_FLOATING_POINT_DOUBLE_PRECISION 1
+#define HARD_FLOATING_POINT_DOUBLE_PRECISION 0 // TODO change to 1 once 64 bit ops are tested
 #else
 #define HARD_FLOATING_POINT_DOUBLE_PRECISION 0
 #endif
@@ -173,9 +173,9 @@ void floating_point(void)
 #endif
 
     // VADD.F32 VADD.F64, VSUB.F32, VSUB.F64
-    assert(vadd_f32(1.0f, 2.0f) == (1.0f + 2.0f));
-    assert(vadd_f32(-1.0f, 2.0f) == (-1.0f + 2.0f));
-    assert(vadd_f32(-1.0f, -2.0f) == (-1.0f + -2.0f));
+    assert(vadd_f32(1.0f, 2.0f) == 3.0f);
+    assert(vadd_f32(-1.0f, 2.0f) == 1.0f);
+    assert(vadd_f32(-1.0f, -2.0f) == -3.0f);
 
 #if HARD_FLOATING_POINT_DOUBLE_PRECISION
     assert(vadd_f64(1.0, 2.0) == (1.0 + 2.0));

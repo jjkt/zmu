@@ -40,8 +40,9 @@ fn vfpexpand_imm64(imm8: u8) -> u64 {
 
     let bit6_vec = if imm8.get_bit(6) { 0xff } else { 0 };
 
-    let exp: u64 =
-        u64::from(!imm8.get_bit(6)) << e | bit6_vec << 2 | u64::from(imm8.get_bits(4..6));
+    let exp: u64 = u64::from(!imm8.get_bit(6)) << (2 + (e - 3))
+        | bit6_vec << 2
+        | u64::from(imm8.get_bits(4..6));
     // frac is concatenation of: imm8 bits 3:0 : zeroes F-4 times
     let upper = u64::from(imm8.get_bits(0..4));
     let frac: u64 = upper << (f - 4);
@@ -60,10 +61,12 @@ fn vfpexpand_imm32(imm8: u8) -> u32 {
 
     let bit6_vec = if imm8.get_bit(6) { 0x1f } else { 0 };
 
-    let exp: u32 =
-        (u32::from(!imm8.get_bit(6))) << e | bit6_vec << 2 | u32::from(imm8.get_bits(4..6));
+    let exp: u32 = (u32::from(!imm8.get_bit(6))) << (2 + (e - 3))
+        | bit6_vec << 2
+        | u32::from(imm8.get_bits(4..6));
     // frac is concatenation of: imm8 bits 3:0 : zeroes F-4 times
-    let frac: u32 = u32::from(imm8.get_bits(0..4)) << (f - 4);
+    let upper = u32::from(imm8.get_bits(0..4));
+    let frac: u32 = upper << (f - 4);
 
     // result is contatenation of sign : exp : frac
     u32::from(sign) << 31 | exp << f | frac

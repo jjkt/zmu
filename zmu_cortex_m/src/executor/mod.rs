@@ -554,6 +554,8 @@ impl ExecutorHelper for Processor {
             Instruction::VCMP_f64 { params } => self.exec_vcmp_f64(params),
             Instruction::VADD_f32 { params } => self.exec_vadd_f32(params),
             Instruction::VADD_f64 { params } => self.exec_vadd_f64(params),
+            Instruction::VSUB_f32 { params } => self.exec_vsub_f32(params),
+            Instruction::VSUB_f64 { params } => self.exec_vsub_f64(params),
 
             // --------------------------------------------
             //

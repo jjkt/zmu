@@ -1,6 +1,6 @@
 use crate::core::fpregister::Fpscr;
 use crate::core::instruction::{
-    VAddParamsf32, VAddParamsf64, VCmpParamsf32, VCmpParamsf64, VMovRegParamsf32, VMovRegParamsf64,
+    VAddSubParamsf32, VAddSubParamsf64, VCmpParamsf32, VCmpParamsf64, VMovRegParamsf32, VMovRegParamsf64,
 };
 use crate::Processor;
 
@@ -18,14 +18,18 @@ pub trait IsaFloatingPointDataProcessing {
     fn exec_vcmp_f32(&mut self, params: &VCmpParamsf32) -> ExecuteResult;
     fn exec_vcmp_f64(&mut self, params: &VCmpParamsf64) -> ExecuteResult;
 
-    fn exec_vadd_f32(&mut self, params: &VAddParamsf32) -> ExecuteResult;
-    fn exec_vadd_f64(&mut self, params: &VAddParamsf64) -> ExecuteResult;
+    fn exec_vadd_f32(&mut self, params: &VAddSubParamsf32) -> ExecuteResult;
+    fn exec_vadd_f64(&mut self, params: &VAddSubParamsf64) -> ExecuteResult;
+
+    fn exec_vsub_f32(&mut self, params: &VAddSubParamsf32) -> ExecuteResult;
+    fn exec_vsub_f64(&mut self, params: &VAddSubParamsf64) -> ExecuteResult;
+
 }
 
 impl IsaFloatingPointDataProcessing for Processor {
     fn exec_vabs_f32(&mut self, params: &VMovRegParamsf32) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check();
             let value = self.get_sr(params.sm);
             let result = fpabs_32(value);
             self.set_sr(params.sd, result);
@@ -36,7 +40,7 @@ impl IsaFloatingPointDataProcessing for Processor {
 
     fn exec_vabs_f64(&mut self, params: &VMovRegParamsf64) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check();
             let (upper, lower) = self.get_dr(params.dm);
             let upper_modified = fpabs_32(upper);
             self.set_dr(params.dd, lower, upper_modified);
@@ -47,7 +51,7 @@ impl IsaFloatingPointDataProcessing for Processor {
 
     fn exec_vcmp_f32(&mut self, params: &VCmpParamsf32) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check();
             let op32 = if params.with_zero {
                 0
             } else {
@@ -64,7 +68,7 @@ impl IsaFloatingPointDataProcessing for Processor {
     }
     fn exec_vcmp_f64(&mut self, params: &VCmpParamsf64) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check();
             let op64 = if params.with_zero {
                 0u64
             } else {
@@ -82,9 +86,9 @@ impl IsaFloatingPointDataProcessing for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
-    fn exec_vadd_f32(&mut self, params: &VAddParamsf32) -> ExecuteResult {
+    fn exec_vadd_f32(&mut self, params: &VAddSubParamsf32) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check();
             let op1 = self.get_sr(params.sn);
             let op2 = self.get_sr(params.sm);
             let result = self.fp_add_f32(op1, op2, true);
@@ -93,9 +97,9 @@ impl IsaFloatingPointDataProcessing for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
-    fn exec_vadd_f64(&mut self, params: &VAddParamsf64) -> ExecuteResult {
+    fn exec_vadd_f64(&mut self, params: &VAddSubParamsf64) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check();
             let (op1_lower, op1_upper) = self.get_dr(params.dn);
             let (op2_lower, op2_upper) = self.get_dr(params.dm);
             let op1 = (op1_upper as u64) << 32 | op1_lower as u64;
@@ -108,4 +112,32 @@ impl IsaFloatingPointDataProcessing for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+
+    fn exec_vsub_f32(&mut self, params: &VAddSubParamsf32) -> ExecuteResult {
+        if self.condition_passed() {
+            self.execute_fp_check();
+            let op1 = self.get_sr(params.sn);
+            let op2 = self.get_sr(params.sm);
+            let result = self.fp_sub_f32(op1, op2, true);
+            self.set_sr(params.sd, result);
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+    fn exec_vsub_f64(&mut self, params: &VAddSubParamsf64) -> ExecuteResult {
+        if self.condition_passed() {
+            self.execute_fp_check();
+            let (op1_lower, op1_upper) = self.get_dr(params.dn);
+            let (op2_lower, op2_upper) = self.get_dr(params.dm);
+            let op1 = (op1_upper as u64) << 32 | op1_lower as u64;
+            let op2 = (op2_upper as u64) << 32 | op2_lower as u64;
+            let result = self.fp_sub_f64(op1, op2, true);
+            let result_upper = (result >> 32) as u32;
+            let result_lower = result as u32;
+            self.set_dr(params.dd, result_lower, result_upper);
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
 }

@@ -5,7 +5,7 @@ use crate::core::instruction::{
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, VAddParamsf32,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, VAddSubParamsf32,
     VCmpParamsf32, VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
     VMovRegParamsf32,
 };
@@ -3071,6 +3071,21 @@ fn test_decode_vmov_imm() {
 }
 
 #[test]
+fn test_decode_vmov_imm_f32() {
+    //  eef0 6a00       vmov.f32        s13, #0 @ 0x40000000  2.0
+
+    assert_eq!(
+        decode_32(0xeef0_6a00),
+        Instruction::VMOV_imm_32 {
+            params: VMovImmParams32 {
+                sd: SingleReg::S13,
+                imm32: 2.0f32.to_bits()
+            }
+        }
+    );
+}
+
+#[test]
 fn test_decode_vmov_imm_2() {
     //eeff 7a00       vmov.f32        s15, #240       @ 0xbf800000 -1.0
 
@@ -3155,11 +3170,28 @@ fn test_decode_vadd_f32() {
     assert_eq!(
         decode_32(0xee775a26),
         Instruction::VADD_f32 {
-            params: VAddParamsf32 {
+            params: VAddSubParamsf32 {
                 sd: SingleReg::S11,
                 sn: SingleReg::S14,
                 sm: SingleReg::S13,
             }
         }
     );
+}
+
+#[test]
+fn test_decode_vsub_f32() {
+    // ee37 5a66       vsub.f32        s10, s14, s13
+
+    assert_eq!(
+        decode_32(0xee375a66),
+        Instruction::VSUB_f32 {
+            params: VAddSubParamsf32 {
+                sd: SingleReg::S10,
+                sn: SingleReg::S14,
+                sm: SingleReg::S13,
+            }
+        }
+    );
+
 }
