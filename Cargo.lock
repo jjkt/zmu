@@ -687,4 +687,5 @@ dependencies = [
  "enum-set",
  "gdbstub",
  "gdbstub_arch",
+ "log",
 ]
