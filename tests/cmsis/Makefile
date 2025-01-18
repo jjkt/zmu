@@ -6,8 +6,8 @@
 # RUNNER: path to the runner script
 
 # Compilation tools
-CC := arm-none-eabi-gcc
-ARMAR := arm-none-eabi-ar
+CC := $(GCC_HOME)/bin/arm-none-eabi-gcc
+ARMAR := $(GCC_HOME)/bin/arm-none-eabi-ar
 
 # Compilation flags
 CFLAGS_LIB := -Wsign-compare \

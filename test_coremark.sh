@@ -2,12 +2,16 @@
 set -e
 { set +x; } 2>/dev/null
 
-# cortex-m0 cortex-m0.small-multiply cortex-m0plus cortex-m0plus.small-multiply cortex-m1 cortex-m1.small-multiply 
-# cortex-m23 cortex-m3 cortex-m33 cortex-m33+nodsp cortex-m4 cortex-m7
+if [ -z "$GCC_HOME" ]; then
+    echo "GCC_HOME is undefined"
+    exit
+fi
 
-if ! command -v arm-none-eabi-gcc &> /dev/null
+CC=$GCC_HOME/bin/arm-none-eabi-gcc
+
+if ! command -v $CC &> /dev/null
 then
-    echo "GCC for ARM is not installed. Please install with: 'sudo apt install gcc-arm-none-eabi'"
+    echo "GCC for ARM is not installed. Please install from developer.arm.com"
     exit
 fi
 
