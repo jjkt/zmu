@@ -79,6 +79,12 @@ pub trait Fpscr {
     /// Get the current rounding mode
     ///
     fn get_rounding_mode(&self) -> FPSCRRounding;
+
+    ///
+    /// Set the current rounding mode
+    ///
+    fn set_rounding_mode(&mut self, mode: FPSCRRounding);
+
 }
 
 impl Fpscr for u32 {
@@ -135,4 +141,15 @@ impl Fpscr for u32 {
             _ => unreachable!(),
         }
     }
+
+    fn set_rounding_mode(&mut self, mode: FPSCRRounding) {
+        let mode = match mode {
+            FPSCRRounding::RoundToNearest => 0,
+            FPSCRRounding::RoundTowardsPlusInfinity => 1,
+            FPSCRRounding::RoundTowardsMinusInfinity => 2,
+            FPSCRRounding::RoundTowardsZero => 3,
+        };
+        self.set_bits(22..24, mode);
+    }
+
 }

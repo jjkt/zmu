@@ -29,7 +29,7 @@ arm-none-eabi-gcc ... -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16
 #define HARD_FLOATING_POINT_ENABLED 1
 
 #if __ARM_FP & 0x8
-#define HARD_FLOATING_POINT_DOUBLE_PRECISION 0 // TODO change to 1 once 64 bit ops are tested
+#define HARD_FLOATING_POINT_DOUBLE_PRECISION 1
 #else
 #define HARD_FLOATING_POINT_DOUBLE_PRECISION 0
 #endif

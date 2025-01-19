@@ -10,6 +10,7 @@ enum-set = "0.0.8"
 gdbstub = "0.7"
 gdbstub_arch = "0.3"
 log = "0.4"
+num-bigfloat = { version = "1.7.1", default-features = false, features = ['std'] }
 
 
 [features]
