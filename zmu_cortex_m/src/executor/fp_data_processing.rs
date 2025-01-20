@@ -7,7 +7,7 @@ use crate::Processor;
 
 use crate::executor::ExecuteSuccess;
 
-use super::fp_generic::{FloatingPointInternalOperations, FloatingPointPublicOperations};
+use super::fp_generic::{FloatingPointChecks, FloatingPointPublicOperations};
 use super::ExecuteResult;
 use crate::core::register::ExtensionRegOperations;
 use crate::executor::ExecutorHelper;
@@ -41,13 +41,14 @@ impl IsaFloatingPointDataProcessing for Processor {
     fn exec_vabs_f64(&mut self, params: &VMovRegParamsf64) -> ExecuteResult {
         if self.condition_passed() {
             self.execute_fp_check();
-            let (upper, lower) = self.get_dr(params.dm);
+            let (lower, upper) = self.get_dr(params.dm);
             let op = (upper as u64) << 32 | lower as u64;
 
             let result = self.fp_abs::<u64>(op);
 
             let result_upper = (result >> 32) as u32;
             let result_lower = result as u32;
+
             self.set_dr(params.dd, result_lower, result_upper);
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }
@@ -149,7 +150,7 @@ impl IsaFloatingPointDataProcessing for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::register::SingleReg;
+    use crate::core::register::{DoubleReg, SingleReg};
 
     #[test]
     fn test_vabs_f32() {
@@ -166,5 +167,22 @@ mod tests {
 
         let result = processor.get_sr(SingleReg::S1);
         assert_eq!(result, 0x3F800000);
+    }
+
+    #[test]
+    fn test_vabs_f64() {
+        let mut processor = Processor::new();
+
+        // -1.0
+        processor.set_dr(DoubleReg::D0, 0x00000000, 0xBFF00000);
+        processor
+            .exec_vabs_f64(&VMovRegParamsf64 {
+                dd: DoubleReg::D1,
+                dm: DoubleReg::D0,
+            })
+            .unwrap();
+
+        let result = processor.get_dr(DoubleReg::D1);
+        assert_eq!(result, (0x00000000, 0x3FF00000));
     }
 }

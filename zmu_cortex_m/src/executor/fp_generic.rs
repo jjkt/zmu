@@ -56,7 +56,9 @@ pub trait FloatOps {
         + Neg<Output = Self::Real>
         + Div<Output = Self::Real>
         + Sub<Output = Self::Real>
-        + Mul<Output = Self::Real>;
+        + Mul<Output = Self::Real>
+        + From<Self::SignedBits>
+        + From<Self::Bits>;
 
     /// Number of bits in the underlying integer type
     fn n() -> usize;
@@ -79,12 +81,10 @@ pub trait FloatOps {
 
     fn unsigned_pow2(e: usize) -> Self::Bits;
     fn unsigned_pow2_f(e: usize) -> Self::Real;
-    fn unsigned_to_f(value: Self::Bits) -> Self::Real;
     fn unsigned_value(value: i32) -> Self::Bits;
 
     fn signed_pow2(e: usize) -> Self::SignedBits;
     fn signed_value(value: i32) -> Self::SignedBits;
-    fn signed_to_f(value: Self::SignedBits) -> Self::Real;
 
     fn fp_abs(value: Self::Bits) -> Self::Bits;
     fn fp_max_normal(sign: bool) -> Self::Bits;
@@ -97,6 +97,60 @@ pub trait FloatOps {
         biased_exp: Self::SignedBits,
         int_mantissa: Self::Bits,
     ) -> Self::Bits;
+}
+
+pub trait FloatingPointChecks {
+    fn execute_fp_check(&mut self);
+    fn fp_process_exception(&mut self, exc: FPExc, fpscr_val: u32);
+}
+
+pub trait FloatingPointPublicOperations {
+    fn fp_add<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits;
+
+    fn fp_sub<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits;
+
+    fn fp_compare<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        quiet_nan_exc: bool,
+        fpscr_controlled: bool,
+    ) -> (bool, bool, bool, bool);
+
+    fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits;
+}
+
+trait FloatingPointHiddenOperations {
+    fn fp_process_nan<T: FloatOps>(
+        &mut self,
+        type1: FPType,
+        op: T::Bits,
+        fpscr_val: u32,
+    ) -> T::Bits;
+
+    fn fp_process_nans<T: FloatOps>(
+        &mut self,
+        type1: FPType,
+        type2: FPType,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_val: u32,
+    ) -> (bool, T::Bits);
+
+    fn fp_unpack<T: FloatOps>(&mut self, fpval: T::Bits, fpscr_val: u32)
+        -> (FPType, bool, T::Real);
+
+    fn fp_round<T: FloatOps>(&mut self, value: T::Real, fpscr_val: u32) -> T::Bits;
 }
 
 impl FloatOps for u32 {
@@ -139,10 +193,6 @@ impl FloatOps for u32 {
         value.floor().to_i64().unwrap().try_into().unwrap()
     }
 
-    fn unsigned_to_f(value: Self::Bits) -> Self::Real {
-        value.into()
-    }
-
     fn unsigned_value(value: i32) -> Self::Bits {
         value as Self::Bits
     }
@@ -161,10 +211,6 @@ impl FloatOps for u32 {
 
     fn signed_value(value: i32) -> Self::SignedBits {
         value
-    }
-
-    fn signed_to_f(value: Self::SignedBits) -> Self::Real {
-        value.into()
     }
 
     fn fp_infinity(sign: bool) -> Self::Bits {
@@ -333,10 +379,6 @@ impl FloatOps for u64 {
         value.floor().to_i64().unwrap().try_into().unwrap()
     }
 
-    fn unsigned_to_f(value: Self::Bits) -> Self::Real {
-        value.into()
-    }
-
     fn unsigned_value(value: i32) -> Self::Bits {
         value as Self::Bits
     }
@@ -355,9 +397,6 @@ impl FloatOps for u64 {
 
     fn signed_value(value: i32) -> Self::SignedBits {
         value as i64
-    }
-    fn signed_to_f(value: Self::SignedBits) -> Self::Real {
-        value.into()
     }
 
     fn fp_zero(sign: bool) -> Self::Bits {
@@ -464,64 +503,12 @@ impl FloatOps for u64 {
         let low: u64 = int_mantissa.get_bits(0..f as usize);
         let mid: u64 = (biased_exp as u64).get_bits(0..e as usize);
         let s = sign as u64;
-
         (s << 63) | (mid << f) | low
     }
 }
 
 fn standard_fpscr_value(fpscr: u32) -> u32 {
     (0b0_0000 << 27) | ((fpscr.get_bit(26) as u32) << 26) | 0b11_0000_0000_0000_0000_0000_0000
-}
-pub trait FloatingPointInternalOperations {
-    fn execute_fp_check(&mut self);
-
-    fn fp_process_exception(&mut self, exc: FPExc, fpscr_val: u32);
-}
-
-pub trait FloatingPointPublicOperations {
-    fn fp_add<T: FloatOps>(
-        &mut self,
-        op1: T::Bits,
-        op2: T::Bits,
-        fpscr_controlled: bool,
-    ) -> T::Bits;
-    fn fp_sub<T: FloatOps>(
-        &mut self,
-        op1: T::Bits,
-        op2: T::Bits,
-        fpscr_controlled: bool,
-    ) -> T::Bits;
-    fn fp_compare<T: FloatOps>(
-        &mut self,
-        op1: T::Bits,
-        op2: T::Bits,
-        quiet_nan_exc: bool,
-        fpscr_controlled: bool,
-    ) -> (bool, bool, bool, bool);
-
-    fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits;
-}
-
-trait FloatingPointHiddenOperations {
-    fn fp_process_nan<T: FloatOps>(
-        &mut self,
-        type1: FPType,
-        op: T::Bits,
-        fpscr_val: u32,
-    ) -> T::Bits;
-    fn fp_process_nans<T: FloatOps>(
-        &mut self,
-        type1: FPType,
-        type2: FPType,
-        op1: T::Bits,
-        op2: T::Bits,
-        fpscr_val: u32,
-    ) -> (bool, T::Bits);
-
-    fn fp_unpack<T: FloatOps>(&mut self, fpval: T::Bits, fpscr_val: u32)
-        -> (FPType, bool, T::Real);
-
-    fn fp_round<T: FloatOps>(&mut self, value: T::Real, fpscr_val: u32) -> T::Bits;
 }
 
 impl FloatingPointHiddenOperations for Processor {
@@ -604,11 +591,11 @@ impl FloatingPointHiddenOperations for Processor {
                 T::signed_value(0),
             );
             if biased_exp == T::SignedBits::default() {
-                mantissa = mantissa / T::powf2(T::signed_to_f(minimum_exp - exponent));
+                mantissa = mantissa / T::powf2((minimum_exp - exponent).into());
             }
             let pow2_f = T::unsigned_pow2_f(f);
             let mut int_mantissa = T::round_down(mantissa * pow2_f);
-            let mut error = mantissa * pow2_f - T::unsigned_to_f(int_mantissa);
+            let mut error = mantissa * pow2_f - (int_mantissa).into();
 
             if biased_exp == T::SignedBits::default()
                 && (error != T::Real::default() || fpscr_val.get_bit(11))
@@ -761,6 +748,7 @@ impl FloatingPointPublicOperations for Processor {
             result
         }
     }
+
     fn fp_compare<T: FloatOps>(
         &mut self,
         op1: T::Bits,
@@ -797,6 +785,7 @@ impl FloatingPointPublicOperations for Processor {
             }
         }
     }
+
     fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits {
         T::fp_abs(op)
     }
@@ -810,7 +799,7 @@ fn is_ones_64(value: u64, len: usize) -> bool {
     value.count_ones() == len as u32
 }
 
-impl FloatingPointInternalOperations for Processor {
+impl FloatingPointChecks for Processor {
     fn execute_fp_check(&mut self) {
         // todo!()
     }
