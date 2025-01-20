@@ -2,9 +2,16 @@
 set -e
 { set +x; } 2>/dev/null
 
-if ! command -v arm-none-eabi-gcc &> /dev/null
+if [ -z "$GCC_HOME" ]; then
+    echo "GCC_HOME is undefined"
+    exit
+fi
+
+CC=$GCC_HOME/bin/arm-none-eabi-gcc
+
+if ! command -v $CC &> /dev/null
 then
-    echo "GCC for ARM is not installed. Please install with: 'sudo apt install gcc-arm-none-eabi'"
+    echo "GCC for ARM is not installed. Please install from developer.arm.com"
     exit
 fi
 

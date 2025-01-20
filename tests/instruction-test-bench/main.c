@@ -17,7 +17,7 @@ arm-none-eabi-gcc ... -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16
 
 #define __VFP_FP__ 1
 #define __ARM_PCS_VFP 1
-#define __ARM_ARCH_PROFILE 77   
+#define __ARM_ARCH_PROFILE 77
 #define __ARM_ARCH_7EM__ 1
 #define __ARM_FEATURE_DSP 1
 
@@ -25,13 +25,20 @@ arm-none-eabi-gcc ... -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16
 */
 
 #if defined(__ARM_PCS_VFP) && defined(__VFP_FP__)
-    // Hard floating-point is enabled, and VFP instructions are available
-    #define HARD_FLOATING_POINT_ENABLED 1
+// Hard floating-point is enabled, and VFP instructions are available
+#define HARD_FLOATING_POINT_ENABLED 1
+
+#if __ARM_FP & 0x8
+#define HARD_FLOATING_POINT_DOUBLE_PRECISION 1
 #else
-    // Hard floating-point is not enabled or VFP support is absent
-    #define HARD_FLOATING_POINT_ENABLED 0
+#define HARD_FLOATING_POINT_DOUBLE_PRECISION 0
 #endif
 
+#else
+// Hard floating-point is not enabled or VFP support is absent
+#define HARD_FLOATING_POINT_ENABLED 0
+#define HARD_FLOATING_POINT_DOUBLE_PRECISION 0
+#endif
 
 #if __ARM_ARCH >= 7
 unsigned int bfc_0_32(int value)
@@ -67,7 +74,7 @@ void bfc(void)
 #endif
 
 #if HARD_FLOATING_POINT_ENABLED
-float vabs(float value)
+float vabs_f32(float value)
 {
     float result;
 
@@ -79,17 +86,112 @@ float vabs(float value)
     return result;
 }
 
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+double vabs_f64(double value)
+{
+    double result;
+
+    asm volatile(
+        "VABS.F64 %P0, %P1"
+        : "=w"(result)
+        : "w"(value));
+
+    return result;
+}
+#endif
+
+float vadd_f32(float a, float b)
+{
+    float result;
+
+    asm volatile(
+        "VADD.F32 %0, %1, %2"
+        : "=t"(result)
+        : "t"(a), "t"(b));
+
+    return result;
+}
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+double vadd_f64(double a, double b)
+{
+    double result;
+
+    asm volatile(
+        "VADD.F64 %P0, %P1, %P2"
+        : "=w"(result)
+        : "w"(a), "w"(b));
+
+    return result;
+}
+#endif
+
+float vsub_f32(float a, float b)
+{
+    float result;
+
+    asm volatile(
+        "VSUB.F32 %0, %1, %2"
+        : "=t"(result)
+        : "t"(a), "t"(b));
+
+    return result;
+}
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+double vsub_f64(double a, double b)
+{
+    double result;
+
+    asm volatile(
+        "VSUB.F64 %P0, %P1, %P2"
+        : "=w"(result)
+        : "w"(a), "w"(b));
+
+    return result;
+}
+#endif
+
 void floating_point(void)
 {
     // Try to generate floating-point data-processing instructions
-    // VABS, VADD, VCMP, VCVT, VDIV, VFMA, VFNMA, VMAXNM
+    // TODO: VCVT, VDIV, VFMA, VFNMA, VMAXNM
     // VMLA, VMOV, VMOV, VMUL, VNEG, VNMLA, VRINTA, VRINTZ
-    // VSEL, VSQRT, VSUB
+    // VSEL, VSQRT
 
-    assert(vabs(-1.0f) == 1.0f);
-    assert(vabs(-42.0f) == 42.0f);
-    assert(vabs(0.0f) == 0.0f);
-    assert(vabs(1.0f) == 1.0f);
+    // VABS.F32, VABS.F64
+    assert(vabs_f32(-1.0f) == 1.0f);
+    assert(vabs_f32(-42.0f) == 42.0f);
+    assert(vabs_f32(0.0f) == 0.0f);
+    assert(vabs_f32(1.0f) == 1.0f);
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+    assert(vabs_f64(-1.0) == 1.0);
+    assert(vabs_f64(-42.0) == 42.0);
+    assert(vabs_f64(0.0) == 0.0);
+    assert(vabs_f64(1.0) == 1.0);
+#endif
+
+    // VADD.F32 VADD.F64, VSUB.F32, VSUB.F64
+    assert(vadd_f32(1.0f, 2.0f) == 3.0f);
+    assert(vadd_f32(-1.0f, 2.0f) == 1.0f);
+    assert(vadd_f32(-1.0f, -2.0f) == -3.0f);
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+    assert(vadd_f64(1.0, 2.0) == (1.0 + 2.0));
+    assert(vadd_f64(-1.0, 2.0) == (-1.0 + 2.0));
+    assert(vadd_f64(-1.0, -2.0) == (-1.0 + -2.0));
+#endif
+
+    assert(vsub_f32(1.0f, 2.0f) == (1.0f - 2.0f));
+    assert(vsub_f32(-1.0f, 2.0f) == (-1.0f - 2.0f));
+    assert(vsub_f32(-1.0f, -2.0f) == (-1.0f - -2.0f));
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+    assert(vsub_f64(1.0, 2.0) == (1.0 - 2.0));
+    assert(vsub_f64(-1.0, 2.0) == (-1.0 - 2.0));
+    assert(vsub_f64(-1.0, -2.0) == (-1.0 - -2.0));
+#endif
 }
 #endif
 int main(void)
@@ -119,8 +221,7 @@ void _start(void)
 
 __attribute__((used)) void _fini(void) {}
 
-
-void __assert_func( const char *filename, int line, const char *assert_func, const char *expr )
+void __assert_func(const char *filename, int line, const char *assert_func, const char *expr)
 {
     printf("assert_failed: %s:%d\n", filename, line);
     exit(1);

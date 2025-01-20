@@ -1,10 +1,10 @@
-#common rules used by all tests
+# common rules used by all tests
 # testing the requirements
 ifndef GCC_HOME
     $(error GCC_HOME is undefined)
 endif
 
-CC=arm-none-eabi-gcc
+CC=$(GCC_HOME)/bin/arm-none-eabi-gcc
 CFLAGS= -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
 LIBS=-lc -lrdimon
 

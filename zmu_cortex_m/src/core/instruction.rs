@@ -294,6 +294,21 @@ pub struct LoadAndStoreMultipleParams {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VAddSubParamsf64 {
+    pub dd: DoubleReg,
+    pub dn: DoubleReg,
+    pub dm: DoubleReg,
+}
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VAddSubParamsf32 {
+    pub sd: SingleReg,
+    pub sn: SingleReg,
+    pub sm: SingleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct VLoadAndStoreParams {
     pub dd: ExtensionReg,
     pub rn: Reg,
@@ -1429,7 +1444,12 @@ pub enum Instruction {
     VABS_f64 {
         params: VMovRegParamsf64,
     },
-    //VADD
+    VADD_f32 {
+        params: VAddSubParamsf32,
+    },
+    VADD_f64 {
+        params: VAddSubParamsf64,
+    },
     VCMP_f32 {
         params: VCmpParamsf32,
     },
@@ -1452,6 +1472,12 @@ pub enum Instruction {
     //VSEL
     //VSQRT
     //VSUB
+    VSUB_f32 {
+        params: VAddSubParamsf32,
+    },
+    VSUB_f64 {
+        params: VAddSubParamsf64,
+    },
 }
 
 use std::fmt;
@@ -2524,6 +2550,19 @@ impl fmt::Display for Instruction {
                 }
             ),
 
+            Self::VADD_f32 { params } => {
+                write!(f, "vadd.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VADD_f64 { params } => {
+                write!(f, "vadd.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+            Self::VSUB_f32 { params } => {
+                write!(f, "vsub.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VSUB_f64 { params } => {
+                write!(f, "vsub.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
             Self::YIELD { .. } => write!(f, "yield"),
@@ -2812,7 +2851,10 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
 
         Instruction::VABS_f32 { params } => 4,
         Instruction::VABS_f64 { params } => 4,
-        //VADD
+
+        Instruction::VADD_f32 { params } => 4,
+        Instruction::VADD_f64 { params } => 4,
+
         Instruction::VCMP_f32 { params } => 4,
         Instruction::VCMP_f64 { params } => 4,
         //VCVTX
@@ -2854,7 +2896,8 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::VSTM_T1 { .. } => 4,
         Instruction::VSTM_T2 { .. } => 4,
         //VSTR
-        //VSUB
+        Instruction::VSUB_f32 { params } => 4,
+        Instruction::VSUB_f64 { params } => 4,
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),

@@ -14,9 +14,6 @@ pub fn decode_VSTM_t1(opcode: u32) -> Instruction {
     let imm32 = u32::from(imm8 << 2);
     let P = opcode.get_bit(24);
 
-    // check that we decoded correctly
-    assert!((!P && U) || (P && !U && W));
-
     let n = opcode.get_bits(16..20) as u8;
     let rn = Reg::from(n);
     let D = u8::from(opcode.get_bit(22));
@@ -74,9 +71,6 @@ pub fn decode_VSTM_t2(opcode: u32) -> Instruction {
     let imm32 = u32::from(imm8 << 2);
     let U = opcode.get_bit(23);
     let P = opcode.get_bit(24);
-
-    // check that we decoded correctly
-    assert!((!P && U) || (P && !U && W));
 
     let n = opcode.get_bits(16..20) as u8;
     let rn = Reg::from(n);

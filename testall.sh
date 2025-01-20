@@ -28,6 +28,12 @@ echo "building..."
 ./test_coremark.sh
 
 ##
+## ARM CMSIS DSP
+##
+# TODO: enable once basic level VFP support is done
+# ./test_arm-cmsis-dsp.sh
+
+##
 ## TODO: Rusty Clock
 ##
 # https://github.com/TeXitoi/rusty-clock.git

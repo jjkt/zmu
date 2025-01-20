@@ -116,6 +116,7 @@ mod uxt;
 mod uxtab;
 
 mod vabs;
+mod vadd_vsub;
 mod vcmp;
 mod vldr;
 mod vmov;
@@ -262,6 +263,7 @@ use crate::core::thumb::ThumbCode;
 use crate::Processor;
 use {
     vabs::decode_VABS_t1,
+    vadd_vsub::{decode_VADD_t1, decode_VSUB_t1},
     vcmp::{decode_VCMP_t1, decode_VCMP_t2},
     vldr::{decode_VLDR_t1, decode_VLDR_t2},
     vmov::decode_VMOV_cr2_dp,

@@ -16,7 +16,7 @@ endif
 OUTFLAG= -o
 # Flag : CC
 #	Use this flag to define compiler to use
-CC = arm-none-eabi-gcc
+CC = $(GCC_HOME)/bin/arm-none-eabi-gcc
 # Flag : CFLAGS
 #	Use this flag to define compiler options. Note, you can add compiler options from the command line using XCFLAGS="other flags"
 PORT_CFLAGS = -O3 --specs=rdimon.specs -mthumb -g -nostartfiles -T $(PORT_DIR)/link.ld -D__STARTUP_CLEAR_BSS

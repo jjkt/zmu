@@ -9,7 +9,7 @@ use crate::Processor;
 use crate::executor::ExecuteSuccess;
 
 use super::ExecuteResult;
-use crate::core::register::{BaseReg, ExtensionRegOperations, Apsr};
+use crate::core::register::{Apsr, BaseReg, ExtensionRegOperations};
 
 use crate::executor::ExecutorHelper;
 
