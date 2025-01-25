@@ -17,6 +17,8 @@ pub enum ThumbCode {
         /// 16 bit opcode value
         opcode: u16,
     },
+    /// value does not map to thumb32 or thumb16
+    Undefined,
 }
 
 impl From<u16> for ThumbCode {
@@ -36,6 +38,7 @@ impl fmt::Display for ThumbCode {
         match *self {
             Self::Thumb16 { opcode } => write!(f, "0x{opcode:x}"),
             Self::Thumb32 { opcode } => write!(f, "0x{opcode:x}"),
+            Self::Undefined => write!(f, "Undefined"),
         }
     }
 }

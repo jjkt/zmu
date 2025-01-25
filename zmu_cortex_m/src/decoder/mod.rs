@@ -297,6 +297,7 @@ impl Decoder for Processor {
         match code {
             ThumbCode::Thumb32 { opcode } => decode_32(opcode),
             ThumbCode::Thumb16 { opcode } => decode_16(opcode),
+            ThumbCode::Undefined => Instruction::UDF {imm32: 0, opcode: code, thumb32: false},
         }
     }
 }

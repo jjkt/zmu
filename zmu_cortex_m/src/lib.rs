@@ -390,7 +390,7 @@ impl Processor {
             let mut pc = 0;
 
             while pc < (self.code.len() as u32) {
-                let thumb = self.fetch(pc).unwrap();
+                let thumb = self.fetch_non_fail(pc);
                 let instruction = self.decode(thumb);
                 self.instruction_cache
                     .push((instruction, instruction_size(&instruction)));
