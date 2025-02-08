@@ -1,7 +1,6 @@
 use crate::core::fpregister::Fpscr;
 use crate::core::instruction::{
-    VAddSubParamsf32, VAddSubParamsf64, VCmpParamsf32, VCmpParamsf64, VMovRegParamsf32,
-    VMovRegParamsf64,
+    VAddSubParamsf32, VAddSubParamsf64, VCVTParams, VCmpParamsf32, VCmpParamsf64, VMovRegParamsf32, VMovRegParamsf64
 };
 use crate::Processor;
 
@@ -24,6 +23,8 @@ pub trait IsaFloatingPointDataProcessing {
 
     fn exec_vsub_f32(&mut self, params: &VAddSubParamsf32) -> ExecuteResult;
     fn exec_vsub_f64(&mut self, params: &VAddSubParamsf64) -> ExecuteResult;
+
+    fn exec_vcvt(&mut self, params: &VCVTParams) -> ExecuteResult;
 }
 
 impl IsaFloatingPointDataProcessing for Processor {
@@ -141,6 +142,55 @@ impl IsaFloatingPointDataProcessing for Processor {
             let result_upper = (result >> 32) as u32;
             let result_lower = result as u32;
             self.set_dr(params.dd, result_lower, result_upper);
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
+    fn exec_vcvt(&mut self, params: &VCVTParams) -> ExecuteResult {
+        if self.condition_passed() {
+            self.execute_fp_check();
+            
+            if params.to_integer{
+                if params.dp_operation
+                {
+                    let m_reg =params.m.as_double().expect("Invalid register for double precision operation");
+                    let d_reg =params.d.as_single().expect("Invalid register for single precision operation");
+                    let dm = self.get_dr(*m_reg);
+                    let dm_val = (dm.1 as u64) << 32 | dm.0 as u64;
+                    let result = self.fp_to_fixed::<u64, u32>(dm_val, 0, params.unsigned, params.round_zero, true);
+                    self.set_sr(*d_reg, result);
+                }
+                else {
+                    let m_reg =params.m.as_single().expect("Invalid register for single precision operation");
+                    let d_reg =params.d.as_single().expect("Invalid register for single precision operation");
+                    let dm = self.get_sr(*m_reg);
+                    let result = self.fp_to_fixed::<u32, u32>(dm, 0, params.unsigned, params.round_zero, true);
+                    self.set_sr(*d_reg, result);
+
+                }
+            }
+            else {
+                if params.dp_operation
+                {
+                    let m_reg =params.m.as_single().expect("Invalid register for single precision operation");
+                    let d_reg =params.d.as_double().expect("Invalid register for double precision operation");
+                    let dm = self.get_sr(*m_reg);
+                    let result = self.fixed_to_fp::<u64, u32>(dm, 0, params.unsigned, params.round_zero, true);
+                    let result_upper = (result >> 32) as u32;
+                    let result_lower = result as u32;
+                    self.set_dr(*d_reg, result_lower, result_upper);
+
+                }
+                else {
+                    let m_reg =params.m.as_single().expect("Invalid register for single precision operation");
+                    let d_reg =params.d.as_single().expect("Invalid register for single precision operation");
+                    let dm = self.get_sr(*m_reg);
+                    let result = self.fixed_to_fp::<u32, u32>(dm, 0, params.unsigned, params.round_zero, true);
+                    self.set_sr(*d_reg, result);
+                }
+            }
+
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }
         Ok(ExecuteSuccess::NotTaken)

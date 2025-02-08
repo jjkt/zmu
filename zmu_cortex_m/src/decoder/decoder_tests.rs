@@ -5,9 +5,9 @@ use crate::core::instruction::{
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
     Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
     Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
-    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags, VAddSubParamsf32,
-    VCmpParamsf32, VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
-    VMovRegParamsf32,
+    RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags,
+    VAddSubParamsf32, VCVTParams, VCmpParamsf32, VMRSTarget, VMovCr2DpParams, VMovCrSpParams,
+    VMovImmParams32, VMovImmParams64, VMovRegParamsf32,
 };
 
 use crate::core::instruction::VLoadAndStoreParams;
@@ -3193,5 +3193,26 @@ fn test_decode_vsub_f32() {
             }
         }
     );
+}
 
+#[test]
+fn test_decode_vct() {
+    //eefd 7ac0       vcvt.s32.f32    s15, s0
+
+    assert_eq!(
+        decode_32(0xeefd7ac0),
+        Instruction::VCVT {
+            params: VCVTParams {
+                d: ExtensionReg::Single {
+                    reg: SingleReg::S15
+                },
+                m: ExtensionReg::Single { reg: SingleReg::S0 },
+                dp_operation: false,
+                to_integer: true,
+                unsigned: false,
+                round_nearest: false,
+                round_zero: true,
+            }
+        }
+    );
 }

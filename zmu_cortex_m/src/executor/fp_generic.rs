@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Sub};
 
 use crate::{
     core::{
@@ -31,12 +31,34 @@ pub enum FPExc {
     InputDenorm,
 }
 
+// i128 is used to represent the "integer" pseudocode type in the Architecture Reference Manual
+fn round_down(value: BigFloat) -> i128 {
+    // largest integer n so that n <= x
+    let floored = value.floor();
+
+    if floored.is_nan() {
+        return 0;
+    }
+
+    let result = floored.to_i128().unwrap_or(if value < BigFloat::default() {
+        std::i128::MIN + 1
+    } else {
+        std::i128::MAX
+    });
+    result
+}
+
 /// Trait for floating point operations
 /// This trait is generic over the underlying integer type (u32 or u64)
 /// and provides methods for floating point operations.
 pub trait FloatOps {
     // underlying integer type (u32 or u64)
-    type Bits: PartialOrd + AddAssign + Div<Output = Self::Bits> + Copy;
+    type Bits: PartialOrd
+        + AddAssign
+        + Div<Output = Self::Bits>
+        + Sub<Output = Self::Bits>
+        + Into<u64>
+        + Copy;
 
     // signed version of the underlying integer type
     type SignedBits: Sized
@@ -46,19 +68,8 @@ pub trait FloatOps {
         + AddAssign
         + Sub<Output = Self::SignedBits>
         + Ord
-        + Copy;
-
-    // Pseudo-real number type for unbounded precision calculations
-    type Real: PartialOrd
-        + Default
         + Copy
-        + Add<Output = Self::Real>
-        + Neg<Output = Self::Real>
-        + Div<Output = Self::Real>
-        + Sub<Output = Self::Real>
-        + Mul<Output = Self::Real>
-        + From<Self::SignedBits>
-        + From<Self::Bits>;
+        + Into<BigFloat>;
 
     /// Number of bits in the underlying integer type
     fn n() -> usize;
@@ -71,27 +82,26 @@ pub trait FloatOps {
     fn fp_zero(sign: bool) -> Self::Bits;
     fn zero() -> Self::Bits;
     fn set_bit(value: Self::Bits, bit: usize, set: bool) -> Self::Bits;
-    fn get_bit_unsigned(value: Self::Bits, bit: usize) -> bool;
 
-    fn round_down(value: Self::Real) -> Self::Bits;
+    fn powf2(e: BigFloat) -> BigFloat;
 
-    fn float_value_zero_point_five() -> Self::Real;
-    fn onef() -> Self::Real;
-    fn powf2(e: Self::Real) -> Self::Real;
+    fn unsigned_pow2_f(e: usize) -> BigFloat;
 
-    fn unsigned_pow2(e: usize) -> Self::Bits;
-    fn unsigned_pow2_f(e: usize) -> Self::Real;
-    fn unsigned_value(value: i32) -> Self::Bits;
-
+    fn integer_to_bits(value: i128) -> Self::Bits;
     fn signed_pow2(e: usize) -> Self::SignedBits;
     fn signed_value(value: i32) -> Self::SignedBits;
 
     fn fp_abs(value: Self::Bits) -> Self::Bits;
     fn fp_max_normal(sign: bool) -> Self::Bits;
+    fn from_integer(value: u64) -> Self::Bits;
 
-    fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, Self::Real, Option<FPExc>);
+    fn unsigned_to_signed(value: Self::Bits) -> Self::SignedBits;
+    fn bits_to_bigfloat(value: Self::Bits) -> BigFloat;
+    fn signedbits_to_bigfloat(value: Self::SignedBits) -> BigFloat;
 
-    fn normalize(mantissa: Self::Real) -> (Self::Real, Self::SignedBits);
+    fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, BigFloat, Option<FPExc>);
+
+    fn normalize(mantissa: BigFloat) -> (BigFloat, Self::SignedBits);
     fn concate_bits(
         sign: bool,
         biased_exp: Self::SignedBits,
@@ -128,6 +138,24 @@ pub trait FloatingPointPublicOperations {
     ) -> (bool, bool, bool, bool);
 
     fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits;
+
+    fn fp_to_fixed<N: FloatOps, M: FloatOps>(
+        &mut self,
+        op: N::Bits,
+        fraction_bits: usize,
+        unsigned: bool,
+        round_towards_zero: bool,
+        fpscr_controlled: bool,
+    ) -> M::Bits;
+
+    fn fixed_to_fp<N: FloatOps, M: FloatOps>(
+        &mut self,
+        op: M::Bits,
+        fraction_bits: usize,
+        unsigned: bool,
+        round_to_nearest: bool,
+        fpscr_controlled: bool,
+    ) -> N::Bits;
 }
 
 trait FloatingPointHiddenOperations {
@@ -147,16 +175,18 @@ trait FloatingPointHiddenOperations {
         fpscr_val: u32,
     ) -> (bool, T::Bits);
 
-    fn fp_unpack<T: FloatOps>(&mut self, fpval: T::Bits, fpscr_val: u32)
-        -> (FPType, bool, T::Real);
+    fn fp_unpack<T: FloatOps>(
+        &mut self,
+        fpval: T::Bits,
+        fpscr_val: u32,
+    ) -> (FPType, bool, BigFloat);
 
-    fn fp_round<T: FloatOps>(&mut self, value: T::Real, fpscr_val: u32) -> T::Bits;
+    fn fp_round<T: FloatOps>(&mut self, value: BigFloat, fpscr_val: u32) -> T::Bits;
 }
 
 impl FloatOps for u32 {
     type Bits = u32;
     type SignedBits = i32;
-    type Real = BigFloat;
 
     fn n() -> usize {
         32
@@ -166,43 +196,22 @@ impl FloatOps for u32 {
         0
     }
 
-    fn onef() -> Self::Real {
-        num_bigfloat::ONE
-    }
-
-    fn float_value_zero_point_five() -> Self::Real {
-        BigFloat::from(0.5)
-    }
-
     fn set_bit(value: Self::Bits, bit: usize, set: bool) -> Self::Bits {
         let mut val = value;
         val.set_bit(bit, set);
         val
     }
 
-    fn get_bit_unsigned(value: Self::Bits, bit: usize) -> bool {
-        value.get_bit(bit)
-    }
-
-    fn powf2(e: Self::Real) -> Self::Real {
+    fn powf2(e: BigFloat) -> BigFloat {
         BigFloat::from(2).pow(&e)
     }
 
-    fn round_down(value: Self::Real) -> Self::Bits {
-        // largest integer n so that n <= x
-        value.floor().to_i64().unwrap().try_into().unwrap()
-    }
-
-    fn unsigned_value(value: i32) -> Self::Bits {
+    fn integer_to_bits(value: i128) -> Self::Bits {
         value as Self::Bits
     }
 
-    fn unsigned_pow2_f(e: usize) -> Self::Real {
+    fn unsigned_pow2_f(e: usize) -> BigFloat {
         BigFloat::from(2).pow(&((e as u32).into()))
-    }
-
-    fn unsigned_pow2(e: usize) -> Self::Bits {
-        2u32.pow(e as u32)
     }
 
     fn signed_pow2(e: usize) -> Self::SignedBits {
@@ -211,6 +220,22 @@ impl FloatOps for u32 {
 
     fn signed_value(value: i32) -> Self::SignedBits {
         value
+    }
+
+    fn unsigned_to_signed(value: Self::Bits) -> Self::SignedBits {
+        value as Self::SignedBits
+    }
+
+    fn bits_to_bigfloat(value: Self::Bits) -> BigFloat {
+        BigFloat::from(value)
+    }
+
+    fn signedbits_to_bigfloat(value: Self::SignedBits) -> BigFloat {
+        BigFloat::from(value)
+    }
+
+    fn from_integer(value: u64) -> Self::Bits {
+        value as Self::Bits
     }
 
     fn fp_infinity(sign: bool) -> Self::Bits {
@@ -241,7 +266,7 @@ impl FloatOps for u32 {
         value == 0
     }
 
-    fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, Self::Real, Option<FPExc>) {
+    fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, BigFloat, Option<FPExc>) {
         let sign = fpval.get_bit(31);
         let exp32 = fpval.get_bits(23..31);
         let frac32 = fpval.get_bits(0..23);
@@ -253,7 +278,7 @@ impl FloatOps for u32 {
                     // Denormalized input flushed to zero
                     exception = Some(FPExc::InputDenorm);
                 }
-                (FPType::Zero, Self::Real::default())
+                (FPType::Zero, BigFloat::default())
             } else {
                 (
                     FPType::Nonzero,
@@ -275,7 +300,7 @@ impl FloatOps for u32 {
                     } else {
                         FPType::SNaN
                     },
-                    Self::Real::default(),
+                    BigFloat::default(),
                 )
             }
         } else {
@@ -299,7 +324,7 @@ impl FloatOps for u32 {
         ((sign as u32) << 31) + (exp << 23) + frac
     }
 
-    fn normalize(mant: Self::Real) -> (Self::Real, Self::SignedBits) {
+    fn normalize(mant: BigFloat) -> (BigFloat, Self::SignedBits) {
         let mut exponent: i32 = 0;
         let limit = BigFloat::from(1.0);
         let multiplier = BigFloat::from(2.0);
@@ -334,7 +359,6 @@ impl FloatOps for u32 {
 impl FloatOps for u64 {
     type Bits = u64;
     type SignedBits = i64;
-    type Real = BigFloat;
 
     fn fp_infinity(sign: bool) -> Self::Bits {
         if sign {
@@ -348,14 +372,6 @@ impl FloatOps for u64 {
         0
     }
 
-    fn onef() -> Self::Real {
-        num_bigfloat::ONE
-    }
-
-    fn float_value_zero_point_five() -> Self::Real {
-        BigFloat::from(0.5)
-    }
-
     fn n() -> usize {
         64
     }
@@ -366,29 +382,16 @@ impl FloatOps for u64 {
         val
     }
 
-    fn get_bit_unsigned(value: Self::Bits, bit: usize) -> bool {
-        value.get_bit(bit)
-    }
-
-    fn powf2(e: Self::Real) -> Self::Real {
-        BigFloat::from(2).pow(&e)
-    }
-
-    fn round_down(value: Self::Real) -> Self::Bits {
-        // largest integer n so that n <= x
-        value.floor().to_i64().unwrap().try_into().unwrap()
-    }
-
-    fn unsigned_value(value: i32) -> Self::Bits {
+    fn integer_to_bits(value: i128) -> Self::Bits {
         value as Self::Bits
     }
 
-    fn unsigned_pow2_f(e: usize) -> Self::Real {
-        BigFloat::from(2).pow(&((e as u32).into()))
+    fn powf2(e: BigFloat) -> BigFloat {
+        BigFloat::from(2).pow(&e)
     }
 
-    fn unsigned_pow2(e: usize) -> Self::Bits {
-        2u64.pow(e as u32)
+    fn unsigned_pow2_f(e: usize) -> BigFloat {
+        BigFloat::from(2).pow(&((e as u32).into()))
     }
 
     fn signed_pow2(e: usize) -> Self::SignedBits {
@@ -397,6 +400,22 @@ impl FloatOps for u64 {
 
     fn signed_value(value: i32) -> Self::SignedBits {
         value as i64
+    }
+
+    fn unsigned_to_signed(value: Self::Bits) -> Self::SignedBits {
+        value as Self::SignedBits
+    }
+
+    fn bits_to_bigfloat(value: Self::Bits) -> BigFloat {
+        BigFloat::from(value)
+    }
+
+    fn signedbits_to_bigfloat(value: Self::SignedBits) -> BigFloat {
+        BigFloat::from(value)
+    }
+
+    fn from_integer(value: u64) -> Self::Bits {
+        value
     }
 
     fn fp_zero(sign: bool) -> Self::Bits {
@@ -419,7 +438,7 @@ impl FloatOps for u64 {
         value & 0x7FFFFFFFFFFFFFFF
     }
 
-    fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, Self::Real, Option<FPExc>) {
+    fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, BigFloat, Option<FPExc>) {
         let sign = fpval.get_bit(63);
         let exp64 = fpval.get_bits(52..63);
         let frac64 = fpval.get_bits(0..52);
@@ -428,10 +447,9 @@ impl FloatOps for u64 {
         let (ret_type, mut value) = if Self::is_zero(exp64) {
             if Self::is_zero(frac64) || fpscr_val.get_bit(24) {
                 if !Self::is_zero(frac64) {
-                    // Denormalized input flushed to zero
                     exception = Some(FPExc::InputDenorm);
                 }
-                (FPType::Zero, Self::Real::default())
+                (FPType::Zero, BigFloat::default())
             } else {
                 (
                     FPType::Nonzero,
@@ -453,7 +471,7 @@ impl FloatOps for u64 {
                     } else {
                         FPType::SNaN
                     },
-                    Self::Real::default(),
+                    BigFloat::default(),
                 )
             }
         } else {
@@ -477,7 +495,7 @@ impl FloatOps for u64 {
         ((sign as u64) << 63) + (exp << 52) + frac
     }
 
-    fn normalize(mant: Self::Real) -> (Self::Real, Self::SignedBits) {
+    fn normalize(mant: BigFloat) -> (BigFloat, Self::SignedBits) {
         let mut exponent: i64 = 0;
         let limit = BigFloat::from(1.0);
         let multiplier = BigFloat::from(2.0);
@@ -509,6 +527,35 @@ impl FloatOps for u64 {
 
 fn standard_fpscr_value(fpscr: u32) -> u32 {
     (0b0_0000 << 27) | ((fpscr.get_bit(26) as u32) << 26) | 0b11_0000_0000_0000_0000_0000_0000
+}
+
+/// saturate i to n bits, return the result and a boolean indicating if saturation occurred (up to 64 bits)
+fn satq(i: i128, n: usize, unsigned: bool) -> (u64, bool) {
+    if unsigned {
+        let limit = 2u128.pow(n as u32) - 1;
+        let i_unsigned = i as u128;
+
+        let (result, saturated) = if i_unsigned > limit {
+            (limit, true)
+        } else {
+            (i_unsigned, false)
+        };
+
+        return (result.get_bits(0..n) as u64, saturated);
+    } else {
+        let limit = 2i128.pow(n as u32 - 1) - 1;
+        let neg_limit = -(2i128.pow(n as u32 - 1));
+
+        let (result, saturated) = if i > limit {
+            (limit, true)
+        } else if i < neg_limit {
+            (neg_limit, true)
+        } else {
+            (i, false)
+        };
+
+        return ((result as u64).get_bits(0..n), saturated);
+    }
 }
 
 impl FloatingPointHiddenOperations for Processor {
@@ -559,7 +606,7 @@ impl FloatingPointHiddenOperations for Processor {
         &mut self,
         fpval: T::Bits,
         fpscr_val: u32,
-    ) -> (FPType, bool, T::Real) {
+    ) -> (FPType, bool, BigFloat) {
         let (fptype, sign, value, exception) = T::fp_unpack(fpval, fpscr_val);
         if let Some(exc) = exception {
             self.fp_process_exception(exc, fpscr_val);
@@ -567,14 +614,14 @@ impl FloatingPointHiddenOperations for Processor {
         (fptype, sign, value)
     }
 
-    fn fp_round<T: FloatOps>(&mut self, value: T::Real, fpscr_val: u32) -> T::Bits {
-        assert!(value != T::Real::default());
+    fn fp_round<T: FloatOps>(&mut self, value: BigFloat, fpscr_val: u32) -> T::Bits {
+        assert!(value != BigFloat::default());
 
         let e = if T::n() == 32 { 8 } else { 11 };
         let minimum_exp: T::SignedBits = T::signed_value(2) - T::signed_pow2(e - 1);
 
         let f = T::n() - e - 1;
-        let (sign, mantissa) = if value < T::Real::default() {
+        let (sign, mantissa) = if value < BigFloat::default() {
             (true, -value)
         } else {
             (false, value)
@@ -594,38 +641,37 @@ impl FloatingPointHiddenOperations for Processor {
                 mantissa = mantissa / T::powf2((minimum_exp - exponent).into());
             }
             let pow2_f = T::unsigned_pow2_f(f);
-            let mut int_mantissa = T::round_down(mantissa * pow2_f);
-            let mut error = mantissa * pow2_f - (int_mantissa).into();
+            let mut int_mantissa = round_down(mantissa * pow2_f);
+            let mut error: BigFloat = mantissa * pow2_f - BigFloat::from(int_mantissa);
 
             if biased_exp == T::SignedBits::default()
-                && (error != T::Real::default() || fpscr_val.get_bit(11))
+                && (error != BigFloat::default() || fpscr_val.get_bit(11))
             {
                 self.fp_process_exception(FPExc::Underflow, fpscr_val);
             }
 
             let (round_up, overflow_to_inf) = match fpscr_val.get_rounding_mode() {
                 FPSCRRounding::RoundToNearest => (
-                    (error > T::float_value_zero_point_five()
-                        || (error == T::float_value_zero_point_five()
-                            && T::get_bit_unsigned(int_mantissa, 0))),
+                    (error > BigFloat::from(0.5)
+                        || (error == BigFloat::from(0.5) && int_mantissa.get_bit(0))),
                     true,
                 ),
                 FPSCRRounding::RoundTowardsPlusInfinity => {
-                    (error != T::Real::default() && !sign, !sign)
+                    (error != BigFloat::default() && !sign, !sign)
                 }
                 FPSCRRounding::RoundTowardsMinusInfinity => {
-                    (error != T::Real::default() && sign, sign)
+                    (error != BigFloat::default() && sign, sign)
                 }
                 FPSCRRounding::RoundTowardsZero => (false, false),
             };
             if round_up {
-                int_mantissa += T::unsigned_value(1);
-                if int_mantissa == T::unsigned_pow2(f) {
+                int_mantissa += 1;
+                if int_mantissa == 2i128.pow(f as u32) {
                     biased_exp = T::signed_value(1);
                 }
-                if int_mantissa == T::unsigned_pow2(f + 1) {
+                if int_mantissa == 2i128.pow(f as u32 + 1) {
                     biased_exp += T::signed_value(1);
-                    int_mantissa = int_mantissa / T::unsigned_value(2);
+                    int_mantissa = int_mantissa / 2;
                 }
             }
 
@@ -636,15 +682,15 @@ impl FloatingPointHiddenOperations for Processor {
                     T::fp_max_normal(sign)
                 };
                 self.fp_process_exception(FPExc::Overflow, fpscr_val);
-                error = T::onef();
+                error = num_bigfloat::ONE;
                 result
             } else {
                 // concatenate following bits:
                 // sign: biased_exp(0..=e-1) : int_mant(0..=f-1)
-                T::concate_bits(sign, biased_exp, int_mantissa)
+                T::concate_bits(sign, biased_exp, T::integer_to_bits(int_mantissa))
             };
 
-            if error != T::Real::default() {
+            if error != BigFloat::default() {
                 self.fp_process_exception(FPExc::Inexact, fpscr_val);
             }
             result
@@ -686,7 +732,7 @@ impl FloatingPointPublicOperations for Processor {
                 // Calculate in 'real' numbers, with unbounded size and precision.
                 // As in real life there must be some limit, we use the defined Real type limits
                 let result_value = value1 + value2;
-                if result_value == T::Real::default() {
+                if result_value == BigFloat::default() {
                     // Sign of exact zero result depends on rounding mode
                     T::fp_zero(
                         fpscr_val.get_rounding_mode() == FPSCRRounding::RoundTowardsMinusInfinity,
@@ -733,7 +779,7 @@ impl FloatingPointPublicOperations for Processor {
                 T::fp_zero(sign1)
             } else {
                 let result_value = value1 - value2;
-                if result_value == T::Real::default() {
+                if result_value == BigFloat::default() {
                     // Sign of exact zero result depends on rounding mode
                     T::fp_zero(
                         fpscr_val.get_rounding_mode() == FPSCRRounding::RoundTowardsMinusInfinity,
@@ -788,6 +834,94 @@ impl FloatingPointPublicOperations for Processor {
 
     fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits {
         T::fp_abs(op)
+    }
+
+    fn fixed_to_fp<N: FloatOps, M: FloatOps>(
+        &mut self,
+        op: M::Bits,
+        fraction_bits: usize,
+        unsigned: bool,
+        round_to_nearest: bool,
+        fpscr_controlled: bool,
+    ) -> N::Bits {
+        let mut fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+        if round_to_nearest {
+            fpscr_val.set_rounding_mode(FPSCRRounding::RoundToNearest);
+        }
+
+        let real_operand = if unsigned {
+            let int_operand = M::Bits::from(op);
+            BigFloat::div(
+                &M::bits_to_bigfloat(int_operand),
+                &M::powf2(BigFloat::from(fraction_bits as u32)),
+            )
+        } else {
+            let int_operand = M::unsigned_to_signed(op);
+            BigFloat::div(
+                &M::signedbits_to_bigfloat(int_operand),
+                &M::powf2(BigFloat::from(fraction_bits as u32)),
+            )
+        };
+
+        if real_operand == BigFloat::default() {
+            return N::zero();
+        } else {
+            return self.fp_round::<N>(real_operand, fpscr_val);
+        }
+    }
+
+    fn fp_to_fixed<N: FloatOps, M: FloatOps>(
+        &mut self,
+        op: N::Bits,
+        fraction_bits: usize,
+        unsigned: bool,
+        round_towards_zero: bool,
+        fpscr_controlled: bool,
+    ) -> M::Bits {
+        let mut fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+
+        if round_towards_zero {
+            fpscr_val.set_rounding_mode(FPSCRRounding::RoundTowardsZero);
+        }
+        let (type_t, _sign, mut value) = self.fp_unpack::<N>(op, fpscr_val);
+        if type_t == FPType::SNaN || type_t == FPType::QNaN {
+            self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+        }
+
+        value = value * N::powf2(BigFloat::from(fraction_bits as u32));
+        let mut int_result = round_down(value);
+        let error = value - BigFloat::from(int_result);
+
+        let round_up = match fpscr_val.get_rounding_mode() {
+            FPSCRRounding::RoundToNearest => {
+                error > BigFloat::from(0.5)
+                    || (error == BigFloat::from(0.5) && int_result.get_bit(0) == false)
+            }
+            FPSCRRounding::RoundTowardsPlusInfinity => error != BigFloat::default(),
+            FPSCRRounding::RoundTowardsMinusInfinity => false,
+            FPSCRRounding::RoundTowardsZero => error != BigFloat::default() && int_result < 0,
+        };
+        if round_up {
+            int_result = int_result.saturating_add(1);
+        }
+
+        let (result, overflow) = satq(int_result, M::n(), unsigned);
+
+        if overflow {
+            self.fp_process_exception(FPExc::Overflow, fpscr_val);
+        } else if error != BigFloat::default() {
+            self.fp_process_exception(FPExc::Inexact, fpscr_val);
+        }
+
+        M::from_integer(result)
     }
 }
 
@@ -1138,4 +1272,276 @@ mod tests {
             0x3FF0000000000000
         );
     }
+
+    #[test]
+    fn test_satq() {
+        // 1.0 -> 1 (unsigned, 32 bit)
+        assert_eq!(satq(1, 32, true), (1, false));
+
+        // 1.0 -> 1 (signed, 32 bit)
+        assert_eq!(satq(1, 32, false), (1, false));
+
+        // 1.0 -> 1 (unsigned, 64 bit)
+        assert_eq!(satq(1, 64, true), (1, false));
+
+        // 1.0 -> 1 (signed, 64 bit)
+        assert_eq!(satq(1, 64, false), (1, false));
+
+        // -1.0 -> 0 (signed, 32 bit)
+        assert_eq!(satq(-1, 32, false), (0xffff_ffff, false));
+
+        // value bigger than max value (unsigned, 32 bit)
+        assert_eq!(satq(0x1_0000_0000, 32, true), (0xffff_ffff, true));
+
+        // value bigger than max value (signed, 32 bit)
+        assert_eq!(satq(0x8000_0000, 32, false), (0x7fff_ffff, true));
+
+        // value smaller than min value (signed, 32 bit)
+        assert_eq!(satq(-0x8000_0001, 32, false), (0x8000_0000, true));
+
+        // value bigger than max value (unsigned, 64 bit)
+        assert_eq!(
+            satq(0x1_0000_0000_0000_0000, 64, true),
+            (0xffff_ffff_ffff_ffff, true)
+        );
+
+        // value bigger than max value (signed, 64 bit)
+        assert_eq!(
+            satq(0x8000_0000_0000_0000, 64, false),
+            (0x7fff_ffff_ffff_ffff, true)
+        );
+
+        // value smaller than min value (signed, 64 bit)
+        assert_eq!(
+            satq(-0x8000_0000_0000_0001, 64, false),
+            (0x8000_0000_0000_0000, true)
+        );
+
+        // value smaller than min value (unsigned, 64 bit)
+        assert_eq!(satq(-1, 64, true), (0xffff_ffff_ffff_ffff, true));
+    }
+
+    #[test]
+    fn test_fp_to_fixed_f32_s32() {
+        let mut processor = Processor::new();
+
+        // 1.0 -> 1 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x3F800000, 0, false, false, false),
+            0x00000001
+        );
+
+        // 0.00001 -> 0 (signed) (rounding towards zero)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x3C23D70A, 0, false, false, true),
+            0x00000000
+        );
+
+        // 42.0 -> 42 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x42280000, 0, false, false, false),
+            0x0000002A
+        );
+
+        // -1.0 -> -1 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0xBF800000, 0, false, false, false),
+            0xFFFFFFFF
+        );
+
+        // -42.0 -> -42 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0xC2280000, 0, false, false, false),
+            0xFFFFFFD6
+        );
+
+        // positive infinity -> max value
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x7F800000, 0, false, false, false),
+            0x7FFFFFFF
+        );
+
+        // negative infinity -> min value
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0xFF800000, 0, false, false, false),
+            0x80000000
+        );
+
+        // QNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x7FC00000, 0, false, false, false),
+            0x00000000
+        );
+
+        // SNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x7F800001, 0, false, false, false),
+            0x00000000
+        );
+
+    }
+
+    #[test]
+    fn test_fp_to_fixed_f32_u32() {
+        let mut processor = Processor::new();
+
+        // 1.0 -> 1 (unsigned)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x3F800000, 0, true, false, false),
+            0x00000001
+        );
+
+        // 42.0 -> 42 (unsigned)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x42280000, 0, true, false, false),
+            0x0000002A
+        );
+
+        // positive infinity -> max value
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x7F800000, 0, true, false, false),
+            0xFFFFFFFF
+        );
+
+        // negative infinity -> max value
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0xFF800000, 0, true, false, false),
+            0xFFFFFFFF
+        );
+
+        // QNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x7FC00000, 0, true, false, false),
+            0x00000000
+        );
+
+        //SNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0x7F800001, 0, true, false, false),
+            0x00000000
+        );
+    }
+
+    #[test]
+    fn test_fp_to_fixed_f64_s32() {
+        let mut processor = Processor::new();
+
+        // 1.0 -> 1 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x3FF0000000000000, 0, false, false, false),
+            0x00000001
+        );
+
+        // 42.0 -> 42 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x4045000000000000, 0, false, false, false),
+            0x0000002A
+        );
+
+        // -1.0 -> -1 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0xBFF0000000000000, 0, false, false, false),
+            0xFFFFFFFF
+        );
+
+        // -42.0 -> -42 (signed)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0xC045000000000000, 0, false, false, false),
+            0xFFFFFFD6
+        );
+
+        // positive infinity -> max value
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000000, 0, false, false, false),
+            0x7FFFFFFF
+        );
+
+        // negative infinity -> min value
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0xFFF0000000000000, 0, false, false, false),
+            0x80000000
+        );
+
+        // QNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x7FF8000000000000, 0, false, false, false),
+            0x00000000
+        );
+
+        // SNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000001, 0, false, false, false),
+            0x00000000
+        );
+    }
+
+    #[test]
+    fn test_fp_to_fixed_f64_u32() {
+        let mut processor = Processor::new();
+
+        // 1.0 -> 1 (unsigned)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x3FF0000000000000, 0, true, false, false),
+            0x00000001
+        );
+
+        // 42.0 -> 42 (unsigned)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x4045000000000000, 0, true, false, false),
+            0x0000002A
+        );
+
+        // positive infinity -> max value
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000000, 0, true, false, false),
+            0xFFFFFFFF
+        );
+
+        // negative infinity -> max value
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0xFFF0000000000000, 0, true, false, false),
+            0xFFFFFFFF
+        );
+
+        // QNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x7FF8000000000000, 0, true, false, false),
+            0x00000000
+        );
+
+        // SNAN -> 0
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000001, 0, true, false, false),
+            0x00000000
+        );
+
+    }
+
+    #[test]
+    fn test_fixed_to_fp_s32_f32() {
+        let mut processor = Processor::new();
+
+
+        // 1 -> 1.0 (signed)
+        assert_eq!(
+            processor.fixed_to_fp::<u32, u32>(1, 0, false, false, false),
+            0x3F800000
+        );
+
+        // 42 -> 42.0 (signed)
+        assert_eq!(
+            processor.fixed_to_fp::<u32, u32>(42, 0, false, false, false),
+            0x42280000
+        );
+
+        // -1 -> -1.0 (signed)
+        assert_eq!(
+            processor.fixed_to_fp::<u32, u32>(0xffff_ffff, 0, false, false, false),
+            0xBF800000
+        );
+
+
+
+    }
+
 }

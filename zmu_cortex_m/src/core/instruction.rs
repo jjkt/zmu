@@ -393,6 +393,18 @@ pub struct VCmpParamsf64 {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VCVTParams {
+    pub d: ExtensionReg,
+    pub m: ExtensionReg,
+    pub to_integer: bool,
+    pub unsigned: bool,
+    pub dp_operation: bool,
+    pub round_zero: bool,
+    pub round_nearest: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct VMovRegParamsf64 {
     pub dd: DoubleReg,
     pub dm: DoubleReg,
@@ -1456,7 +1468,9 @@ pub enum Instruction {
     VCMP_f64 {
         params: VCmpParamsf64,
     },
-    //VCVT
+    VCVT {
+        params: VCVTParams,
+    },
     //VDIV
     //VFMA
     //VFNMA
@@ -1587,6 +1601,66 @@ fn setflags_to_str(setflags: SetFlags) -> &'static str {
     }
 }
 
+fn fmt_add_imm(params: Reg2ImmParams, thumb32: bool) -> String {
+    if params.rn == params.rd {
+        format!(
+            "add{}{} {}, #{}",
+            if thumb32 { ".W" } else { "" },
+            setflags_to_str(params.setflags),
+            params.rd,
+            params.imm32
+        )
+    } else {
+        format!(
+            "add{}{} {}, {}, #{}",
+            if thumb32 { ".W" } else { "" },
+            setflags_to_str(params.setflags),
+            params.rd,
+            params.rn,
+            params.imm32
+        )
+    }
+}
+
+fn fmt_vcvt(params: VCVTParams) -> String {
+    let fpscr_rounding = params.round_nearest;
+    if params.to_integer {
+        if params.dp_operation {
+            format!(
+                "vcvt{}.{}.f64 {}, {}",
+                if fpscr_rounding { "r" } else { "" },
+                if params.unsigned { "u32" } else { "s32" },
+                params.d,
+                params.m
+            )
+        } else {
+            format!(
+                "vcvt{}.{}.f32 {}, {}",
+                if fpscr_rounding { "r" } else { "" },
+                if params.unsigned { "u32" } else { "s32" },
+                params.d,
+                params.m
+            )
+        }
+    } else {
+        if params.dp_operation {
+            format!(
+                "vcvt.f64.{} {}, {}",
+                if params.unsigned { "u32" } else { "s32" },
+                params.d,
+                params.m
+            )
+        } else {
+            format!(
+                "vcvt.f32.{} {}, {}",
+                if params.unsigned { "u32" } else { "s32" },
+                params.d,
+                params.m
+            )
+        }
+    }
+}
+
 #[allow(clippy::cognitive_complexity)]
 #[allow(unused_variables)]
 #[allow(clippy::too_many_lines)]
@@ -1595,28 +1669,7 @@ impl fmt::Display for Instruction {
         // TODO: shift_t, shift_n formattings missing.
         // TODO: some of the wide instruction formattings missing.
         match *self {
-            Self::ADD_imm { params, thumb32 } => {
-                if params.rn == params.rd {
-                    write!(
-                        f,
-                        "add{}{} {}, #{}",
-                        if thumb32 { ".W" } else { "" },
-                        setflags_to_str(params.setflags),
-                        params.rd,
-                        params.imm32
-                    )
-                } else {
-                    write!(
-                        f,
-                        "add{}{} {}, {}, #{}",
-                        if thumb32 { ".W" } else { "" },
-                        setflags_to_str(params.setflags),
-                        params.rd,
-                        params.rn,
-                        params.imm32
-                    )
-                }
-            }
+            Self::ADD_imm { params, thumb32 } => write!(f, "{}", fmt_add_imm(params, thumb32)),
             Self::ADC_imm { params } => write!(
                 f,
                 "adc{}.W {}, {}, #{}",
@@ -2562,6 +2615,7 @@ impl fmt::Display for Instruction {
             Self::VSUB_f64 { params } => {
                 write!(f, "vsub.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            Self::VCVT { params } => write!(f, "{}", fmt_vcvt(params)),
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2849,16 +2903,16 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::UXTB { thumb32, .. } => isize_t(*thumb32),
         Instruction::UXTH { thumb32, .. } => isize_t(*thumb32),
 
-        Instruction::VABS_f32 { params } => 4,
-        Instruction::VABS_f64 { params } => 4,
+        Instruction::VABS_f32 { .. } => 4,
+        Instruction::VABS_f64 { .. } => 4,
 
-        Instruction::VADD_f32 { params } => 4,
-        Instruction::VADD_f64 { params } => 4,
+        Instruction::VADD_f32 { .. } => 4,
+        Instruction::VADD_f64 { .. } => 4,
 
-        Instruction::VCMP_f32 { params } => 4,
-        Instruction::VCMP_f64 { params } => 4,
+        Instruction::VCMP_f32 { .. } => 4,
+        Instruction::VCMP_f64 { .. } => 4,
         //VCVTX
-        //VCVT
+        Instruction::VCVT { .. } => 4,
         //VCVTB
         //VCVTT
         //VDIV

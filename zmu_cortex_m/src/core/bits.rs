@@ -131,6 +131,62 @@ impl Bits for u8 {
     }
 }
 
+impl Bits for i128 {
+    #[inline(always)]
+    fn get_bits(&self, range: Range<usize>) -> Self {
+        let bits = *self << (128 - range.end) >> (128 - range.end);
+        bits >> range.start
+    }
+
+    #[inline(always)]
+    fn get_bit(&self, bit: usize) -> bool {
+        (*self & 1 << bit) == 1 << bit
+    }
+
+    #[inline(always)]
+    fn set_bits(&mut self, range: Range<usize>, value: Self) {
+        let mask: Self = !(((1 << (range.end - range.start)) - 1) << range.start);
+
+        *self &= mask;
+        *self |= value << range.start;
+    
+    }
+    #[inline(always)]
+    fn set_bit(&mut self, bit: usize, value: bool) {
+        *self &= !0 ^ (1 << bit);
+        *self |= Self::from(value) << bit;
+    }
+}
+
+impl Bits for u128 {
+    #[inline(always)]
+    fn get_bits(&self, range: Range<usize>) -> Self {
+        let bits = *self << (128 - range.end) >> (128 - range.end);
+        bits >> range.start
+    }
+
+    #[inline(always)]
+    fn get_bit(&self, bit: usize) -> bool {
+        (*self & 1 << bit) == 1 << bit
+    }
+
+    #[inline(always)]
+    fn set_bits(&mut self, range: Range<usize>, value: Self) {
+        let mask: Self = !(((1 << (range.end - range.start)) - 1) << range.start);
+
+        *self &= mask;
+        *self |= value << range.start;
+    
+    }
+    #[inline(always)]
+    fn set_bit(&mut self, bit: usize, value: bool) {
+        *self &= !0 ^ (1 << bit);
+        *self |= Self::from(value) << bit;
+    }
+}
+
+
+
 #[cfg(test)]
 mod tests {
 

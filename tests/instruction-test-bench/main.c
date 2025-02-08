@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdint.h>
 
 /*
 This test bench is used to test various ARM Cortex-M instructions.
@@ -152,10 +153,53 @@ double vsub_f64(double a, double b)
 }
 #endif
 
+int32_t vcvt_f32_s32(float a)
+{
+    return (int32_t)a;
+}
+
+uint32_t vcvt_f32_u32(float a)
+{
+    return (uint32_t)a;
+}
+
+float vcvt_s32_f32(int32_t a)
+{
+    return (float)a;
+}
+
+float vcvt_u32_f32(uint32_t a)
+{
+    return (float)a;
+}
+
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+int32_t vcvt_f64_s32(double a)
+{
+    return (int32_t)a;
+}
+uint32_t vcvt_f64_u32(double a)
+{
+    return (uint32_t)a;
+}
+
+double vcvt_s32_f64(int32_t a)
+{
+    return (double)a;
+}
+
+double vcvt_u32_f64(uint32_t a)
+{
+    return (double)a;
+}
+
+#endif
+
 void floating_point(void)
 {
     // Try to generate floating-point data-processing instructions
-    // TODO: VCVT, VDIV, VFMA, VFNMA, VMAXNM
+    // TODO: VDIV, VFMA, VFNMA, VMAXNM
     // VMLA, VMOV, VMOV, VMUL, VNEG, VNMLA, VRINTA, VRINTZ
     // VSEL, VSQRT
 
@@ -192,6 +236,34 @@ void floating_point(void)
     assert(vsub_f64(-1.0, 2.0) == (-1.0 - 2.0));
     assert(vsub_f64(-1.0, -2.0) == (-1.0 - -2.0));
 #endif
+
+    // floating point to integer conversion
+
+    assert(vcvt_f32_s32(42.0f) == 42);
+    assert(vcvt_f32_s32(-42.0f) == -42);
+    assert(vcvt_f32_u32(42.0f) == 42);
+    assert(vcvt_f32_u32(-42.0f) == 0);
+
+    // integer to floating point conversion
+    assert(vcvt_s32_f32(42) == 42.0f);
+    assert(vcvt_s32_f32(-42) == -42.0f);
+    assert(vcvt_u32_f32(42) == 42.0f);
+    assert(vcvt_u32_f32(0) == 0.0f);
+
+
+#if HARD_FLOATING_POINT_DOUBLE_PRECISION
+    assert(vcvt_f64_s32(42.0) == 42);
+    assert(vcvt_f64_s32(-42.0) == -42);
+    assert(vcvt_f64_u32(42.0) == 42);
+    assert(vcvt_f64_u32(-42.0) == 0);
+
+    // integer to floating point conversion
+    assert(vcvt_s32_f64(42) == 42.0);
+    assert(vcvt_s32_f64(-42) == -42.0);
+    assert(vcvt_u32_f64(42) == 42.0);
+    assert(vcvt_u32_f64(0) == 0.0);
+#endif
+
 }
 #endif
 int main(void)
