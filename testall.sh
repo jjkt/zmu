@@ -30,8 +30,7 @@ echo "building..."
 ##
 ## ARM CMSIS DSP
 ##
-# TODO: enable once basic level VFP support is done
-# ./test_arm-cmsis-dsp.sh
+./test_arm-cmsis-dsp.sh
 
 ##
 ## TODO: Rusty Clock

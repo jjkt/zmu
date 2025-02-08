@@ -19,7 +19,7 @@ CFLAGS_LIB := -Wsign-compare \
  -Wall -Wextra -Werror \
  -fshort-enums
 
-CFLAGS= -DSEMIHOSTING -ffunction-sections -mfp16-format=ieee -fdata-sections -std=c11 -Ofast -ffast-math -flax-vector-conversions -DDISABLEFLOAT16  --specs=rdimon.specs --specs=nano.specs -mthumb -Wl,--gc-sections -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
+CFLAGS= -DSEMIHOSTING -ffunction-sections -mfp16-format=ieee -fdata-sections -std=c11 -Ofast -ffast-math -flax-vector-conversions -DDISABLEFLOAT16  --specs=rdimon.specs -u _printf_float -mthumb -Wl,--gc-sections -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
 
 # libraries to link
 LIBS=-lCMSISDSP-$(TARGET) -lc -lrdimon -lm

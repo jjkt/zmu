@@ -5,7 +5,7 @@ ifndef GCC_HOME
 endif
 
 CC=$(GCC_HOME)/bin/arm-none-eabi-gcc
-CFLAGS= -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
+CFLAGS= -O2 --specs=rdimon.specs -u _printf_float -mthumb -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
 LIBS=-lc -lrdimon
 
 # check the expected dir for the startup file

@@ -7,6 +7,7 @@ use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
 use crate::Processor;
 use crate::ProcessorMode;
+use enum_as_inner::EnumAsInner;
 use enum_set::CLike;
 use std::fmt;
 use std::mem;
@@ -712,7 +713,7 @@ pub enum DoubleReg {
     /// Extension register 15, 64 bit floating point register
     D15,
 }
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, EnumAsInner)]
 ///
 /// Extension registers, either single or double precision floating points
 ///

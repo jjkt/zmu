@@ -125,6 +125,7 @@ mod vpop;
 mod vpush;
 mod vstm;
 mod vstr;
+mod vcvt;
 
 use {
     crate::decoder::str::{
@@ -280,6 +281,7 @@ use {
     vpush::decode_VPUSH_t2,
     vstm::{decode_VSTM_t1, decode_VSTM_t2},
     vstr::{decode_VSTR_t1, decode_VSTR_t2},
+    vcvt::decode_VCVT_t1
 };
 
 ///
@@ -297,6 +299,7 @@ impl Decoder for Processor {
         match code {
             ThumbCode::Thumb32 { opcode } => decode_32(opcode),
             ThumbCode::Thumb16 { opcode } => decode_16(opcode),
+            ThumbCode::Undefined => Instruction::UDF {imm32: 0, opcode: code, thumb32: false},
         }
     }
 }

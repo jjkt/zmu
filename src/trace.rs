@@ -17,6 +17,7 @@ pub fn format_trace_entry(processor: &Processor, symboltable: &HashMap<u32, &str
     let opcode_str = match thumb {
         ThumbCode::Thumb32 { opcode } => format!("{:08X}", opcode).with_exact_width(8),
         ThumbCode::Thumb16 { opcode } => format!("{:04X}", opcode).with_exact_width(8),
+        ThumbCode::Undefined => format!("undef").with_exact_width(8),
     };
 
     let instruction_str = format!("{}", instruction).with_exact_width(32);
