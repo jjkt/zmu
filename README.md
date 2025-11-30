@@ -86,7 +86,11 @@ rustup target add thumbv6m-none-eabi thumbv7m-none-eabi thumbv7em-none-eabi thum
 You need ARM compiler to compile some of the examples. Get the latest compilers from [ARM website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads). Some Linux distros (like Ubuntu) have prebuilt packages for this.
 ```sh
 'sudo apt install gcc-arm-none-eabi'
+
 ```
+
+For Arch Linux, use arm-none-eabi-*. Arch Linux does not package the CSTARTUP files used by the GCC based tests, so you need to manually download them from the arm developer site anyways.
+
 
 Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default location is /usr
 
