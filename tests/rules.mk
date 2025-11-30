@@ -16,7 +16,7 @@ else ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup/*),)
 else ifneq ($(wildcard $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup/*),)
 	STARTUP_PATH := $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup
 else
-	$(error startup dir not found !)
+$(error startup dir not found !)
 endif
 
 all: $(PROG)-cm0.elf $(PROG)-cm0p.elf $(PROG)-cm3.elf $(PROG)-cm4.elf $(PROG)-cm4f.elf $(PROG)-cm7-d16.elf $(PROG)-cm7-sp-d16.elf

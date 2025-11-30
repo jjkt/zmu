@@ -28,7 +28,21 @@ CFLAGS = $(PORT_CFLAGS) -I$(PORT_DIR) -I. -DCOMPILER_FLAGS=\"$(FLAGS_STR)\"
 LFLAGS_END = -lc -lrdimon
 # Flag : PORT_SRCS
 # 	Port specific source files can be added here
-PORT_SRCS = $(PORT_DIR)/core_portme.c $(STARTUP_PATH)/startup_ARMCM4.S
+# Detect CPU type from XCFLAGS to select the right startup file and emulator
+ifeq ($(findstring cortex-m0,$(XCFLAGS)),cortex-m0)
+	STARTUP_FILE = startup_ARMCM0.S
+	ZMU = ../../../target/release/zmu-armv6m
+else ifeq ($(findstring cortex-m3,$(XCFLAGS)),cortex-m3)
+	STARTUP_FILE = startup_ARMCM3.S
+	ZMU = ../../../target/release/zmu-armv7m
+else ifeq ($(findstring cortex-m4,$(XCFLAGS)),cortex-m4)
+	STARTUP_FILE = startup_ARMCM4.S
+	ZMU = ../../../target/release/zmu-armv7m
+else
+	STARTUP_FILE = startup_ARMCM4.S
+	ZMU = ../../../target/release/zmu-armv7m
+endif
+PORT_SRCS = $(PORT_DIR)/core_portme.c $(STARTUP_PATH)/$(STARTUP_FILE)
 # Flag : LOAD
 #	For a simple port, we assume self hosted compile and run, no load needed.
 
@@ -37,7 +51,7 @@ PORT_SRCS = $(PORT_DIR)/core_portme.c $(STARTUP_PATH)/startup_ARMCM4.S
 
 #For native compilation and execution
 LOAD = echo Loading done
-RUN = ../../../target/release/zmu-armv7m run 
+RUN = $(ZMU) run 
 
 OEXT = .o
 EXE = .elf
