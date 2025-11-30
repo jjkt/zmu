@@ -5,13 +5,13 @@ authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
 edition = "2024"
 
 [dependencies]
-byteorder = "1"
+byteorder = "1.5"
 enum-as-inner = "0.6.1"
 enum-set = "0.0.8"
-gdbstub = "0.7"
-gdbstub_arch = "0.3"
-log = "0.4"
-num-bigfloat = { version = "1.7.1", default-features = false, features = ['std'] }
+gdbstub = "0.7.8"
+gdbstub_arch = "0.3.2"
+log = "0.4.28"
+num-bigfloat = { version = "1.7.2", default-features = false, features = ['std'] }
 thiserror = "2.0.17"
 
 

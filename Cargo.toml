@@ -6,12 +6,12 @@ edition = "2024"
 
 [dependencies]
 zmu_cortex_m = {path =  "zmu_cortex_m"}
-clap = "4"
-tabwriter = "1"
-goblin = "0.8"
+clap = "4.5"
+tabwriter = "1.4"
+goblin = "0.10"
 pad = "0.1.6"
 stderrlog = "0.6"
-log = "0.4"
+log = "0.4.28"
 anyhow = "1.0.100"
 
 
