@@ -1,7 +1,7 @@
 use crate::core::condition::Condition;
 use crate::core::instruction::{CondBranchParams, Instruction};
-use crate::core::operation::build_imm_10_11;
 use crate::core::operation::build_imm_6_11;
+use crate::core::operation::build_imm_10_11;
 use crate::core::{bits::Bits, operation::sign_extend};
 
 #[allow(non_snake_case)]

@@ -1,5 +1,5 @@
 use crate::core::bits::Bits;
-use crate::core::instruction::{Instruction, BfxParams};
+use crate::core::instruction::{BfxParams, Instruction};
 
 #[allow(non_snake_case)]
 pub fn decode_SBFX_t1(opcode: u32) -> Instruction {

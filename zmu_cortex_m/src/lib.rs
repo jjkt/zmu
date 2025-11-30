@@ -33,18 +33,18 @@ pub mod core;
 pub mod decoder;
 pub mod device;
 pub mod executor;
+pub mod gdb;
 pub mod memory;
 pub mod peripheral;
 pub mod semihosting;
 pub mod system;
-pub mod gdb;
 
 use crate::core::instruction::instruction_size;
 
 use crate::core::exception::Exception;
 use crate::core::fetch::Fetch;
 use crate::core::instruction::Instruction;
-use crate::core::register::{Apsr, BaseReg, Control, Reg, PSR};
+use crate::core::register::{Apsr, BaseReg, Control, PSR, Reg};
 
 use crate::memory::flash::FlashMemory;
 use crate::memory::map::MemoryMapConfig;
@@ -406,32 +406,40 @@ impl Processor {
         // TODO: should be AIRCR.ENDIANNESS==1
         false
     }
+
+    /// Get the IT state register value
+    pub fn get_itstate(&self) -> u8 {
+        self.itstate
+    }
 }
 
 impl fmt::Display for Processor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "PC:{:08X} {}{}{}{}{} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
+        write!(
+            f,
+            "PC:{:08X} {}{}{}{}{} R0:{:08X} R1:{:08X} R2:{:08X} R3:{:08X} R4:{:08X} R5:{:08X} \
                   R6:{:08X} R7:{:08X} R8:{:08X} R9:{:08X} R10:{:08X} R11:{:08X} R12:{:08X} SP:{:08X} LR:{:08X}",
-                 self.get_r(Reg::PC),
-                 if self.psr.get_z() {'Z'} else {'z'},
-                 if self.psr.get_n() {'N'} else {'n'},
-                 if self.psr.get_c() {'C'} else {'c'},
-                 if self.psr.get_v() {'V'} else {'v'},
-                 if self.psr.get_q() {'Q'} else {'q'},
-                 self.get_r(Reg::R0),
-                 self.get_r(Reg::R1),
-                 self.get_r(Reg::R2),
-                 self.get_r(Reg::R3),
-                 self.get_r(Reg::R4),
-                 self.get_r(Reg::R5),
-                 self.get_r(Reg::R6),
-                 self.get_r(Reg::R7),
-                 self.get_r(Reg::R8),
-                 self.get_r(Reg::R9),
-                 self.get_r(Reg::R10),
-                 self.get_r(Reg::R11),
-                 self.get_r(Reg::R12),
-                 self.get_r(Reg::SP),
-                 self.get_r(Reg::LR))
+            self.get_r(Reg::PC),
+            if self.psr.get_z() { 'Z' } else { 'z' },
+            if self.psr.get_n() { 'N' } else { 'n' },
+            if self.psr.get_c() { 'C' } else { 'c' },
+            if self.psr.get_v() { 'V' } else { 'v' },
+            if self.psr.get_q() { 'Q' } else { 'q' },
+            self.get_r(Reg::R0),
+            self.get_r(Reg::R1),
+            self.get_r(Reg::R2),
+            self.get_r(Reg::R3),
+            self.get_r(Reg::R4),
+            self.get_r(Reg::R5),
+            self.get_r(Reg::R6),
+            self.get_r(Reg::R7),
+            self.get_r(Reg::R8),
+            self.get_r(Reg::R9),
+            self.get_r(Reg::R10),
+            self.get_r(Reg::R11),
+            self.get_r(Reg::R12),
+            self.get_r(Reg::SP),
+            self.get_r(Reg::LR)
+        )
     }
 }

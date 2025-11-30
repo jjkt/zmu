@@ -68,9 +68,9 @@ pub trait Fpscr {
     /// true: any operation involving one or more NaNs returns Default NaN
     fn get_dn(&self) -> bool;
 
-    /// 
+    ///
     /// Get FZ bit (Flush-to-zero mode)
-    /// 
+    ///
     /// false: Flush-to-zero mode disabled: fully compliant with IEEE 754 standard
     /// true: Flush-to-zero mode enabled
     fn get_fz(&self) -> bool;
@@ -84,7 +84,6 @@ pub trait Fpscr {
     /// Set the current rounding mode
     ///
     fn set_rounding_mode(&mut self, mode: FPSCRRounding);
-
 }
 
 impl Fpscr for u32 {
@@ -127,7 +126,7 @@ impl Fpscr for u32 {
     fn get_fz(&self) -> bool {
         self.get_bit(24)
     }
-    
+
     fn get_dn(&self) -> bool {
         self.get_bit(25)
     }
@@ -151,5 +150,4 @@ impl Fpscr for u32 {
         };
         self.set_bits(22..24, mode);
     }
-
 }

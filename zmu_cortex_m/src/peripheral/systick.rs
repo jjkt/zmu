@@ -2,10 +2,10 @@
 //! Cortex System Tick Simulation
 //!
 
+use crate::Processor;
 use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
-use crate::Processor;
 
 ///
 /// Register API for ```SysTick``` peripheral

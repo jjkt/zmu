@@ -3,20 +3,20 @@
 //!
 //!
 
-use gdbstub::stub::run_blocking;
-use gdbstub::stub::SingleThreadStopReason;
+use gdbstub::common::Signal;
 use gdbstub::conn::Connection;
 use gdbstub::conn::ConnectionExt;
-use gdbstub::target::Target;
-use gdbstub::common::Signal;
-use gdbstub::stub::GdbStub;
 use gdbstub::stub::DisconnectReason;
+use gdbstub::stub::GdbStub;
+use gdbstub::stub::SingleThreadStopReason;
+use gdbstub::stub::run_blocking;
+use gdbstub::target::Target;
 
-use crate::{MemoryMapConfig};
+use crate::MemoryMapConfig;
 use crate::gdb::conn;
-use conn::TcpConnection;
 use crate::gdb::simulation::SimulationEvent;
 use crate::gdb::simulation::SimulationRunEvent;
+use conn::TcpConnection;
 
 use crate::gdb::target::ZmuTarget;
 
@@ -25,7 +25,7 @@ use crate::semihosting::SemihostingResponse;
 
 ///
 /// The gdb Server
-/// 
+///
 pub struct GdbServer {
     target: ZmuTarget,
 }
@@ -42,11 +42,10 @@ pub enum GdbServerError {
 }
 
 impl GdbServer {
-
-    /// Create a new GDB server. 
-    /// 
+    /// Create a new GDB server.
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `code` - The binary code to run in the emulator
     /// * `semihost_func` - A function that will be called when a semihosting command is issued
     /// * `map` - The memory map configuration
@@ -57,10 +56,9 @@ impl GdbServer {
         map: Option<MemoryMapConfig>,
         flash_size: usize,
     ) -> Result<GdbServer, GdbServerError> {
-
         let target = ZmuTarget::new(code, semihost_func, map, flash_size);
 
-        Ok(GdbServer {target})
+        Ok(GdbServer { target })
     }
 
     /// Start the GDB Server. This function will block until the GDB client disconnects.
@@ -116,7 +114,6 @@ impl GdbServer {
     }
 }
 
-
 enum EventLoop {}
 
 impl run_blocking::BlockingEventLoop for EventLoop {
@@ -135,7 +132,6 @@ impl run_blocking::BlockingEventLoop for EventLoop {
             <Self::Connection as Connection>::Error,
         >,
     > {
-
         let poll_incoming_data = || {
             // gdbstub takes ownership of the underlying connection, so the `borrow_conn`
             // method is used to borrow the underlying connection back from the stub to
@@ -168,7 +164,9 @@ impl run_blocking::BlockingEventLoop for EventLoop {
                         kind: WatchKind::Read,
                         addr,
                     },
-                    SimulationEvent::Finalized(exit_code) => SingleThreadStopReason::Exited(exit_code as u8),
+                    SimulationEvent::Finalized(exit_code) => {
+                        SingleThreadStopReason::Exited(exit_code as u8)
+                    }
                 };
 
                 Ok(run_blocking::Event::TargetStopped(stop_reason))

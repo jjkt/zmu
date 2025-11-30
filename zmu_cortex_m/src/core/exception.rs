@@ -3,14 +3,14 @@
 //!
 //!
 
+use crate::Processor;
+use crate::ProcessorMode;
 use crate::bus::Bus;
 use crate::core::bits::Bits;
 use crate::core::fault::Fault;
 use crate::core::register::{BaseReg, Ipsr, Reg};
 use crate::core::reset::Reset;
 use crate::peripheral::nvic::NVIC;
-use crate::Processor;
-use crate::ProcessorMode;
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Copy, Clone)]
 ///
@@ -360,10 +360,10 @@ impl ExceptionHandling for Processor {
         for (_, exp) in self.exceptions.iter().filter(|&(_, e)| e.active) {
             if exp.priority < highestpri {
                 highestpri = exp.priority;
-                
-                /* 
+
+                /*
                 ARMV7-M Arch Reference Manual. Version E. Page B1-527
-                Priority Grouping. The group priority for Reset, NMI 
+                Priority Grouping. The group priority for Reset, NMI
                 and HardFault are -3, -2 and -1 respectively, regardless
                 of the value of PRIGROUP. Note that we dont check reset because
                 after setting the reset pending flag, the simulator resets the

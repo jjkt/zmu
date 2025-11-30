@@ -22,7 +22,7 @@ pub fn decode_VSTM_t1(opcode: u32) -> Instruction {
 
     let regs = imm8 / 2;
 
-    if (P==U && W) || n == 15 || regs == 0 || regs > 16 || (d + regs) > 32 {
+    if (P == U && W) || n == 15 || regs == 0 || regs > 16 || (d + regs) > 32 {
         return Instruction::UDF {
             imm32: 0,
             opcode: opcode.into(),
@@ -81,7 +81,7 @@ pub fn decode_VSTM_t2(opcode: u32) -> Instruction {
 
     let regs = imm8;
 
-    if (P==U && W) || n == 15 || regs == 0 || (d + regs) > 32 {
+    if (P == U && W) || n == 15 || regs == 0 || (d + regs) > 32 {
         return Instruction::UDF {
             imm32: 0,
             opcode: opcode.into(),
@@ -94,7 +94,6 @@ pub fn decode_VSTM_t2(opcode: u32) -> Instruction {
     } else {
         AddressingMode::DecrementBefore
     };
-
 
     let mut single_regs = EnumSet::new();
     for i in 0..regs {

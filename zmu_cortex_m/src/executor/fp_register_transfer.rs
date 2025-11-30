@@ -3,8 +3,8 @@ use crate::core::instruction::{
     VMovRegParamsf32, VMovRegParamsf64,
 };
 
-use crate::core::fpregister::Fpscr;
 use crate::Processor;
+use crate::core::fpregister::Fpscr;
 
 use crate::executor::ExecuteSuccess;
 

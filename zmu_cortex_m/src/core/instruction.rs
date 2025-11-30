@@ -2962,9 +2962,5 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
 
 #[inline(always)]
 fn isize_t(thumb32: bool) -> usize {
-    if thumb32 {
-        4
-    } else {
-        2
-    }
+    if thumb32 { 4 } else { 2 }
 }

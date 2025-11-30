@@ -5,8 +5,8 @@ use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::instruction::SRType;
 use crate::core::register::Apsr;
-use crate::core::register::Reg;
 use crate::core::register::PSR;
+use crate::core::register::Reg;
 use enum_set::EnumSet;
 
 ///

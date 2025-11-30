@@ -2,10 +2,10 @@
 //! Cortex System Control Block Simulation
 //!
 
+use crate::Processor;
 use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
-use crate::Processor;
 
 use crate::core::register::Ipsr;
 
