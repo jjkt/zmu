@@ -2,14 +2,14 @@
 //! Cortex system simulation framework
 //!
 
+use crate::MemoryMapConfig;
+use crate::Processor;
 use crate::core::fault::Fault;
 use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
 use crate::executor::Executor;
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
-use crate::MemoryMapConfig;
-use crate::Processor;
 use std::io;
 use std::time::Duration;
 use std::time::Instant;
@@ -17,10 +17,12 @@ use std::time::Instant;
 ///
 /// Various reasons for simulation to stop before completing fully
 ///
+#[derive(thiserror::Error, Debug)]
 pub enum SimulationError {
     ///
     /// A fault was triggered and escalated to stop the simulation
     ///
+    #[error("A fault was triggered and escalated to stop the simulation")]
     FaultTrap,
 }
 
@@ -46,8 +48,8 @@ pub struct SimulationStatistics {
 
     ///
     /// exit code from process, if any
-    /// 
-    pub exit_code: u32
+    ///
+    pub exit_code: u32,
 }
 
 impl From<Fault> for SimulationError {
@@ -86,7 +88,7 @@ pub fn simulate(
             processor.step();
         }
 
-        while processor.sleeping && processor.running{
+        while processor.sleeping && processor.running {
             //running, sleeping
             processor.step_sleep();
         }
@@ -147,6 +149,6 @@ where
         instruction_count: processor.instruction_count,
         cycle_count: processor.cycle_count,
         duration: end.duration_since(start),
-        exit_code: processor.exit_code
+        exit_code: processor.exit_code,
     })
 }

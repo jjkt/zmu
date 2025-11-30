@@ -82,13 +82,13 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     SemihostingResponse::SysIstty { result: Err(-1) }
                 }
             }
-            SemihostingCommand::SysWriteC {ref data} => {
+            SemihostingCommand::SysWriteC { data } => {
                 // println!("writec: data={:?}", data);
                 print!("{}", *data as char);
                 io::stdout().flush().expect("Could not flush stdout");
                 SemihostingResponse::SysWrite { result: Ok(0) }
             }
-            SemihostingCommand::SysWrite { handle, ref data } => {
+            SemihostingCommand::SysWrite { handle, data } => {
                 // println!("write: handle={}, data={:?}", handle, data);
                 if *handle == TT_HANDLE_STDOUT {
                     let text = &**data;
@@ -156,7 +156,7 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     result: Ok(in_cs as u32),
                 }
             }
-            SemihostingCommand::SysException { ref reason } => {
+            SemihostingCommand::SysException { reason } => {
                 // println!("sysexception {:?}", reason);
                 let stop = matches!(
                     reason,
@@ -168,12 +168,13 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     stop,
                 }
             }
-            SemihostingCommand::SysExitExtended { ref reason, subcode    } => {
+            SemihostingCommand::SysExitExtended { reason, subcode } => {
                 // println!("sys exit {:?}", reason);
 
                 let stop = matches!(
                     reason,
-                    SysExceptionReason::ADPStoppedApplicationExit | SysExceptionReason::ADPStoppedRunTimeErrorUnknown
+                    SysExceptionReason::ADPStoppedApplicationExit
+                        | SysExceptionReason::ADPStoppedRunTimeErrorUnknown
                 );
 
                 let exit_code = if reason == &SysExceptionReason::ADPStoppedApplicationExit {
@@ -185,7 +186,7 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                 SemihostingResponse::SysExitExtended {
                     success: true,
                     stop,
-                    exit_code
+                    exit_code,
                 }
             }
             SemihostingCommand::SysErrno { .. } => {

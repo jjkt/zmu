@@ -1,8 +1,5 @@
 #![recursion_limit = "1024"]
 
-#[macro_use]
-extern crate error_chain;
-
 extern crate clap;
 extern crate goblin;
 extern crate pad;
@@ -13,13 +10,14 @@ extern crate zmu_cortex_m;
 extern crate log;
 extern crate stderrlog;
 
-use clap::value_parser;
+use anyhow::Context;
 use clap::Arg;
 use clap::ArgAction;
 use clap::ArgMatches;
 use clap::Command;
-use goblin::elf::program_header::pt_to_str;
+use clap::value_parser;
 use goblin::Object;
+use goblin::elf::program_header::pt_to_str;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -34,26 +32,12 @@ use crate::trace::format_trace_entry;
 use std::cmp;
 use std::collections::HashMap;
 use tabwriter::TabWriter;
-use zmu_cortex_m::memory::map::MemoryMapConfig;
 use zmu_cortex_m::Processor;
+use zmu_cortex_m::memory::map::MemoryMapConfig;
 
-use zmu_cortex_m::system::simulation::simulate_trace;
-use zmu_cortex_m::system::simulation::{simulate, SimulationError};
 use zmu_cortex_m::gdb::server::GdbServer;
-
-mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
-
-use crate::errors::*;
-use error_chain::State;
-
-impl From<SimulationError> for errors::Error {
-    fn from(_error: SimulationError) -> Self {
-        errors::Error(ErrorKind::Msg("trap".to_string()), State::default())
-    }
-}
+use zmu_cortex_m::system::simulation::simulate;
+use zmu_cortex_m::system::simulation::simulate_trace;
 
 fn run_bin(
     buffer: &[u8],
@@ -61,13 +45,13 @@ fn run_bin(
     option_trace_start: Option<u64>,
     itm_file: Option<Box<dyn io::Write + 'static>>,
     gdb: bool,
-) -> Result<u32> {
+) -> anyhow::Result<u32> {
     let res = Object::parse(buffer).unwrap();
 
     let elf = match res {
         Object::Elf(elf) => elf,
         _ => {
-            bail!("Unsupported file format.");
+            anyhow::bail!("Unsupported file format.");
         }
     };
 
@@ -226,12 +210,12 @@ fn open_itm_file(filename: &str) -> Option<Box<dyn io::Write + 'static>> {
     }
 }
 
-fn run(args: &ArgMatches) -> Result<u32> {
+fn run(args: &ArgMatches) -> anyhow::Result<u32> {
     let exit_code = match args.subcommand() {
         Some(("run", run_matches)) => {
             let filename = run_matches
                 .get_one::<String>("EXECUTABLE")
-                .chain_err(|| "filename missing")?;
+                .context("filename missing")?;
 
             let trace_start = run_matches.get_one::<u64>("trace-start").copied();
 
@@ -242,8 +226,8 @@ fn run(args: &ArgMatches) -> Result<u32> {
 
             let buffer = {
                 let mut v = Vec::new();
-                let mut f = File::open(filename).chain_err(|| "unable to open file")?;
-                f.read_to_end(&mut v).chain_err(|| "failed to read file")?;
+                let mut f = File::open(filename).context("unable to open file")?;
+                f.read_to_end(&mut v).context("failed to read file")?;
                 v
             };
 
@@ -314,7 +298,7 @@ fn main() {
                         .action(ArgAction::SetTrue)
                         .long("gdb")
                         .help("Enable the gdb server")
-                        .num_args(0)
+                        .num_args(0),
                 ),
         )
         .get_matches();
@@ -333,15 +317,7 @@ fn main() {
             std::process::exit(exit_code as i32);
         }
         Err(ref e) => {
-            error!("error: {}", e);
-
-            for e in e.iter().skip(1) {
-                error!("caused by: {}", e);
-            }
-
-            if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {:?}", backtrace);
-            }
+            error!("error: {:?}", e);
 
             ::std::process::exit(1);
         }

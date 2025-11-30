@@ -30,6 +30,17 @@ pub struct GdbServer {
     target: ZmuTarget,
 }
 
+#[derive(thiserror::Error, Debug)]
+/// Errors that can occur in the GDB server
+pub enum GdbServerError {
+    /// Error related to the connection
+    #[error("Connection error")]
+    ConnectionError(String),
+    /// Error related to the target
+    #[error("Target error")]
+    TargetError,
+}
+
 impl GdbServer {
 
     /// Create a new GDB server. 
@@ -45,7 +56,7 @@ impl GdbServer {
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
         flash_size: usize,
-    ) -> Result<GdbServer, &'static str> {
+    ) -> Result<GdbServer, GdbServerError> {
 
         let target = ZmuTarget::new(code, semihost_func, map, flash_size);
 
@@ -54,12 +65,12 @@ impl GdbServer {
 
     /// Start the GDB Server. This function will block until the GDB client disconnects.
     /// or program execution is complete..
-    pub fn start(&mut self) -> Result<u32, &'static str> {
+    pub fn start(&mut self) -> Result<u32, GdbServerError> {
         println!("GDB Server listening on port 9001");
         let mut exit_code = 0;
         let conn = match conn::TcpConnection::new_localhost(9001) {
             Ok(conn) => conn,
-            Err(e) => return Err(e),
+            Err(e) => return Err(GdbServerError::ConnectionError(e.to_string())),
         };
 
         let gdb = GdbStub::new(conn);

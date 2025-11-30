@@ -2,17 +2,17 @@
 name = "zmu"
 version = "0.1.0"
 authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 zmu_cortex_m = {path =  "zmu_cortex_m"}
 clap = "4"
 tabwriter = "1"
-error-chain = "0.12"
 goblin = "0.8"
 pad = "0.1.6"
 stderrlog = "0.6"
 log = "0.4"
+anyhow = "1.0.100"
 
 
 [features]

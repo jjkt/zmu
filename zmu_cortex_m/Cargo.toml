@@ -2,7 +2,7 @@
 name = "zmu_cortex_m"
 version = "0.1.0"
 authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 byteorder = "1"
@@ -12,6 +12,7 @@ gdbstub = "0.7"
 gdbstub_arch = "0.3"
 log = "0.4"
 num-bigfloat = { version = "1.7.1", default-features = false, features = ['std'] }
+thiserror = "2.0.17"
 
 
 [features]
