@@ -7,7 +7,7 @@ use super::ExecuteResult;
 use crate::core::{
     bits::Bits,
     instruction::{
-        BfcParams, BfiParams, MovtParams, Reg2RdRmParams, Reg3NoSetFlagsParams, BfxParams,
+        BfcParams, BfiParams, BfxParams, MovtParams, Reg2RdRmParams, Reg3NoSetFlagsParams,
     },
     operation::sign_extend,
     register::{Apsr, BaseReg},

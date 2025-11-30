@@ -2,12 +2,12 @@
 //! Processor Reset logic
 //!
 
+use crate::Processor;
+use crate::ProcessorMode;
 use crate::bus::Bus;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
 use crate::core::register::{BaseReg, PSR};
-use crate::Processor;
-use crate::ProcessorMode;
 
 /// Trait for processor reset
 pub trait Reset {

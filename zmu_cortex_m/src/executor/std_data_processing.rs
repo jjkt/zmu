@@ -4,7 +4,7 @@ use crate::core::operation::{add_with_carry, shift, shift_c};
 
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
-use super::{conditional_setflags, expand_conditional_carry, ExecuteResult};
+use super::{ExecuteResult, conditional_setflags, expand_conditional_carry};
 use crate::core::instruction::{
     Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams,
     Reg3ShiftParams, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SetFlags,

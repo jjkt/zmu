@@ -1,7 +1,7 @@
+use crate::Processor;
 use crate::core::instruction::{
     AddressingMode, VPushPopParams, VStoreMultipleParams32, VStoreMultipleParams64,
 };
-use crate::Processor;
 
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 

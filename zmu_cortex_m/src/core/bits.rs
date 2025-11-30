@@ -149,7 +149,6 @@ impl Bits for i128 {
 
         *self &= mask;
         *self |= value << range.start;
-    
     }
     #[inline(always)]
     fn set_bit(&mut self, bit: usize, value: bool) {
@@ -176,7 +175,6 @@ impl Bits for u128 {
 
         *self &= mask;
         *self |= value << range.start;
-    
     }
     #[inline(always)]
     fn set_bit(&mut self, bit: usize, value: bool) {
@@ -184,8 +182,6 @@ impl Bits for u128 {
         *self |= Self::from(value) << bit;
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {

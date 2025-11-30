@@ -5,13 +5,13 @@ use crate::executor::{ExecuteSuccess, ExecutorHelper};
 use super::ExecuteResult;
 
 use crate::{
+    ProcessorMode,
     core::{
         bits::Bits,
         exception::ExceptionHandling,
         instruction::{MrsParams, MsrParams},
         register::BaseReg,
     },
-    ProcessorMode,
 };
 
 /// Branching operations

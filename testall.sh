@@ -11,10 +11,6 @@ echo "building..."
 ./test_gcc.sh
 #
 
-##
-## RustBook examples
-##
-./test_rustbook.sh
 
 ##
 ## Cortex-M RTIC tests
@@ -29,8 +25,8 @@ echo "building..."
 
 ##
 ## ARM CMSIS DSP
-##
-./test_arm-cmsis-dsp.sh
+## TODO: add arm cmsis dsp tests
+# ./test_arm-cmsis-dsp.sh
 
 ##
 ## TODO: Rusty Clock

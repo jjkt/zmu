@@ -43,7 +43,8 @@ impl IsaMisc for Processor {
     }
 
     fn exec_it(&mut self, firstcond: Condition, mask: u8) -> ExecuteResult {
-        self.set_itstate((((firstcond.value() as u32) << 4) + u32::from(mask)) as u8);
+        let itstate = (((firstcond.value() as u32) << 4) + u32::from(mask)) as u8;
+        self.set_itstate(itstate);
         Ok(ExecuteSuccess::Taken { cycles: 4 })
     }
 

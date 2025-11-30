@@ -6,7 +6,7 @@ use crate::bus::Bus;
 use crate::core::fault::Fault;
 use crate::core::thumb::ThumbCode;
 
-use crate::{decoder::is_thumb32, Processor};
+use crate::{Processor, decoder::is_thumb32};
 
 ///
 /// Fetching instructions

@@ -2,8 +2,8 @@
 //! Cortex Debug and Trace unit simulation
 //!
 
-use crate::core::bits::Bits;
 use crate::Processor;
+use crate::core::bits::Bits;
 
 /// Register API to Debug and Trace peripheral
 pub trait Dwt {

@@ -1,8 +1,6 @@
 use crate::core::{
     bits::Bits,
-    instruction::{
-        Instruction, VMovRegParamsf32, VMovRegParamsf64,
-    },
+    instruction::{Instruction, VMovRegParamsf32, VMovRegParamsf64},
     register::{DoubleReg, SingleReg},
 };
 

@@ -3,7 +3,7 @@ use crate::Processor;
 use crate::core::operation::shift_c;
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
-use super::{conditional_setflags, ExecuteResult};
+use super::{ExecuteResult, conditional_setflags};
 use crate::core::instruction::{Reg2Params, Reg2ShiftNParams, Reg3Params, SRType, SetFlags};
 use crate::core::{
     bits::Bits,

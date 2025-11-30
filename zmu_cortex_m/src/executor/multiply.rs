@@ -2,7 +2,7 @@ use crate::Processor;
 
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
-use super::{conditional_setflags, ExecuteResult};
+use super::{ExecuteResult, conditional_setflags};
 use crate::core::instruction::{Reg3Params, Reg4NoSetFlagsParams, Reg643232Params};
 use crate::core::{
     bits::Bits,

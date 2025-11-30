@@ -2,7 +2,7 @@
 //! Gdb Module
 //!
 
-pub mod server;
 mod conn;
+pub mod server;
 mod simulation;
 mod target;

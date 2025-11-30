@@ -1,11 +1,11 @@
 use std::ops::{Add, AddAssign, Div, Sub};
 
 use crate::{
+    Processor,
     core::{
         bits::Bits,
         fpregister::{FPSCRRounding, Fpscr},
     },
-    Processor,
 };
 
 use num_bigfloat::BigFloat;
@@ -239,19 +239,11 @@ impl FloatOps for u32 {
     }
 
     fn fp_infinity(sign: bool) -> Self::Bits {
-        if sign {
-            0xFF800000
-        } else {
-            0x7F800000
-        }
+        if sign { 0xFF800000 } else { 0x7F800000 }
     }
 
     fn fp_zero(sign: bool) -> Self::Bits {
-        if sign {
-            0x80000000
-        } else {
-            0x00000000
-        }
+        if sign { 0x80000000 } else { 0x00000000 }
     }
 
     fn fp_default_nan() -> Self::Bits {
@@ -1378,7 +1370,6 @@ mod tests {
             processor.fp_to_fixed::<u32, u32>(0x7F800001, 0, false, false, false),
             0x00000000
         );
-
     }
 
     #[test]
@@ -1514,13 +1505,11 @@ mod tests {
             processor.fp_to_fixed::<u64, u32>(0x7FF0000000000001, 0, true, false, false),
             0x00000000
         );
-
     }
 
     #[test]
     fn test_fixed_to_fp_s32_f32() {
         let mut processor = Processor::new();
-
 
         // 1 -> 1.0 (signed)
         assert_eq!(
@@ -1539,9 +1528,5 @@ mod tests {
             processor.fixed_to_fp::<u32, u32>(0xffff_ffff, 0, false, false, false),
             0xBF800000
         );
-
-
-
     }
-
 }

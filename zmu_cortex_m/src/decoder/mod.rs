@@ -118,6 +118,7 @@ mod uxtab;
 mod vabs;
 mod vadd_vsub;
 mod vcmp;
+mod vcvt;
 mod vldr;
 mod vmov;
 mod vmrs;
@@ -125,15 +126,14 @@ mod vpop;
 mod vpush;
 mod vstm;
 mod vstr;
-mod vcvt;
 
 use {
     crate::decoder::str::{
-        decode_STRB_imm_t1, decode_STRB_imm_t2, decode_STRB_imm_t3, decode_STRB_reg_t1,
-        decode_STRB_reg_t2, decode_STRD_imm_t1, decode_STRH_imm_t1, decode_STRH_imm_t2,
-        decode_STRH_imm_t3, decode_STRH_reg_t1, decode_STRH_reg_t2, decode_STR_imm_t1,
-        decode_STR_imm_t2, decode_STR_imm_t3, decode_STR_imm_t4, decode_STR_reg_t1,
-        decode_STR_reg_t2,
+        decode_STR_imm_t1, decode_STR_imm_t2, decode_STR_imm_t3, decode_STR_imm_t4,
+        decode_STR_reg_t1, decode_STR_reg_t2, decode_STRB_imm_t1, decode_STRB_imm_t2,
+        decode_STRB_imm_t3, decode_STRB_reg_t1, decode_STRB_reg_t2, decode_STRD_imm_t1,
+        decode_STRH_imm_t1, decode_STRH_imm_t2, decode_STRH_imm_t3, decode_STRH_reg_t1,
+        decode_STRH_reg_t2,
     },
     adc::{decode_ADC_imm_t1, decode_ADC_reg_t1, decode_ADC_reg_t2},
     add::{
@@ -160,7 +160,7 @@ use {
         decode_CMP_imm_t1, decode_CMP_imm_t2, decode_CMP_reg_t1, decode_CMP_reg_t2,
         decode_CMP_reg_t3,
     },
-    cpd::{decode_CDP2_t2, decode_CDP_t1},
+    cpd::{decode_CDP_t1, decode_CDP2_t2},
     cps::decode_CPS_t1,
     dbg::decode_DBG_t1,
     dmb::decode_DMB_t1,
@@ -168,13 +168,13 @@ use {
     eor::{decode_EOR_imm_t1, decode_EOR_reg_t1, decode_EOR_reg_t2},
     isb::decode_ISB_t1,
     it::decode_IT_t1,
-    ldc::{decode_LDC2_imm_t2, decode_LDC2_lit_t2, decode_LDC_imm_t1, decode_LDC_lit_t1},
-    ldm::{decode_LDMDB_t1, decode_LDM_t1, decode_LDM_t2},
+    ldc::{decode_LDC_imm_t1, decode_LDC_lit_t1, decode_LDC2_imm_t2, decode_LDC2_lit_t2},
+    ldm::{decode_LDM_t1, decode_LDM_t2, decode_LDMDB_t1},
     ldr::{
-        decode_LDRBT_t1, decode_LDRD_imm_t1, decode_LDRD_lit_t1, decode_LDREXB_t1,
-        decode_LDREXH_t1, decode_LDREX_t1, decode_LDRHT_t1, decode_LDRSBT_t1, decode_LDRSHT,
-        decode_LDRT_t1, decode_LDR_imm_t1, decode_LDR_imm_t2, decode_LDR_imm_t3, decode_LDR_imm_t4,
+        decode_LDR_imm_t1, decode_LDR_imm_t2, decode_LDR_imm_t3, decode_LDR_imm_t4,
         decode_LDR_lit_t1, decode_LDR_lit_t2, decode_LDR_reg_t1, decode_LDR_reg_t2,
+        decode_LDRBT_t1, decode_LDRD_imm_t1, decode_LDRD_lit_t1, decode_LDREX_t1, decode_LDREXB_t1,
+        decode_LDREXH_t1, decode_LDRHT_t1, decode_LDRSBT_t1, decode_LDRSHT, decode_LDRT_t1,
     },
     ldrb::{
         decode_LDRB_imm_t1, decode_LDRB_imm_t2, decode_LDRB_imm_t3, decode_LDRB_lit_t1,
@@ -195,8 +195,8 @@ use {
     lsl::{decode_LSL_imm_t2, decode_LSL_reg_t1, decode_LSL_reg_t2},
     lsr::{decode_LSR_imm_t1, decode_LSR_imm_t2, decode_LSR_reg_t1, decode_LSR_reg_t2},
     mcr::{
-        decode_MCR2_t2, decode_MCRR2_t2, decode_MCRR_t1, decode_MCR_t1, decode_MRC2_t2,
-        decode_MRC_t1,
+        decode_MCR_t1, decode_MCR2_t2, decode_MCRR_t1, decode_MCRR2_t2, decode_MRC_t1,
+        decode_MRC2_t2,
     },
     mla::decode_MLA_t1,
     mls::decode_MLS_t1,
@@ -218,8 +218,8 @@ use {
     push::{decode_PUSH_t1, decode_PUSH_t2, decode_PUSH_t3},
     rbit::decode_RBIT_t1,
     rev::{
-        decode_REV16_t1, decode_REV16_t2, decode_REVSH_t1, decode_REVSH_t2, decode_REV_t1,
-        decode_REV_t2,
+        decode_REV_t1, decode_REV_t2, decode_REV16_t1, decode_REV16_t2, decode_REVSH_t1,
+        decode_REVSH_t2,
     },
     ror::{decode_ROR_imm_t1, decode_ROR_reg_t1, decode_ROR_reg_t2},
     rrx::decode_RRX_t1,
@@ -234,9 +234,9 @@ use {
     smul::decode_SMUL_t1,
     smull::decode_SMULL_t1,
     ssat::decode_SSAT_t1,
-    stc::{decode_STC2_t2, decode_STC_t1},
-    stm::{decode_STMDB_t1, decode_STM_t1, decode_STM_t2},
-    strex::{decode_STREXB_t1, decode_STREXH_t1, decode_STREX_t1},
+    stc::{decode_STC_t1, decode_STC2_t2},
+    stm::{decode_STM_t1, decode_STM_t2, decode_STMDB_t1},
+    strex::{decode_STREX_t1, decode_STREXB_t1, decode_STREXH_t1},
     sub::{
         decode_SUB_SP_imm_t1, decode_SUB_SP_imm_t2, decode_SUB_SP_imm_t3, decode_SUB_imm_t1,
         decode_SUB_imm_t2, decode_SUB_imm_t3, decode_SUB_imm_t4, decode_SUB_reg_t1,
@@ -260,17 +260,18 @@ use {
     yield_::{decode_YIELD_t1, decode_YIELD_t2},
 };
 
-use crate::core::thumb::ThumbCode;
 use crate::Processor;
+use crate::core::thumb::ThumbCode;
 use {
     vabs::decode_VABS_t1,
     vadd_vsub::{decode_VADD_t1, decode_VSUB_t1},
     vcmp::{decode_VCMP_t1, decode_VCMP_t2},
+    vcvt::decode_VCVT_t1,
     vldr::{decode_VLDR_t1, decode_VLDR_t2},
-    vmov::decode_VMOV_cr2_dp,
-    vmov::decode_VMOV_cr2_sp2,
     vmov::decode_VMOV_cr_scalar,
     vmov::decode_VMOV_cr_sp,
+    vmov::decode_VMOV_cr2_dp,
+    vmov::decode_VMOV_cr2_sp2,
     vmov::decode_VMOV_imm,
     vmov::decode_VMOV_reg,
     vmov::decode_VMOV_scalar_cr,
@@ -281,7 +282,6 @@ use {
     vpush::decode_VPUSH_t2,
     vstm::{decode_VSTM_t1, decode_VSTM_t2},
     vstr::{decode_VSTR_t1, decode_VSTR_t2},
-    vcvt::decode_VCVT_t1
 };
 
 ///
@@ -299,7 +299,11 @@ impl Decoder for Processor {
         match code {
             ThumbCode::Thumb32 { opcode } => decode_32(opcode),
             ThumbCode::Thumb16 { opcode } => decode_16(opcode),
-            ThumbCode::Undefined => Instruction::UDF {imm32: 0, opcode: code, thumb32: false},
+            ThumbCode::Undefined => Instruction::UDF {
+                imm32: 0,
+                opcode: code,
+                thumb32: false,
+            },
         }
     }
 }

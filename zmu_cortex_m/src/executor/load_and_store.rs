@@ -2,7 +2,7 @@ use crate::Processor;
 
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
-use super::{resolve_addressing, ExecuteResult};
+use super::{ExecuteResult, resolve_addressing};
 
 use crate::{
     bus::Bus,

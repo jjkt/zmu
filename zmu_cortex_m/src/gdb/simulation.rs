@@ -2,20 +2,19 @@
 //! Cortex System simulation
 //!
 
-
-use crate::system::simulation::SimulationError;
-use crate::Processor;
 use crate::MemoryMapConfig;
-use crate::executor::Executor;
-use crate::core::reset::Reset;
+use crate::Processor;
 use crate::core::register::BaseReg;
+use crate::core::reset::Reset;
+use crate::executor::Executor;
+use crate::system::simulation::SimulationError;
 
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
 ///
 /// Cortex System simulation framework
-/// 
+///
 pub struct Simulation {
     /// processor state
     pub processor: Processor,
@@ -29,7 +28,7 @@ pub struct Simulation {
 
 ///
 /// A simulation event.
-/// 
+///
 pub enum SimulationEvent {
     /// Step done
     DoneStep,
@@ -44,12 +43,12 @@ pub enum SimulationEvent {
     /// A read watchpoint was hit
     WatchRead(u32),
     /// Simulation is finalized
-    Finalized(u32)
+    Finalized(u32),
 }
 
 ///
 /// Mode of execution for the simulation
-/// 
+///
 pub enum SimulationExecMode {
     /// Step by Step execution (Single Step)
     Step,
@@ -62,21 +61,22 @@ pub enum SimulationExecMode {
 impl Simulation {
     ///
     /// Prepare a new simulation instance
-    /// 
-    pub fn new(code: &[u8],
+    ///
+    pub fn new(
+        code: &[u8],
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
-        flash_size: usize,    
-    ) -> Result<Simulation, &'static str> {
+        flash_size: usize,
+    ) -> Result<Simulation, SimulationError> {
         let mut processor = Processor::new();
         processor.semihost(Some(semihost_func));
         processor.memory_map(map);
         processor.flash_memory(flash_size, code);
         processor.cache_instructions();
-        processor.running = true; 
+        processor.running = true;
         match processor.reset() {
-            Ok(_) => {},
-            Err(_) => return Err("Error resetting processor"),
+            Ok(_) => {}
+            Err(_) => return Err(SimulationError::FaultTrap),
         }
 
         Ok(Simulation {
@@ -84,27 +84,27 @@ impl Simulation {
             exec_mode: SimulationExecMode::Step,
             watchpoints: Vec::new(),
             breakpoints: Vec::new(),
-        })  
+        })
     }
 
     /// Run the simulation. This function will block until the simulation is complete.
-    pub fn run(&mut self, mut poll_incoming_data: impl FnMut() -> bool ) -> SimulationRunEvent {
+    pub fn run(&mut self, mut poll_incoming_data: impl FnMut() -> bool) -> SimulationRunEvent {
         match self.exec_mode {
             SimulationExecMode::Step => {
                 return SimulationRunEvent::Event(self.step());
-            },
+            }
             SimulationExecMode::Continue => {
                 let mut cycles = 0;
                 loop {
-                    // The poll_incoming_data function checks if there is any data available 
+                    // The poll_incoming_data function checks if there is any data available
                     // to be read from the connection to the GDB server.
-                    // Currently, each call to poll_incoming_data blocks until either data 
-                    // is available or a timeout occurs. This provides a simple mechanism 
+                    // Currently, each call to poll_incoming_data blocks until either data
+                    // is available or a timeout occurs. This provides a simple mechanism
                     // to detect if the GDB client has sent any commands to the server.
-                    // However, this approach is inefficient because the simulation is 
-                    // effectively stalled until either the GDB client sends data or the 
+                    // However, this approach is inefficient because the simulation is
+                    // effectively stalled until either the GDB client sends data or the
                     // timeout expires.
-                    // To reduce the performance impact, we only poll for incoming data 
+                    // To reduce the performance impact, we only poll for incoming data
                     // every 1024 cycles.
                     if cycles % 1024 == 0 {
                         if poll_incoming_data() {
@@ -114,11 +114,11 @@ impl Simulation {
                     cycles += 1;
                     let evt = self.step();
                     match evt {
-                        SimulationEvent::DoneStep => {},
+                        SimulationEvent::DoneStep => {}
                         _ => return SimulationRunEvent::Event(evt),
                     };
                 }
-            },
+            }
             SimulationExecMode::RangeStep(start, end) => {
                 let mut cycles = 0;
                 loop {
@@ -136,17 +136,17 @@ impl Simulation {
                             if !(start..end).contains(&self.processor.get_pc()) {
                                 return SimulationRunEvent::Event(evt);
                             }
-                        },
+                        }
                         _ => return SimulationRunEvent::Event(evt),
                     };
                 }
-            },
+            }
         }
     }
 
     ///
     /// Reset the simulation
-    /// 
+    ///
     pub fn reset(&mut self) -> Result<(), SimulationError> {
         match self.processor.reset() {
             Ok(_) => Ok(()),
@@ -156,17 +156,20 @@ impl Simulation {
 
     ///
     /// Single step the simulation
-    /// 
+    ///
     pub fn step(&mut self) -> SimulationEvent {
         if self.processor.running {
             self.processor.step();
         } else if self.processor.sleeping {
             self.processor.step_sleep();
-        } if self.breakpoints.contains(&self.processor.get_pc()) {
+        }
+        if self.breakpoints.contains(&self.processor.get_pc()) {
             return SimulationEvent::Break;
-        } if self.watchpoints.contains(&self.processor.get_pc()) {
+        }
+        if self.watchpoints.contains(&self.processor.get_pc()) {
             return SimulationEvent::WatchRead(self.processor.get_pc());
-        } if !self.processor.running && !self.processor.sleeping {
+        }
+        if !self.processor.running && !self.processor.sleeping {
             return SimulationEvent::Finalized(self.processor.exit_code);
         } else {
             return SimulationEvent::DoneStep;
@@ -176,7 +179,7 @@ impl Simulation {
 
 ///
 /// A simulation run event.
-/// 
+///
 
 pub enum SimulationRunEvent {
     /// Incoming data from the GDB server

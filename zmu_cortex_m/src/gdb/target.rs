@@ -1,29 +1,29 @@
-use gdbstub::target::Target;
-use gdbstub::target::TargetResult;
-use gdbstub::target;
-use gdbstub::target::ext::monitor_cmd::MonitorCmd;
 use gdbstub::common::Signal;
 use gdbstub::outputln;
+use gdbstub::target;
+use gdbstub::target::Target;
+use gdbstub::target::TargetResult;
+use gdbstub::target::ext::monitor_cmd::MonitorCmd;
 
 use log::debug;
 
-use crate::bus::Bus;
 use crate::MemoryMapConfig;
+use crate::bus::Bus;
 use crate::gdb::simulation;
 
 use gdbstub::target::ext::base::singlethread::SingleThreadBase;
-use gdbstub::target::ext::base::singlethread::SingleThreadResume;
-use gdbstub::target::ext::base::singlethread::SingleThreadSingleStep;
-use gdbstub::target::ext::base::singlethread::SingleThreadSingleStepOps;
-use gdbstub::target::ext::base::singlethread::SingleThreadResumeOps;
 use gdbstub::target::ext::base::singlethread::SingleThreadRangeStepping;
 use gdbstub::target::ext::base::singlethread::SingleThreadRangeSteppingOps;
+use gdbstub::target::ext::base::singlethread::SingleThreadResume;
+use gdbstub::target::ext::base::singlethread::SingleThreadResumeOps;
+use gdbstub::target::ext::base::singlethread::SingleThreadSingleStep;
+use gdbstub::target::ext::base::singlethread::SingleThreadSingleStepOps;
 
-use crate::gdb::simulation::SimulationRunEvent;
 use crate::gdb::simulation::SimulationEvent;
+use crate::gdb::simulation::SimulationRunEvent;
 
-use crate::core::register::Reg;
 use crate::core::register::BaseReg;
+use crate::core::register::Reg;
 
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
@@ -44,8 +44,8 @@ impl ZmuTarget {
             simulation: simulation.unwrap(),
         }
     }
- 
-    pub fn run(&mut self, poll_incomming_data: impl FnMut() -> bool ) -> SimulationRunEvent {
+
+    pub fn run(&mut self, poll_incomming_data: impl FnMut() -> bool) -> SimulationRunEvent {
         self.simulation.run(poll_incomming_data)
     }
 
@@ -103,7 +103,7 @@ impl SingleThreadBase for ZmuTarget {
     #[inline(never)]
     fn write_registers(
         &mut self,
-        regs: &gdbstub_arch::arm::reg::ArmCoreRegs
+        regs: &gdbstub_arch::arm::reg::ArmCoreRegs,
     ) -> TargetResult<(), Self> {
         debug!("> write_registers");
         self.simulation.processor.r0_12 = regs.r;
@@ -115,11 +115,7 @@ impl SingleThreadBase for ZmuTarget {
     }
 
     #[inline(never)]
-    fn read_addrs(
-        &mut self,
-        start_addr: u32,
-        data: &mut [u8],
-    ) -> TargetResult<usize, Self> {
+    fn read_addrs(&mut self, start_addr: u32, data: &mut [u8]) -> TargetResult<usize, Self> {
         for i in 0..data.len() {
             match self.simulation.processor.read8(start_addr + i as u32) {
                 Ok(b) => data[i] = b,
@@ -132,13 +128,13 @@ impl SingleThreadBase for ZmuTarget {
     }
 
     #[inline(never)]
-    fn write_addrs(
-        &mut self,
-        start_addr: u32,
-        data: &[u8],
-    ) -> TargetResult<(), Self> {
+    fn write_addrs(&mut self, start_addr: u32, data: &[u8]) -> TargetResult<(), Self> {
         for i in 0..data.len() {
-            match self.simulation.processor.write8(start_addr + i as u32, data[i]) {
+            match self
+                .simulation
+                .processor
+                .write8(start_addr + i as u32, data[i])
+            {
                 Ok(_) => (),
                 Err(_) => {
                     return Err(target::TargetError::NonFatal);
@@ -149,9 +145,7 @@ impl SingleThreadBase for ZmuTarget {
     }
 
     #[inline(always)]
-    fn support_resume(
-        &mut self,
-    ) -> Option<SingleThreadResumeOps<'_, Self>> {
+    fn support_resume(&mut self) -> Option<SingleThreadResumeOps<'_, Self>> {
         Some(self)
     }
 }
@@ -164,9 +158,7 @@ impl SingleThreadResume for ZmuTarget {
     }
 
     #[inline(always)]
-    fn support_single_step(
-        &mut self
-    ) -> Option<SingleThreadSingleStepOps<'_, Self>> {
+    fn support_single_step(&mut self) -> Option<SingleThreadSingleStepOps<'_, Self>> {
         self.simulation.exec_mode = simulation::SimulationExecMode::Step;
         Some(self)
     }
@@ -187,17 +179,11 @@ impl SingleThreadSingleStep for ZmuTarget {
 
 impl SingleThreadRangeStepping for ZmuTarget {
     #[inline(never)]
-    fn resume_range_step(
-        &mut self,
-        start: u32,
-        end: u32,
-    ) -> Result<(), Self::Error> {
+    fn resume_range_step(&mut self, start: u32, end: u32) -> Result<(), Self::Error> {
         self.simulation.exec_mode = simulation::SimulationExecMode::RangeStep(start, end);
         Ok(())
     }
-    
 }
-
 
 impl target::ext::breakpoints::Breakpoints for ZmuTarget {
     #[inline(always)]
@@ -239,18 +225,16 @@ impl MonitorCmd for ZmuTarget {
     ) -> Result<(), Self::Error> {
         debug!("> handle_monitor_cmd {:?}", cmd);
         let cmd = core::str::from_utf8(cmd).map_err(|_| "Invalid UTF-8")?;
-        match cmd  {
-            "reset" => {
-                match self.simulation.reset() {
-                    Ok(_) => {
-                        outputln!(out, "Target reset");
-                    },
-                    Err(_) => {
-                        outputln!(out, "Error resetting target");
-                        return Err("Error resetting target");
-                    }
+        match cmd {
+            "reset" => match self.simulation.reset() {
+                Ok(_) => {
+                    outputln!(out, "Target reset");
                 }
-            }
+                Err(_) => {
+                    outputln!(out, "Error resetting target");
+                    return Err("Error resetting target");
+                }
+            },
             _ => {
                 outputln!(out, "Unknown command: {:?}", cmd);
             }

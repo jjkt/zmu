@@ -2,11 +2,11 @@
 //! Cortex core register operations
 //!
 
+use crate::Processor;
+use crate::ProcessorMode;
 use crate::core::bits::Bits;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
-use crate::Processor;
-use crate::ProcessorMode;
 use enum_as_inner::EnumAsInner;
 use enum_set::CLike;
 use std::fmt;
@@ -766,7 +766,7 @@ impl CLike for Reg {
     }
 
     unsafe fn from_u32(v: u32) -> Self {
-        mem::transmute(v)
+        unsafe { mem::transmute(v) }
     }
 }
 
@@ -776,7 +776,7 @@ impl CLike for SingleReg {
     }
 
     unsafe fn from_u32(v: u32) -> Self {
-        mem::transmute(v)
+        unsafe { mem::transmute(v) }
     }
 }
 
@@ -786,7 +786,7 @@ impl CLike for DoubleReg {
     }
 
     unsafe fn from_u32(v: u32) -> Self {
-        mem::transmute(v)
+        unsafe { mem::transmute(v) }
     }
 }
 

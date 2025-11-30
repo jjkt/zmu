@@ -31,10 +31,10 @@ mod signed_multiply;
 mod status_register;
 mod std_data_processing;
 
-mod fp_load_and_store;
-mod fp_register_transfer;
 mod fp_data_processing;
 mod fp_generic;
+mod fp_load_and_store;
+mod fp_register_transfer;
 
 use branch::IsaBranch;
 use coproc::IsaCoprocessor;
@@ -52,9 +52,9 @@ use signed_multiply::IsaSignedMultiply;
 use status_register::IsaStatusRegister;
 use std_data_processing::IsaStandardDataProcessing;
 
+use fp_data_processing::IsaFloatingPointDataProcessing;
 use fp_load_and_store::IsaFloatingPointLoadAndStore;
 use fp_register_transfer::IsaFloatingPointRegisterTransfer;
-use fp_data_processing::IsaFloatingPointDataProcessing;
 
 ///
 /// Stepping processor with instructions
@@ -540,7 +540,6 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point register transfer instructions
             //
             // --------------------------------------------
-
             Instruction::VMRS { rt } => self.exec_vmrs(*rt),
 
             // --------------------------------------------
@@ -619,7 +618,12 @@ impl Executor for Processor {
                 }
                 1
             }
-            Ok(ExecuteSuccess::Branched { cycles }) => cycles,
+            Ok(ExecuteSuccess::Branched { cycles }) => {
+                if in_it_block {
+                    self.it_advance();
+                }
+                cycles
+            }
             Ok(ExecuteSuccess::Taken { cycles }) => {
                 self.add_pc(instruction_size as u32);
 
@@ -638,52 +642,134 @@ mod tests {
     use crate::core::condition::Condition;
     use crate::core::instruction::instruction_size;
     use crate::core::{
-        instruction::{
-            ITCondition, Reg2ShiftNoSetFlagsParams, RegImmCarryParams, SRType, SetFlags,
-        },
+        instruction::{ITCondition, SRType, SetFlags},
         register::Reg,
     };
 
     #[test]
-    fn test_it_block() {
-        // arrange
-        let mut core = Processor::new();
-        core.set_r(Reg::R5, 0x49);
-        core.set_r(Reg::R4, 0x01);
-        core.set_r(Reg::R0, 0x49);
-        core.psr.value = 0;
+    fn test_it_block_branch_clears_state() {
+        // This test reproduces a bug: when a conditional branch inside
+        // an IT block executes and branches, the IT state is not advanced,
+        // leaving residual itstate that affects the next instruction.
+        //
+        // This is the exact sequence from hello_world-cm3.elf:
+        // 3fc: subs r3, #4
+        // 3fe: ittt ge
+        // 400: ldrge r0, [r1, r3]  <- conditional
+        // 402: strge r0, [r2, r3]  <- conditional
+        // 404: bge 0x3fc            <- conditional branch that loops back
+        //
+        // When the branch executes, IT state should advance (clearing it since
+        // it's the last instruction), but in bug case it didn't, so the SUB at
+        // 0x3fc thought it's still in an IT block and didn't set flags!
 
-        let i1 = Instruction::CMP_reg {
-            params: Reg2ShiftNoSetFlagsParams {
-                rn: Reg::R0,
-                rm: Reg::R5,
+        use crate::core::instruction::Reg2ImmParams;
+
+        let mut core = Processor::new();
+        core.set_r(Reg::R1, 0x20000000);
+        core.set_r(Reg::R2, 0x20001000);
+        core.set_r(Reg::R3, 0x00000008);
+
+        // Set flags so GE is true initially (N=0, V=0)
+        core.psr.set_n(0);
+        core.psr.set_v(false);
+        core.psr.set_z(0);
+        core.psr.set_c(true);
+
+        // Execute "ittt ge" - 3 Then instructions with GE condition
+        let it_inst = Instruction::IT {
+            x: Some(ITCondition::Then),
+            y: Some(ITCondition::Then),
+            z: None,
+            firstcond: Condition::GE,
+            mask: 0b0010,
+        };
+        core.execute(&it_inst, instruction_size(&it_inst));
+
+        // Execute 3 conditional instructions, the last being a branch
+        // Instruction 1: ldr r0, [r1, r3]
+        let ldr = Instruction::LDR_reg {
+            params: crate::core::instruction::Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R3,
                 shift_t: SRType::LSL,
                 shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
+            thumb32: false,
+        };
+        core.execute(&ldr, instruction_size(&ldr));
+
+        // Instruction 2: str r0, [r2, r3]
+        let str = Instruction::STR_reg {
+            params: crate::core::instruction::Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R2,
+                rm: Reg::R3,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
+            thumb32: false,
+        };
+        core.execute(&str, instruction_size(&str));
+
+        // Instruction 3: b (conditional branch back)
+        // When this executes and branches, itstate should be cleared
+        let b = Instruction::B_t13 {
+            params: crate::core::instruction::CondBranchParams {
+                cond: Condition::GE,
+                imm32: -4, // Branch back (negative offset)
             },
             thumb32: false,
         };
 
-        let i2 = Instruction::IT {
-            x: Some(ITCondition::Then),
-            y: None,
-            z: None,
-            firstcond: Condition::NE,
-            mask: 0b1000,
-        };
-        let i3 = Instruction::MOV_imm {
-            params: RegImmCarryParams {
-                rd: Reg::R4,
-                imm32: Imm32Carry::NoCarry { imm32: 0 },
-                setflags: SetFlags::False,
+        // Before the branch, we should still be in IT block
+        assert!(core.in_it_block(), "Should be in IT block before branch");
+
+        core.execute(&b, instruction_size(&b));
+
+        // After the branch executes, IT state should be cleared!
+        assert!(
+            !core.in_it_block(),
+            "IT state should be cleared after the last instruction in IT block (the branch)"
+        );
+
+        // Now execute a SUBS instruction (SetFlags::NotInITBlock)
+        // This should set flags because we're no longer in an IT block
+        let sub_inst = Instruction::SUB_imm {
+            params: Reg2ImmParams {
+                rd: Reg::R3,
+                rn: Reg::R3,
+                imm32: 4,
+                setflags: SetFlags::NotInITBlock,
             },
             thumb32: false,
         };
 
-        core.execute(&i1, instruction_size(&i1));
-        core.execute(&i2, instruction_size(&i1));
-        core.execute(&i3, instruction_size(&i1));
+        // Clear flags first to make the test clear
+        core.psr.set_n(0);
+        core.psr.set_z(0);
 
-        assert_eq!(core.get_r(Reg::R4), 0x01);
-        assert!(!core.in_it_block());
+        core.execute(&sub_inst, instruction_size(&sub_inst));
+
+        // R3 should be 4 (8 - 4)
+        assert_eq!(core.get_r(Reg::R3), 0x00000004);
+
+        // Flags should have been set by SUBS (since we're not in IT block)
+        // With result = 4, N should be 0 and Z should be 0
+        assert!(
+            !core.psr.get_n(),
+            "N flag should be clear when result is positive"
+        );
+        assert!(
+            !core.psr.get_z(),
+            "Z flag should be clear when result is non-zero"
+        );
     }
 }
