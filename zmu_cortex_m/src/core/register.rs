@@ -7,7 +7,6 @@ use crate::ProcessorMode;
 use crate::core::bits::Bits;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::Fault;
-use enum_as_inner::EnumAsInner;
 use enum_set::CLike;
 use std::fmt;
 use std::mem;
@@ -533,7 +532,7 @@ impl Epsr for PSR {
 }
 
 impl Ipsr for PSR {
-    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+    #[cfg(not(feature = "armv6m"))]
     fn get_isr_number(&self) -> usize {
         self.value.get_bits(0..9) as usize
     }
@@ -543,7 +542,7 @@ impl Ipsr for PSR {
         (*self).value.get_bits(0..6) as usize
     }
 
-    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+    #[cfg(not(feature = "armv6m"))]
     fn set_isr_number(&mut self, exception_number: usize) {
         self.value.set_bits(0..9, exception_number as u32);
     }
@@ -713,7 +712,7 @@ pub enum DoubleReg {
     /// Extension register 15, 64 bit floating point register
     D15,
 }
-#[derive(Copy, Clone, PartialEq, Debug, EnumAsInner)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 ///
 /// Extension registers, either single or double precision floating points
 ///
@@ -728,6 +727,24 @@ pub enum ExtensionReg {
         /// register identification
         reg: DoubleReg,
     },
+}
+
+impl ExtensionReg {
+    /// extract single precision register if available
+    pub fn as_single(&self) -> Option<&SingleReg> {
+        match self {
+            ExtensionReg::Single { reg } => Some(reg),
+            _ => None,
+        }
+    }
+
+    /// extract double precision register if available
+    pub fn as_double(&self) -> Option<&DoubleReg> {
+        match self {
+            ExtensionReg::Double { reg } => Some(reg),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]

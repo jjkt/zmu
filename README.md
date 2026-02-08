@@ -127,32 +127,6 @@ Following example uses the [itmdump](https://docs.rs/itm/0.3.1/itm/) tool and em
 $./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
 Hello, world!
 ```
-
-
-### "RTFM" examples with rust
-Zmu can already run many of the [cortex-m-rtfm](https://github.com/japaric/cortex-m-rtfm) examples directly.
-
-Here are few example runs:
-
-message.rs
-```
-$./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/message
-foo
-bar(0)
-baz(1, 2)
-foo
-bar(1)
-baz(2, 3)
-^C
-```
-
-resource.rs
-```
-$./target/release/zmu-armv7m run ./tests/cortex-m-rtfm/target/thumbv7m-none-eabi/debug/examples/resource
-UART0: SHARED = 1
-UART1: SHARED = 2
-```
-
 ### "Hello, world" example with Arm GCC + semihosting
 
 ```c
@@ -200,21 +174,7 @@ Starting GDB Server on port 9001 ...
 On a separate terminal start the gdb client:
 ```
 $ gdb-multiarch tests/hello_world/hello_world-cm0.elf
-GNU gdb (Debian 13.1-3) 13.1
-Copyright (C) 2023 Free Software Foundation, Inc.
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.
-Type "show copying" and "show warranty" for details.
-This GDB was configured as "x86_64-linux-gnu".
-Type "show configuration" for configuration details.
-For bug reporting instructions, please see:
-<https://www.gnu.org/software/gdb/bugs/>.
-Find the GDB manual and other documentation resources online at:
-    <http://www.gnu.org/software/gdb/documentation/>.
-
-For help, type "help".
-Type "apropos word" to search for commands related to "word"...
+...
 Reading symbols from tests/hello_world/hello_world-cm0.elf...
 (gdb) target remote localhost:9001
 Remote debugging using localhost:9001

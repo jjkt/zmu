@@ -37,6 +37,60 @@ impl ExceptionState {
     }
 }
 
+impl Processor {
+    ///
+    /// Check if WFI wakeup condition is met (ignoring PRIMASK)
+    ///
+    pub fn has_wakeup_condition(&self) -> bool {
+        let mut highestpri: i16 = 256;
+        let mut boostedpri: i16 = 256;
+        let subgroupshift = self.aircr.get_bits(8..11);
+        let mut groupvalue = 2 << subgroupshift;
+
+        for (_, exp) in self.exceptions.iter().filter(|&(_, e)| e.active) {
+            if exp.priority < highestpri {
+                highestpri = exp.priority;
+
+                if exp.exception_number == Exception::NMI.into() {
+                    groupvalue = -2;
+                }
+
+                if exp.exception_number == Exception::HardFault.into() {
+                    groupvalue = -1;
+                }
+
+                let subgroupvalue = highestpri % groupvalue;
+                highestpri -= subgroupvalue;
+            }
+        }
+        if self.basepri != 0 {
+            boostedpri = i16::from(self.basepri);
+            let subgroupvalue = boostedpri % groupvalue;
+            boostedpri -= subgroupvalue;
+        }
+
+        // We specifically ignore PRIMASK checks here as WFI should wake up
+        // if an interrupt is pending which would be taken if PRIMASK was clear.
+
+        #[cfg(not(feature = "armv6m"))]
+        {
+            if self.faultmask {
+                boostedpri = -1;
+            }
+        }
+
+        let wakeup_priority = if boostedpri < highestpri {
+            boostedpri
+        } else {
+            highestpri
+        };
+
+        self.exceptions
+            .values()
+            .any(|e| e.pending && e.priority < wakeup_priority)
+    }
+}
+
 ///
 /// Trait for interacting with exceptions
 ///
@@ -190,7 +244,7 @@ impl ExceptionHandlingHelpers for Processor {
             .unwrap()
             .active = false;
 
-        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+        #[cfg(not(feature = "armv6m"))]
         {
             if self.psr.get_isr_number() != 0b10 {
                 self.faultmask = false;
@@ -390,7 +444,7 @@ impl ExceptionHandling for Processor {
         if self.primask {
             boostedpri = 0;
         }
-        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+        #[cfg(not(feature = "armv6m"))]
         {
             if self.faultmask {
                 boostedpri = -1;
@@ -540,6 +594,8 @@ impl ExceptionHandling for Processor {
             // TODO: handle failure to enter exception
             self.exception_entry(exception, pc)
                 .expect("error handling on exception entry not implemented");
+        } else if self.sleeping && self.has_wakeup_condition() {
+            self.sleeping = false;
         }
     }
 }
@@ -716,7 +772,7 @@ mod tests {
         );
     }
 
-    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+    #[cfg(not(feature = "armv6m"))]
     #[test]
     fn test_faultmask_priority() {
         // Arrange
@@ -756,5 +812,71 @@ mod tests {
 
         // Assert
         assert_eq!(processor.nvic_read_ispr(0), 0);
+    }
+
+    #[test]
+    fn test_wfi_wakeup_primask_masked_interrupt() {
+        // Arrange
+        let mut processor = Processor::new();
+        processor.reset().unwrap();
+
+        // Enable PRIMASK
+        processor.primask = true;
+
+        // Set pending interrupt
+        processor.set_exception_pending(Exception::Interrupt { n: 1 });
+        processor.set_exception_priority(Exception::Interrupt { n: 1 }, 10);
+
+        // Act & Assert
+        // Should return true because WFI ignores PRIMASK
+        assert!(processor.has_wakeup_condition());
+    }
+
+    #[test]
+    fn test_wfi_wakeup_no_interrupt() {
+        // Arrange
+        let mut processor = Processor::new();
+        processor.reset().unwrap();
+
+        // Act & Assert
+        assert!(!processor.has_wakeup_condition());
+    }
+
+    #[test]
+    fn test_wfi_wakeup_low_priority_interrupt() {
+        // Arrange
+        let mut processor = Processor::new();
+        processor.reset().unwrap();
+
+        // Simulate being in a high priority handler
+        processor.set_exception_priority(Exception::SysTick, 0); // High urgency
+        processor.exception_taken(Exception::SysTick).unwrap();
+
+        // Set pending interrupt with lower urgency
+        processor.set_exception_priority(Exception::Interrupt { n: 1 }, 10); // Low urgency
+        processor.set_exception_pending(Exception::Interrupt { n: 1 });
+
+        // Act & Assert
+        // Should return false because pending interrupt priority (10) is not < current execution priority (0)
+        assert!(!processor.has_wakeup_condition());
+    }
+
+    #[cfg(not(feature = "armv6m"))]
+    #[test]
+    fn test_wfi_wakeup_faultmask_masked_interrupt() {
+        // Arrange
+        let mut processor = Processor::new();
+        processor.reset().unwrap();
+
+        // Enable FAULTMASK
+        processor.faultmask = true;
+
+        // Set pending interrupt
+        processor.set_exception_pending(Exception::Interrupt { n: 1 });
+        processor.set_exception_priority(Exception::Interrupt { n: 1 }, 10);
+
+        // Act & Assert
+        // Should return false because FAULTMASK blocks normal interrupts
+        assert!(!processor.has_wakeup_condition());
     }
 }

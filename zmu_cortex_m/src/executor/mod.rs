@@ -416,7 +416,7 @@ impl ExecutorHelper for Processor {
             #[cfg(feature = "armv6m")]
             Instruction::CPS { im } => self.exec_cps(*im),
 
-            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+            #[cfg(not(feature = "armv6m"))]
             Instruction::CPS {
                 im,
                 affect_pri,
