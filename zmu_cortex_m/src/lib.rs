@@ -109,7 +109,7 @@ pub struct Processor {
     /// interrupt fault mask, a 1 bit mask register for
     /// global interrupt masking
     ///
-    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+    #[cfg(not(feature = "armv6m"))]
     faultmask: bool,
 
     ///
@@ -290,7 +290,7 @@ impl Processor {
             vtor: 0,
             psr: PSR { value: 0 },
             primask: false,
-            #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+            #[cfg(not(feature = "armv6m"))]
             faultmask: false,
             basepri: 0,
             control: Control {

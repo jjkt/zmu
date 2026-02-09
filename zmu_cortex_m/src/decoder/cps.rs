@@ -5,9 +5,9 @@ use crate::core::{bits::Bits, instruction::Instruction};
 pub fn decode_CPS_t1(opcode: u16) -> Instruction {
     Instruction::CPS {
         im: opcode.get_bit(4),
-        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+        #[cfg(not(feature = "armv6m"))]
         affect_fault: opcode.get_bit(0),
-        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+        #[cfg(not(feature = "armv6m"))]
         affect_pri: opcode.get_bit(1),
     }
 }

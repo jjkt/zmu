@@ -1,34 +1,21 @@
 #!/bin/bash
 set -e
-{ set +x; } 2>/dev/null
 
-echo "building..."
-./buildall.sh
-
-##
-## GCC none abi / cortex-m examples
-##
-./test_gcc.sh
 #
+# To clean the persistent volumes, run:
+# docker volume rm zmu-cargo-registry zmu-target-cache zmu-rustup-home
+#
+#
+# Build the docker image
+# Use the current directory as context
+echo "Building Docker image..."
+docker build -t zmu-test-env .
 
+# Run the tests inside the container
+echo "Running tests in Docker container..."
+docker run --rm \
+    -v zmu-cargo-registry:/usr/local/cargo/registry \
+    -v zmu-rustup-home:/usr/local/rustup \
+    -v zmu-target-cache:/workspace/target \
+    zmu-test-env ./run_tests_internal.sh
 
-##
-## Cortex-M RTIC tests
-##
-# TODO .. RTIC has changed the examples completely, need actual device simulation support..
-#./test_cortex-m-rtic.sh
-
-##
-## Coremark
-##
-./test_coremark.sh
-
-##
-## ARM CMSIS DSP
-## TODO: add arm cmsis dsp tests
-# ./test_arm-cmsis-dsp.sh
-
-##
-## TODO: Rusty Clock
-##
-# https://github.com/TeXitoi/rusty-clock.git

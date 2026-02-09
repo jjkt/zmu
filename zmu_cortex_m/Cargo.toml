@@ -6,7 +6,6 @@ edition = "2024"
 
 [dependencies]
 byteorder = "1.5"
-enum-as-inner = "0.6.1"
 enum-set = "0.0.8"
 gdbstub = "0.7.8"
 gdbstub_arch = "0.3.2"
