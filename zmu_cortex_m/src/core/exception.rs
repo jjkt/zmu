@@ -38,10 +38,7 @@ impl ExceptionState {
 }
 
 impl Processor {
-    ///
-    /// Check if WFI wakeup condition is met (ignoring PRIMASK)
-    ///
-    pub fn has_wakeup_condition(&self) -> bool {
+    fn calculate_execution_priority_helper(&self, include_primask: bool) -> i16 {
         let mut highestpri: i16 = 256;
         let mut boostedpri: i16 = 256;
         let subgroupshift = self.aircr.get_bits(8..11);
@@ -69,8 +66,9 @@ impl Processor {
             boostedpri -= subgroupvalue;
         }
 
-        // We specifically ignore PRIMASK checks here as WFI should wake up
-        // if an interrupt is pending which would be taken if PRIMASK was clear.
+        if include_primask && self.primask {
+            boostedpri = 0;
+        }
 
         #[cfg(not(feature = "armv6m"))]
         {
@@ -79,11 +77,20 @@ impl Processor {
             }
         }
 
-        let wakeup_priority = if boostedpri < highestpri {
+        if boostedpri < highestpri {
             boostedpri
         } else {
             highestpri
-        };
+        }
+    }
+
+    ///
+    /// Check if WFI wakeup condition is met (ignoring PRIMASK)
+    ///
+    pub fn has_wakeup_condition(&self) -> bool {
+        // We specifically ignore PRIMASK checks here as WFI should wake up
+        // if an interrupt is pending which would be taken if PRIMASK was clear.
+        let wakeup_priority = self.calculate_execution_priority_helper(false);
 
         self.exceptions
             .values()
@@ -406,56 +413,7 @@ impl ExceptionHandling for Processor {
     }
 
     fn get_execution_priority(&self) -> i16 {
-        let mut highestpri: i16 = 256;
-        let mut boostedpri: i16 = 256;
-        let subgroupshift = self.aircr.get_bits(8..11);
-        let mut groupvalue = 2 << subgroupshift;
-
-        for (_, exp) in self.exceptions.iter().filter(|&(_, e)| e.active) {
-            if exp.priority < highestpri {
-                highestpri = exp.priority;
-
-                /*
-                ARMV7-M Arch Reference Manual. Version E. Page B1-527
-                Priority Grouping. The group priority for Reset, NMI
-                and HardFault are -3, -2 and -1 respectively, regardless
-                of the value of PRIGROUP. Note that we dont check reset because
-                after setting the reset pending flag, the simulator resets the
-                processor.
-                */
-
-                if exp.exception_number == Exception::NMI.into() {
-                    groupvalue = -2;
-                }
-
-                if exp.exception_number == Exception::HardFault.into() {
-                    groupvalue = -1;
-                }
-
-                let subgroupvalue = highestpri % groupvalue;
-                highestpri -= subgroupvalue;
-            }
-        }
-        if self.basepri != 0 {
-            boostedpri = i16::from(self.basepri);
-            let subgroupvalue = boostedpri % groupvalue;
-            boostedpri -= subgroupvalue;
-        }
-        if self.primask {
-            boostedpri = 0;
-        }
-        #[cfg(not(feature = "armv6m"))]
-        {
-            if self.faultmask {
-                boostedpri = -1;
-            }
-        }
-
-        if boostedpri < highestpri {
-            boostedpri
-        } else {
-            highestpri
-        }
+        self.calculate_execution_priority_helper(true)
     }
 
     fn set_exception_pending(&mut self, exception: Exception) {
