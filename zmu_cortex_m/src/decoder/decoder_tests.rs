@@ -3072,7 +3072,7 @@ fn test_decode_vmov_imm() {
 
 #[test]
 fn test_decode_vmov_imm_f32() {
-    //  eef0 6a00       vmov.f32        s13, #0 @ 0x40000000  2.0
+    //  eef0 6a00       vmov.f32        s13, #0 @ 0x4000_0000  2.0
 
     assert_eq!(
         decode_32(0xeef0_6a00),
@@ -3248,6 +3248,25 @@ fn test_decode_strexh() {
                 rt: Reg::R2,
                 rn: Reg::R1,
             }
+        }
+    );
+}
+
+#[test]
+fn test_decode_ror_t2() {
+    // ror.w   r2, fp, r0
+    // Opcode: 0xfa6b_f200
+
+    assert_eq!(
+        decode_32(0xfa6b_f200),
+        Instruction::ROR_reg {
+            params: Reg3Params {
+                rd: Reg::R2,
+                rn: Reg::R11,
+                rm: Reg::R0,
+                setflags: SetFlags::False,
+            },
+            thumb32: true,
         }
     );
 }

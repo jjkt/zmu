@@ -100,7 +100,7 @@ impl Fpscr for u32 {
     }
 
     fn set_z(&mut self, z: bool) {
-        self.set_bit(30, z)
+        self.set_bit(30, z);
     }
 
     fn get_c(&self) -> bool {
@@ -120,7 +120,7 @@ impl Fpscr for u32 {
     }
 
     fn set_ufc(&mut self, ufc: bool) {
-        self.set_bit(3, ufc)
+        self.set_bit(3, ufc);
     }
 
     fn get_fz(&self) -> bool {

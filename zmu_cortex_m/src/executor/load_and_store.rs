@@ -8,6 +8,7 @@ use crate::{
     bus::Bus,
     core::{
         bits::Bits,
+        fault::Fault,
         instruction::{
             Reg2DoubleParams, Reg2FullParams, Reg2RtRnImm32Params, Reg2RtRnParams, Reg3FullParams,
             Reg3RdRtRnImm32Params, Reg3RdRtRnParams, RegImm32AddParams,
@@ -445,6 +446,9 @@ impl IsaLoadAndStore for Processor {
 
     fn exec_strexb(&mut self, params: Reg3RdRtRnParams) -> ExecuteResult {
         if self.condition_passed() {
+            if params.strex_is_unpredictable() {
+                return Err(Fault::UndefInstr);
+            }
             let address = self.get_r(params.rn);
 
             if self.exclusive_monitors_pass(address, 1) {
@@ -461,6 +465,9 @@ impl IsaLoadAndStore for Processor {
 
     fn exec_strexh(&mut self, params: Reg3RdRtRnParams) -> ExecuteResult {
         if self.condition_passed() {
+            if params.strex_is_unpredictable() {
+                return Err(Fault::UndefInstr);
+            }
             let address = self.get_r(params.rn);
 
             if self.exclusive_monitors_pass(address, 2) {

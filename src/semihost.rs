@@ -146,7 +146,7 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     SemihostingResponse::SysSeek { success: false }
                 }
             }
-            SemihostingCommand::SysClock { .. } => {
+            SemihostingCommand::SysClock => {
                 // println!("sysclock");
                 let elapsed = start.elapsed();
                 let in_cs =
@@ -189,7 +189,7 @@ pub fn get_semihost_func(start: Instant) -> impl FnMut(&SemihostingCommand) -> S
                     exit_code,
                 }
             }
-            SemihostingCommand::SysErrno { .. } => {
+            SemihostingCommand::SysErrno => {
                 // println!("syserrno");
 
                 SemihostingResponse::SysErrno { result: 0 }

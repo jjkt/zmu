@@ -116,9 +116,9 @@ impl SingleThreadBase for ZmuTarget {
 
     #[inline(never)]
     fn read_addrs(&mut self, start_addr: u32, data: &mut [u8]) -> TargetResult<usize, Self> {
-        for i in 0..data.len() {
+        for (i, byte) in data.iter_mut().enumerate() {
             match self.simulation.processor.read8(start_addr + i as u32) {
-                Ok(b) => data[i] = b,
+                Ok(b) => *byte = b,
                 Err(_) => {
                     return Ok(i);
                 }
@@ -129,13 +129,13 @@ impl SingleThreadBase for ZmuTarget {
 
     #[inline(never)]
     fn write_addrs(&mut self, start_addr: u32, data: &[u8]) -> TargetResult<(), Self> {
-        for i in 0..data.len() {
+        for (i, &byte) in data.iter().enumerate() {
             match self
                 .simulation
                 .processor
-                .write8(start_addr + i as u32, data[i])
+                .write8(start_addr + i as u32, byte)
             {
-                Ok(_) => (),
+                Ok(()) => (),
                 Err(_) => {
                     return Err(target::TargetError::NonFatal);
                 }
@@ -223,18 +223,17 @@ impl MonitorCmd for ZmuTarget {
         cmd: &[u8],
         mut out: gdbstub::target::ext::monitor_cmd::ConsoleOutput<'_>,
     ) -> Result<(), Self::Error> {
-        debug!("> handle_monitor_cmd {:?}", cmd);
+        debug!("> handle_monitor_cmd {cmd:?}");
         let cmd = core::str::from_utf8(cmd).map_err(|_| "Invalid UTF-8")?;
         match cmd {
-            "reset" => match self.simulation.reset() {
-                Ok(_) => {
+            "reset" => {
+                if self.simulation.reset().is_ok() {
                     outputln!(out, "Target reset");
-                }
-                Err(_) => {
+                } else {
                     outputln!(out, "Error resetting target");
                     return Err("Error resetting target");
                 }
-            },
+            }
             _ => {
                 outputln!(out, "Unknown command: {:?}", cmd);
             }

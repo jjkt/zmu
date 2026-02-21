@@ -19,8 +19,5 @@
 			"generic-device"
 		],
 		"editor.formatOnSave": true,
-		"rust-analyzer.runnables.test.overrideCommand": [
-			"cargo test --features \"armv7em generic-device\""
-		]
 	}
 }

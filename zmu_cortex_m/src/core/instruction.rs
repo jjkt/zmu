@@ -1655,22 +1655,20 @@ fn fmt_vcvt(params: VCVTParams) -> String {
                 params.m
             )
         }
+    } else if params.dp_operation {
+        format!(
+            "vcvt.f64.{} {}, {}",
+            if params.unsigned { "u32" } else { "s32" },
+            params.d,
+            params.m
+        )
     } else {
-        if params.dp_operation {
-            format!(
-                "vcvt.f64.{} {}, {}",
-                if params.unsigned { "u32" } else { "s32" },
-                params.d,
-                params.m
-            )
-        } else {
-            format!(
-                "vcvt.f32.{} {}, {}",
-                if params.unsigned { "u32" } else { "s32" },
-                params.d,
-                params.m
-            )
-        }
+        format!(
+            "vcvt.f32.{} {}, {}",
+            if params.unsigned { "u32" } else { "s32" },
+            params.d,
+            params.m
+        )
     }
 }
 

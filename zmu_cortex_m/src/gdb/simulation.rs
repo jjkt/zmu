@@ -75,7 +75,7 @@ impl Simulation {
         processor.cache_instructions();
         processor.running = true;
         match processor.reset() {
-            Ok(_) => {}
+            Ok(()) => {}
             Err(_) => return Err(SimulationError::FaultTrap),
         }
 
@@ -90,9 +90,7 @@ impl Simulation {
     /// Run the simulation. This function will block until the simulation is complete.
     pub fn run(&mut self, mut poll_incoming_data: impl FnMut() -> bool) -> SimulationRunEvent {
         match self.exec_mode {
-            SimulationExecMode::Step => {
-                return SimulationRunEvent::Event(self.step());
-            }
+            SimulationExecMode::Step => SimulationRunEvent::Event(self.step()),
             SimulationExecMode::Continue => {
                 let mut cycles = 0;
                 loop {
@@ -106,26 +104,22 @@ impl Simulation {
                     // timeout expires.
                     // To reduce the performance impact, we only poll for incoming data
                     // every 1024 cycles.
-                    if cycles % 1024 == 0 {
-                        if poll_incoming_data() {
-                            return SimulationRunEvent::IncomingData;
-                        }
+                    if cycles % 1024 == 0 && poll_incoming_data() {
+                        return SimulationRunEvent::IncomingData;
                     }
                     cycles += 1;
                     let evt = self.step();
                     match evt {
                         SimulationEvent::DoneStep => {}
                         _ => return SimulationRunEvent::Event(evt),
-                    };
+                    }
                 }
             }
             SimulationExecMode::RangeStep(start, end) => {
                 let mut cycles = 0;
                 loop {
-                    if cycles % 1024 == 0 {
-                        if poll_incoming_data() {
-                            return SimulationRunEvent::IncomingData;
-                        }
+                    if cycles % 1024 == 0 && poll_incoming_data() {
+                        return SimulationRunEvent::IncomingData;
                     }
                     cycles += 1;
 
@@ -138,7 +132,7 @@ impl Simulation {
                             }
                         }
                         _ => return SimulationRunEvent::Event(evt),
-                    };
+                    }
                 }
             }
         }
@@ -149,7 +143,7 @@ impl Simulation {
     ///
     pub fn reset(&mut self) -> Result<(), SimulationError> {
         match self.processor.reset() {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
             Err(_) => Err(SimulationError::FaultTrap),
         }
     }
@@ -170,9 +164,9 @@ impl Simulation {
             return SimulationEvent::WatchRead(self.processor.get_pc());
         }
         if !self.processor.running && !self.processor.sleeping {
-            return SimulationEvent::Finalized(self.processor.exit_code);
+            SimulationEvent::Finalized(self.processor.exit_code)
         } else {
-            return SimulationEvent::DoneStep;
+            SimulationEvent::DoneStep
         }
     }
 }
@@ -180,7 +174,6 @@ impl Simulation {
 ///
 /// A simulation run event.
 ///
-
 pub enum SimulationRunEvent {
     /// Incoming data from the GDB server
     IncomingData,

@@ -13,15 +13,14 @@ impl TcpConnection {
     pub fn new_localhost(port: u16) -> Result<TcpConnection, &'static str> {
         let listener = TcpListener::bind(("127.0.0.1", port)).unwrap();
 
-        for stream in listener.incoming() {
-            let stream = stream.map_err(|_| "Error accepting socket connection")?;
-            stream
-                .set_read_timeout(Some(std::time::Duration::from_millis(1)))
-                .map_err(|_| "Error setting timeout")?;
-            return Ok(TcpConnection { stream });
-        }
+        let (stream, _addr) = listener
+            .accept()
+            .map_err(|_| "Error accepting socket connection")?;
 
-        Err("could not accept socket connection")
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_millis(1)))
+            .map_err(|_| "Error setting timeout")?;
+        Ok(TcpConnection { stream })
     }
 }
 
@@ -38,14 +37,14 @@ impl Connection for TcpConnection {
 
     fn write(&mut self, b: u8) -> Result<(), &'static str> {
         match self.stream.write(b) {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
             Err(_) => Err("socket write failed"),
         }
     }
 
     fn flush(&mut self) -> Result<(), &'static str> {
         match self.stream.flush() {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
             Err(_) => Err("socket flush failed"),
         }
     }
@@ -56,12 +55,12 @@ impl ConnectionExt for TcpConnection {
         let mut buf: [u8; 1] = [0];
         loop {
             match self.stream.read_exact(&mut buf) {
-                Ok(_) => break,
+                Ok(()) => break,
                 Err(e) => match e.kind() {
                     #[cfg(windows)]
-                    std::io::ErrorKind::TimedOut => continue,
+                    std::io::ErrorKind::TimedOut => {}
                     #[cfg(unix)]
-                    std::io::ErrorKind::WouldBlock => continue,
+                    std::io::ErrorKind::WouldBlock => {}
                     _ => return Err("socket read failed"),
                 },
             }
@@ -76,9 +75,9 @@ impl ConnectionExt for TcpConnection {
                 Ok(_) => break,
                 Err(e) => match e.kind() {
                     #[cfg(windows)]
-                    std::io::ErrorKind::TimedOut => return Ok(None),
+                    std::io::ErrorKind::TimedOut => {}
                     #[cfg(unix)]
-                    std::io::ErrorKind::WouldBlock => return Ok(None),
+                    std::io::ErrorKind::WouldBlock => {}
                     _ => return Err("socket peek failed"),
                 },
             }

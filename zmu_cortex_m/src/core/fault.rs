@@ -2,6 +2,7 @@
 //! A Trait for representing a Cortex-M fault
 //!
 //!
+//! 
 
 #[derive(thiserror::Error, PartialEq, Debug, Copy, Clone)]
 ///
