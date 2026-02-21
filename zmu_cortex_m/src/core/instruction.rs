@@ -284,6 +284,19 @@ pub struct Reg3RdRtRnParams {
     pub rn: Reg,
 }
 
+impl Reg3RdRtRnParams {
+    /// Check if the instruction parameters are unpredictable
+    pub fn strex_is_unpredictable(&self) -> bool {
+        self.rd == Reg::PC
+            || self.rt == Reg::PC
+            || self.rn == Reg::PC
+            || self.rd == Reg::SP
+            || self.rt == Reg::SP
+            || self.rd == self.rn
+            || self.rd == self.rt
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct LoadAndStoreMultipleParams {
@@ -549,7 +562,7 @@ impl Display for VMRSTarget {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             VMRSTarget::APSRNZCV => write!(f, "APSR_nzcv"),
-            VMRSTarget::Register(r) => write!(f, "{:?}", r),
+            VMRSTarget::Register(r) => write!(f, "{r:?}"),
         }
     }
 }
@@ -1642,22 +1655,20 @@ fn fmt_vcvt(params: VCVTParams) -> String {
                 params.m
             )
         }
+    } else if params.dp_operation {
+        format!(
+            "vcvt.f64.{} {}, {}",
+            if params.unsigned { "u32" } else { "s32" },
+            params.d,
+            params.m
+        )
     } else {
-        if params.dp_operation {
-            format!(
-                "vcvt.f64.{} {}, {}",
-                if params.unsigned { "u32" } else { "s32" },
-                params.d,
-                params.m
-            )
-        } else {
-            format!(
-                "vcvt.f32.{} {}, {}",
-                if params.unsigned { "u32" } else { "s32" },
-                params.d,
-                params.m
-            )
-        }
+        format!(
+            "vcvt.f32.{} {}, {}",
+            if params.unsigned { "u32" } else { "s32" },
+            params.d,
+            params.m
+        )
     }
 }
 
@@ -2581,7 +2592,7 @@ impl fmt::Display for Instruction {
             }
             Self::VABS_f32 { params } => write!(f, "vabs.f32 {}, {}", params.sd, params.sm),
             Self::VABS_f64 { params } => write!(f, "vabs.f64 {}, {}", params.dd, params.dm),
-            Self::VMRS { rt } => write!(f, "vmrs {}, fpscr", rt),
+            Self::VMRS { rt } => write!(f, "vmrs {rt}, fpscr"),
             Self::VCMP_f32 { params } => write!(
                 f,
                 "vcmp.f32 {}, {}",
@@ -2708,13 +2719,13 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::CMP_reg { thumb32, .. } => isize_t(*thumb32),
         Instruction::CPS { .. } => 2,
 
-        Instruction::DMB { .. } => 4,
-        Instruction::DSB { .. } => 4,
+        Instruction::DMB => 4,
+        Instruction::DSB => 4,
 
         Instruction::EOR_imm { .. } => 4,
         Instruction::EOR_reg { thumb32, .. } => isize_t(*thumb32),
 
-        Instruction::ISB { .. } => 4,
+        Instruction::ISB => 4,
         Instruction::IT { .. } => 2,
 
         Instruction::LDC_imm { .. } => 4,

@@ -73,13 +73,11 @@ impl IsaSignedMultiply for Processor {
                 op as i16
             });
 
-            let result = operand1
-                .wrapping_mul(operand2)
-                .wrapping_add(self.get_r(params.ra) as i32);
+            let (mul_result, mul_overflow) = operand1.overflowing_mul(operand2);
+            let (result, add_overflow) = mul_result.overflowing_add(self.get_r(params.ra) as i32);
 
             self.set_r(params.rd, result as u32);
-            // FIXME: this is likely wrong .. make a test and investigate.
-            if result != result as i32 {
+            if mul_overflow || add_overflow {
                 self.psr.set_q(true);
             }
 
@@ -95,17 +93,187 @@ mod tests {
     use crate::core::{instruction::Instruction, register::Reg};
 
     #[test]
-    fn test_smlabb() {
-        // arrange
-
+    fn test_smlabb_no_overflow() {
         let mut core = Processor::new();
         core.psr.value = 0;
 
-        // act
         core.set_r(Reg::R8, 0xffff_9d88);
         core.set_r(Reg::R12, 0x0012_dfc3);
         core.set_r(Reg::LR, 0xa1);
+
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R12,
+                rn: Reg::LR,
+                rm: Reg::R8,
+                ra: Reg::R12,
+                n_high: false,
+                m_high: false,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R12), 0xFFD4_F24B);
+        assert!(!core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smla_positive_overflow() {
+        let mut core = Processor::new();
         core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0x7fff_7fff);
+        core.set_r(Reg::R1, 0x7fff_7fff);
+        core.set_r(Reg::R2, 0x7fff_ffff);
+
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R1,
+                ra: Reg::R2,
+                n_high: true,
+                m_high: true,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R0), 0xBFFF_0000);
+        assert!(core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smla_negative_overflow() {
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0x8000_8000);
+        core.set_r(Reg::R1, 0x8000_8000);
+        core.set_r(Reg::R2, 0x4000_0000);
+
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R0,
+                rn: Reg::R0,
+                rm: Reg::R1,
+                ra: Reg::R2,
+                n_high: true,
+                m_high: true,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R0), 0x8000_0000);
+        assert!(core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smla_low_16bits() {
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0x1111_1000);
+        core.set_r(Reg::R1, 0x2222_0800);
+        core.set_r(Reg::R2, 0x0000_0000);
+
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R3,
+                rn: Reg::R0,
+                rm: Reg::R1,
+                ra: Reg::R2,
+                n_high: false,
+                m_high: false,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R3), 0x80_0000);
+        assert!(!core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smla_mixed_high_low() {
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0xffff_1000);
+        core.set_r(Reg::R1, 0x0800_0800);
+        core.set_r(Reg::R2, 0x0000_1000);
+
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R3,
+                rn: Reg::R0,
+                rm: Reg::R1,
+                ra: Reg::R2,
+                n_high: true,
+                m_high: false,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R3), 0x0000_0800);
+        assert!(!core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smla_q_flag_persistence() {
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0x7fff_7fff);
+        core.set_r(Reg::R1, 0x7fff_7fff);
+        core.set_r(Reg::R2, 0x7fff_ffff);
+
+        let instruction1 = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R3,
+                rn: Reg::R0,
+                rm: Reg::R1,
+                ra: Reg::R2,
+                n_high: true,
+                m_high: true,
+            },
+        };
+
+        core.execute_internal(&instruction1).unwrap();
+        assert_eq!(core.get_r(Reg::R3), 0xBFFF_0000);
+        assert!(core.psr.get_q());
+
+        core.set_r(Reg::R4, 0x0001_0001);
+        core.set_r(Reg::R5, 0x0002_0002);
+        core.set_r(Reg::R6, 0x0000_0000);
+
+        let instruction2 = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R7,
+                rn: Reg::R4,
+                rm: Reg::R5,
+                ra: Reg::R6,
+                n_high: false,
+                m_high: false,
+            },
+        };
+
+        core.execute_internal(&instruction2).unwrap();
+        assert_eq!(core.get_r(Reg::R7), 0x0000_0002);
+        assert!(core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smla() {
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R8, 0xffff_9d88);
+        core.set_r(Reg::R12, 0x0012_dfc3);
+        core.set_r(Reg::LR, 0xa1);
 
         let instruction = Instruction::SMLA {
             params: Reg4HighParams {

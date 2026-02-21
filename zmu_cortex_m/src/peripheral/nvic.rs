@@ -316,7 +316,7 @@ mod tests {
     fn test_nvic_iabr() {
         // Arrange
 
-        let mut data = [0; 65536];
+        let mut data = vec![0; 65536].into_boxed_slice();
         data[3] = 0x20; // stack pointer
         data[0] = 0xff;
 

@@ -197,7 +197,7 @@ impl BaseReg for Processor {
                 self.lr = value;
             }
             Reg::PC => panic!("use branch commands instead"),
-        };
+        }
     }
 
     fn set_msp(&mut self, value: u32) {
@@ -257,7 +257,7 @@ impl BaseReg for Processor {
             }
             Reg::LR => self.lr += value,
             Reg::PC => self.pc += value,
-        };
+        }
     }
     //
     // Substract value from register
@@ -289,7 +289,7 @@ impl BaseReg for Processor {
             }
             Reg::LR => self.lr -= value,
             Reg::PC => self.pc -= value,
-        };
+        }
     }
 }
 
@@ -585,7 +585,8 @@ pub enum Reg {
     /// General purpose register 11, also known as v8 (variable 8 register)
     R11,
     /// General purpose register 12,
-    /// also known as IP (Intra procedure call scratch register)
+    /// also known as IP (Intra procedure call scratch register) or
+    /// frame pointer "fp" in some calling conventions
     R12,
     ///
     /// Stack Pointer, alias for R13
@@ -734,7 +735,7 @@ impl ExtensionReg {
     pub fn as_single(&self) -> Option<&SingleReg> {
         match self {
             ExtensionReg::Single { reg } => Some(reg),
-            _ => None,
+            ExtensionReg::Double { .. } => None,
         }
     }
 
@@ -742,7 +743,7 @@ impl ExtensionReg {
     pub fn as_double(&self) -> Option<&DoubleReg> {
         match self {
             ExtensionReg::Double { reg } => Some(reg),
-            _ => None,
+            ExtensionReg::Single { .. } => None,
         }
     }
 }

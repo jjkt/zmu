@@ -120,8 +120,8 @@ pub fn decode_itstate(itstate: u8) -> Option<String> {
     } else {
         let cond = (itstate >> 4) & 0xF;
         let mask = itstate & 0xF;
-        Condition::from_u16(cond as u16)
-            .map(|c| format!("{}:{:x}", format!("{}", c).to_uppercase(), mask))
+        Condition::from_u16(u16::from(cond))
+            .map(|c| format!("{}:{:x}", format!("{c}").to_uppercase(), mask))
     }
 }
 

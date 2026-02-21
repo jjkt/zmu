@@ -547,8 +547,8 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point data-processing instructions
             //
             // --------------------------------------------
-            Instruction::VABS_f32 { params } => self.exec_vabs_f32(params),
-            Instruction::VABS_f64 { params } => self.exec_vabs_f64(params),
+            Instruction::VABS_f32 { params } => self.exec_vabs_f32(*params),
+            Instruction::VABS_f64 { params } => self.exec_vabs_f64(*params),
             Instruction::VCMP_f32 { params } => self.exec_vcmp_f32(params),
             Instruction::VCMP_f64 { params } => self.exec_vcmp_f64(params),
             Instruction::VADD_f32 { params } => self.exec_vadd_f32(params),
@@ -666,9 +666,9 @@ mod tests {
         use crate::core::instruction::Reg2ImmParams;
 
         let mut core = Processor::new();
-        core.set_r(Reg::R1, 0x20000000);
-        core.set_r(Reg::R2, 0x20001000);
-        core.set_r(Reg::R3, 0x00000008);
+        core.set_r(Reg::R1, 0x2000_0000);
+        core.set_r(Reg::R2, 0x2000_1000);
+        core.set_r(Reg::R3, 0x0000_0008);
 
         // Set flags so GE is true initially (N=0, V=0)
         core.psr.set_n(0);
@@ -759,7 +759,7 @@ mod tests {
         core.execute(&sub_inst, instruction_size(&sub_inst));
 
         // R3 should be 4 (8 - 4)
-        assert_eq!(core.get_r(Reg::R3), 0x00000004);
+        assert_eq!(core.get_r(Reg::R3), 0x0000_0004);
 
         // Flags should have been set by SUBS (since we're not in IT block)
         // With result = 4, N should be 0 and Z should be 0

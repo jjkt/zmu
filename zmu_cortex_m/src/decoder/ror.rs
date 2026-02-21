@@ -41,9 +41,14 @@ pub fn decode_ROR_imm_t1(opcode: u32) -> Instruction {
 
 #[allow(non_snake_case)]
 pub fn decode_ROR_reg_t2(opcode: u32) -> Instruction {
-    Instruction::UDF {
-        imm32: 0,
-        opcode: opcode.into(),
+    let s = opcode.get_bit(20);
+    Instruction::ROR_reg {
+        params: Reg3Params {
+            rd: Reg::from(opcode.get_bits(8..12) as u8),
+            rn: Reg::from(opcode.get_bits(16..20) as u8),
+            rm: Reg::from(opcode.get_bits(0..4) as u8),
+            setflags: if s { SetFlags::True } else { SetFlags::False },
+        },
         thumb32: true,
     }
 }

@@ -24,6 +24,7 @@
 #![allow(clippy::redundant_else)]
 #![allow(clippy::empty_docs)]
 #![allow(clippy::nonminimal_bool)]
+#![allow(clippy::struct_excessive_bools)]
 
 extern crate byteorder;
 extern crate enum_set;
@@ -303,7 +304,8 @@ impl Processor {
             msp: 0,
             psp: 0,
             lr: 0,
-            code: FlashMemory::new(65536, &[0; 65536]),
+            // TODO make flash size configurable
+            code: FlashMemory::new(65536, &vec![0; 65536].into_boxed_slice()),
             // TODO make RAM size configurable
             sram: RAM::new_with_fill(0x2000_0000, 128 * 1024, 0xcd),
             itm_file: None,

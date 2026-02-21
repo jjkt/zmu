@@ -9,10 +9,15 @@
 	],
 	"settings": {
 		"rust-analyzer.cargo.features": [
-			"armv7em generic-device"
+			"armv7em",
+			"generic-device"
 		],
-		"files.associations": {
-			"assert.h": "c"
-		}
+		"rust-analyzer.cargo.noDefaultFeatures": true,
+		"rust-analyzer.check.command": "clippy",
+		"rust-analyzer.check.features": [
+			"armv7em",
+			"generic-device"
+		],
+		"editor.formatOnSave": true,
 	}
 }

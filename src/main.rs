@@ -131,17 +131,17 @@ fn run_bin(
         let mut trace_stdout = TabWriter::new(io::stdout()).minwidth(16).padding(1);
 
         for sym in &elf.syms {
-            if sym.st_type() != goblin::elf::sym::STT_FILE {
-                if let Some(maybe_name) = elf.strtab.get_at(sym.st_name) {
-                    let name = maybe_name;
-                    let mut count = 0;
-                    let mut pos = sym.st_value as u32;
-                    while count <= sym.st_size {
-                        // Align addresses to 2 byte alignment
-                        symboltable.insert(pos & 0xffff_fffe, name);
-                        pos += 2;
-                        count += 2;
-                    }
+            if sym.st_type() != goblin::elf::sym::STT_FILE
+                && let Some(maybe_name) = elf.strtab.get_at(sym.st_name)
+            {
+                let name = maybe_name;
+                let mut count = 0;
+                let mut pos = sym.st_value as u32;
+                while count <= sym.st_size {
+                    // Align addresses to 2 byte alignment
+                    symboltable.insert(pos & 0xffff_fffe, name);
+                    pos += 2;
+                    count += 2;
                 }
             }
         }

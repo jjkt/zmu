@@ -40,12 +40,11 @@ fn round_down(value: BigFloat) -> i128 {
         return 0;
     }
 
-    let result = floored.to_i128().unwrap_or(if value < BigFloat::default() {
-        std::i128::MIN + 1
+    floored.to_i128().unwrap_or(if value < BigFloat::default() {
+        i128::MIN + 1
     } else {
-        std::i128::MAX
-    });
-    result
+        i128::MAX
+    })
 }
 
 /// Trait for floating point operations
@@ -239,19 +238,19 @@ impl FloatOps for u32 {
     }
 
     fn fp_infinity(sign: bool) -> Self::Bits {
-        if sign { 0xFF800000 } else { 0x7F800000 }
+        if sign { 0xFF80_0000 } else { 0x7F80_0000 }
     }
 
     fn fp_zero(sign: bool) -> Self::Bits {
-        if sign { 0x80000000 } else { 0x00000000 }
+        if sign { 0x8000_0000 } else { 0x0000_0000 }
     }
 
     fn fp_default_nan() -> Self::Bits {
-        0x7FC00000
+        0x7FC0_0000
     }
 
     fn fp_abs(value: Self::Bits) -> Self::Bits {
-        value & 0x7FFFFFFF
+        value & 0x7FFF_FFFF
     }
 
     fn is_zero(value: Self::Bits) -> bool {
@@ -283,7 +282,7 @@ impl FloatOps for u32 {
             if Self::is_zero(frac32) {
                 (
                     FPType::Infinity,
-                    BigFloat::from(2.0).pow(&BigFloat::from(1000000.0)),
+                    BigFloat::from(2.0).pow(&BigFloat::from(1_000_000.0)),
                 )
             } else {
                 (
@@ -313,7 +312,7 @@ impl FloatOps for u32 {
         let exp: u32 = 0b1111_1110;
         let frac: u32 = 0b111_1111_1111_1111_1111_1111;
 
-        ((sign as u32) << 31) + (exp << 23) + frac
+        (u32::from(sign) << 31) + (exp << 23) + frac
     }
 
     fn normalize(mant: BigFloat) -> (BigFloat, Self::SignedBits) {
@@ -340,9 +339,9 @@ impl FloatOps for u32 {
         let e = if Self::n() == 32 { 8 } else { 11 };
         let f = Self::n() - e - 1;
 
-        let low: u32 = int_mantissa.get_bits(0..f as usize);
-        let mid: u32 = (biased_exp as u32).get_bits(0..e as usize);
-        let s = sign as u32;
+        let low: u32 = int_mantissa.get_bits(0..f);
+        let mid: u32 = (biased_exp as u32).get_bits(0..e);
+        let s = u32::from(sign);
 
         (s << 31) | (mid << f) | low
     }
@@ -354,9 +353,9 @@ impl FloatOps for u64 {
 
     fn fp_infinity(sign: bool) -> Self::Bits {
         if sign {
-            0xFFF0000000000000
+            0xFFF0_0000_0000_0000
         } else {
-            0x7FF0000000000000
+            0x7FF0_0000_0000_0000
         }
     }
 
@@ -391,7 +390,7 @@ impl FloatOps for u64 {
     }
 
     fn signed_value(value: i32) -> Self::SignedBits {
-        value as i64
+        i64::from(value)
     }
 
     fn unsigned_to_signed(value: Self::Bits) -> Self::SignedBits {
@@ -412,14 +411,14 @@ impl FloatOps for u64 {
 
     fn fp_zero(sign: bool) -> Self::Bits {
         if sign {
-            0x8000000000000000
+            0x8000_0000_0000_0000
         } else {
-            0x0000000000000000
+            0x0000_0000_0000_0000
         }
     }
 
     fn fp_default_nan() -> Self::Bits {
-        0x7FF8000000000000
+        0x7FF8_0000_0000_0000
     }
 
     fn is_zero(value: Self::Bits) -> bool {
@@ -427,7 +426,7 @@ impl FloatOps for u64 {
     }
 
     fn fp_abs(value: Self::Bits) -> Self::Bits {
-        value & 0x7FFFFFFFFFFFFFFF
+        value & 0x7FFF_FFFF_FFFF_FFFF
     }
 
     fn fp_unpack(fpval: Self::Bits, fpscr_val: u32) -> (FPType, bool, BigFloat, Option<FPExc>) {
@@ -454,7 +453,7 @@ impl FloatOps for u64 {
             if Self::is_zero(frac64) {
                 (
                     FPType::Infinity,
-                    BigFloat::from(2.0).pow(&BigFloat::from(1000000.0)),
+                    BigFloat::from(2.0).pow(&BigFloat::from(1_000_000.0)),
                 )
             } else {
                 (
@@ -484,7 +483,7 @@ impl FloatOps for u64 {
         let exp: u64 = 0b1111_1110;
         let frac: u64 = 0b111_1111_1111_1111_1111_1111_1111_1111_1111_1111;
 
-        ((sign as u64) << 63) + (exp << 52) + frac
+        (u64::from(sign) << 63) + (exp << 52) + frac
     }
 
     fn normalize(mant: BigFloat) -> (BigFloat, Self::SignedBits) {
@@ -510,15 +509,15 @@ impl FloatOps for u64 {
     ) -> Self::Bits {
         let e = if Self::n() == 32 { 8 } else { 11 };
         let f = Self::n() - e - 1;
-        let low: u64 = int_mantissa.get_bits(0..f as usize);
-        let mid: u64 = (biased_exp as u64).get_bits(0..e as usize);
-        let s = sign as u64;
+        let low: u64 = int_mantissa.get_bits(0..f);
+        let mid: u64 = (biased_exp as u64).get_bits(0..e);
+        let s = u64::from(sign);
         (s << 63) | (mid << f) | low
     }
 }
 
 fn standard_fpscr_value(fpscr: u32) -> u32 {
-    (0b0_0000 << 27) | ((fpscr.get_bit(26) as u32) << 26) | 0b11_0000_0000_0000_0000_0000_0000
+    (u32::from(fpscr.get_bit(26)) << 26) | 0b11_0000_0000_0000_0000_0000_0000
 }
 
 /// saturate i to n bits, return the result and a boolean indicating if saturation occurred (up to 64 bits)
@@ -533,7 +532,7 @@ fn satq(i: i128, n: usize, unsigned: bool) -> (u64, bool) {
             (i_unsigned, false)
         };
 
-        return (result.get_bits(0..n) as u64, saturated);
+        (result.get_bits(0..n) as u64, saturated)
     } else {
         let limit = 2i128.pow(n as u32 - 1) - 1;
         let neg_limit = -(2i128.pow(n as u32 - 1));
@@ -546,7 +545,7 @@ fn satq(i: i128, n: usize, unsigned: bool) -> (u64, bool) {
             (i, false)
         };
 
-        return ((result as u64).get_bits(0..n), saturated);
+        ((result as u64).get_bits(0..n), saturated)
     }
 }
 
@@ -579,18 +578,18 @@ impl FloatingPointHiddenOperations for Processor {
     ) -> (bool, T::Bits) {
         if type1 == FPType::SNaN {
             let result = self.fp_process_nan::<T>(type1, op1, fpscr_val);
-            return (true, result);
+            (true, result)
         } else if type2 == FPType::SNaN {
             let result = self.fp_process_nan::<T>(type2, op2, fpscr_val);
-            return (true, result);
+            (true, result)
         } else if type1 == FPType::QNaN {
             let result = self.fp_process_nan::<T>(type1, op1, fpscr_val);
-            return (true, result);
+            (true, result)
         } else if type2 == FPType::QNaN {
             let result = self.fp_process_nan::<T>(type2, op2, fpscr_val);
-            return (true, result);
+            (true, result)
         } else {
-            return (false, T::zero());
+            (false, T::zero())
         }
     }
 
@@ -630,7 +629,7 @@ impl FloatingPointHiddenOperations for Processor {
                 T::signed_value(0),
             );
             if biased_exp == T::SignedBits::default() {
-                mantissa = mantissa / T::powf2((minimum_exp - exponent).into());
+                mantissa /= T::powf2((minimum_exp - exponent).into());
             }
             let pow2_f = T::unsigned_pow2_f(f);
             let mut int_mantissa = round_down(mantissa * pow2_f);
@@ -663,7 +662,7 @@ impl FloatingPointHiddenOperations for Processor {
                 }
                 if int_mantissa == 2i128.pow(f as u32 + 1) {
                     biased_exp += T::signed_value(1);
-                    int_mantissa = int_mantissa / 2;
+                    int_mantissa /= 2;
                 }
             }
 
@@ -705,18 +704,21 @@ impl FloatingPointPublicOperations for Processor {
         let (type1, sign1, value1) = self.fp_unpack::<T>(op1, fpscr_val);
         let (type2, sign2, value2) = self.fp_unpack::<T>(op2, fpscr_val);
         let (done, result) = self.fp_process_nans::<T>(type1, type2, op1, op2, fpscr_val);
-        if !done {
+        if done {
+            result
+        } else {
             let inf1 = type1 == FPType::Infinity;
             let inf2 = type2 == FPType::Infinity;
             let zero1 = type1 == FPType::Zero;
             let zero2 = type2 == FPType::Zero;
-            let result = if inf1 && inf2 && sign1 != sign2 {
+
+            if inf1 && inf2 && sign1 != sign2 {
                 let res = T::fp_default_nan();
                 self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
                 res
-            } else if (inf1 && sign1 == false) || (inf2 && sign2 == false) {
+            } else if (inf1 && !sign1) || (inf2 && !sign2) {
                 T::fp_infinity(false)
-            } else if (inf1 && sign1 == true) || (inf2 && sign2 == true) {
+            } else if (inf1 && sign1) || (inf2 && sign2) {
                 T::fp_infinity(true)
             } else if zero1 && zero2 && sign1 == sign2 {
                 T::fp_zero(sign1)
@@ -730,13 +732,9 @@ impl FloatingPointPublicOperations for Processor {
                         fpscr_val.get_rounding_mode() == FPSCRRounding::RoundTowardsMinusInfinity,
                     )
                 } else {
-                    let rounded = self.fp_round::<T>(result_value, fpscr_val);
-                    rounded
+                    self.fp_round::<T>(result_value, fpscr_val)
                 }
-            };
-            result
-        } else {
-            result
+            }
         }
     }
 
@@ -754,18 +752,21 @@ impl FloatingPointPublicOperations for Processor {
         let (type1, sign1, value1) = self.fp_unpack::<T>(op1, fpscr_val);
         let (type2, sign2, value2) = self.fp_unpack::<T>(op2, fpscr_val);
         let (done, result) = self.fp_process_nans::<T>(type1, type2, op1, op2, fpscr_val);
-        if !done {
+        if done {
+            result
+        } else {
             let inf1 = type1 == FPType::Infinity;
             let inf2 = type2 == FPType::Infinity;
             let zero1 = type1 == FPType::Zero;
             let zero2 = type2 == FPType::Zero;
-            let result = if inf1 && inf2 && sign1 != sign2 {
+
+            if inf1 && inf2 && sign1 != sign2 {
                 let res = T::fp_default_nan();
                 self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
                 res
-            } else if (inf1 && sign1 == false) || (inf2 && sign2 == false) {
+            } else if (inf1 && !sign1) || (inf2 && !sign2) {
                 T::fp_infinity(false)
-            } else if (inf1 && sign1 == true) || (inf2 && sign2 == false) {
+            } else if (inf1 && sign1) || (inf2 && !sign2) {
                 T::fp_infinity(true)
             } else if zero1 && zero2 && sign1 == sign2 {
                 T::fp_zero(sign1)
@@ -777,13 +778,9 @@ impl FloatingPointPublicOperations for Processor {
                         fpscr_val.get_rounding_mode() == FPSCRRounding::RoundTowardsMinusInfinity,
                     )
                 } else {
-                    let rounded = self.fp_round::<T>(result_value, fpscr_val);
-                    rounded
+                    self.fp_round::<T>(result_value, fpscr_val)
                 }
-            };
-            result
-        } else {
-            result
+            }
         }
     }
 
@@ -813,14 +810,12 @@ impl FloatingPointPublicOperations for Processor {
                 self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
             }
             result
+        } else if value1 == value2 {
+            (false, true, true, false)
+        } else if value1 < value2 {
+            (true, false, false, false)
         } else {
-            if value1 == value2 {
-                (false, true, true, false)
-            } else if value1 < value2 {
-                (true, false, false, false)
-            } else {
-                (false, false, true, false)
-            }
+            (false, false, true, false)
         }
     }
 
@@ -846,7 +841,7 @@ impl FloatingPointPublicOperations for Processor {
         }
 
         let real_operand = if unsigned {
-            let int_operand = M::Bits::from(op);
+            let int_operand = op;
             BigFloat::div(
                 &M::bits_to_bigfloat(int_operand),
                 &M::powf2(BigFloat::from(fraction_bits as u32)),
@@ -860,9 +855,9 @@ impl FloatingPointPublicOperations for Processor {
         };
 
         if real_operand == BigFloat::default() {
-            return N::zero();
+            N::zero()
         } else {
-            return self.fp_round::<N>(real_operand, fpscr_val);
+            self.fp_round::<N>(real_operand, fpscr_val)
         }
     }
 
@@ -888,14 +883,14 @@ impl FloatingPointPublicOperations for Processor {
             self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
         }
 
-        value = value * N::powf2(BigFloat::from(fraction_bits as u32));
+        value *= N::powf2(BigFloat::from(fraction_bits as u32));
         let mut int_result = round_down(value);
         let error = value - BigFloat::from(int_result);
 
         let round_up = match fpscr_val.get_rounding_mode() {
             FPSCRRounding::RoundToNearest => {
                 error > BigFloat::from(0.5)
-                    || (error == BigFloat::from(0.5) && int_result.get_bit(0) == false)
+                    || (error == BigFloat::from(0.5) && !int_result.get_bit(0))
             }
             FPSCRRounding::RoundTowardsPlusInfinity => error != BigFloat::default(),
             FPSCRRounding::RoundTowardsMinusInfinity => false,
@@ -957,15 +952,15 @@ mod tests {
     fn test_fp_compare_f32() {
         let mut processor = Processor::new();
         assert_eq!(
-            processor.fp_compare::<u32>(0x3F800000, 0x3F800000, false, false),
+            processor.fp_compare::<u32>(0x3F80_0000, 0x3F80_0000, false, false),
             (false, true, true, false)
         ); // 1.0 == 1.0
         assert_eq!(
-            processor.fp_compare::<u32>(0x3F800000, 0x40000000, false, false),
+            processor.fp_compare::<u32>(0x3F80_0000, 0x4000_0000, false, false),
             (true, false, false, false)
         ); // 1.0 < 2.0
         assert_eq!(
-            processor.fp_compare::<u32>(0x40000000, 0x3F800000, false, false),
+            processor.fp_compare::<u32>(0x4000_0000, 0x3F80_0000, false, false),
             (false, false, true, false)
         ); // 2.0 > 1.0
     }
@@ -976,18 +971,18 @@ mod tests {
 
         // 1.0 == 1.0
         assert_eq!(
-            processor.fp_compare::<u64>(0x3FF0000000000000, 0x3FF0000000000000, false, false),
+            processor.fp_compare::<u64>(0x3FF0_0000_0000_0000, 0x3FF0_0000_0000_0000, false, false),
             (false, true, true, false)
         );
 
         // 1.0 < 2.0
         assert_eq!(
-            processor.fp_compare::<u64>(0x3FF0000000000000, 0x4000000000000000, false, false),
+            processor.fp_compare::<u64>(0x3FF0_0000_0000_0000, 0x4000_0000_0000_0000, false, false),
             (true, false, false, false)
         );
         // 2.0 > 1.0
         assert_eq!(
-            processor.fp_compare::<u64>(0x4000000000000000, 0x3FF0000000000000, false, false),
+            processor.fp_compare::<u64>(0x4000_0000_0000_0000, 0x3FF0_0000_0000_0000, false, false),
             (false, false, true, false)
         );
     }
@@ -997,18 +992,18 @@ mod tests {
         let mut processor = Processor::new();
 
         // -0.0 -> 0.0
-        assert_eq!(processor.fp_abs::<u32>(0x80000000), 0x00000000);
+        assert_eq!(processor.fp_abs::<u32>(0x8000_0000), 0x0000_0000);
 
         // -1.0 -> 1.0
-        assert_eq!(processor.fp_abs::<u32>(0xFFFFFFFF), 0x7FFFFFFF);
+        assert_eq!(processor.fp_abs::<u32>(0xFFFF_FFFF), 0x7FFF_FFFF);
 
         // 1.0 -> 1.0
-        assert_eq!(processor.fp_abs::<u32>(0x7FFFFFFF), 0x7FFFFFFF);
+        assert_eq!(processor.fp_abs::<u32>(0x7FFF_FFFF), 0x7FFF_FFFF);
 
         // most negative value:
         assert_eq!(
-            processor.fp_abs::<u32>((-std::f32::MAX).to_bits()),
-            std::f32::MAX.to_bits()
+            processor.fp_abs::<u32>((-f32::MAX).to_bits()),
+            f32::MAX.to_bits()
         );
     }
     #[test]
@@ -1016,24 +1011,24 @@ mod tests {
         let mut processor = Processor::new();
         // -0.0 -> 0.0
         assert_eq!(
-            processor.fp_abs::<u64>(0x8000000000000000),
-            0x0000000000000000
+            processor.fp_abs::<u64>(0x8000_0000_0000_0000),
+            0x0000_0000_0000_0000
         );
         // -1.0 -> 1.0
         assert_eq!(
-            processor.fp_abs::<u64>(0xFFFFFFFFFFFFFFFF),
-            0x7FFFFFFFFFFFFFFF
+            processor.fp_abs::<u64>(0xFFFF_FFFF_FFFF_FFFF),
+            0x7FFF_FFFF_FFFF_FFFF
         );
         // 1.0 -> 1.0
         assert_eq!(
-            processor.fp_abs::<u64>(0x7FFFFFFFFFFFFFFF),
-            0x7FFFFFFFFFFFFFFF
+            processor.fp_abs::<u64>(0x7FFF_FFFF_FFFF_FFFF),
+            0x7FFF_FFFF_FFFF_FFFF
         );
 
         // min value
         assert_eq!(
-            processor.fp_abs::<u64>((-std::f64::MAX).to_bits()),
-            std::f64::MAX.to_bits()
+            processor.fp_abs::<u64>((-f64::MAX).to_bits()),
+            f64::MAX.to_bits()
         );
     }
 
@@ -1045,41 +1040,41 @@ mod tests {
 
         // 1.0
         assert_eq!(
-            processor.fp_unpack::<u32>(0x3F800000, 0x00000000),
+            processor.fp_unpack::<u32>(0x3F80_0000, 0x0000_0000),
             (FPType::Nonzero, false, BigFloat::from(1.0))
         );
 
         // -1.0
         assert_eq!(
-            processor.fp_unpack::<u32>(0xBF800000, 0x00000000),
+            processor.fp_unpack::<u32>(0xBF80_0000, 0x0000_0000),
             (FPType::Nonzero, true, BigFloat::from(-1.0))
         );
 
         // 2.0
         assert_eq!(
-            processor.fp_unpack::<u32>(0x40000000, 0x00000000),
+            processor.fp_unpack::<u32>(0x4000_0000, 0x0000_0000),
             (FPType::Nonzero, false, BigFloat::from(2.0))
         );
 
         // max value
         assert_eq!(
-            processor.fp_unpack::<u32>(0x7F7FFFFF, 0x00000000),
+            processor.fp_unpack::<u32>(0x7F7F_FFFF, 0x0000_0000),
             (
                 FPType::Nonzero,
                 false,
-                BigFloat::from(340282346638528859811704183484516925440u128)
+                BigFloat::from(340_282_346_638_528_859_811_704_183_484_516_925_440_u128)
             )
         );
 
         // 0.0
         assert_eq!(
-            processor.fp_unpack::<u32>(0x00000000, 0x00000000),
+            processor.fp_unpack::<u32>(0x0000_0000, 0x0000_0000),
             (FPType::Zero, false, BigFloat::default())
         );
 
         // minimum positive value, non zero:
         assert_eq!(
-            processor.fp_unpack::<u32>(0x00800000, 0x00000000),
+            processor.fp_unpack::<u32>(0x0080_0000, 0x0000_0000),
             (
                 FPType::Nonzero,
                 false,
@@ -1089,25 +1084,25 @@ mod tests {
 
         // Infinity
         assert_eq!(
-            processor.fp_unpack::<u32>(0x7F800000, 0x00000000),
+            processor.fp_unpack::<u32>(0x7F80_0000, 0x0000_0000),
             (FPType::Infinity, false, num_bigfloat::INF_POS)
         );
 
         // Negative infinity:
         assert_eq!(
-            processor.fp_unpack::<u32>(0xFF800000, 0x00000000),
+            processor.fp_unpack::<u32>(0xFF80_0000, 0x0000_0000),
             (FPType::Infinity, true, num_bigfloat::INF_NEG)
         );
 
         // QNaN
         assert_eq!(
-            processor.fp_unpack::<u32>(0x7FC00000, 0x00000000),
+            processor.fp_unpack::<u32>(0x7FC0_0000, 0x0000_0000),
             (FPType::QNaN, false, BigFloat::default())
         );
 
         // SNaN
         assert_eq!(
-            processor.fp_unpack::<u32>(0x7F800001, 0x00000000),
+            processor.fp_unpack::<u32>(0x7F80_0001, 0x0000_0000),
             (FPType::SNaN, false, BigFloat::default())
         );
     }
@@ -1118,65 +1113,61 @@ mod tests {
 
         // 1.0
         assert_eq!(
-            processor.fp_unpack::<u64>(0x3FF0000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0x3FF0_0000_0000_0000, 0x0000_0000),
             (FPType::Nonzero, false, BigFloat::from(1.0))
         );
 
         // -1.0
         assert_eq!(
-            processor.fp_unpack::<u64>(0xBFF0000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0xBFF0_0000_0000_0000, 0x0000_0000),
             (FPType::Nonzero, true, BigFloat::from(-1.0))
         );
 
         // 2.0
         assert_eq!(
-            processor.fp_unpack::<u64>(0x4000000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0x4000_0000_0000_0000, 0x0000_0000),
             (FPType::Nonzero, false, BigFloat::from(2.0))
         );
 
         // max value:
         assert_eq!(
-            processor.fp_unpack::<u64>(0x7FEFFFFFFFFFFFFF, 0x00000000),
-            (FPType::Nonzero, false, BigFloat::from(std::f64::MAX))
+            processor.fp_unpack::<u64>(0x7FEF_FFFF_FFFF_FFFF, 0x0000_0000),
+            (FPType::Nonzero, false, BigFloat::from(f64::MAX))
         );
 
         // 0.0
         assert_eq!(
-            processor.fp_unpack::<u64>(0x0000000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0x0000_0000_0000_0000, 0x0000_0000),
             (FPType::Zero, false, BigFloat::default())
         );
 
         // minimum positive value, non zero:
         assert_eq!(
-            processor.fp_unpack::<u64>(0x0010000000000000, 0x00000000),
-            (
-                FPType::Nonzero,
-                false,
-                BigFloat::from(std::f64::MIN_POSITIVE)
-            )
+            processor.fp_unpack::<u64>(0x0010_0000_0000_0000, 0x0000_0000),
+            (FPType::Nonzero, false, BigFloat::from(f64::MIN_POSITIVE))
         );
 
         // Infinity
         assert_eq!(
-            processor.fp_unpack::<u64>(0x7FF0000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0x7FF0_0000_0000_0000, 0x0000_0000),
             (FPType::Infinity, false, num_bigfloat::INF_POS)
         );
 
         // Negative infinity:
         assert_eq!(
-            processor.fp_unpack::<u64>(0xFFF0000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0xFFF0_0000_0000_0000, 0x0000_0000),
             (FPType::Infinity, true, num_bigfloat::INF_NEG)
         );
 
         // QNaN
         assert_eq!(
-            processor.fp_unpack::<u64>(0x7FF8000000000000, 0x00000000),
+            processor.fp_unpack::<u64>(0x7FF8_0000_0000_0000, 0x0000_0000),
             (FPType::QNaN, false, BigFloat::default())
         );
 
         // SNaN
         assert_eq!(
-            processor.fp_unpack::<u64>(0x7FF0000000000001, 0x00000000),
+            processor.fp_unpack::<u64>(0x7FF0_0000_0000_0001, 0x0000_0000),
             (FPType::SNaN, false, BigFloat::default())
         );
     }
@@ -1195,16 +1186,16 @@ mod tests {
             .fpscr
             .set_rounding_mode(FPSCRRounding::RoundToNearest);
 
-        // 1.0 -> 0x3F800000 exact
+        // 1.0 -> 0x3F80_0000 exact
         assert_eq!(
             processor.fp_round::<u32>(BigFloat::from(1.0), 0),
-            0x3F800000
+            0x3F80_0000
         );
 
         // 0.33333333333333333333 -> 3eaaaaab
         assert_eq!(
-            processor.fp_round::<u32>(BigFloat::from(0.33333333333333333333), 0),
-            0x3eaaaaab
+            processor.fp_round::<u32>(BigFloat::from(0.333_333_333_333_333_3), 0),
+            0x3eaa_aaab
         );
     }
 
@@ -1214,20 +1205,20 @@ mod tests {
 
         // 1.0 + 1.0 = 2.0
         assert_eq!(
-            processor.fp_add::<u32>(0x3F800000, 0x3F800000, true),
-            0x40000000
+            processor.fp_add::<u32>(0x3F80_0000, 0x3F80_0000, true),
+            0x4000_0000
         );
 
         // 1.0 + 2.0 = 3.0
         assert_eq!(
-            processor.fp_add::<u32>(0x3F800000, 0x40000000, true),
-            0x40400000
+            processor.fp_add::<u32>(0x3F80_0000, 0x4000_0000, true),
+            0x4040_0000
         );
 
         // -1.0 + 2.0 = 1.0
         assert_eq!(
-            processor.fp_add::<u32>(0xBF800000, 0x40000000, true),
-            0x3F800000
+            processor.fp_add::<u32>(0xBF80_0000, 0x4000_0000, true),
+            0x3F80_0000
         );
     }
 
@@ -1237,20 +1228,20 @@ mod tests {
 
         // 1.0 - 1.0 = 0.0
         assert_eq!(
-            processor.fp_sub::<u32>(0x3F800000, 0x3F800000, true),
-            0x00000000
+            processor.fp_sub::<u32>(0x3F80_0000, 0x3F80_0000, true),
+            0x0000_0000
         );
 
         // 2.0 - 1.0 = 1.0
         assert_eq!(
-            processor.fp_sub::<u32>(0x40000000, 0x3F800000, true),
-            0x3F800000
+            processor.fp_sub::<u32>(0x4000_0000, 0x3F80_0000, true),
+            0x3F80_0000
         );
 
         // 1.0 - 2.0 = -1.0
         assert_eq!(
-            processor.fp_sub::<u32>(0x3F800000, 0x40000000, true),
-            0xBF800000
+            processor.fp_sub::<u32>(0x3F80_0000, 0x4000_0000, true),
+            0xBF80_0000
         );
     }
 
@@ -1261,7 +1252,7 @@ mod tests {
         // 1.0 -> 0x3FF0000000000000 exact
         assert_eq!(
             processor.fp_round::<u64>(BigFloat::from(1.0f64), 0),
-            0x3FF0000000000000
+            0x3FF0_0000_0000_0000
         );
     }
 
@@ -1319,56 +1310,56 @@ mod tests {
 
         // 1.0 -> 1 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x3F800000, 0, false, false, false),
-            0x00000001
+            processor.fp_to_fixed::<u32, u32>(0x3F80_0000, 0, false, false, false),
+            0x0000_0001
         );
 
         // 0.00001 -> 0 (signed) (rounding towards zero)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x3C23D70A, 0, false, false, true),
-            0x00000000
+            processor.fp_to_fixed::<u32, u32>(0x3C23_D70A, 0, false, false, true),
+            0x0000_0000
         );
 
         // 42.0 -> 42 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x42280000, 0, false, false, false),
-            0x0000002A
+            processor.fp_to_fixed::<u32, u32>(0x4228_0000, 0, false, false, false),
+            0x0000_002A
         );
 
         // -1.0 -> -1 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0xBF800000, 0, false, false, false),
-            0xFFFFFFFF
+            processor.fp_to_fixed::<u32, u32>(0xBF80_0000, 0, false, false, false),
+            0xFFFF_FFFF
         );
 
         // -42.0 -> -42 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0xC2280000, 0, false, false, false),
-            0xFFFFFFD6
+            processor.fp_to_fixed::<u32, u32>(0xC228_0000, 0, false, false, false),
+            0xFFFF_FFD6
         );
 
         // positive infinity -> max value
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x7F800000, 0, false, false, false),
-            0x7FFFFFFF
+            processor.fp_to_fixed::<u32, u32>(0x7F80_0000, 0, false, false, false),
+            0x7FFF_FFFF
         );
 
         // negative infinity -> min value
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0xFF800000, 0, false, false, false),
-            0x80000000
+            processor.fp_to_fixed::<u32, u32>(0xFF80_0000, 0, false, false, false),
+            0x8000_0000
         );
 
         // QNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x7FC00000, 0, false, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u32, u32>(0x7FC0_0000, 0, false, false, false),
+            0x0000_0000
         );
 
         // SNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x7F800001, 0, false, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u32, u32>(0x7F80_0001, 0, false, false, false),
+            0x0000_0000
         );
     }
 
@@ -1378,38 +1369,38 @@ mod tests {
 
         // 1.0 -> 1 (unsigned)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x3F800000, 0, true, false, false),
-            0x00000001
+            processor.fp_to_fixed::<u32, u32>(0x3F80_0000, 0, true, false, false),
+            0x0000_0001
         );
 
         // 42.0 -> 42 (unsigned)
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x42280000, 0, true, false, false),
-            0x0000002A
+            processor.fp_to_fixed::<u32, u32>(0x4228_0000, 0, true, false, false),
+            0x0000_002A
         );
 
         // positive infinity -> max value
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x7F800000, 0, true, false, false),
-            0xFFFFFFFF
+            processor.fp_to_fixed::<u32, u32>(0x7F80_0000, 0, true, false, false),
+            0xFFFF_FFFF
         );
 
         // negative infinity -> max value
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0xFF800000, 0, true, false, false),
-            0xFFFFFFFF
+            processor.fp_to_fixed::<u32, u32>(0xFF80_0000, 0, true, false, false),
+            0xFFFF_FFFF
         );
 
         // QNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x7FC00000, 0, true, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u32, u32>(0x7FC0_0000, 0, true, false, false),
+            0x0000_0000
         );
 
         //SNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u32, u32>(0x7F800001, 0, true, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u32, u32>(0x7F80_0001, 0, true, false, false),
+            0x0000_0000
         );
     }
 
@@ -1419,50 +1410,50 @@ mod tests {
 
         // 1.0 -> 1 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x3FF0000000000000, 0, false, false, false),
-            0x00000001
+            processor.fp_to_fixed::<u64, u32>(0x3FF0_0000_0000_0000, 0, false, false, false),
+            0x0000_0001
         );
 
         // 42.0 -> 42 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x4045000000000000, 0, false, false, false),
-            0x0000002A
+            processor.fp_to_fixed::<u64, u32>(0x4045_0000_0000_0000, 0, false, false, false),
+            0x0000_002A
         );
 
         // -1.0 -> -1 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0xBFF0000000000000, 0, false, false, false),
-            0xFFFFFFFF
+            processor.fp_to_fixed::<u64, u32>(0xBFF0_0000_0000_0000, 0, false, false, false),
+            0xFFFF_FFFF
         );
 
         // -42.0 -> -42 (signed)
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0xC045000000000000, 0, false, false, false),
-            0xFFFFFFD6
+            processor.fp_to_fixed::<u64, u32>(0xC045_0000_0000_0000, 0, false, false, false),
+            0xFFFF_FFD6
         );
 
         // positive infinity -> max value
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000000, 0, false, false, false),
-            0x7FFFFFFF
+            processor.fp_to_fixed::<u64, u32>(0x7FF0_0000_0000_0000, 0, false, false, false),
+            0x7FFF_FFFF
         );
 
         // negative infinity -> min value
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0xFFF0000000000000, 0, false, false, false),
-            0x80000000
+            processor.fp_to_fixed::<u64, u32>(0xFFF0_0000_0000_0000, 0, false, false, false),
+            0x8000_0000
         );
 
         // QNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x7FF8000000000000, 0, false, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u64, u32>(0x7FF8_0000_0000_0000, 0, false, false, false),
+            0x0000_0000
         );
 
         // SNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000001, 0, false, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u64, u32>(0x7FF0_0000_0000_0001, 0, false, false, false),
+            0x0000_0000
         );
     }
 
@@ -1472,38 +1463,38 @@ mod tests {
 
         // 1.0 -> 1 (unsigned)
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x3FF0000000000000, 0, true, false, false),
-            0x00000001
+            processor.fp_to_fixed::<u64, u32>(0x3FF0_0000_0000_0000, 0, true, false, false),
+            0x0000_0001
         );
 
         // 42.0 -> 42 (unsigned)
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x4045000000000000, 0, true, false, false),
-            0x0000002A
+            processor.fp_to_fixed::<u64, u32>(0x4045_0000_0000_0000, 0, true, false, false),
+            0x0000_002A
         );
 
         // positive infinity -> max value
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000000, 0, true, false, false),
-            0xFFFFFFFF
+            processor.fp_to_fixed::<u64, u32>(0x7FF0_0000_0000_0000, 0, true, false, false),
+            0xFFFF_FFFF
         );
 
         // negative infinity -> max value
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0xFFF0000000000000, 0, true, false, false),
-            0xFFFFFFFF
+            processor.fp_to_fixed::<u64, u32>(0xFFF0_0000_0000_0000, 0, true, false, false),
+            0xFFFF_FFFF
         );
 
         // QNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x7FF8000000000000, 0, true, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u64, u32>(0x7FF8_0000_0000_0000, 0, true, false, false),
+            0x0000_0000
         );
 
         // SNAN -> 0
         assert_eq!(
-            processor.fp_to_fixed::<u64, u32>(0x7FF0000000000001, 0, true, false, false),
-            0x00000000
+            processor.fp_to_fixed::<u64, u32>(0x7FF0_0000_0000_0001, 0, true, false, false),
+            0x0000_0000
         );
     }
 
@@ -1514,19 +1505,19 @@ mod tests {
         // 1 -> 1.0 (signed)
         assert_eq!(
             processor.fixed_to_fp::<u32, u32>(1, 0, false, false, false),
-            0x3F800000
+            0x3F80_0000
         );
 
         // 42 -> 42.0 (signed)
         assert_eq!(
             processor.fixed_to_fp::<u32, u32>(42, 0, false, false, false),
-            0x42280000
+            0x4228_0000
         );
 
         // -1 -> -1.0 (signed)
         assert_eq!(
             processor.fixed_to_fp::<u32, u32>(0xffff_ffff, 0, false, false, false),
-            0xBF800000
+            0xBF80_0000
         );
     }
 }
