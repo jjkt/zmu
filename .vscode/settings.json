@@ -1,0 +1,8 @@
+{
+    "rust-analyzer.cargo.features": [
+        "armv7em", "generic-device"
+    ],
+    "rust-analyzer.cargo.noDefaultFeatures": true,
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.features": ["armv7em", "generic-device"],
+}

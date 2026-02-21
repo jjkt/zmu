@@ -35,7 +35,5 @@ RUN git config --global --add safe.directory '*'
 
 WORKDIR /workspace
 
-ENV CARGO_TARGET_DIR=/workspace/target
-
 # Copy the workspace into the container (this happens at build time)
 COPY . /workspace

@@ -3,8 +3,8 @@ use crate::core::instruction::{
     ParamsRegImm32, Reg2DoubleParams, Reg2FullParams, Reg2ImmCarryParams, Reg2ImmParams,
     Reg2Params, Reg2RdRmParams, Reg2RnRmParams, Reg2RtRnImm32Params, Reg2ShiftNParams,
     Reg2ShiftNoSetFlagsParams, Reg2ShiftParams, Reg2UsizeParams, Reg3FullParams, Reg3HighParams,
-    Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3ShiftParams, Reg3UsizeParams,
-    Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
+    Reg3NoSetFlagsParams, Reg3Params, Reg3RdRtRnImm32Params, Reg3RdRtRnParams, Reg3ShiftParams,
+    Reg3UsizeParams, Reg4HighParams, Reg4NoSetFlagsParams, Reg643232Params, RegImm32AddParams,
     RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SRType, SetFlags,
     VAddSubParamsf32, VCVTParams, VCmpParamsf32, VMRSTarget, VMovCr2DpParams, VMovCrSpParams,
     VMovImmParams32, VMovImmParams64, VMovRegParamsf32,
@@ -3094,7 +3094,7 @@ fn test_decode_vmov_imm_2() {
         Instruction::VMOV_imm_32 {
             params: VMovImmParams32 {
                 sd: SingleReg::S15,
-                imm32: 0xbf800000 // -1.0
+                imm32: 0xbf80_0000 // -1.0
             }
         }
     );
@@ -3124,7 +3124,7 @@ fn test_decode_vabs_32() {
     //eef0 7ae7       vabs.f32        s15, s15
 
     assert_eq!(
-        decode_32(0xeef07ae7),
+        decode_32(0xeef0_7ae7),
         Instruction::VABS_f32 {
             params: VMovRegParamsf32 {
                 sd: SingleReg::S15,
@@ -3139,7 +3139,7 @@ fn test_decode_vcmp_f32() {
     //eef4 7a47       vcmp.f32        s15, s14
 
     assert_eq!(
-        decode_32(0xeef47a47),
+        decode_32(0xeef4_7a47),
         Instruction::VCMP_f32 {
             params: VCmpParamsf32 {
                 sd: SingleReg::S15,
@@ -3156,7 +3156,7 @@ fn test_decode_vmrs() {
     //0xeef1 fa10       vmrs    APSR_nzcv, fpscr
 
     assert_eq!(
-        decode_32(0xeef1fa10),
+        decode_32(0xeef1_fa10),
         Instruction::VMRS {
             rt: VMRSTarget::APSRNZCV
         }
@@ -3168,7 +3168,7 @@ fn test_decode_vadd_f32() {
     // ee77 5a26       vadd.f32        s11, s14, s13
 
     assert_eq!(
-        decode_32(0xee775a26),
+        decode_32(0xee77_5a26),
         Instruction::VADD_f32 {
             params: VAddSubParamsf32 {
                 sd: SingleReg::S11,
@@ -3184,7 +3184,7 @@ fn test_decode_vsub_f32() {
     // ee37 5a66       vsub.f32        s10, s14, s13
 
     assert_eq!(
-        decode_32(0xee375a66),
+        decode_32(0xee37_5a66),
         Instruction::VSUB_f32 {
             params: VAddSubParamsf32 {
                 sd: SingleReg::S10,
@@ -3200,7 +3200,7 @@ fn test_decode_vct() {
     //eefd 7ac0       vcvt.s32.f32    s15, s0
 
     assert_eq!(
-        decode_32(0xeefd7ac0),
+        decode_32(0xeefd_7ac0),
         Instruction::VCVT {
             params: VCVTParams {
                 d: ExtensionReg::Single {
@@ -3212,6 +3212,41 @@ fn test_decode_vct() {
                 unsigned: false,
                 round_nearest: false,
                 round_zero: true,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_strexb() {
+    // 5212:       e8c1 2f43       strexb  r3, r2, [r1]
+    // Opcode: 0xE8C12F43
+    // Rn = R1
+    // Rt = R2
+    // Rd = R3
+    assert_eq!(
+        decode_32(0xE8C1_2F43),
+        Instruction::STREXB {
+            params: Reg3RdRtRnParams {
+                rd: Reg::R3,
+                rt: Reg::R2,
+                rn: Reg::R1,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_strexh() {
+    // strexh r3, r2, [r1]
+    // Opcode: 0xE8C12F53
+    assert_eq!(
+        decode_32(0xE8C1_2F53),
+        Instruction::STREXH {
+            params: Reg3RdRtRnParams {
+                rd: Reg::R3,
+                rt: Reg::R2,
+                rn: Reg::R1,
             }
         }
     );

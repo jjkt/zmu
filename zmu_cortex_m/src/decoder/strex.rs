@@ -5,7 +5,7 @@ use crate::core::instruction::{Instruction, Reg3RdRtRnImm32Params, Reg3RdRtRnPar
 pub fn decode_STREXB_t1(opcode: u32) -> Instruction {
     Instruction::STREXB {
         params: Reg3RdRtRnParams {
-            rd: From::from(opcode.get_bits(8..12) as u8),
+            rd: From::from(opcode.get_bits(0..4) as u8),
             rt: From::from(opcode.get_bits(12..16) as u8),
             rn: From::from(opcode.get_bits(16..20) as u8),
         },
@@ -16,7 +16,7 @@ pub fn decode_STREXB_t1(opcode: u32) -> Instruction {
 pub fn decode_STREXH_t1(opcode: u32) -> Instruction {
     Instruction::STREXH {
         params: Reg3RdRtRnParams {
-            rd: From::from(opcode.get_bits(8..12) as u8),
+            rd: From::from(opcode.get_bits(0..4) as u8),
             rt: From::from(opcode.get_bits(12..16) as u8),
             rn: From::from(opcode.get_bits(16..20) as u8),
         },
