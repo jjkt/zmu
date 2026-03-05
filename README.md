@@ -91,6 +91,19 @@ You need ARM compiler to compile some of the examples. Get the latest compilers 
 
 For Arch Linux, use arm-none-eabi-*. Arch Linux does not package the CSTARTUP files used by the GCC based tests, so you need to manually download them from the arm developer site anyways.
 
+For reproducible local installs (and for testing multiple versions), use the helper script:
+
+```sh
+bash scripts/install_arm_gcc.sh --version 15.2.rel1
+bash scripts/install_arm_gcc.sh --version 14.2.rel1
+```
+
+You can also choose the install location:
+
+```sh
+bash scripts/install_arm_gcc.sh --version 15.2.rel1 --install-dir "$HOME/.local/gcc-arm/15.2.rel1"
+```
+
 
 Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gcc. The default location is /usr
 
@@ -98,6 +111,16 @@ Set the environmental variable GCC_HOME to point to the home of arm-none-eabi-gc
 export GCC_HOME=/usr
 chmod +x testall.sh
 ./testall.sh
+```
+
+To switch GCC versions quickly, point GCC_HOME to the version you want to test:
+
+```sh
+export GCC_HOME="$HOME/.local/arm-gnu-toolchain/15.2.rel1"
+./test_gcc.sh
+
+export GCC_HOME="$HOME/.local/arm-gnu-toolchain/14.2.rel1"
+./test_gcc.sh
 ```
 
 ## Usage

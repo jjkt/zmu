@@ -522,28 +522,28 @@ fn standard_fpscr_value(fpscr: u32) -> u32 {
 
 /// saturate i to n bits, return the result and a boolean indicating if saturation occurred (up to 64 bits)
 fn satq(i: i128, n: usize, unsigned: bool) -> (u64, bool) {
-    if unsigned {
-        let limit = 2u128.pow(n as u32) - 1;
-        let i_unsigned = i as u128;
+    debug_assert!(n <= 64);
 
-        let (result, saturated) = if i_unsigned > limit {
-            (limit, true)
-        } else {
-            (i_unsigned, false)
-        };
+    if unsigned {
+        let max_unsigned = 1u128
+            .checked_shl(n as u32)
+            .unwrap_or(u128::MAX)
+            .saturating_sub(1);
+        let max_unsigned_i128 = i128::try_from(max_unsigned).unwrap_or(i128::MAX);
+
+        let clamped = i.clamp(0, max_unsigned_i128);
+        let saturated = clamped != i;
+        let result = clamped as u128;
 
         (result.get_bits(0..n) as u64, saturated)
     } else {
-        let limit = 2i128.pow(n as u32 - 1) - 1;
-        let neg_limit = -(2i128.pow(n as u32 - 1));
+        let signed_bits = n.saturating_sub(1) as u32;
+        let signed_scale = 1i128.checked_shl(signed_bits).unwrap_or(i128::MAX);
+        let max_signed = signed_scale.saturating_sub(1);
+        let min_signed = signed_scale.saturating_neg();
 
-        let (result, saturated) = if i > limit {
-            (limit, true)
-        } else if i < neg_limit {
-            (neg_limit, true)
-        } else {
-            (i, false)
-        };
+        let result = i.clamp(min_signed, max_signed);
+        let saturated = result != i;
 
         ((result as u64).get_bits(0..n), saturated)
     }
@@ -1300,8 +1300,8 @@ mod tests {
             (0x8000_0000_0000_0000, true)
         );
 
-        // value smaller than min value (unsigned, 64 bit)
-        assert_eq!(satq(-1, 64, true), (0xffff_ffff_ffff_ffff, true));
+        // negative value (unsigned, 64 bit)
+        assert_eq!(satq(-1, 64, true), (0, true));
     }
 
     #[test]
@@ -1385,10 +1385,16 @@ mod tests {
             0xFFFF_FFFF
         );
 
-        // negative infinity -> max value
+        // negative infinity -> 0
         assert_eq!(
             processor.fp_to_fixed::<u32, u32>(0xFF80_0000, 0, true, false, false),
-            0xFFFF_FFFF
+            0x0000_0000
+        );
+
+        // -42.0 -> 0 (unsigned)
+        assert_eq!(
+            processor.fp_to_fixed::<u32, u32>(0xC228_0000, 0, true, false, false),
+            0x0000_0000
         );
 
         // QNAN -> 0
@@ -1479,10 +1485,16 @@ mod tests {
             0xFFFF_FFFF
         );
 
-        // negative infinity -> max value
+        // negative infinity -> 0
         assert_eq!(
             processor.fp_to_fixed::<u64, u32>(0xFFF0_0000_0000_0000, 0, true, false, false),
-            0xFFFF_FFFF
+            0x0000_0000
+        );
+
+        // -42.0 -> 0 (unsigned)
+        assert_eq!(
+            processor.fp_to_fixed::<u64, u32>(0xC045_0000_0000_0000, 0, true, false, false),
+            0x0000_0000
         );
 
         // QNAN -> 0

@@ -7,8 +7,8 @@
  */
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x0, LENGTH = 65536
-  RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 0x20000 /* 128K */
+	FLASH (rx) : ORIGIN = 0x0, LENGTH = 0x20000 /* 128K */
+	RAM (rw) : ORIGIN = 0x20000000, LENGTH = 0x20000 /* 128K */
 }
 
 /* Linker script to place sections and symbol values. Should be used together
@@ -43,6 +43,12 @@ MEMORY
  */
 ENTRY(Reset_Handler)
 
+PHDRS
+{
+	text PT_LOAD FLAGS(5);
+	data PT_LOAD FLAGS(6);
+}
+
 SECTIONS
 {
 	.text :
@@ -71,18 +77,18 @@ SECTIONS
 		*(.rodata*)
 
 		KEEP(*(.eh_frame*))
-	} > FLASH
+	} > FLASH :text
 
 	.ARM.extab : 
 	{
 		*(.ARM.extab* .gnu.linkonce.armextab.*)
-	} > FLASH
+	} > FLASH :text
 
 	__exidx_start = .;
 	.ARM.exidx :
 	{
 		*(.ARM.exidx* .gnu.linkonce.armexidx.*)
-	} > FLASH
+	} > FLASH :text
 	__exidx_end = .;
 
 	.copy.table :
@@ -93,7 +99,7 @@ SECTIONS
 		LONG (__data_start__)
 		LONG ((__data_end__ - __data_start__) / 4)
 		__copy_table_end__ = .;
-	} > FLASH
+	} > FLASH :text
 
 	.zero.table :
 	{
@@ -102,7 +108,7 @@ SECTIONS
 		LONG (__bss_start__)
 		LONG ((__bss_end__ - __bss_start__) / 4)
 		__zero_table_end__ = .;
-	} > FLASH
+	} > FLASH :text
 
 	/* Location counter can end up 2byte aligned with narrow Thumb code but
 	   __etext is assumed by startup code to be the LMA of a section in RAM
@@ -141,7 +147,7 @@ SECTIONS
 		/* All data end */
 		__data_end__ = .;
 
-	} > RAM
+	} > RAM :data
 
 	.bss :
 	{
@@ -151,7 +157,7 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		__bss_end__ = .;
-	} > RAM
+	} > RAM :data
 	
 	.heap (COPY):
 	{
@@ -159,7 +165,7 @@ SECTIONS
 		PROVIDE(end = .);
 		*(.heap*)
 		__HeapLimit = .;
-	} > RAM
+	} > RAM :data
 
 	/* .stack_dummy section doesn't contains any symbols. It is only
 	 * used for linker to calculate size of stack sections, and assign
@@ -167,7 +173,7 @@ SECTIONS
 	.stack_dummy (COPY):
 	{
 		*(.stack*)
-	} > RAM
+	} > RAM :data
 
 	/* Set stack top to end of RAM, and stack limit move down by
 	 * size of stack_dummy section */

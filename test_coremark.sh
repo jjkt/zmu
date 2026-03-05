@@ -22,13 +22,11 @@ if [ ! -d "tests/coremark/coremark" ] ; then
    git clone https://github.com/eembc/coremark.git  tests/coremark/coremark
 fi
 
-if [ ! -d "tests/coremark/coremark/zmu" ] ; then
-    mkdir tests/coremark/coremark/zmu
-    cp -f tests/coremark/core_portme.c tests/coremark/coremark/zmu/
-    cp -f tests/coremark/core_portme.h tests/coremark/coremark/zmu/
-    cp -f tests/coremark/core_portme.mak tests/coremark/coremark/zmu/
-    cp -f tests/coremark/link.ld tests/coremark/coremark/zmu/
-fi
+mkdir -p tests/coremark/coremark/zmu
+cp -f tests/coremark/core_portme.c tests/coremark/coremark/zmu/
+cp -f tests/coremark/core_portme.h tests/coremark/coremark/zmu/
+cp -f tests/coremark/core_portme.mak tests/coremark/coremark/zmu/
+cp -f tests/coremark/link.ld tests/coremark/coremark/zmu/
 
 cd tests/coremark/coremark
 

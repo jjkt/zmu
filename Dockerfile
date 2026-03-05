@@ -1,5 +1,7 @@
 FROM rust:slim-bookworm
 
+ARG ARM_GNU_TOOLCHAIN_VERSION=15.2.rel1
+
 # Install required tools
 # - make: for running makefiles in tests
 # - git: for cloning lilos and other dependencies
@@ -12,11 +14,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ARM GNU Toolchain
-# We download a specific version to ensure reproducible builds and compatibility with tests
-RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz -O /tmp/arm-toolchain.tar.xz \
-    && mkdir -p /opt/gcc-arm-none-eabi \
-    && tar -xf /tmp/arm-toolchain.tar.xz --strip-components=1 -C /opt/gcc-arm-none-eabi \
-    && rm /tmp/arm-toolchain.tar.xz
+# Use the shared helper script so local and Docker installs use the same flow
+COPY scripts/install_arm_gcc.sh /tmp/install_arm_gcc.sh
+RUN bash /tmp/install_arm_gcc.sh --version ${ARM_GNU_TOOLCHAIN_VERSION} --install-dir /opt/gcc-arm-none-eabi \
+    && rm -f /tmp/install_arm_gcc.sh
 
 # Add rust targets needed for tests
 RUN rustup target add \

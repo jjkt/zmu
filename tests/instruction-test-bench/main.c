@@ -5,9 +5,10 @@
 
 /*
 This test bench is used to test various ARM Cortex-M instructions.
-If you want to test exact instruction, use inline assembly.
-If you want to test a general concept, use C code. The latter
-has downside of unpredictable compiler code generation.
+Instruction tests are written using inline assembly so exact
+mnemonics and behavior are preserved across compiler versions.
+Avoid C-only instruction checks here, as compiler code generation
+can vary and hide instruction-specific regressions.
 */
 
 /*
@@ -155,43 +156,133 @@ double vsub_f64(double a, double b)
 
 int32_t vcvt_f32_s32(float a)
 {
-    return (int32_t)a;
+    int32_t result;
+    union {
+        float f;
+        uint32_t u;
+    } in = { .f = a };
+
+    asm volatile(
+        "vmov s0, %1\n\t"
+        "vcvt.s32.f32 s0, s0\n\t"
+        "vmov %0, s0"
+        : "=r"(result)
+        : "r"(in.u)
+        : "s0");
+
+    return result;
 }
 
 uint32_t vcvt_f32_u32(float a)
 {
-    return (uint32_t)a;
+    uint32_t result;
+    union {
+        float f;
+        uint32_t u;
+    } in = { .f = a };
+
+    asm volatile(
+        "vmov s0, %1\n\t"
+        "vcvt.u32.f32 s0, s0\n\t"
+        "vmov %0, s0"
+        : "=r"(result)
+        : "r"(in.u)
+        : "s0");
+
+    return result;
 }
 
 float vcvt_s32_f32(int32_t a)
 {
-    return (float)a;
+    union {
+        float f;
+        uint32_t u;
+    } out;
+
+    asm volatile(
+        "vmov s0, %1\n\t"
+        "vcvt.f32.s32 s0, s0\n\t"
+        "vmov %0, s0"
+        : "=r"(out.u)
+        : "r"(a)
+        : "s0");
+
+    return out.f;
 }
 
 float vcvt_u32_f32(uint32_t a)
 {
-    return (float)a;
+    union {
+        float f;
+        uint32_t u;
+    } out;
+
+    asm volatile(
+        "vmov s0, %1\n\t"
+        "vcvt.f32.u32 s0, s0\n\t"
+        "vmov %0, s0"
+        : "=r"(out.u)
+        : "r"(a)
+        : "s0");
+
+    return out.f;
 }
 
 
 #if HARD_FLOATING_POINT_DOUBLE_PRECISION
 int32_t vcvt_f64_s32(double a)
 {
-    return (int32_t)a;
+    int32_t result;
+
+    asm volatile(
+        "vcvt.s32.f64 s0, %P1\n\t"
+        "vmov %0, s0"
+        : "=r"(result)
+        : "w"(a)
+        : "s0");
+
+    return result;
 }
 uint32_t vcvt_f64_u32(double a)
 {
-    return (uint32_t)a;
+    uint32_t result;
+
+    asm volatile(
+        "vcvt.u32.f64 s0, %P1\n\t"
+        "vmov %0, s0"
+        : "=r"(result)
+        : "w"(a)
+        : "s0");
+
+    return result;
 }
 
 double vcvt_s32_f64(int32_t a)
 {
-    return (double)a;
+    double result;
+
+    asm volatile(
+        "vmov s0, %1\n\t"
+        "vcvt.f64.s32 %P0, s0"
+        : "=w"(result)
+        : "r"(a)
+        : "s0");
+
+    return result;
 }
 
 double vcvt_u32_f64(uint32_t a)
 {
-    return (double)a;
+    double result;
+
+    asm volatile(
+        "vmov s0, %1\n\t"
+        "vcvt.f64.u32 %P0, s0"
+        : "=w"(result)
+        : "r"(a)
+        : "s0");
+
+    return result;
 }
 
 #endif
