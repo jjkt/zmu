@@ -7,7 +7,7 @@ use crate::executor::{ExecuteSuccess, ExecutorHelper};
 use super::{ExecuteResult, conditional_setflags, expand_conditional_carry};
 use crate::core::instruction::{
     Reg2ImmCarryParams, Reg2ImmParams, Reg2Params, Reg2ShiftNoSetFlagsParams, Reg2ShiftParams,
-    Reg3ShiftParams, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams, SetFlags,
+    Reg3ShiftParams, RegImmCarryNoSetFlagsParams, RegImmCarryParams, RegImmParams,
 };
 use crate::core::register::{Apsr, BaseReg, Reg};
 
@@ -98,7 +98,7 @@ impl IsaStandardDataProcessing for Processor {
                 self.branch_write_pc(result);
                 Ok(ExecuteSuccess::Branched { cycles: 3 })
             } else {
-                if params.setflags == SetFlags::True {
+                if conditional_setflags(params.setflags, self.in_it_block()) {
                     self.psr.set_n(result);
                     self.psr.set_z(result);
                     self.psr.set_c(carry);
@@ -185,7 +185,7 @@ impl IsaStandardDataProcessing for Processor {
             let rn = self.get_r(params.rn);
             let rm = self.get_r(params.rm);
 
-            let (shifted, _) = shift_c(rm, params.shift_t, params.shift_n as usize, c);
+            let (shifted, carry) = shift_c(rm, params.shift_t, params.shift_n as usize, c);
 
             let result = rn & shifted;
 
@@ -194,6 +194,7 @@ impl IsaStandardDataProcessing for Processor {
             if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
+                self.psr.set_c(carry);
             }
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }
@@ -223,7 +224,7 @@ impl IsaStandardDataProcessing for Processor {
             let rm = self.get_r(params.rm);
             let c = self.psr.get_c();
 
-            let (shifted, _) = shift_c(rm, params.shift_t, params.shift_n as usize, c);
+            let (shifted, carry) = shift_c(rm, params.shift_t, params.shift_n as usize, c);
 
             let result = rn & (shifted ^ 0xffff_ffff);
             self.set_r(params.rd, result);
@@ -231,6 +232,7 @@ impl IsaStandardDataProcessing for Processor {
             if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
+                self.psr.set_c(carry);
             }
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }
@@ -344,7 +346,7 @@ impl IsaStandardDataProcessing for Processor {
                 return Ok(ExecuteSuccess::Branched { cycles: 3 });
             } else {
                 self.set_r(params.rd, result);
-                if params.setflags {
+                if conditional_setflags(params.setflags, self.in_it_block()) {
                     self.psr.set_n(result);
                     self.psr.set_z(result);
                 }
@@ -395,7 +397,7 @@ impl IsaStandardDataProcessing for Processor {
             let result = im ^ 0xFFFF_FFFF;
             self.set_r(params.rd, result);
 
-            if params.setflags == SetFlags::True {
+            if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
                 self.psr.set_c(carry);
@@ -415,7 +417,7 @@ impl IsaStandardDataProcessing for Processor {
 
             self.set_r(params.rd, result);
 
-            if params.setflags == SetFlags::True {
+            if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
                 self.psr.set_c(carry);
@@ -475,7 +477,7 @@ impl IsaStandardDataProcessing for Processor {
 
             self.set_r(params.rd, result);
 
-            if params.setflags == SetFlags::True {
+            if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
                 self.psr.set_c(carry);
@@ -524,7 +526,7 @@ impl IsaStandardDataProcessing for Processor {
 
             self.set_r(params.rd, result);
 
-            if params.setflags == SetFlags::True {
+            if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
                 self.psr.set_c(carry);
@@ -637,7 +639,7 @@ impl IsaStandardDataProcessing for Processor {
 mod tests {
     use super::*;
     use crate::core::{
-        instruction::{Instruction, SRType},
+        instruction::{Instruction, SRType, SetFlags},
         register::Reg,
     };
 

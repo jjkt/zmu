@@ -115,7 +115,11 @@ trait ExecutorHelper {
 
 #[inline(always)]
 fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32) {
-    let offset_address = if add { rn + imm32 } else { rn - imm32 };
+    let offset_address = if add {
+        rn.wrapping_add(imm32)
+    } else {
+        rn.wrapping_sub(imm32)
+    };
     let address = if index { offset_address } else { rn };
     (address, offset_address)
 }
@@ -309,7 +313,7 @@ impl ExecutorHelper for Processor {
             // Group: Signed multiply instructions (ArmV7-m)
             //
             // --------------------------------------------
-            Instruction::SMLAL { params: _ } => unimplemented!(),
+            Instruction::SMLAL { params } => self.exec_smlal(params),
             Instruction::SMULL { params } => self.exec_smull(params),
 
             // --------------------------------------------
@@ -521,6 +525,8 @@ impl ExecutorHelper for Processor {
             // --------------------------------------------
             Instruction::VLDR { params } => self.exec_vldr(params),
             Instruction::VSTR { params } => self.exec_vstr(params),
+            Instruction::VLDM_T1 { params } => self.exec_vldm_t1(params),
+            Instruction::VLDM_T2 { params } => self.exec_vldm_t2(params),
             Instruction::VSTM_T1 { params } => self.exec_vstm_t1(params),
             Instruction::VSTM_T2 { params } => self.exec_vstm_t2(params),
             Instruction::VPUSH { params } => self.exec_vpush(params),
@@ -549,13 +555,34 @@ impl ExecutorHelper for Processor {
             // --------------------------------------------
             Instruction::VABS_f32 { params } => self.exec_vabs_f32(*params),
             Instruction::VABS_f64 { params } => self.exec_vabs_f64(*params),
+            Instruction::VNEG_f32 { params } => self.exec_vneg_f32(*params),
+            Instruction::VNEG_f64 { params } => self.exec_vneg_f64(*params),
             Instruction::VCMP_f32 { params } => self.exec_vcmp_f32(params),
             Instruction::VCMP_f64 { params } => self.exec_vcmp_f64(params),
             Instruction::VADD_f32 { params } => self.exec_vadd_f32(params),
             Instruction::VADD_f64 { params } => self.exec_vadd_f64(params),
+            Instruction::VFMA_f32 { params } => self.exec_vfma_f32(params),
+            Instruction::VFMA_f64 { params } => self.exec_vfma_f64(params),
+            Instruction::VFMS_f32 { params } => self.exec_vfms_f32(params),
+            Instruction::VFMS_f64 { params } => self.exec_vfms_f64(params),
+            Instruction::VFNMS_f32 { params } => self.exec_vfnms_f32(params),
+            Instruction::VFNMS_f64 { params } => self.exec_vfnms_f64(params),
+            Instruction::VDIV_f32 { params } => self.exec_vdiv_f32(params),
+            Instruction::VDIV_f64 { params } => self.exec_vdiv_f64(params),
+            Instruction::VMUL_f32 { params } => self.exec_vmul_f32(params),
+            Instruction::VMUL_f64 { params } => self.exec_vmul_f64(params),
+            Instruction::VNMUL_f32 { params } => self.exec_vnmul_f32(params),
+            Instruction::VNMUL_f64 { params } => self.exec_vnmul_f64(params),
+            Instruction::VSQRT_f32 { params } => self.exec_vsqrt_f32(*params),
+            Instruction::VSQRT_f64 { params } => self.exec_vsqrt_f64(*params),
+            Instruction::VRINTZ_f32 { params } => self.exec_vrintz_f32(*params),
+            Instruction::VRINTZ_f64 { params } => self.exec_vrintz_f64(*params),
             Instruction::VSUB_f32 { params } => self.exec_vsub_f32(params),
             Instruction::VSUB_f64 { params } => self.exec_vsub_f64(params),
             Instruction::VCVT { params } => self.exec_vcvt(params),
+            Instruction::VCVT_f64_f32 { params } => self.exec_vcvt_f64_f32(*params),
+            Instruction::VCVT_f32_f64 { params } => self.exec_vcvt_f32_f64(*params),
+            Instruction::VSEL_f32 { params } => self.exec_vsel_f32(*params),
 
             // --------------------------------------------
             //
@@ -770,6 +797,19 @@ mod tests {
         assert!(
             !core.psr.get_z(),
             "Z flag should be clear when result is non-zero"
+        );
+    }
+
+    #[test]
+    fn test_resolve_addressing_wraps_on_add_overflow() {
+        assert_eq!(resolve_addressing(u32::MAX, 4, true, true), (3, 3));
+    }
+
+    #[test]
+    fn test_resolve_addressing_wraps_on_sub_underflow() {
+        assert_eq!(
+            resolve_addressing(1, 4, false, true),
+            (u32::MAX - 2, u32::MAX - 2)
         );
     }
 }

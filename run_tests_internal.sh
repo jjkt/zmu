@@ -22,8 +22,7 @@ echo "building..."
 
 ##
 ## ARM CMSIS DSP
-## TODO: add arm cmsis dsp tests
-# ./test_arm-cmsis-dsp.sh
+./test_arm-cmsis-dsp.sh
 
 ##
 ## TODO: Rusty Clock

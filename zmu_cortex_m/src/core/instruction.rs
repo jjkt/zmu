@@ -210,7 +210,7 @@ pub struct Reg2ShiftNParams {
 pub struct Reg2Params {
     pub rd: Reg,
     pub rm: Reg,
-    pub setflags: bool,
+    pub setflags: SetFlags,
 }
 
 #[allow(missing_docs)]
@@ -414,6 +414,29 @@ pub struct VCVTParams {
     pub dp_operation: bool,
     pub round_zero: bool,
     pub round_nearest: bool,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VCVTParamsF64F32 {
+    pub dd: DoubleReg,
+    pub sm: SingleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VCVTParamsF32F64 {
+    pub sd: SingleReg,
+    pub dm: DoubleReg,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VSelParamsf32 {
+    pub sd: SingleReg,
+    pub sn: SingleReg,
+    pub sm: SingleReg,
+    pub cond: Condition,
 }
 
 #[allow(missing_docs)]
@@ -1408,7 +1431,12 @@ pub enum Instruction {
     VSTR {
         params: VLoadAndStoreParams,
     },
-    // VLDM
+    VLDM_T1 {
+        params: VStoreMultipleParams64,
+    },
+    VLDM_T2 {
+        params: VStoreMultipleParams32,
+    },
     VPUSH {
         params: VPushPopParams,
     },
@@ -1469,10 +1497,34 @@ pub enum Instruction {
     VABS_f64 {
         params: VMovRegParamsf64,
     },
+    VNEG_f32 {
+        params: VMovRegParamsf32,
+    },
+    VNEG_f64 {
+        params: VMovRegParamsf64,
+    },
     VADD_f32 {
         params: VAddSubParamsf32,
     },
     VADD_f64 {
+        params: VAddSubParamsf64,
+    },
+    VFMA_f32 {
+        params: VAddSubParamsf32,
+    },
+    VFMA_f64 {
+        params: VAddSubParamsf64,
+    },
+    VFMS_f32 {
+        params: VAddSubParamsf32,
+    },
+    VFMS_f64 {
+        params: VAddSubParamsf64,
+    },
+    VFNMS_f32 {
+        params: VAddSubParamsf32,
+    },
+    VFNMS_f64 {
         params: VAddSubParamsf64,
     },
     VCMP_f32 {
@@ -1484,20 +1536,53 @@ pub enum Instruction {
     VCVT {
         params: VCVTParams,
     },
-    //VDIV
-    //VFMA
+    VCVT_f64_f32 {
+        params: VCVTParamsF64F32,
+    },
+    VCVT_f32_f64 {
+        params: VCVTParamsF32F64,
+    },
+    VSEL_f32 {
+        params: VSelParamsf32,
+    },
+    VDIV_f32 {
+        params: VAddSubParamsf32,
+    },
+    VDIV_f64 {
+        params: VAddSubParamsf64,
+    },
     //VFNMA
     //VMAXNM
     //VMLA
     //VMOV
     //VMOV
-    //VMUL
-    //VNEG
+    VMUL_f32 {
+        params: VAddSubParamsf32,
+    },
+    VMUL_f64 {
+        params: VAddSubParamsf64,
+    },
+    VNMUL_f32 {
+        params: VAddSubParamsf32,
+    },
+    VNMUL_f64 {
+        params: VAddSubParamsf64,
+    },
     //VNMLA
     //VRINTA
-    //VRINTZ
+    VRINTZ_f32 {
+        params: VMovRegParamsf32,
+    },
+    VRINTZ_f64 {
+        params: VMovRegParamsf64,
+    },
     //VSEL
-    //VSQRT
+    VSQRT_f32 {
+        params: VMovRegParamsf32,
+    },
+    VSQRT_f64 {
+        params: VMovRegParamsf64,
+    },
     //VSUB
     VSUB_f32 {
         params: VAddSubParamsf32,
@@ -2078,7 +2163,7 @@ impl fmt::Display for Instruction {
             Self::MOV_reg { params, thumb32 } => write!(
                 f,
                 "mov{}{} {}, {}",
-                if params.setflags { "s" } else { "" },
+                setflags_to_str(params.setflags),
                 if thumb32 { ".W" } else { "" },
                 params.rd,
                 params.rm
@@ -2227,7 +2312,7 @@ impl fmt::Display for Instruction {
             Self::RRX { params } => write!(
                 f,
                 "mov.w{} {}, {}, rrx",
-                if params.setflags { "s" } else { "" },
+                setflags_to_str(params.setflags),
                 params.rd,
                 params.rm,
             ),
@@ -2497,6 +2582,30 @@ impl fmt::Display for Instruction {
             ),
             Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
             Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
+            Self::VLDM_T1 { params } => write!(
+                f,
+                "vldm{}.64, {}{} {:?}",
+                if params.mode == AddressingMode::IncrementAfter {
+                    "ia"
+                } else {
+                    "db"
+                },
+                params.rn,
+                if params.write_back { "!" } else { "" },
+                params.list
+            ),
+            Self::VLDM_T2 { params } => write!(
+                f,
+                "vldm{}.32, {}{} {:?}",
+                if params.mode == AddressingMode::IncrementAfter {
+                    "ia"
+                } else {
+                    "db"
+                },
+                params.rn,
+                if params.write_back { "!" } else { "" },
+                params.list
+            ),
             Self::VSTM_T1 { params } => write!(
                 f,
                 "vstm{}.64, {}{} {:?}",
@@ -2592,6 +2701,8 @@ impl fmt::Display for Instruction {
             }
             Self::VABS_f32 { params } => write!(f, "vabs.f32 {}, {}", params.sd, params.sm),
             Self::VABS_f64 { params } => write!(f, "vabs.f64 {}, {}", params.dd, params.dm),
+            Self::VNEG_f32 { params } => write!(f, "vneg.f32 {}, {}", params.sd, params.sm),
+            Self::VNEG_f64 { params } => write!(f, "vneg.f64 {}, {}", params.dd, params.dm),
             Self::VMRS { rt } => write!(f, "vmrs {rt}, fpscr"),
             Self::VCMP_f32 { params } => write!(
                 f,
@@ -2620,6 +2731,28 @@ impl fmt::Display for Instruction {
             Self::VADD_f64 { params } => {
                 write!(f, "vadd.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            Self::VFMA_f32 { params } => {
+                write!(f, "vfma.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VFMA_f64 { params } => {
+                write!(f, "vfma.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+            Self::VFMS_f32 { params } => {
+                write!(f, "vfms.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VFMS_f64 { params } => {
+                write!(f, "vfms.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+            Self::VFNMS_f32 { params } => {
+                write!(f, "vfnms.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VFNMS_f64 { params } => {
+                write!(f, "vfnms.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+            Self::VSQRT_f32 { params } => write!(f, "vsqrt.f32 {}, {}", params.sd, params.sm),
+            Self::VSQRT_f64 { params } => write!(f, "vsqrt.f64 {}, {}", params.dd, params.dm),
+            Self::VRINTZ_f32 { params } => write!(f, "vrintz.f32 {}, {}", params.sd, params.sm),
+            Self::VRINTZ_f64 { params } => write!(f, "vrintz.f64 {}, {}", params.dd, params.dm),
             Self::VSUB_f32 { params } => {
                 write!(f, "vsub.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
@@ -2627,6 +2760,33 @@ impl fmt::Display for Instruction {
                 write!(f, "vsub.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
             Self::VCVT { params } => write!(f, "{}", fmt_vcvt(params)),
+            Self::VCVT_f64_f32 { params } => write!(f, "vcvt.f64.f32 {}, {}", params.dd, params.sm),
+            Self::VCVT_f32_f64 { params } => write!(f, "vcvt.f32.f64 {}, {}", params.sd, params.dm),
+            Self::VSEL_f32 { params } => {
+                write!(
+                    f,
+                    "vsel{}.f32 {}, {}, {}",
+                    params.cond, params.sd, params.sn, params.sm
+                )
+            }
+            Self::VDIV_f32 { params } => {
+                write!(f, "vdiv.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VDIV_f64 { params } => {
+                write!(f, "vdiv.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+            Self::VMUL_f32 { params } => {
+                write!(f, "vmul.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VMUL_f64 { params } => {
+                write!(f, "vmul.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
+            Self::VNMUL_f32 { params } => {
+                write!(f, "vnmul.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
+            }
+            Self::VNMUL_f64 { params } => {
+                write!(f, "vnmul.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
+            }
 
             Self::WFE { .. } => write!(f, "wfe"),
             Self::WFI { .. } => write!(f, "wfi"),
@@ -2916,6 +3076,8 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
 
         Instruction::VABS_f32 { .. } => 4,
         Instruction::VABS_f64 { .. } => 4,
+        Instruction::VNEG_f32 { .. } => 4,
+        Instruction::VNEG_f64 { .. } => 4,
 
         Instruction::VADD_f32 { .. } => 4,
         Instruction::VADD_f64 { .. } => 4,
@@ -2926,12 +3088,17 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::VCVT { .. } => 4,
         //VCVTB
         //VCVTT
-        //VDIV
-        //VFMA
-        //VFMS
+        Instruction::VDIV_f32 { .. } => 4,
+        Instruction::VDIV_f64 { .. } => 4,
+        Instruction::VFMA_f32 { .. } => 4,
+        Instruction::VFMA_f64 { .. } => 4,
+        Instruction::VFMS_f32 { .. } => 4,
+        Instruction::VFMS_f64 { .. } => 4,
         //VFNMA
-        //VFNMS
-        //VLDM
+        Instruction::VFNMS_f32 { .. } => 4,
+        Instruction::VFNMS_f64 { .. } => 4,
+        Instruction::VLDM_T1 { .. } => 4,
+        Instruction::VLDM_T2 { .. } => 4,
         //VMAXNM
         //VMINNM
         //VMLA
@@ -2948,16 +3115,24 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
 
         Instruction::VMRS { .. } => 4,
         //VMSR
-        //VMUL
-        //VNEG
-        //VNMLA,VNMLS, VNMUL
+        Instruction::VMUL_f32 { .. } => 4,
+        Instruction::VMUL_f64 { .. } => 4,
+        Instruction::VNMUL_f32 { .. } => 4,
+        Instruction::VNMUL_f64 { .. } => 4,
+        //VNMLA,VNMLS
         Instruction::VPUSH { .. } => 4,
         Instruction::VPOP { .. } => 4,
         //VRINTA, VRINTN, VRINTP, VRiNTM
         //VRINTX,
-        //VRINTZ, VRINTR
+        Instruction::VRINTZ_f32 { .. } => 4,
+        Instruction::VRINTZ_f64 { .. } => 4,
+        //VRINTR
         //VSEL
-        //VSQRT
+        Instruction::VSQRT_f32 { .. } => 4,
+        Instruction::VSQRT_f64 { .. } => 4,
+        Instruction::VCVT_f64_f32 { .. } => 4,
+        Instruction::VCVT_f32_f64 { .. } => 4,
+        Instruction::VSEL_f32 { .. } => 4,
         Instruction::VSTM_T1 { .. } => 4,
         Instruction::VSTM_T2 { .. } => 4,
         //VSTR

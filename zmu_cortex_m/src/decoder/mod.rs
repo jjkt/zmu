@@ -119,11 +119,18 @@ mod vabs;
 mod vadd_vsub;
 mod vcmp;
 mod vcvt;
+mod vfma;
+mod vldm;
 mod vldr;
 mod vmov;
 mod vmrs;
+mod vmul_vdiv;
+mod vneg;
 mod vpop;
 mod vpush;
+mod vrint;
+mod vsel;
+mod vsqrt;
 mod vstm;
 mod vstr;
 
@@ -266,7 +273,9 @@ use {
     vabs::decode_VABS_t1,
     vadd_vsub::{decode_VADD_t1, decode_VSUB_t1},
     vcmp::{decode_VCMP_t1, decode_VCMP_t2},
-    vcvt::decode_VCVT_t1,
+    vcvt::{decode_VCVT_ds_t1, decode_VCVT_t1},
+    vfma::{decode_VFMA_t1, decode_VFMS_t1, decode_VFNMS_t1},
+    vldm::{decode_VLDM_t1, decode_VLDM_t2},
     vldr::{decode_VLDR_t1, decode_VLDR_t2},
     vmov::decode_VMOV_cr_scalar,
     vmov::decode_VMOV_cr_sp,
@@ -276,10 +285,15 @@ use {
     vmov::decode_VMOV_reg,
     vmov::decode_VMOV_scalar_cr,
     vmrs::decode_VMRS,
+    vmul_vdiv::{decode_VDIV_t1, decode_VMUL_t1, decode_VNMUL_t1},
+    vneg::decode_VNEG_t1,
     vpop::decode_VPOP_t1,
     vpop::decode_VPOP_t2,
     vpush::decode_VPUSH_t1,
     vpush::decode_VPUSH_t2,
+    vrint::decode_VRINTZ_t1,
+    vsel::decode_VSEL_t1,
+    vsqrt::decode_VSQRT_t1,
     vstm::{decode_VSTM_t1, decode_VSTM_t2},
     vstr::{decode_VSTR_t1, decode_VSTR_t2},
 };

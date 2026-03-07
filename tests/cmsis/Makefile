@@ -19,20 +19,21 @@ CFLAGS_LIB := -Wsign-compare \
  -Wall -Wextra -Werror \
  -fshort-enums
 
-CFLAGS= -DSEMIHOSTING -ffunction-sections -mfp16-format=ieee -fdata-sections -std=c11 -Ofast -ffast-math -flax-vector-conversions -DDISABLEFLOAT16  --specs=rdimon.specs -u _printf_float -mthumb -Wl,--gc-sections -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
+CFLAGS= -DSEMIHOSTING -ffunction-sections -mfp16-format=ieee -fdata-sections -std=c11 -Ofast -ffast-math -flax-vector-conversions -DDISABLEFLOAT16 -mthumb -g -D__STARTUP_CLEAR_BSS
+LDFLAGS= --specs=rdimon.specs -Wl,-u,_printf_float -Wl,--gc-sections -nostartfiles -T link.ld
 
 # libraries to link
 LIBS=-lCMSISDSP-$(TARGET) -lc -lrdimon -lm
  
 # check the expected dir for the startup file
 ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-embedded/samples/startup/*),)
-	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-embedded/samples/startup
+STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-embedded/samples/startup
 else ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup/*),)
-	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup
+STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup
 else ifneq ($(wildcard $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup/*),)
-	STARTUP_PATH := $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup
+STARTUP_PATH := $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup
 else
-	$(error startup dir not found !)
+$(error startup dir not found !)
 endif
 
 # Path to CMSIS_5
@@ -93,31 +94,33 @@ EXAMPLES_DIR := CMSIS-DSP/Examples/ARM
 # cm7-d16            startup_ARMCM7.S
 # cm7-sp-d16         startup_ARMCM7.S
 ifeq ($(TARGET),cm0)
-	STARTUP_FILE := startup_ARMCM0.S
-	HANDLER_FILE := handlerCM0.S
+STARTUP_FILE := startup_ARMCM0.S
+HANDLER_FILE := handlerCM0.S
 else ifeq ($(TARGET),cm0p)
-	STARTUP_FILE := startup_ARMCM0.S
-	HANDLER_FILE := handlerCM0.S
+STARTUP_FILE := startup_ARMCM0.S
+HANDLER_FILE := handlerCM0.S
 else ifeq ($(TARGET),cm3)
-	STARTUP_FILE := startup_ARMCM3.S
-	HANDLER_FILE := handlerCM3.S
+STARTUP_FILE := startup_ARMCM3.S
+HANDLER_FILE := handlerCM3.S
 else ifeq ($(TARGET),cm4)
-	STARTUP_FILE := startup_ARMCM4.S
-	HANDLER_FILE := handlerCM3.S
+STARTUP_FILE := startup_ARMCM4.S
+HANDLER_FILE := handlerCM3.S
 else ifeq ($(TARGET),cm4f)
-	STARTUP_FILE := startup_ARMCM4.S
-	HANDLER_FILE := handlerCM3.S
+STARTUP_FILE := startup_ARMCM4.S
+HANDLER_FILE := handlerCM3.S
 else ifeq ($(TARGET),cm7-d16)
-	STARTUP_FILE := startup_ARMCM7.S
-	HANDLER_FILE := handlerCM3.S
+STARTUP_FILE := startup_ARMCM7.S
+HANDLER_FILE := handlerCM3.S
 else ifeq ($(TARGET),cm7-sp-d16)
-	STARTUP_FILE := startup_ARMCM7.S
-	HANDLER_FILE := handlerCM3.S
+STARTUP_FILE := startup_ARMCM7.S
+HANDLER_FILE := handlerCM3.S
 else
-	$(error TARGET not supported)
+$(error TARGET not supported)
 endif
 
-EXES := $(BUILDDIR)/arm_bayes_example.elf \
+RUN_TIMEOUT ?= 8s
+
+BASE_EXES := $(BUILDDIR)/arm_bayes_example.elf \
 $(BUILDDIR)/arm_class_marks_example.elf \
 $(BUILDDIR)/arm_convolution_example.elf \
 $(BUILDDIR)/arm_dotproduct_example.elf \
@@ -127,79 +130,85 @@ $(BUILDDIR)/arm_linear_interp_example.elf \
 $(BUILDDIR)/arm_matrix_example.elf \
 $(BUILDDIR)/arm_variance_example.elf
 
-# forever loop on cm3
-#$(BUILDDIR)/arm_fir_example.elf \ (ok on CM0)
-#$(BUILDDIR)/arm_signal_converge_example.elf \ (ok on CM0)
-# $(BUILDDIR)/arm_sin_cos_example.elf \ (ok on CM0)
+EXTRA_EXES := $(BUILDDIR)/arm_fir_example.elf \
+$(BUILDDIR)/arm_signal_converge_example.elf \
+$(BUILDDIR)/arm_sin_cos_example.elf
 
-# forever loop on cm4f
-#$(BUILDDIR)/arm_svm_example.elf \
+SVM_EXE := $(BUILDDIR)/arm_svm_example.elf
+
+ifndef EXES
+EXES := $(BASE_EXES) $(EXTRA_EXES) $(SVM_EXE)
+endif
 
 
-#
-# for each EXES, run RUNNER and ignore if it fails
-#
+# Run each example. A test only fails if the emulator crashes or does not
+# terminate within `RUN_TIMEOUT`. Example-level `FAILURE` prints are ignored
+# because the same behavior is observed under QEMU for some CMSIS-DSP samples.
 .PHONY: run
 run : $(EXES)
-	$(foreach exe,$(EXES),echo running $(RUNNER) $(exe);$(RUNNER) $(exe) || true;)
+	@set -e; \
+	for exe in $(EXES); do \
+		echo running $(RUNNER) $$exe; \
+		timeout $(RUN_TIMEOUT) $(RUNNER) $$exe; \
+	done
 
 
 all: $(EXES)
 
 $(BUILDDIR)/arm_bayes_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_bayes_example/arm_bayes_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_bayes_example/arm_bayes_example_f32.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_class_marks_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_class_marks_example/arm_class_marks_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_class_marks_example/arm_class_marks_example_f32.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_convolution_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_convolution_example/arm_convolution_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_convolution_example/arm_convolution_example_f32.c \
 	$(EXAMPLES_DIR)/arm_convolution_example/math_helper.c $(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_dotproduct_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_dotproduct_example/arm_dotproduct_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_dotproduct_example/arm_dotproduct_example_f32.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_fft_bin_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_fft_bin_example/arm_fft_bin_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_fft_bin_example/arm_fft_bin_example_f32.c \
 	$(EXAMPLES_DIR)/arm_fft_bin_example/arm_fft_bin_data.c $(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_fir_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_fir_example/arm_fir_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_fir_example/arm_fir_example_f32.c \
 	$(EXAMPLES_DIR)/arm_fir_example/arm_fir_data.c $(EXAMPLES_DIR)/arm_fir_example/math_helper.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_graphic_equalizer_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_graphic_equalizer_example/arm_graphic_equalizer_example_q31.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_graphic_equalizer_example/arm_graphic_equalizer_example_q31.c \
 	$(EXAMPLES_DIR)/arm_graphic_equalizer_example/arm_graphic_equalizer_data.c \
 	$(EXAMPLES_DIR)/arm_graphic_equalizer_example/math_helper.c $(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_linear_interp_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_linear_interp_example/arm_linear_interp_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_linear_interp_example/arm_linear_interp_example_f32.c \
 	$(EXAMPLES_DIR)/arm_linear_interp_example/arm_linear_interp_data.c \
 	$(EXAMPLES_DIR)/arm_linear_interp_example/math_helper.c $(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_matrix_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_matrix_example/arm_matrix_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_matrix_example/arm_matrix_example_f32.c \
 	$(EXAMPLES_DIR)/arm_matrix_example/math_helper.c $(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_signal_converge_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_signal_converge_example/arm_signal_converge_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_signal_converge_example/arm_signal_converge_example_f32.c \
 	$(EXAMPLES_DIR)/arm_signal_converge_example/arm_signal_converge_data.c \
 	$(EXAMPLES_DIR)/arm_signal_converge_example/math_helper.c $(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_sin_cos_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_sin_cos_example/arm_sin_cos_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_sin_cos_example/arm_sin_cos_example_f32.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_svm_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_svm_example/arm_svm_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_svm_example/arm_svm_example_f32.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 $(BUILDDIR)/arm_variance_example.elf: $(BUILDDIR)/libCMSISDSP-$(TARGET).a initialization.c $(HANDLER_FILE)
-	$(CC) $(CFLAGS) initialization.c $(EXAMPLES_DIR)/arm_variance_example/arm_variance_example_f32.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) initialization.c $(EXAMPLES_DIR)/arm_variance_example/arm_variance_example_f32.c \
 	$(STARTUP_PATH)/$(STARTUP_FILE) $(HANDLER_FILE) -L$(BUILDDIR) $(LIBS) -o $@ 
 
 # Build rules

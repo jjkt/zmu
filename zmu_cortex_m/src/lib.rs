@@ -7,11 +7,9 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 #![allow(clippy::inline_always)]
-// TODO: check these case by case, add unit tests
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_possible_wrap)]
-// TODO: check these case by case, there might be need to add more error handling
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::new_without_default)]
@@ -23,8 +21,9 @@
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::redundant_else)]
 #![allow(clippy::empty_docs)]
-#![allow(clippy::nonminimal_bool)]
 #![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::many_single_char_names)]
+#![allow(clippy::too_many_arguments)]
 
 extern crate byteorder;
 extern crate enum_set;

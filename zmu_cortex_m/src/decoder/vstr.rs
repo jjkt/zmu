@@ -22,12 +22,12 @@ pub fn decode_VSTR_t1(opcode: u32) -> Instruction {
 #[allow(non_snake_case)]
 #[inline(always)]
 pub fn decode_VSTR_t2(opcode: u32) -> Instruction {
+    let vd = opcode.get_bits(12..16) as u8;
+    let d = u8::from(opcode.get_bit(22));
     Instruction::VSTR {
         params: VLoadAndStoreParams {
             dd: ExtensionReg::Single {
-                reg: SingleReg::from(
-                    opcode.get_bits(12..16) as u8 + ((u8::from(opcode.get_bit(22))) << 4),
-                ),
+                reg: SingleReg::from(vd << 1 | d),
             },
             rn: Reg::from(opcode.get_bits(16..20) as u8),
             imm32: opcode.get_bits(0..8) << 2,

@@ -5,7 +5,7 @@ authors = ["Jarmo Torvinen <jarmo.torvinen@iki.fi>"]
 edition = "2024"
 
 [dependencies]
-zmu_cortex_m = {path =  "zmu_cortex_m"}
+zmu_cortex_m = { path = "zmu_cortex_m", default-features = false }
 clap = "4.5"
 tabwriter = "1.4"
 goblin = "0.10"
