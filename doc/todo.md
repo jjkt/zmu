@@ -60,7 +60,20 @@
 - [ ] Add decode, execute, and tests for `VFNMA`
 - [ ] Add decode, execute, and tests for `VNMLA`
 - [ ] Add decode, execute, and tests for `VMAXNM`
+- [ ] Add decode, execute, and tests for `VMINNM`
+- [ ] Add decode, execute, and tests for `VSEL`
 - [ ] Add decode, execute, and tests for `VRINTA`
+- [ ] Add decode, execute, and tests for `VRINTM`
+- [ ] Add decode, execute, and tests for `VRINTN`
+- [ ] Add decode, execute, and tests for `VRINTP`
+- [ ] Add decode, execute, and tests for `VRINTR`
+- [ ] Add decode, execute, and tests for `VRINTX`
+- [ ] Add decode, execute, and tests for `VRINTZ`
+- [ ] Add decode, execute, and tests for `VCVTA`
+- [ ] Add decode, execute, and tests for `VCVTM`
+- [ ] Add decode, execute, and tests for `VCVTN`
+- [ ] Add decode, execute, and tests for `VCVTP`
+- [ ] Add half-precision FP support with profile gating
 - [ ] Add focused tests for missing `VMOV` transfer forms and FP-disabled or FP-trap behavior
 
 ## Architecture coverage
@@ -216,19 +229,6 @@
 - [ ] PMU
 - [ ] Unprivileged debug
 - [ ] RAS
-- [ ] Half-precision FP support
-- [ ] `VCVTA`
-- [ ] `VCVTM`
-- [ ] `VCVTN`
-- [ ] `VCVTP`
-- [ ] `VMINNM`
-- [ ] `VRINTM`
-- [ ] `VRINTN`
-- [ ] `VRINTP`
-- [ ] `VRINTR`
-- [ ] `VRINTX`
-- [ ] `VRINTZ`
-- [ ] `VSEL`
 - [ ] `DLS`
 - [ ] `WLS`
 - [ ] `LE`
