@@ -178,9 +178,6 @@
 - [ ] `SMUSDX`
 - [ ] `UMAAL`
 
-### ARMv7E-M FP
-- [ ] Finish the remaining ARMv7E-M FP work tracked in the FP support section below
-
 ### ARMv8-M Baseline
 - [ ] Add profile support and feature gating vs `ARMv6-M`
 - [ ] Security model: Secure and Non-secure state, secure exception entry and return, `EXC_RETURN` rules, banked stack and system registers
