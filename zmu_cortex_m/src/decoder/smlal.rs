@@ -13,8 +13,8 @@ pub fn decode_SMLAL_t1(opcode: u32) -> Instruction {
     Instruction::SMLAL {
         params: Reg643232Params {
             rm: Reg::from(reg_rm),
-            rdlo: Reg::from(reg_rd_hi),
-            rdhi: Reg::from(reg_rd_lo),
+            rdlo: Reg::from(reg_rd_lo),
+            rdhi: Reg::from(reg_rd_hi),
             rn: Reg::from(reg_rn),
         },
     }

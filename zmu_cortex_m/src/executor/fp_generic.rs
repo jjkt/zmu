@@ -128,6 +128,28 @@ pub trait FloatingPointPublicOperations {
         fpscr_controlled: bool,
     ) -> T::Bits;
 
+    fn fp_mul_add<T: FloatOps>(
+        &mut self,
+        addend: T::Bits,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits;
+
+    fn fp_mul<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits;
+
+    fn fp_div<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits;
+
     fn fp_compare<T: FloatOps>(
         &mut self,
         op1: T::Bits,
@@ -137,6 +159,16 @@ pub trait FloatingPointPublicOperations {
     ) -> (bool, bool, bool, bool);
 
     fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits;
+
+    fn fp_sqrt<T: FloatOps>(&mut self, op: T::Bits, fpscr_controlled: bool) -> T::Bits;
+
+    fn fp_round_int<T: FloatOps>(
+        &mut self,
+        op: T::Bits,
+        zero_rounding: bool,
+        exact: bool,
+        fpscr_controlled: bool,
+    ) -> T::Bits;
 
     fn fp_to_fixed<N: FloatOps, M: FloatOps>(
         &mut self,
@@ -169,6 +201,17 @@ trait FloatingPointHiddenOperations {
         &mut self,
         type1: FPType,
         type2: FPType,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_val: u32,
+    ) -> (bool, T::Bits);
+
+    fn fp_process_nans3<T: FloatOps>(
+        &mut self,
+        typea: FPType,
+        type1: FPType,
+        type2: FPType,
+        addend: T::Bits,
         op1: T::Bits,
         op2: T::Bits,
         fpscr_val: u32,
@@ -593,6 +636,33 @@ impl FloatingPointHiddenOperations for Processor {
         }
     }
 
+    fn fp_process_nans3<T: FloatOps>(
+        &mut self,
+        typea: FPType,
+        type1: FPType,
+        type2: FPType,
+        addend: T::Bits,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_val: u32,
+    ) -> (bool, T::Bits) {
+        if typea == FPType::SNaN {
+            (true, self.fp_process_nan::<T>(typea, addend, fpscr_val))
+        } else if type1 == FPType::SNaN {
+            (true, self.fp_process_nan::<T>(type1, op1, fpscr_val))
+        } else if type2 == FPType::SNaN {
+            (true, self.fp_process_nan::<T>(type2, op2, fpscr_val))
+        } else if typea == FPType::QNaN {
+            (true, self.fp_process_nan::<T>(typea, addend, fpscr_val))
+        } else if type1 == FPType::QNaN {
+            (true, self.fp_process_nan::<T>(type1, op1, fpscr_val))
+        } else if type2 == FPType::QNaN {
+            (true, self.fp_process_nan::<T>(type2, op2, fpscr_val))
+        } else {
+            (false, T::zero())
+        }
+    }
+
     fn fp_unpack<T: FloatOps>(
         &mut self,
         fpval: T::Bits,
@@ -784,6 +854,158 @@ impl FloatingPointPublicOperations for Processor {
         }
     }
 
+    fn fp_mul_add<T: FloatOps>(
+        &mut self,
+        addend: T::Bits,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits {
+        let fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+
+        let (typea, signa, valuea) = self.fp_unpack::<T>(addend, fpscr_val);
+        let (type1, sign1, value1) = self.fp_unpack::<T>(op1, fpscr_val);
+        let (type2, sign2, value2) = self.fp_unpack::<T>(op2, fpscr_val);
+
+        let inf1 = type1 == FPType::Infinity;
+        let zero1 = type1 == FPType::Zero;
+        let inf2 = type2 == FPType::Infinity;
+        let zero2 = type2 == FPType::Zero;
+
+        let (done, mut result) =
+            self.fp_process_nans3::<T>(typea, type1, type2, addend, op1, op2, fpscr_val);
+
+        if typea == FPType::QNaN && ((inf1 && zero2) || (zero1 && inf2)) {
+            result = T::fp_default_nan();
+            self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+            return result;
+        }
+
+        if done {
+            return result;
+        }
+
+        let infa = typea == FPType::Infinity;
+        let zeroa = typea == FPType::Zero;
+
+        let signp = sign1 != sign2;
+        let infp = inf1 || inf2;
+        let zerop = zero1 || zero2;
+
+        if (inf1 && zero2) || (zero1 && inf2) || (infa && infp && signa != signp) {
+            self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+            T::fp_default_nan()
+        } else if (infa && !signa) || (infp && !signp) {
+            T::fp_infinity(false)
+        } else if (infa && signa) || (infp && signp) {
+            T::fp_infinity(true)
+        } else if zeroa && zerop && signa == signp {
+            T::fp_zero(signa)
+        } else {
+            let result_value = valuea + (value1 * value2);
+            if result_value == BigFloat::default() {
+                let result_sign =
+                    fpscr_val.get_rounding_mode() == FPSCRRounding::RoundTowardsMinusInfinity;
+                T::fp_zero(result_sign)
+            } else {
+                self.fp_round::<T>(result_value, fpscr_val)
+            }
+        }
+    }
+
+    fn fp_mul<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits {
+        let fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+
+        let (type1, sign1, value1) = self.fp_unpack::<T>(op1, fpscr_val);
+        let (type2, sign2, value2) = self.fp_unpack::<T>(op2, fpscr_val);
+        let (done, result) = self.fp_process_nans::<T>(type1, type2, op1, op2, fpscr_val);
+        if done {
+            return result;
+        }
+
+        let inf1 = type1 == FPType::Infinity;
+        let zero1 = type1 == FPType::Zero;
+        let inf2 = type2 == FPType::Infinity;
+        let zero2 = type2 == FPType::Zero;
+        let sign = sign1 != sign2;
+
+        if (inf1 && zero2) || (zero1 && inf2) {
+            self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+            T::fp_default_nan()
+        } else if inf1 || inf2 {
+            T::fp_infinity(sign)
+        } else if zero1 || zero2 {
+            T::fp_zero(sign)
+        } else {
+            let result_value = value1 * value2;
+            if result_value == BigFloat::default() {
+                T::fp_zero(sign)
+            } else {
+                self.fp_round::<T>(result_value, fpscr_val)
+            }
+        }
+    }
+
+    fn fp_div<T: FloatOps>(
+        &mut self,
+        op1: T::Bits,
+        op2: T::Bits,
+        fpscr_controlled: bool,
+    ) -> T::Bits {
+        let fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+
+        let (type1, sign1, value1) = self.fp_unpack::<T>(op1, fpscr_val);
+        let (type2, sign2, value2) = self.fp_unpack::<T>(op2, fpscr_val);
+        let (done, result) = self.fp_process_nans::<T>(type1, type2, op1, op2, fpscr_val);
+        if done {
+            return result;
+        }
+
+        let inf1 = type1 == FPType::Infinity;
+        let zero1 = type1 == FPType::Zero;
+        let inf2 = type2 == FPType::Infinity;
+        let zero2 = type2 == FPType::Zero;
+        let sign = sign1 != sign2;
+
+        if (zero1 && zero2) || (inf1 && inf2) {
+            self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+            T::fp_default_nan()
+        } else if inf1 {
+            T::fp_infinity(sign)
+        } else if inf2 {
+            T::fp_zero(sign)
+        } else if zero2 {
+            self.fp_process_exception(FPExc::DivideByZero, fpscr_val);
+            T::fp_infinity(sign)
+        } else if zero1 {
+            T::fp_zero(sign)
+        } else {
+            let result_value = value1 / value2;
+            if result_value == BigFloat::default() {
+                T::fp_zero(sign)
+            } else {
+                self.fp_round::<T>(result_value, fpscr_val)
+            }
+        }
+    }
+
     fn fp_compare<T: FloatOps>(
         &mut self,
         op1: T::Bits,
@@ -821,6 +1043,121 @@ impl FloatingPointPublicOperations for Processor {
 
     fn fp_abs<T: FloatOps>(&mut self, op: T::Bits) -> T::Bits {
         T::fp_abs(op)
+    }
+
+    fn fp_sqrt<T: FloatOps>(&mut self, op: T::Bits, fpscr_controlled: bool) -> T::Bits {
+        let fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+
+        let (fptype, sign, value) = self.fp_unpack::<T>(op, fpscr_val);
+
+        match fptype {
+            FPType::SNaN | FPType::QNaN => self.fp_process_nan::<T>(fptype, op, fpscr_val),
+            FPType::Infinity => {
+                if sign {
+                    self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+                    T::fp_default_nan()
+                } else {
+                    T::fp_infinity(false)
+                }
+            }
+            FPType::Zero => T::fp_zero(sign),
+            FPType::Nonzero => {
+                if sign {
+                    self.fp_process_exception(FPExc::InvalidOp, fpscr_val);
+                    return T::fp_default_nan();
+                }
+
+                // Use helper-based round path for architectural FPSCR semantics
+                // (rounding modes and cumulative exception bits).
+                let sqrt_value = value.sqrt();
+
+                if sqrt_value == BigFloat::default() {
+                    // Guard for host-independent BigFloat precision limits on very tiny inputs.
+                    // Fall back to host sqrt representation for this degenerate case.
+                    let result_bits: u64 = if T::n() == 32 {
+                        let input = f32::from_bits((op.into() & 0xFFFF_FFFF) as u32);
+                        u64::from(input.sqrt().to_bits())
+                    } else {
+                        let input = f64::from_bits(op.into());
+                        input.sqrt().to_bits()
+                    };
+                    T::from_integer(result_bits)
+                } else {
+                    self.fp_round::<T>(sqrt_value, fpscr_val)
+                }
+            }
+        }
+    }
+
+    fn fp_round_int<T: FloatOps>(
+        &mut self,
+        op: T::Bits,
+        zero_rounding: bool,
+        exact: bool,
+        fpscr_controlled: bool,
+    ) -> T::Bits {
+        let fpscr_val = if fpscr_controlled {
+            self.fpscr
+        } else {
+            standard_fpscr_value(self.fpscr)
+        };
+
+        let rounding = if zero_rounding {
+            FPSCRRounding::RoundTowardsZero
+        } else {
+            fpscr_val.get_rounding_mode()
+        };
+
+        let (fptype, sign, value) = self.fp_unpack::<T>(op, fpscr_val);
+
+        if fptype == FPType::SNaN || fptype == FPType::QNaN {
+            return self.fp_process_nan::<T>(fptype, op, fpscr_val);
+        }
+
+        if fptype == FPType::Infinity {
+            return T::fp_infinity(sign);
+        }
+
+        if fptype == FPType::Zero {
+            return T::fp_zero(sign);
+        }
+
+        let mut int_result = round_down(value);
+        let error = value - BigFloat::from(int_result);
+
+        let round_up = match rounding {
+            FPSCRRounding::RoundToNearest => {
+                error > BigFloat::from(0.5)
+                    || (error == BigFloat::from(0.5) && int_result.get_bit(0))
+            }
+            FPSCRRounding::RoundTowardsPlusInfinity => error != BigFloat::default(),
+            FPSCRRounding::RoundTowardsMinusInfinity => false,
+            FPSCRRounding::RoundTowardsZero => error != BigFloat::default() && int_result < 0,
+        };
+
+        if round_up {
+            int_result += 1;
+        }
+
+        let real_result = BigFloat::from(int_result);
+
+        let result = if real_result == BigFloat::default() {
+            T::fp_zero(sign)
+        } else {
+            let mut round_fpscr = fpscr_val;
+            round_fpscr.set_rounding_mode(FPSCRRounding::RoundTowardsZero);
+            self.fp_round::<T>(real_result, round_fpscr)
+        };
+
+        if error != BigFloat::default() && exact {
+            self.fp_process_exception(FPExc::Inexact, fpscr_val);
+        }
+
+        result
     }
 
     fn fixed_to_fp<N: FloatOps, M: FloatOps>(
@@ -1220,6 +1557,12 @@ mod tests {
             processor.fp_add::<u32>(0xBF80_0000, 0x4000_0000, true),
             0x3F80_0000
         );
+
+        // 0.9038018 + epsilon should round back to the original sigma value.
+        assert_eq!(
+            processor.fp_add::<u32>(0x3F67_5F8E, 0x3194_BDC1, true),
+            0x3F67_5F8E
+        );
     }
 
     #[test]
@@ -1243,6 +1586,214 @@ mod tests {
             processor.fp_sub::<u32>(0x3F80_0000, 0x4000_0000, true),
             0xBF80_0000
         );
+
+        // 1.5 - 1.4539529 should preserve the small positive difference.
+        assert_eq!(
+            processor.fp_sub::<u32>(0x3FC0_0000, 0x3FBA_1B21, true),
+            0x3D3C_9BE0
+        );
+    }
+
+    #[test]
+    fn test_fp_mul_add_f32_basic() {
+        let mut processor = Processor::new();
+
+        assert_eq!(
+            processor.fp_mul_add::<u32>(1.0f32.to_bits(), 2.0f32.to_bits(), 3.0f32.to_bits(), true),
+            7.0f32.to_bits()
+        );
+    }
+
+    #[test]
+    fn test_fp_mul_add_zero_sign_uses_rounding_mode() {
+        let mut processor = Processor::new();
+        processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsMinusInfinity);
+
+        let result = processor.fp_mul_add::<u32>(
+            (-0.0f32).to_bits(),
+            0.0f32.to_bits(),
+            5.0f32.to_bits(),
+            true,
+        );
+
+        assert_eq!(result, (-0.0f32).to_bits());
+    }
+
+    #[test]
+    fn test_fp_mul_add_inf_times_zero_is_invalid() {
+        let mut processor = Processor::new();
+        processor.fpscr = 0;
+
+        let result = processor.fp_mul_add::<u32>(
+            1.0f32.to_bits(),
+            f32::INFINITY.to_bits(),
+            0.0f32.to_bits(),
+            true,
+        );
+
+        assert_eq!(result, <u32 as FloatOps>::fp_default_nan());
+        assert!(processor.fpscr.get_bit(0));
+    }
+
+    #[test]
+    fn test_fp_mul_f32_basic() {
+        let mut processor = Processor::new();
+
+        assert_eq!(
+            processor.fp_mul::<u32>(2.0f32.to_bits(), 3.0f32.to_bits(), true),
+            6.0f32.to_bits()
+        );
+    }
+
+    #[test]
+    fn test_fp_div_f32_basic() {
+        let mut processor = Processor::new();
+
+        assert_eq!(
+            processor.fp_div::<u32>(6.0f32.to_bits(), 2.0f32.to_bits(), true),
+            3.0f32.to_bits()
+        );
+    }
+
+    #[test]
+    fn test_fp_div_f32_by_zero_sets_exception() {
+        let mut processor = Processor::new();
+        processor.fpscr = 0;
+
+        let result = processor.fp_div::<u32>(1.0f32.to_bits(), 0.0f32.to_bits(), true);
+
+        assert_eq!(result, f32::INFINITY.to_bits());
+        assert!(processor.fpscr.get_bit(1));
+    }
+
+    #[test]
+    fn test_fp_mul_add_qnan_addend_still_reports_invalid_for_inf_times_zero() {
+        let mut processor = Processor::new();
+        processor.fpscr = 0;
+
+        let result = processor.fp_mul_add::<u32>(
+            0x7fc0_1234,
+            f32::INFINITY.to_bits(),
+            0.0f32.to_bits(),
+            true,
+        );
+
+        assert_eq!(result, <u32 as FloatOps>::fp_default_nan());
+        assert!(processor.fpscr.get_bit(0));
+    }
+
+    #[test]
+    fn test_fp_sqrt_f32_round_towards_zero_uses_helper_rounding() {
+        let mut processor = Processor::new();
+        processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsZero);
+
+        let op = 2.0f32.to_bits();
+        let result = processor.fp_sqrt::<u32>(op, true);
+
+        let mut expected_processor = Processor::new();
+        expected_processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsZero);
+        let expected = expected_processor
+            .fp_round::<u32>(BigFloat::from(2.0).sqrt(), expected_processor.fpscr);
+
+        assert_eq!(result, expected);
+        assert!(processor.fpscr.get_bit(4));
+    }
+
+    #[test]
+    fn test_fp_sqrt_f64_round_towards_plus_infinity_uses_helper_rounding() {
+        let mut processor = Processor::new();
+        processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsPlusInfinity);
+
+        let op = 2.0f64.to_bits();
+        let result = processor.fp_sqrt::<u64>(op, true);
+
+        let mut expected_processor = Processor::new();
+        expected_processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsPlusInfinity);
+        let expected = expected_processor
+            .fp_round::<u64>(BigFloat::from(2.0).sqrt(), expected_processor.fpscr);
+
+        assert_eq!(result, expected);
+        assert!(processor.fpscr.get_bit(4));
+    }
+
+    #[test]
+    fn test_fp_round_int_zero_rounding_ignores_fpscr_round_mode() {
+        let mut processor = Processor::new();
+        processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsPlusInfinity);
+
+        let op = (-2.9f32).to_bits();
+        let result = processor.fp_round_int::<u32>(op, true, false, true);
+
+        assert_eq!(result, (-2.0f32).to_bits());
+    }
+
+    #[test]
+    fn test_fp_round_int_exact_sets_inexact() {
+        let mut processor = Processor::new();
+        processor.fpscr = 0;
+
+        let op = 1.25f32.to_bits();
+        let _ = processor.fp_round_int::<u32>(op, true, true, true);
+
+        assert!(processor.fpscr.get_bit(4));
+    }
+
+    #[test]
+    fn test_fp_round_int_exact_false_does_not_set_inexact() {
+        let mut processor = Processor::new();
+        processor.fpscr = 0;
+
+        let op = 1.25f32.to_bits();
+        let _ = processor.fp_round_int::<u32>(op, true, false, true);
+
+        assert!(!processor.fpscr.get_bit(4));
+    }
+
+    #[test]
+    fn test_fp_round_int_keeps_infinity() {
+        let mut processor = Processor::new();
+
+        let pos = processor.fp_round_int::<u32>(f32::INFINITY.to_bits(), true, false, true);
+        let neg = processor.fp_round_int::<u32>(f32::NEG_INFINITY.to_bits(), true, false, true);
+
+        assert_eq!(pos, f32::INFINITY.to_bits());
+        assert_eq!(neg, f32::NEG_INFINITY.to_bits());
+    }
+
+    #[test]
+    fn test_fp_round_int_preserves_signed_zero() {
+        let mut processor = Processor::new();
+
+        let pos = processor.fp_round_int::<u32>(0.0f32.to_bits(), true, false, true);
+        let neg = processor.fp_round_int::<u32>((-0.0f32).to_bits(), true, false, true);
+
+        assert_eq!(pos, 0.0f32.to_bits());
+        assert_eq!(neg, (-0.0f32).to_bits());
+    }
+
+    #[test]
+    fn test_fp_round_int_uses_fpscr_mode_when_zero_rounding_is_false() {
+        let mut processor = Processor::new();
+        processor
+            .fpscr
+            .set_rounding_mode(FPSCRRounding::RoundTowardsPlusInfinity);
+
+        let op = 2.1f32.to_bits();
+        let result = processor.fp_round_int::<u32>(op, false, false, true);
+
+        assert_eq!(result, 3.0f32.to_bits());
     }
 
     #[test]

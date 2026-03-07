@@ -11,12 +11,32 @@ use crate::core::{
 
 /// Multiply operations
 pub trait IsaSignedMultiply {
+    fn exec_smlal(&mut self, params: &Reg643232Params) -> ExecuteResult;
     fn exec_smull(&mut self, params: &Reg643232Params) -> ExecuteResult;
     fn exec_smul(&mut self, params: &Reg3HighParams) -> ExecuteResult;
     fn exec_smla(&mut self, params: &Reg4HighParams) -> ExecuteResult;
 }
 
 impl IsaSignedMultiply for Processor {
+    fn exec_smlal(&mut self, params: &Reg643232Params) -> ExecuteResult {
+        if self.condition_passed() {
+            let rn = i64::from(self.get_r(params.rn) as i32);
+            let rm = i64::from(self.get_r(params.rm) as i32);
+
+            let rdlo = u64::from(self.get_r(params.rdlo));
+            let rdhi = u64::from(self.get_r(params.rdhi));
+            let accumulator = ((rdhi << 32) | rdlo) as i64;
+
+            let result = accumulator.wrapping_add(rn.wrapping_mul(rm));
+            let result_bits = result as u64;
+
+            self.set_r(params.rdlo, result_bits.get_bits(0..32) as u32);
+            self.set_r(params.rdhi, result_bits.get_bits(32..64) as u32);
+            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+        }
+        Ok(ExecuteSuccess::NotTaken)
+    }
+
     fn exec_smull(&mut self, params: &Reg643232Params) -> ExecuteResult {
         if self.condition_passed() {
             let rn = i64::from(self.get_r(params.rn));
@@ -245,7 +265,6 @@ mod tests {
         core.execute_internal(&instruction1).unwrap();
         assert_eq!(core.get_r(Reg::R3), 0xBFFF_0000);
         assert!(core.psr.get_q());
-
         core.set_r(Reg::R4, 0x0001_0001);
         core.set_r(Reg::R5, 0x0002_0002);
         core.set_r(Reg::R6, 0x0000_0000);
@@ -264,6 +283,31 @@ mod tests {
         core.execute_internal(&instruction2).unwrap();
         assert_eq!(core.get_r(Reg::R7), 0x0000_0002);
         assert!(core.psr.get_q());
+    }
+
+    #[test]
+    fn test_smlal() {
+        let mut core = Processor::new();
+        core.psr.value = 0;
+
+        core.set_r(Reg::R0, 0x0000_0003);
+        core.set_r(Reg::R1, 0xFFFF_FFFC);
+        core.set_r(Reg::R2, 0x0000_0005);
+        core.set_r(Reg::R3, 0x0000_0000);
+
+        let instruction = Instruction::SMLAL {
+            params: Reg643232Params {
+                rm: Reg::R1,
+                rdlo: Reg::R2,
+                rdhi: Reg::R3,
+                rn: Reg::R0,
+            },
+        };
+
+        core.execute_internal(&instruction).unwrap();
+
+        assert_eq!(core.get_r(Reg::R2), 0xFFFF_FFF9);
+        assert_eq!(core.get_r(Reg::R3), 0xFFFF_FFFF);
     }
 
     #[test]

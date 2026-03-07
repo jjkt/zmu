@@ -191,7 +191,7 @@ fn run_bin(
     debug!("Simulation done.");
 
     info!(
-        "{:?}, {} instructions, {:.0} instructions per sec, {:.0} cycles_per_sec ~ {:.2} Mhz",
+        "{:?}, {} instructions, {:.0} instructions/s, {:.0} modeled cycles/s ({:.2} Mcycles/s)",
         statistics.duration,
         statistics.instruction_count,
         instructions_per_sec,

@@ -173,7 +173,7 @@ impl IsaLoadAndStore for Processor {
                 params.shift_n as usize,
                 c,
             );
-            let address = self.get_r(params.rn) + offset;
+            let address = self.get_r(params.rn).wrapping_add(offset);
             let value = self.get_r(params.rt);
             self.write32(address, value)?;
 
@@ -191,7 +191,7 @@ impl IsaLoadAndStore for Processor {
                 params.shift_n as usize,
                 c,
             );
-            let address = self.get_r(params.rn) + offset;
+            let address = self.get_r(params.rn).wrapping_add(offset);
             let rt: u32 = self.get_r(params.rt);
             let value = rt.get_bits(0..8);
             self.write8(address, value as u8)?;
@@ -209,7 +209,7 @@ impl IsaLoadAndStore for Processor {
                 params.shift_n as usize,
                 c,
             );
-            let address = self.get_r(params.rn) + offset;
+            let address = self.get_r(params.rn).wrapping_add(offset);
             let value = self.get_r(params.rt).get_bits(0..16);
             self.write16(address, value as u16)?;
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
@@ -546,5 +546,33 @@ impl IsaLoadAndStore for Processor {
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
         }
         Ok(ExecuteSuccess::NotTaken)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{fault::Fault, instruction::SRType};
+
+    #[test]
+    fn test_exec_str_reg_wraps_address_calculation_instead_of_panicking() {
+        let mut core = Processor::new();
+
+        core.set_r(Reg::R0, 0x1234_5678);
+        core.set_r(Reg::R1, u32::MAX);
+        core.set_r(Reg::R2, 1);
+
+        let result = core.exec_str_reg(&Reg3FullParams {
+            rt: Reg::R0,
+            rn: Reg::R1,
+            rm: Reg::R2,
+            shift_t: SRType::LSL,
+            shift_n: 0,
+            index: true,
+            add: true,
+            wback: false,
+        });
+
+        assert_eq!(result, Err(Fault::DAccViol));
     }
 }

@@ -29,7 +29,7 @@ pub fn decode_MOV_reg_t1(opcode: u16) -> Instruction {
         params: Reg2Params {
             rd: Reg::from(((u8::from(opcode.get_bit(7))) << 3) + opcode.get_bits(0..3) as u8),
             rm: Reg::from(opcode.get_bits(3..7) as u8),
-            setflags: false,
+            setflags: SetFlags::False,
         },
         thumb32: false,
     }
@@ -41,7 +41,11 @@ pub fn decode_MOV_reg_t3(opcode: u32) -> Instruction {
         params: Reg2Params {
             rd: Reg::from(opcode.get_bits(8..12) as u8),
             rm: Reg::from(opcode.get_bits(0..4) as u8),
-            setflags: opcode.get_bit(20),
+            setflags: if opcode.get_bit(20) {
+                SetFlags::True
+            } else {
+                SetFlags::False
+            },
         },
         thumb32: true,
     }
@@ -57,7 +61,7 @@ pub fn decode_MOV_reg_t2_LSL_imm_t1(opcode: u16) -> Instruction {
             params: Reg2Params {
                 rd: Reg::from(opcode.get_bits(0..3) as u8),
                 rm: Reg::from(opcode.get_bits(3..6) as u8),
-                setflags: true,
+                setflags: SetFlags::NotInITBlock,
             },
             thumb32: false,
         }

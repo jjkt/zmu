@@ -1,6 +1,6 @@
 use crate::core::{
     bits::Bits,
-    instruction::{Instruction, VCVTParams},
+    instruction::{Instruction, VCVTParams, VCVTParamsF32F64, VCVTParamsF64F32},
     register::{DoubleReg, ExtensionReg, SingleReg},
 };
 
@@ -75,6 +75,32 @@ pub fn decode_VCVT_t1(opcode: u32) -> Instruction {
                 m: ExtensionReg::Single {
                     reg: SingleReg::from(m),
                 },
+            },
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+#[inline(always)]
+pub fn decode_VCVT_ds_t1(opcode: u32) -> Instruction {
+    let vm = opcode.get_bits(0..4) as u8;
+    let m = u8::from(opcode.get_bit(5));
+    let sz = opcode.get_bit(8);
+    let vd = opcode.get_bits(12..16) as u8;
+    let d = u8::from(opcode.get_bit(22));
+
+    if sz {
+        Instruction::VCVT_f32_f64 {
+            params: VCVTParamsF32F64 {
+                sd: SingleReg::from((vd << 1) | d),
+                dm: DoubleReg::from((m << 4) | vm),
+            },
+        }
+    } else {
+        Instruction::VCVT_f64_f32 {
+            params: VCVTParamsF64F32 {
+                dd: DoubleReg::from((d << 4) | vd),
+                sm: SingleReg::from((vm << 1) | m),
             },
         }
     }

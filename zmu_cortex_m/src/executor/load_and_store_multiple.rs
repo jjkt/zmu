@@ -83,7 +83,7 @@ impl IsaLoadAndStoreMultiple for Processor {
                 address += 4;
             }
 
-            if !params.registers.contains(&params.rn) {
+            if params.wback && !params.registers.contains(&params.rn) {
                 self.add_r(params.rn, regs_size);
             }
             let cc = 1 + params.registers.len() as u32;
@@ -144,5 +144,54 @@ impl IsaLoadAndStoreMultiple for Processor {
             }
         }
         Ok(ExecuteSuccess::NotTaken)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bus::Bus;
+    use crate::core::{instruction::LoadAndStoreMultipleParams, operation::get_reglist};
+
+    #[test]
+    fn test_exec_ldm_with_writeback_updates_base_register() {
+        let mut core = Processor::new();
+        let base = 0x2000_0000;
+
+        core.write32(base, 0x1111_1111).unwrap();
+        core.write32(base + 4, 0x2222_2222).unwrap();
+        core.set_r(Reg::R2, base);
+
+        core.exec_ldm(&LoadAndStoreMultipleParams {
+            registers: get_reglist(0b0000_0011),
+            rn: Reg::R2,
+            wback: true,
+        })
+        .unwrap();
+
+        assert_eq!(core.get_r(Reg::R0), 0x1111_1111);
+        assert_eq!(core.get_r(Reg::R1), 0x2222_2222);
+        assert_eq!(core.get_r(Reg::R2), base + 8);
+    }
+
+    #[test]
+    fn test_exec_ldm_without_writeback_preserves_base_register() {
+        let mut core = Processor::new();
+        let base = 0x2000_0000;
+
+        core.write32(base, 0x3333_3333).unwrap();
+        core.write32(base + 4, 0xCCCC_CCCC).unwrap();
+        core.set_r(Reg::R1, base);
+
+        core.exec_ldm(&LoadAndStoreMultipleParams {
+            registers: get_reglist(0x1008),
+            rn: Reg::R1,
+            wback: false,
+        })
+        .unwrap();
+
+        assert_eq!(core.get_r(Reg::R3), 0x3333_3333);
+        assert_eq!(core.get_r(Reg::R12), 0xCCCC_CCCC);
+        assert_eq!(core.get_r(Reg::R1), base);
     }
 }

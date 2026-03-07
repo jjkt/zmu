@@ -86,12 +86,11 @@ pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
 ///
 pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     let unsigned_sum = u64::from(x) + u64::from(y) + u64::from(carry_in);
-    let signed_sum = (x as i32)
-        .wrapping_add(y as i32)
-        .wrapping_add(i32::from(carry_in));
     let result = (unsigned_sum & 0xffff_ffff) as u32; // same value as signed_sum<N-1:0>
-    let carry_out = u64::from(result) != unsigned_sum;
-    let overflow = (result as i32) != signed_sum;
+    let carry_out = unsigned_sum > u64::from(u32::MAX);
+
+    let signed_sum = i64::from(x as i32) + i64::from(y as i32) + i64::from(u8::from(carry_in));
+    let overflow = signed_sum > i64::from(i32::MAX) || signed_sum < i64::from(i32::MIN);
 
     (result, carry_out, overflow)
 }
@@ -135,69 +134,74 @@ pub fn decode_imm_shift(typebits: u8, imm5: u8) -> (SRType, u8) {
         0b00 => (SRType::LSL, imm5),
         0b01 => (SRType::LSR, if imm5 == 0 { 32 } else { imm5 }),
         0b10 => (SRType::ASR, if imm5 == 0 { 32 } else { imm5 }),
-        0b11 => match imm5 {
-            0 => (SRType::RRX, 1),
-            _ => (SRType::ROR, imm5),
-        },
+        0b11 => {
+            if imm5 == 0 {
+                (SRType::RRX, 1)
+            } else {
+                (SRType::ROR, imm5)
+            }
+        }
         _ => todo!("invalid typebits"),
     }
 }
 
 fn lsl_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
-    let extended = u64::from(value) << shift;
-
-    (extended.get_bits(0..32) as u32, extended.get_bit(32))
+    match shift {
+        1..=31 => (value << shift, value.get_bit(32 - shift)),
+        32 => (0, value.get_bit(0)),
+        _ => (0, false),
+    }
 }
 
 fn lsl(value: u32, shift: usize) -> u32 {
-    assert!(shift > 0);
-
     if shift == 0 {
         value
+    } else if shift < 32 {
+        value << shift
     } else {
-        let (result, _) = lsl_c(value, shift);
-        result
+        0
     }
 }
 
 fn lsr_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
-
-    let extended = u64::from(value);
-
-    (
-        extended.get_bits(shift..(shift + 32)) as u32,
-        extended.get_bit(shift - 1),
-    )
+    match shift {
+        1..=31 => (value >> shift, value.get_bit(shift - 1)),
+        32 => (0, value.get_bit(31)),
+        _ => (0, false),
+    }
 }
 
 fn lsr(value: u32, shift: usize) -> u32 {
-    assert!(shift > 0);
-
     if shift == 0 {
         value
+    } else if shift < 32 {
+        value >> shift
     } else {
-        let (result, _) = lsr_c(value, shift);
-        result
+        0
     }
 }
 
 fn asr_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
-
-    let extended = sign_extend(value, 31, 32 + shift);
-
-    (
-        extended.get_bits(shift..(shift + 32)) as u32,
-        extended.get_bit(shift - 1),
-    )
+    if let 1..=31 = shift {
+        let result = ((value as i32) >> shift) as u32;
+        (result, value.get_bit(shift - 1))
+    } else {
+        let bit31 = value.get_bit(31);
+        (if bit31 { u32::MAX } else { 0 }, bit31)
+    }
 }
 
 fn ror_c(value: u32, shift: usize) -> (u32, bool) {
     assert!(shift > 0);
     let m = shift % 32;
-    let result = lsr(value, m) | lsl(value, 32 - m);
+    let result = if m == 0 {
+        value
+    } else {
+        lsr(value, m) | lsl(value, 32 - m)
+    };
     let carry_out = result.get_bit(31);
     (result, carry_out)
 }
@@ -408,6 +412,31 @@ mod tests {
             assert!(result == 0x8000_0000);
             assert!(carry);
         }
+        {
+            let (result, carry) = shift_c(1, SRType::LSL, 32, false);
+            assert_eq!(result, 0);
+            assert!(carry);
+        }
+        {
+            let (result, carry) = shift_c(0x8000_0000, SRType::LSR, 32, false);
+            assert_eq!(result, 0);
+            assert!(carry);
+        }
+        {
+            let (result, carry) = shift_c(0x8000_0001, SRType::LSR, 40, false);
+            assert_eq!(result, 0);
+            assert!(!carry);
+        }
+        {
+            let (result, carry) = shift_c(0x8000_0001, SRType::ASR, 40, false);
+            assert_eq!(result, 0xFFFF_FFFF);
+            assert!(carry);
+        }
+        {
+            let (result, carry) = shift_c(0x8000_0001, SRType::ROR, 32, false);
+            assert_eq!(result, 0x8000_0001);
+            assert!(carry);
+        }
     }
 
     #[test]
@@ -465,9 +494,32 @@ mod tests {
         assert!(carry);
         assert!(!overflow);
     }
+
+    #[test]
+    fn test_add_with_carry_overflow_positive() {
+        let (result, carry, overflow) = add_with_carry(0x7fff_ffff, 0x1, false);
+        assert_eq!(result, 0x8000_0000);
+        assert!(!carry);
+        assert!(overflow);
+    }
+
+    #[test]
+    fn test_add_with_carry_overflow_negative() {
+        let (result, carry, overflow) = add_with_carry(0x8000_0000, 0xffff_ffff, false);
+        assert_eq!(result, 0x7fff_ffff);
+        assert!(carry);
+        assert!(overflow);
+    }
+
     #[test]
     fn test_build_imm_6_11() {
         assert_eq!(build_imm_6_11(0xF000_80C4), 0xc4 << 1);
         assert_eq!(build_imm_6_11(0xf57f_ad69), -1326);
+    }
+
+    #[test]
+    fn test_decode_imm_shift_rrx_alias() {
+        assert_eq!(decode_imm_shift(0b11, 0), (SRType::RRX, 1));
+        assert_eq!(decode_imm_shift(0b11, 5), (SRType::ROR, 5));
     }
 }

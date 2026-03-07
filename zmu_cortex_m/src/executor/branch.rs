@@ -34,6 +34,7 @@ impl IsaBranch for Processor {
             let pc = self.get_r(Reg::PC);
             self.set_r(Reg::LR, pc | 0x01);
             let target = ((pc as i32) + imm32) as u32;
+
             self.branch_write_pc(target);
             return Ok(ExecuteSuccess::Branched { cycles: 4 });
         }

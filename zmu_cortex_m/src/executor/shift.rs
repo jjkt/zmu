@@ -4,7 +4,7 @@ use crate::core::operation::shift_c;
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
 use super::{ExecuteResult, conditional_setflags};
-use crate::core::instruction::{Reg2Params, Reg2ShiftNParams, Reg3Params, SRType, SetFlags};
+use crate::core::instruction::{Reg2Params, Reg2ShiftNParams, Reg3Params, SRType};
 use crate::core::{
     bits::Bits,
     register::{Apsr, BaseReg},
@@ -142,7 +142,7 @@ impl IsaShift for Processor {
 
             self.set_r(params.rd, result);
 
-            if params.setflags == SetFlags::True {
+            if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
                 self.psr.set_c(carry);
@@ -173,7 +173,7 @@ impl IsaShift for Processor {
             let c = self.psr.get_c();
             let (result, carry) = shift_c(self.get_r(params.rm), SRType::RRX, 1, c);
             self.set_r(params.rd, result);
-            if params.setflags {
+            if conditional_setflags(params.setflags, self.in_it_block()) {
                 self.psr.set_n(result);
                 self.psr.set_z(result);
                 self.psr.set_c(carry);
