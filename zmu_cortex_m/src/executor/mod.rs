@@ -583,6 +583,7 @@ impl ExecutorHelper for Processor {
             Instruction::VCVT_f64_f32 { params } => self.exec_vcvt_f64_f32(*params),
             Instruction::VCVT_f32_f64 { params } => self.exec_vcvt_f32_f64(*params),
             Instruction::VSEL_f32 { params } => self.exec_vsel_f32(*params),
+            Instruction::VSEL_f64 { params } => self.exec_vsel_f64(*params),
 
             // --------------------------------------------
             //

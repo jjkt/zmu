@@ -61,7 +61,6 @@
 - [ ] Add decode, execute, and tests for `VNMLA`
 - [ ] Add decode, execute, and tests for `VMAXNM`
 - [ ] Add decode, execute, and tests for `VMINNM`
-- [ ] Add decode, execute, and tests for `VSEL`
 - [ ] Add decode, execute, and tests for `VRINTA`
 - [ ] Add decode, execute, and tests for `VRINTM`
 - [ ] Add decode, execute, and tests for `VRINTN`
