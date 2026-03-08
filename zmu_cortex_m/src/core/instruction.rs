@@ -441,6 +441,15 @@ pub struct VSelParamsf32 {
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VSelParamsf64 {
+    pub dd: DoubleReg,
+    pub dn: DoubleReg,
+    pub dm: DoubleReg,
+    pub cond: Condition,
+}
+
+#[allow(missing_docs)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct VMovRegParamsf64 {
     pub dd: DoubleReg,
     pub dm: DoubleReg,
@@ -1544,6 +1553,9 @@ pub enum Instruction {
     },
     VSEL_f32 {
         params: VSelParamsf32,
+    },
+    VSEL_f64 {
+        params: VSelParamsf64,
     },
     VDIV_f32 {
         params: VAddSubParamsf32,
@@ -2769,6 +2781,13 @@ impl fmt::Display for Instruction {
                     params.cond, params.sd, params.sn, params.sm
                 )
             }
+            Self::VSEL_f64 { params } => {
+                write!(
+                    f,
+                    "vsel{}.f64 {}, {}, {}",
+                    params.cond, params.dd, params.dn, params.dm
+                )
+            }
             Self::VDIV_f32 { params } => {
                 write!(f, "vdiv.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
@@ -3127,12 +3146,12 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::VRINTZ_f32 { .. } => 4,
         Instruction::VRINTZ_f64 { .. } => 4,
         //VRINTR
-        //VSEL
         Instruction::VSQRT_f32 { .. } => 4,
         Instruction::VSQRT_f64 { .. } => 4,
         Instruction::VCVT_f64_f32 { .. } => 4,
         Instruction::VCVT_f32_f64 { .. } => 4,
         Instruction::VSEL_f32 { .. } => 4,
+        Instruction::VSEL_f64 { .. } => 4,
         Instruction::VSTM_T1 { .. } => 4,
         Instruction::VSTM_T2 { .. } => 4,
         //VSTR

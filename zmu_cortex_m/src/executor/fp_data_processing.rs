@@ -2,7 +2,7 @@ use crate::Processor;
 use crate::core::fpregister::Fpscr;
 use crate::core::instruction::{
     VAddSubParamsf32, VAddSubParamsf64, VCVTParams, VCVTParamsF32F64, VCVTParamsF64F32,
-    VCmpParamsf32, VCmpParamsf64, VMovRegParamsf32, VMovRegParamsf64, VSelParamsf32,
+    VCmpParamsf32, VCmpParamsf64, VMovRegParamsf32, VMovRegParamsf64, VSelParamsf32, VSelParamsf64,
 };
 
 use crate::executor::ExecuteSuccess;
@@ -49,6 +49,7 @@ pub trait IsaFloatingPointDataProcessing {
     fn exec_vcvt_f64_f32(&mut self, params: VCVTParamsF64F32) -> ExecuteResult;
     fn exec_vcvt_f32_f64(&mut self, params: VCVTParamsF32F64) -> ExecuteResult;
     fn exec_vsel_f32(&mut self, params: VSelParamsf32) -> ExecuteResult;
+    fn exec_vsel_f64(&mut self, params: VSelParamsf64) -> ExecuteResult;
 }
 
 impl IsaFloatingPointDataProcessing for Processor {
@@ -511,17 +512,25 @@ impl IsaFloatingPointDataProcessing for Processor {
     }
 
     fn exec_vsel_f32(&mut self, params: VSelParamsf32) -> ExecuteResult {
-        if self.condition_passed() {
-            self.execute_fp_check();
-            let result = if self.condition_passed_b(params.cond) {
-                self.get_sr(params.sn)
-            } else {
-                self.get_sr(params.sm)
-            };
-            self.set_sr(params.sd, result);
-            return Ok(ExecuteSuccess::Taken { cycles: 1 });
-        }
-        Ok(ExecuteSuccess::NotTaken)
+        self.execute_fp_check();
+        let result = if self.condition_passed_b(params.cond) {
+            self.get_sr(params.sn)
+        } else {
+            self.get_sr(params.sm)
+        };
+        self.set_sr(params.sd, result);
+        Ok(ExecuteSuccess::Taken { cycles: 1 })
+    }
+
+    fn exec_vsel_f64(&mut self, params: VSelParamsf64) -> ExecuteResult {
+        self.execute_fp_check();
+        let result = if self.condition_passed_b(params.cond) {
+            self.get_dr(params.dn)
+        } else {
+            self.get_dr(params.dm)
+        };
+        self.set_dr(params.dd, result.0, result.1);
+        Ok(ExecuteSuccess::Taken { cycles: 1 })
     }
 }
 

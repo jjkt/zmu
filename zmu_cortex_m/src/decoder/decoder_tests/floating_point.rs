@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::core::instruction::VSelParamsf64;
+
 #[test]
 fn test_decode_vabs_32() {
     //eef0 7ae7       vabs.f32        s15, s15
@@ -484,6 +486,38 @@ fn test_decode_vpush() {
 }
 
 #[test]
+fn test_decode_vseleq_f32() {
+    // fe00 0a81       vseleq.f32      s0, s1, s2
+    assert_eq!(
+        decode_32(0xfe00_0a81),
+        Instruction::VSEL_f32 {
+            params: VSelParamsf32 {
+                sd: SingleReg::S0,
+                sn: SingleReg::S1,
+                sm: SingleReg::S2,
+                cond: Condition::EQ,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vselvs_f32_high_regs() {
+    // fe58 fa0f       vselvs.f32      s31, s16, s30
+    assert_eq!(
+        decode_32(0xfe58_fa0f),
+        Instruction::VSEL_f32 {
+            params: VSelParamsf32 {
+                sd: SingleReg::S31,
+                sn: SingleReg::S16,
+                sm: SingleReg::S30,
+                cond: Condition::VS,
+            }
+        }
+    );
+}
+
+#[test]
 fn test_decode_vselgt_f32() {
     // fe77 7a27       vselgt.f32      s15, s14, s15
     assert_eq!(
@@ -493,6 +527,38 @@ fn test_decode_vselgt_f32() {
                 sd: SingleReg::S15,
                 sn: SingleReg::S14,
                 sm: SingleReg::S15,
+                cond: Condition::GT,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vselge_f64() {
+    // fe28 7b09       vselge.f64      d7, d8, d9
+    assert_eq!(
+        decode_32(0xfe28_7b09),
+        Instruction::VSEL_f64 {
+            params: VSelParamsf64 {
+                dd: DoubleReg::D7,
+                dn: DoubleReg::D8,
+                dm: DoubleReg::D9,
+                cond: Condition::GE,
+            }
+        }
+    );
+}
+
+#[test]
+fn test_decode_vselgt_f64() {
+    // fe3e fb0d       vselgt.f64      d15, d14, d13
+    assert_eq!(
+        decode_32(0xfe3e_fb0d),
+        Instruction::VSEL_f64 {
+            params: VSelParamsf64 {
+                dd: DoubleReg::D15,
+                dn: DoubleReg::D14,
+                dm: DoubleReg::D13,
                 cond: Condition::GT,
             }
         }
