@@ -84,6 +84,7 @@ pub fn sign_extend(word: u32, topbit: usize, size: usize) -> u64 {
 ///
 /// return tuple of (result, carry, overflow)
 ///
+#[inline(always)]
 pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
     let unsigned_sum = u64::from(x) + u64::from(y) + u64::from(carry_in);
     let result = (unsigned_sum & 0xffff_ffff) as u32; // same value as signed_sum<N-1:0>
@@ -100,6 +101,7 @@ pub fn add_with_carry(x: u32, y: u32, carry_in: bool) -> (u32, bool, bool) {
 /// • the two Thumb conditional branch encodings, encodings T1 and T3 of the B instruction
 /// • the current values of the xPSR.IT[7:0] bits for other Thumb instructions.
 ///
+#[inline(always)]
 pub fn condition_test(condition: Condition, psr: &PSR) -> bool {
     match condition {
         Condition::EQ => psr.get_z(),
@@ -236,6 +238,7 @@ fn rrx_c(value: u32, carry_in: bool) -> (u32, bool) {
 /// Returns:
 /// - shifted value
 /// - carry out
+#[inline(always)]
 pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u32, bool) {
     assert!(!((shift_t == SRType::RRX) && (amount != 1)));
     if amount == 0 {
@@ -254,6 +257,7 @@ pub fn shift_c(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> (u
 ///
 /// shift value with given shift type, discard carry
 ///
+#[inline(always)]
 pub fn shift(value: u32, shift_t: SRType, amount: usize, carry_in: bool) -> u32 {
     let (result, _) = shift_c(value, shift_t, amount, carry_in);
 

@@ -4,11 +4,10 @@
 
 use crate::MemoryMapConfig;
 use crate::Processor;
+use crate::core::fault::{FaultContext, FaultTrapMode};
 use crate::core::register::BaseReg;
 use crate::core::reset::Reset;
 use crate::executor::Executor;
-use crate::system::simulation::SimulationError;
-
 use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
@@ -42,6 +41,8 @@ pub enum SimulationEvent {
     WatchWrite(u32),
     /// A read watchpoint was hit
     WatchRead(u32),
+    /// Execution stopped because a fault trap was hit.
+    FaultTrap(FaultContext),
     /// Simulation is finalized
     Finalized(u32),
 }
@@ -67,16 +68,22 @@ impl Simulation {
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
         flash_size: usize,
-    ) -> Result<Simulation, SimulationError> {
+        fault_trap_mode: FaultTrapMode,
+    ) -> Result<Simulation, crate::system::simulation::SimulationError> {
         let mut processor = Processor::new();
         processor.semihost(Some(semihost_func));
         processor.memory_map(map);
+        processor.fault_trap_mode(fault_trap_mode);
         processor.flash_memory(flash_size, code);
         processor.cache_instructions();
         processor.running = true;
         match processor.reset() {
             Ok(()) => {}
-            Err(_) => return Err(SimulationError::FaultTrap),
+            Err(fault) => {
+                return Err(crate::system::simulation::SimulationError::from_fault(
+                    &processor, fault,
+                ));
+            }
         }
 
         Ok(Simulation {
@@ -141,10 +148,13 @@ impl Simulation {
     ///
     /// Reset the simulation
     ///
-    pub fn reset(&mut self) -> Result<(), SimulationError> {
+    pub fn reset(&mut self) -> Result<(), crate::system::simulation::SimulationError> {
         match self.processor.reset() {
             Ok(()) => Ok(()),
-            Err(_) => Err(SimulationError::FaultTrap),
+            Err(fault) => Err(crate::system::simulation::SimulationError::from_fault(
+                &self.processor,
+                fault,
+            )),
         }
     }
 
@@ -156,6 +166,9 @@ impl Simulation {
             self.processor.step();
         } else if self.processor.sleeping {
             self.processor.step_sleep();
+        }
+        if let Some(context) = self.processor.take_pending_fault_trap() {
+            return SimulationEvent::FaultTrap(context);
         }
         if self.breakpoints.contains(&self.processor.get_pc()) {
             return SimulationEvent::Break;

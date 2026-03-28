@@ -33,11 +33,87 @@ use std::cmp;
 use std::collections::HashMap;
 use tabwriter::TabWriter;
 use zmu_cortex_m::Processor;
+use zmu_cortex_m::core::fault::FaultTrapMode;
 use zmu_cortex_m::memory::map::MemoryMapConfig;
 
 use zmu_cortex_m::gdb::server::GdbServer;
 use zmu_cortex_m::system::simulation::simulate;
 use zmu_cortex_m::system::simulation::simulate_trace;
+
+#[cfg(feature = "armv6m")]
+const FAULT_TRAP_TARGETS: &[&str] = &["hardfault", "all"];
+
+#[cfg(not(feature = "armv6m"))]
+const FAULT_TRAP_TARGETS: &[&str] = &["hardfault", "memmanage", "busfault", "usagefault", "all"];
+
+#[cfg(feature = "armv6m")]
+const FAULT_TRAP_HELP: &str = "Enable trapping for a target: hardfault, all";
+
+#[cfg(not(feature = "armv6m"))]
+const FAULT_TRAP_HELP: &str =
+    "Enable trapping for a target: hardfault, memmanage, busfault, usagefault, all";
+
+#[cfg(feature = "armv6m")]
+const FAULT_NO_TRAP_HELP: &str =
+    "Disable trapping for a target: hardfault, all. Lockup still traps.";
+
+#[cfg(not(feature = "armv6m"))]
+const FAULT_NO_TRAP_HELP: &str = "Disable trapping for a target: hardfault, memmanage, busfault, usagefault, all. Lockup still traps.";
+
+fn parse_fault_trap_target(
+    target: &str,
+) -> anyhow::Result<Vec<zmu_cortex_m::core::exception::Exception>> {
+    use zmu_cortex_m::core::exception::Exception;
+
+    #[cfg(feature = "armv6m")]
+    let targets = match target {
+        "all" | "hardfault" => vec![Exception::HardFault],
+        _ => anyhow::bail!("unsupported trap target for armv6m build: {target}"),
+    };
+
+    #[cfg(not(feature = "armv6m"))]
+    let targets = match target {
+        "all" => vec![
+            Exception::HardFault,
+            Exception::MemoryManagementFault,
+            Exception::BusFault,
+            Exception::UsageFault,
+        ],
+        "hardfault" => vec![Exception::HardFault],
+        "memmanage" => vec![Exception::MemoryManagementFault],
+        "busfault" => vec![Exception::BusFault],
+        "usagefault" => vec![Exception::UsageFault],
+        _ => anyhow::bail!("unsupported trap target: {target}"),
+    };
+
+    Ok(targets)
+}
+
+fn resolve_fault_trap_mode(run_matches: &ArgMatches) -> anyhow::Result<FaultTrapMode> {
+    let mut mode = FaultTrapMode::default();
+
+    if run_matches.get_flag("fault-trap") {
+        mode = FaultTrapMode::all();
+    }
+
+    if let Some(targets) = run_matches.get_many::<String>("trap") {
+        for target in targets {
+            for exception in parse_fault_trap_target(target)? {
+                mode.set_trap(exception, true);
+            }
+        }
+    }
+
+    if let Some(targets) = run_matches.get_many::<String>("no-trap") {
+        for target in targets {
+            for exception in parse_fault_trap_target(target)? {
+                mode.set_trap(exception, false);
+            }
+        }
+    }
+
+    Ok(mode)
+}
 
 fn run_bin(
     buffer: &[u8],
@@ -45,6 +121,7 @@ fn run_bin(
     option_trace_start: Option<u64>,
     itm_file: Option<Box<dyn io::Write + 'static>>,
     gdb: bool,
+    fault_trap_mode: FaultTrapMode,
 ) -> anyhow::Result<u32> {
     let res = Object::parse(buffer).unwrap();
 
@@ -118,9 +195,10 @@ fn run_bin(
                 None
             },
             flash_size,
+            fault_trap_mode,
         );
 
-        let exit_code = gdb?.start().expect("GDB server failed");
+        let exit_code = gdb?.start()?;
         return Ok(exit_code);
     }
 
@@ -166,6 +244,7 @@ fn run_bin(
                 None
             },
             flash_size,
+            fault_trap_mode,
         )?
     } else {
         debug!("Starting simulation.");
@@ -179,6 +258,7 @@ fn run_bin(
                 None
             },
             flash_size,
+            fault_trap_mode,
         )?
     };
 
@@ -237,6 +317,7 @@ fn run(args: &ArgMatches) -> anyhow::Result<u32> {
                 trace_start,
                 itm_output,
                 run_matches.get_flag("gdb"),
+                resolve_fault_trap_mode(run_matches)?,
             )?
         }
         Some((_, _)) => unreachable!(),
@@ -294,6 +375,29 @@ fn main() {
                         .action(ArgAction::Append),
                 )
                 .arg(
+                    Arg::new("fault-trap")
+                        .action(ArgAction::SetTrue)
+                        .long("fault-trap")
+                        .help("Trap all architecturally visible fault exceptions (HardFault already traps by default; lockup always traps)")
+                        .num_args(0),
+                )
+                .arg(
+                    Arg::new("trap")
+                        .long("trap")
+                        .help(FAULT_TRAP_HELP)
+                        .action(ArgAction::Append)
+                        .value_parser(clap::builder::PossibleValuesParser::new(FAULT_TRAP_TARGETS))
+                        .num_args(1),
+                )
+                .arg(
+                    Arg::new("no-trap")
+                        .long("no-trap")
+                        .help(FAULT_NO_TRAP_HELP)
+                        .action(ArgAction::Append)
+                        .value_parser(clap::builder::PossibleValuesParser::new(FAULT_TRAP_TARGETS))
+                        .num_args(1),
+                )
+                .arg(
                     Arg::new("gdb")
                         .action(ArgAction::SetTrue)
                         .long("gdb")
@@ -317,7 +421,7 @@ fn main() {
             std::process::exit(exit_code as i32);
         }
         Err(ref e) => {
-            error!("error: {:?}", e);
+            error!("{e}");
 
             ::std::process::exit(1);
         }

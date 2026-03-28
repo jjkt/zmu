@@ -4,8 +4,8 @@
 
 use crate::MemoryMapConfig;
 use crate::Processor;
-use crate::core::fault::Fault;
-use crate::core::register::BaseReg;
+use crate::core::fault::{Fault, FaultContext, FaultTrapMode, FaultTrapReason};
+use crate::core::register::{BaseReg, Ipsr, Reg};
 use crate::core::reset::Reset;
 use crate::executor::Executor;
 use crate::semihosting::SemihostingCommand;
@@ -22,8 +22,11 @@ pub enum SimulationError {
     ///
     /// A fault was triggered and escalated to stop the simulation
     ///
-    #[error("A fault was triggered and escalated to stop the simulation")]
-    FaultTrap,
+    #[error("{context}")]
+    FaultTrap {
+        /// Detailed trap context.
+        context: FaultContext,
+    },
 }
 
 ///
@@ -52,9 +55,22 @@ pub struct SimulationStatistics {
     pub exit_code: u32,
 }
 
-impl From<Fault> for SimulationError {
-    fn from(_fault: Fault) -> Self {
-        Self::FaultTrap
+impl SimulationError {
+    pub(crate) fn from_fault(processor: &Processor, fault: Fault) -> Self {
+        let active_exception = match processor.psr.get_isr_number() {
+            0 => None,
+            n => Some(crate::core::exception::Exception::from(n)),
+        };
+
+        Self::FaultTrap {
+            context: FaultContext {
+                trap_reason: FaultTrapReason::Fault,
+                fault,
+                exception: fault.exception(),
+                pc: processor.get_r(Reg::PC),
+                active_exception,
+            },
+        }
     }
 }
 
@@ -67,30 +83,40 @@ pub fn simulate(
     itm_file: Option<Box<dyn io::Write + 'static>>,
     map: Option<MemoryMapConfig>,
     flash_size: usize,
+    fault_trap_mode: FaultTrapMode,
 ) -> Result<SimulationStatistics, SimulationError> {
     let mut processor = Processor::new();
 
     processor.itm(itm_file);
     processor.semihost(Some(semihost_func));
     processor.memory_map(map);
+    processor.fault_trap_mode(fault_trap_mode);
     processor.flash_memory(flash_size, code);
     //processor.ram_memory(ram_size);
 
     processor.cache_instructions();
 
     let start = Instant::now();
-    processor.reset()?;
+    processor
+        .reset()
+        .map_err(|fault| SimulationError::from_fault(&processor, fault))?;
     processor.running = true;
 
     while processor.running {
         while !processor.sleeping && processor.running {
             //running, !sleeping
             processor.step();
+            if let Some(context) = processor.take_pending_fault_trap() {
+                return Err(SimulationError::FaultTrap { context });
+            }
         }
 
         while processor.sleeping && processor.running {
             //running, sleeping
             processor.step_sleep();
+            if let Some(context) = processor.take_pending_fault_trap() {
+                return Err(SimulationError::FaultTrap { context });
+            }
         }
     }
     let end = Instant::now();
@@ -113,6 +139,7 @@ pub fn simulate_trace<F>(
     itm_file: Option<Box<dyn io::Write + 'static>>,
     map: Option<MemoryMapConfig>,
     flash_size: usize,
+    fault_trap_mode: FaultTrapMode,
 ) -> Result<SimulationStatistics, SimulationError>
 where
     F: FnMut(&Processor),
@@ -121,12 +148,15 @@ where
     processor.itm(itm_file);
     processor.semihost(Some(semihost_func));
     processor.memory_map(map);
+    processor.fault_trap_mode(fault_trap_mode);
     processor.flash_memory(flash_size, code);
     processor.cache_instructions();
 
     let start = Instant::now();
 
-    processor.reset().unwrap();
+    processor
+        .reset()
+        .map_err(|fault| SimulationError::from_fault(&processor, fault))?;
     processor.running = true;
 
     while processor.running {
@@ -135,11 +165,17 @@ where
             processor.last_pc = processor.get_pc();
             processor.step();
             trace_func(&processor);
+            if let Some(context) = processor.take_pending_fault_trap() {
+                return Err(SimulationError::FaultTrap { context });
+            }
         }
         processor.last_pc = processor.get_pc();
         while processor.sleeping && processor.running {
             //running, sleeping
             processor.step_sleep();
+            if let Some(context) = processor.take_pending_fault_trap() {
+                return Err(SimulationError::FaultTrap { context });
+            }
         }
     }
 

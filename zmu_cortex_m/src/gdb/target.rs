@@ -9,6 +9,7 @@ use log::debug;
 
 use crate::MemoryMapConfig;
 use crate::bus::Bus;
+use crate::core::fault::FaultTrapMode;
 use crate::gdb::simulation;
 
 use gdbstub::target::ext::base::singlethread::SingleThreadBase;
@@ -38,11 +39,11 @@ impl ZmuTarget {
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
         flash_size: usize,
-    ) -> ZmuTarget {
-        let simulation = simulation::Simulation::new(code, semihost_func, map, flash_size);
-        ZmuTarget {
-            simulation: simulation.unwrap(),
-        }
+        fault_trap_mode: FaultTrapMode,
+    ) -> Result<ZmuTarget, crate::system::simulation::SimulationError> {
+        let simulation =
+            simulation::Simulation::new(code, semihost_func, map, flash_size, fault_trap_mode)?;
+        Ok(ZmuTarget { simulation })
     }
 
     pub fn run(&mut self, poll_incomming_data: impl FnMut() -> bool) -> SimulationRunEvent {

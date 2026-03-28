@@ -14,11 +14,6 @@ pub trait Fetch {
     /// Fetch instruction from current PC (Program Counter) position,
     /// decoding the possible thumb32 variant
     fn fetch(&self, pc: u32) -> Result<ThumbCode, Fault>;
-
-    /// Fetch instruction from current PC (Program Counter) position,
-    /// decoding the possible thumb32 variant. Do not fail on
-    /// out of bounds access, just return undefined instruction.
-    fn fetch_non_fail(&self, pc: u32) -> ThumbCode;
 }
 
 impl Fetch for Processor {
@@ -26,10 +21,10 @@ impl Fetch for Processor {
     // PC location. Depending on instruction type, fetches
     // one or two half-words.
     fn fetch(&self, pc: u32) -> Result<ThumbCode, Fault> {
-        let hw = self.read16(pc)?;
+        let hw = self.read16(pc).map_err(Fault::on_instruction_fetch)?;
 
         if is_thumb32(hw) {
-            let hw2 = self.read16(pc + 2)?;
+            let hw2 = self.read16(pc + 2).map_err(Fault::on_instruction_fetch)?;
             Ok(ThumbCode::Thumb32 {
                 opcode: (u32::from(hw) << 16) + u32::from(hw2),
             })
@@ -37,23 +32,16 @@ impl Fetch for Processor {
             Ok(ThumbCode::Thumb16 { opcode: hw })
         }
     }
+}
 
-    fn fetch_non_fail(&self, pc: u32) -> ThumbCode {
-        match self.read16(pc) {
-            Ok(hw) => {
-                if is_thumb32(hw) {
-                    if let Ok(hw2) = self.read16(pc + 2) {
-                        ThumbCode::Thumb32 {
-                            opcode: (u32::from(hw) << 16) + u32::from(hw2),
-                        }
-                    } else {
-                        ThumbCode::Undefined
-                    }
-                } else {
-                    ThumbCode::Thumb16 { opcode: hw }
-                }
-            }
-            Err(_) => ThumbCode::Undefined,
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fetch_maps_unmapped_read_to_instruction_access_fault() {
+        let processor = Processor::new();
+
+        assert_eq!(processor.fetch(0x6000_0000), Err(Fault::IAccViol));
     }
 }

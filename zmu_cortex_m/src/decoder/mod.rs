@@ -332,7 +332,7 @@ fn decode_undefined(opcode: u16) -> Instruction {
     Instruction::UDF {
         imm32: 0,
         opcode: opcode.into(),
-        thumb32: true,
+        thumb32: false,
     }
 }
 

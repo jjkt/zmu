@@ -46,8 +46,19 @@ pub trait Bus {
 }
 
 impl Bus for Processor {
+    #[inline(always)]
     fn read8(&self, bus_addr: u32) -> Result<u8, Fault> {
         let addr = self.map_address(bus_addr);
+
+        if self.sram.in_range(addr) {
+            return self.sram.read8(addr);
+        }
+        if self.code.in_range(addr) {
+            return self.code.read8(addr);
+        }
+        if self.device.in_range(addr) {
+            return self.device.read8(addr);
+        }
 
         let result = match addr {
             0xE000_E400..=0xE000_E5EC => {
@@ -59,24 +70,25 @@ impl Bus for Processor {
             0xE000_ED1C..=0xE000_ED1F => self.read_shpr2_u8((addr - 0xE000_ED1C) as usize),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => self.read_shpr3_u8((addr - 0xE000_ED20) as usize),
-
-            _ => {
-                if self.sram.in_range(addr) {
-                    return self.sram.read8(addr);
-                } else if self.code.in_range(addr) {
-                    return self.code.read8(addr);
-                } else if self.device.in_range(addr) {
-                    return self.device.read8(addr);
-                } else {
-                    return Err(Fault::DAccViol);
-                }
-            }
+            _ => return Err(Fault::DAccViol),
         };
         Ok(result)
     }
 
+    #[inline(always)]
     fn read16(&self, bus_addr: u32) -> Result<u16, Fault> {
         let addr = self.map_address(bus_addr);
+
+        if self.sram.in_range(addr) {
+            return self.sram.read16(addr);
+        }
+        if self.code.in_range(addr) {
+            return self.code.read16(addr);
+        }
+        if self.device.in_range(addr) {
+            return self.device.read16(addr);
+        }
+
         match addr {
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18..=0xE000_ED1B => {
@@ -93,23 +105,23 @@ impl Bus for Processor {
             0xE000_E400..=0xE000_E5EC => {
                 Ok(self.nvic_read_ipr_u16(((addr - 0xE000_E400) >> 1) as usize))
             }
-
-            _ => {
-                if self.sram.in_range(addr) {
-                    self.sram.read16(addr)
-                } else if self.code.in_range(addr) {
-                    self.code.read16(addr)
-                } else if self.device.in_range(addr) {
-                    self.device.read16(addr)
-                } else {
-                    Err(Fault::DAccViol)
-                }
-            }
+            _ => Err(Fault::DAccViol),
         }
     }
 
+    #[inline(always)]
     fn read32(&mut self, bus_addr: u32) -> Result<u32, Fault> {
         let addr = self.map_address(bus_addr);
+
+        if self.sram.in_range(addr) {
+            return self.sram.read32(addr);
+        }
+        if self.code.in_range(addr) {
+            return self.code.read32(addr);
+        }
+        if self.device.in_range(addr) {
+            return self.device.read32(addr);
+        }
 
         let result = match addr {
             0xE000_0000 => self.read_stim0(),
@@ -163,22 +175,25 @@ impl Bus for Processor {
 
             // DWT
             0xE000_1000 => self.dwt_ctrl,
-            _ => {
-                if self.sram.in_range(addr) {
-                    self.sram.read32(addr)?
-                } else if self.code.in_range(addr) {
-                    self.code.read32(addr)?
-                } else if self.device.in_range(addr) {
-                    self.device.read32(addr)?
-                } else {
-                    return Err(Fault::DAccViol);
-                }
-            }
+            _ => return Err(Fault::DAccViol),
         };
         Ok(result)
     }
 
-    fn write32(&mut self, addr: u32, value: u32) -> Result<(), Fault> {
+    #[inline(always)]
+    fn write32(&mut self, bus_addr: u32, value: u32) -> Result<(), Fault> {
+        let addr = self.map_address(bus_addr);
+
+        if self.sram.in_range(addr) {
+            return self.sram.write32(addr, value);
+        }
+        if self.code.in_range(addr) {
+            return self.code.write32(addr, value);
+        }
+        if self.device.in_range(addr) {
+            return self.device.write32(addr, value);
+        }
+
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u32(((addr - 0xE000_0000) >> 2) as u8, value);
@@ -222,22 +237,25 @@ impl Bus for Processor {
 
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_EF00 => self.write_stir(value),
-            _ => {
-                if self.sram.in_range(addr) {
-                    return self.sram.write32(addr, value);
-                } else if self.code.in_range(addr) {
-                    return self.code.write32(addr, value);
-                } else if self.device.in_range(addr) {
-                    return self.device.write32(addr, value);
-                } else {
-                    return Err(Fault::DAccViol);
-                }
-            }
+            _ => return Err(Fault::DAccViol),
         }
         Ok(())
     }
 
-    fn write16(&mut self, addr: u32, value: u16) -> Result<(), Fault> {
+    #[inline(always)]
+    fn write16(&mut self, bus_addr: u32, value: u16) -> Result<(), Fault> {
+        let addr = self.map_address(bus_addr);
+
+        if self.sram.in_range(addr) {
+            return self.sram.write16(addr, value);
+        }
+        if self.code.in_range(addr) {
+            return self.code.write16(addr, value);
+        }
+        if self.device.in_range(addr) {
+            return self.device.write16(addr, value);
+        }
+
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u16(((addr - 0xE000_0000) >> 2) as u8, value);
@@ -257,22 +275,25 @@ impl Bus for Processor {
             0xE000_E400..=0xE000_E5EC => {
                 self.nvic_write_ipr_u16(((addr - 0xE000_E400) >> 1) as usize, value);
             }
-            _ => {
-                if self.sram.in_range(addr) {
-                    return self.sram.write16(addr, value);
-                } else if self.code.in_range(addr) {
-                    return self.code.write16(addr, value);
-                } else if self.device.in_range(addr) {
-                    return self.device.write16(addr, value);
-                } else {
-                    return Err(Fault::DAccViol);
-                }
-            }
+            _ => return Err(Fault::DAccViol),
         }
         Ok(())
     }
 
-    fn write8(&mut self, addr: u32, value: u8) -> Result<(), Fault> {
+    #[inline(always)]
+    fn write8(&mut self, bus_addr: u32, value: u8) -> Result<(), Fault> {
+        let addr = self.map_address(bus_addr);
+
+        if self.sram.in_range(addr) {
+            return self.sram.write8(addr, value);
+        }
+        if self.code.in_range(addr) {
+            return self.code.write8(addr, value);
+        }
+        if self.device.in_range(addr) {
+            return self.device.write8(addr, value);
+        }
+
         match addr {
             0xE000_0000..=0xE000_007C => {
                 self.write_stim_u8(((addr - 0xE000_0000) >> 2) as u8, value);
@@ -286,18 +307,7 @@ impl Bus for Processor {
             0xE000_ED1C..=0xE000_ED1F => self.write_shpr2_u8((addr - 0xE000_ED1C) as usize, value),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20..=0xE000_ED23 => self.write_shpr3_u8((addr - 0xE000_ED20) as usize, value),
-
-            _ => {
-                if self.sram.in_range(addr) {
-                    return self.sram.write8(addr, value);
-                } else if self.code.in_range(addr) {
-                    return self.code.write8(addr, value);
-                } else if self.device.in_range(addr) {
-                    return self.device.write8(addr, value);
-                } else {
-                    return Err(Fault::DAccViol);
-                }
-            }
+            _ => return Err(Fault::DAccViol),
         }
         Ok(())
     }

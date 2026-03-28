@@ -34,32 +34,39 @@ impl FlashMemory {
 }
 
 impl Bus for FlashMemory {
+    #[inline(always)]
     fn read8(&self, addr: u32) -> Result<u8, Fault> {
         let a = addr as usize;
         Ok(self.data[a])
     }
+    #[inline(always)]
     fn read16(&self, addr: u32) -> Result<u16, Fault> {
         let a = addr as usize;
 
         Ok(LittleEndian::read_u16(&self.data[a..a + 2]))
     }
 
+    #[inline(always)]
     fn read32(&mut self, addr: u32) -> Result<u32, Fault> {
         let a = addr as usize;
         Ok(LittleEndian::read_u32(&self.data[a..a + 4]))
     }
 
+    #[inline(always)]
     fn write32(&mut self, _addr: u32, _value: u32) -> Result<(), Fault> {
         Err(Fault::DAccViol)
     }
 
+    #[inline(always)]
     fn write16(&mut self, _addr: u32, _value: u16) -> Result<(), Fault> {
         Err(Fault::DAccViol)
     }
+    #[inline(always)]
     fn write8(&mut self, _addr: u32, _value: u8) -> Result<(), Fault> {
         Err(Fault::DAccViol)
     }
 
+    #[inline(always)]
     fn in_range(&self, addr: u32) -> bool {
         addr < (self.data.len() as u32)
     }

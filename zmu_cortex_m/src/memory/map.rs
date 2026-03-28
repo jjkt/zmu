@@ -52,6 +52,7 @@ impl MapMemory for MemoryMapConfig {
 }
 
 impl MapMemory for Processor {
+    #[inline(always)]
     fn map_address(&self, address: u32) -> u32 {
         if let Some(map) = &self.mem_map {
             map.map_address(address)

@@ -1,9 +1,6 @@
 # TODO
 
 ## ARM Cortex Core behavior
-- [ ] Make `Instruction::UDF` return `Err(Fault::UndefInstr)` instead of `todo!()`
-- [ ] Handle exception-entry, vector-fetch, and stack faults without panicking on `expect(...)`
-- [ ] Map exec, fetch, and access failures to `UsageFault`, `BusFault`, or `MemoryManagementFault` instead of always using `HardFault` in `Executor::execute()`
 - [ ] Update SCB fault status bits and registers: `CFSR`, `HFSR`, `SHCSR`, `MMFAR`, `BFAR`
 - [ ] Implement fault escalation rules, including `HFSR.FORCED`
 - [ ] Set `INVPC`, `INVSTATE`, and other usage-fault bits on bad exception return and state violations
@@ -17,9 +14,7 @@
 - [ ] Implement `AIRCR` write semantics: `VECTKEY`, `PRIGROUP`, and reset bits
 - [ ] Wire endianness reporting to `AIRCR.ENDIANNESS` and core support rules
 - [ ] Define invalid-width behavior for `UBFX` and `SBFX`
-- [ ] Add `zmu run --fault-trap`
-- [ ] Thread fault-trap mode through `run_bin()`, `simulate()`, `simulate_trace()`, and GDB simulation
-- [ ] Report fault details (`Fault`, PC, active exception) instead of only `SimulationError::FaultTrap`
+- [ ] Implement more semihosting commands beyond the current console and `:semihosting-features` subset
 - [ ] Handle unknown semihosting commands
 
 ## Platform and memory
@@ -257,6 +252,7 @@
 - [ ] Use Rusty Clock or another real project to drive crude hardware simulation through peripherals
 
 ## Trace
+- [ ] Model ITM enable and control flow (`DEMCR.TRCENA`, `ITM.TCR`, `ITM.TER`, `ITM.LAR`) instead of only raw stimulus-port writes
 - [ ] Option to Show "register deltas only"
   - [ ] Print only changed registers
 - [ ] Memory / Bus access trace

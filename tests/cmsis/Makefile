@@ -15,6 +15,7 @@ CFLAGS_LIB := -Wsign-compare \
  -Ofast -ffast-math \
  -DNDEBUG \
  -std=c11 \
+ -mthumb \
  -mfp16-format=ieee \
  -Wall -Wextra -Werror \
  -fshort-enums

@@ -26,7 +26,7 @@ impl Reset for Processor {
 
         // Main stack pointer is read via vector table
         let vtor = self.vtor;
-        let sp = self.read32(vtor)? & 0xffff_fffc;
+        let sp = self.read32(vtor).map_err(Fault::on_vector_read)? & 0xffff_fffc;
         self.set_msp(sp);
 
         // Process stack pointer to zero
@@ -58,7 +58,7 @@ impl Reset for Processor {
         self.itstate = 0;
         self.execution_priority = self.get_execution_priority();
 
-        let reset_vector = self.read32(vtor + 4)?;
+        let reset_vector = self.read32(vtor + 4).map_err(Fault::on_vector_read)?;
         self.blx_write_pc(reset_vector);
         Ok(())
     }

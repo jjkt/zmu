@@ -27,6 +27,7 @@ cp -f tests/coremark/core_portme.c tests/coremark/coremark/zmu/
 cp -f tests/coremark/core_portme.h tests/coremark/coremark/zmu/
 cp -f tests/coremark/core_portme.mak tests/coremark/coremark/zmu/
 cp -f tests/coremark/link.ld tests/coremark/coremark/zmu/
+cp -f tests/common.ld tests/coremark/common.ld
 
 cd tests/coremark/coremark
 

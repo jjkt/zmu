@@ -11,6 +11,11 @@ echo "building..."
 ./test_gcc.sh
 
 ##
+## Fault trap matrix
+##
+./test_faults.sh
+
+##
 ## Coremark
 ##
 ./test_coremark.sh
