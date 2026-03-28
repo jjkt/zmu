@@ -30,7 +30,7 @@ pub fn decode_VSTM_t1(opcode: u32) -> Instruction {
         };
     }
 
-    #[cfg(feature = "VFPSmallRegisterBank")]
+    #[cfg(feature = "vfp-register-bank-d16")]
     {
         if (d + regs) > 16 {
             return Instruction::UDF {

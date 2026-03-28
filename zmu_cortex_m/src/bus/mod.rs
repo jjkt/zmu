@@ -153,22 +153,36 @@ impl Bus for Processor {
             0xE000_ED1C => self.read_shpr2(),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20 => self.read_shpr3(),
-            0xE000_ED24 => self.shcsr,
+            #[cfg(not(feature = "armv6m"))]
+            0xE000_ED24 => self.read_shcsr(),
+            #[cfg(not(feature = "armv6m"))]
             0xE000_ED28 => self.cfsr,
+            #[cfg(not(feature = "armv6m"))]
             0xE000_ED2C => self.hfsr,
+            #[cfg(not(feature = "armv6m"))]
             0xE000_ED30 => self.dfsr,
+            #[cfg(not(feature = "armv6m"))]
             0xE000_ED34 => self.mmfar,
+            #[cfg(not(feature = "armv6m"))]
             0xE000_ED38 => self.bfar,
+            #[cfg(not(feature = "armv6m"))]
             0xE000_ED3C => self.afsr,
 
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_ED88 => self.cpacr,
 
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_EF34 => self.fpccr,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_EF38 => self.fpcar,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_EF3C => self.fpdscr,
 
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_EF40 => self.mvfr0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_EF44 => self.mvfr1,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             0xE000_EF48 => self.mvfr2,
 
             0xE000_EDFC => self.read_demcr(),
@@ -207,6 +221,12 @@ impl Bus for Processor {
             0xE000_ED04 => self.write_icsr(value),
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED10 => self.write_scr(value),
+            #[cfg(not(feature = "armv6m"))]
+            0xE000_ED24 => self.write_shcsr(value),
+            #[cfg(not(feature = "armv6m"))]
+            0xE000_ED28 => self.write_cfsr(value),
+            #[cfg(not(feature = "armv6m"))]
+            0xE000_ED2C => self.write_hfsr(value),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED18 => self.write_shpr1(value),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
@@ -315,5 +335,100 @@ impl Bus for Processor {
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
         self.code.in_range(addr) || self.sram.in_range(addr) || self.device.in_range(addr)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Bus;
+    use crate::Processor;
+    #[cfg(all(
+        any(feature = "armv6m", feature = "armv7m", feature = "armv7em"),
+        not(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))
+    ))]
+    use crate::core::fault::Fault;
+
+    #[test]
+    #[cfg(feature = "armv6m")]
+    fn test_armv6m_rejects_v7_fault_status_registers() {
+        let mut processor = Processor::new();
+
+        for address in [
+            0xE000_ED24,
+            0xE000_ED28,
+            0xE000_ED2C,
+            0xE000_ED30,
+            0xE000_ED34,
+            0xE000_ED38,
+            0xE000_ED3C,
+        ] {
+            assert_eq!(processor.read32(address), Err(Fault::DAccViol));
+            assert_eq!(processor.write32(address, 0), Err(Fault::DAccViol));
+        }
+    }
+
+    #[test]
+    #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+    fn test_armv7_profiles_expose_fault_status_registers() {
+        let mut processor = Processor::new();
+
+        processor.shcsr = 0x1234_0008;
+        processor.cfsr = 0x0103_9187;
+        processor.hfsr = 0x4000_0002;
+        processor.dfsr = 0x0000_001f;
+        processor.mmfar = 0x2000_1234;
+        processor.bfar = 0x4000_5678;
+        processor.afsr = 0x89ab_cdef;
+
+        assert_eq!(processor.read32(0xE000_ED24), Ok(0x1234_0008));
+        assert_eq!(processor.read32(0xE000_ED28), Ok(0x0103_9187));
+        assert_eq!(processor.read32(0xE000_ED2C), Ok(0x4000_0002));
+        assert_eq!(processor.read32(0xE000_ED30), Ok(0x0000_001f));
+        assert_eq!(processor.read32(0xE000_ED34), Ok(0x2000_1234));
+        assert_eq!(processor.read32(0xE000_ED38), Ok(0x4000_5678));
+        assert_eq!(processor.read32(0xE000_ED3C), Ok(0x89ab_cdef));
+    }
+
+    #[test]
+    #[cfg(all(
+        any(feature = "armv7m", feature = "armv7em"),
+        not(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))
+    ))]
+    fn test_non_vfp_profiles_reject_fp_system_registers() {
+        let mut processor = Processor::new();
+
+        for address in [
+            0xE000_ED88,
+            0xE000_EF34,
+            0xE000_EF38,
+            0xE000_EF3C,
+            0xE000_EF40,
+            0xE000_EF44,
+            0xE000_EF48,
+        ] {
+            assert_eq!(processor.read32(address), Err(Fault::DAccViol));
+        }
+    }
+
+    #[test]
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    fn test_vfp_profile_exposes_fp_system_registers() {
+        let mut processor = Processor::new();
+
+        processor.cpacr = 0x00f0_0000;
+        processor.fpccr = 0xc000_0039;
+        processor.fpcar = 0x2000_0100;
+        processor.fpdscr = 0x00ab_0000;
+        processor.mvfr0 = 0x1011_0021;
+        processor.mvfr1 = 0x1100_0011;
+        processor.mvfr2 = 0x0000_0040;
+
+        assert_eq!(processor.read32(0xE000_ED88), Ok(0x00f0_0000));
+        assert_eq!(processor.read32(0xE000_EF34), Ok(0xc000_0039));
+        assert_eq!(processor.read32(0xE000_EF38), Ok(0x2000_0100));
+        assert_eq!(processor.read32(0xE000_EF3C), Ok(0x00ab_0000));
+        assert_eq!(processor.read32(0xE000_EF40), Ok(0x1011_0021));
+        assert_eq!(processor.read32(0xE000_EF44), Ok(0x1100_0011));
+        assert_eq!(processor.read32(0xE000_EF48), Ok(0x0000_0040));
     }
 }

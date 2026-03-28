@@ -233,6 +233,7 @@ impl ExceptionHandlingHelpers for Processor {
         self.mode = ProcessorMode::HandlerMode;
         self.psr.set_isr_number(exception.into());
         self.exceptions.get_mut(&exception.into()).unwrap().active = true;
+        self.set_shcsr_exception_active(exception, true);
 
         self.execution_priority = self.get_execution_priority();
 
@@ -246,10 +247,13 @@ impl ExceptionHandlingHelpers for Processor {
     }
 
     fn deactivate(&mut self, returning_exception_number: usize) {
+        let exception = Exception::from(returning_exception_number);
+
         self.exceptions
             .get_mut(&returning_exception_number)
             .unwrap()
             .active = false;
+        self.set_shcsr_exception_active(exception, false);
 
         #[cfg(not(feature = "armv6m"))]
         {
@@ -391,6 +395,10 @@ impl ExceptionHandlingHelpers for Processor {
 
 impl ExceptionHandling for Processor {
     fn exceptions_reset(&mut self) {
+        self.set_shcsr_exception_active(Exception::MemoryManagementFault, false);
+        self.set_shcsr_exception_active(Exception::BusFault, false);
+        self.set_shcsr_exception_active(Exception::UsageFault, false);
+
         for exception in self.exceptions.values_mut() {
             exception.pending = false;
             exception.active = false;
@@ -561,6 +569,7 @@ impl ExceptionHandling for Processor {
                     0 => None,
                     n => Some(Exception::from(n)),
                 };
+                self.record_fault_status(fault, crate::core::fault::FaultStatusContext::default());
                 let trap_reason = if mapped_exception == Exception::HardFault
                     && matches!(
                         active_exception,
@@ -637,9 +646,14 @@ mod tests {
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
     #[cfg(not(feature = "armv6m"))]
+    use crate::core::fault::Fault;
+    #[cfg(not(feature = "armv6m"))]
     use crate::core::instruction::Instruction;
     #[cfg(not(feature = "armv6m"))]
     use crate::executor::Executor;
+
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_MSTKERR: u32 = 1 << 4;
 
     #[test]
     fn test_push_stack() {
@@ -795,6 +809,25 @@ mod tests {
 
         // Assert
         assert_eq!(processor.nvic_read_ispr(0), 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_check_exceptions_latches_mstkerr_for_exception_entry_stack_fault() {
+        let mut processor = Processor::new();
+
+        processor.reset().unwrap();
+        processor.set_msp(0);
+        processor.set_exception_pending(Exception::SysTick);
+
+        processor.check_exceptions();
+
+        let trap = processor
+            .take_pending_fault_trap()
+            .expect("fault trap expected");
+        assert_eq!(trap.fault, Fault::Mstkerr);
+        assert_eq!(trap.exception, Exception::MemoryManagementFault);
+        assert_eq!(processor.cfsr, CFSR_MSTKERR);
     }
 
     #[test]

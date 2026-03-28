@@ -129,6 +129,22 @@ pub struct FaultTrapMode {
     trap_usagefault: bool,
 }
 
+#[derive(PartialEq, Eq, Debug, Copy, Clone, Default)]
+/// Additional metadata used when latching SCB fault status registers.
+pub struct FaultStatusContext {
+    /// Faulting access address when the architecture defines it as valid.
+    pub fault_address: Option<u32>,
+}
+
+impl FaultStatusContext {
+    /// Create status context with a faulting access address.
+    pub const fn with_fault_address(fault_address: u32) -> Self {
+        Self {
+            fault_address: Some(fault_address),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Copy, Clone)]
 /// Information about a trapped fault.
 pub struct FaultContext {

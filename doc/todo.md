@@ -1,7 +1,6 @@
 # TODO
 
 ## ARM Cortex Core behavior
-- [ ] Update SCB fault status bits and registers: `CFSR`, `HFSR`, `SHCSR`, `MMFAR`, `BFAR`
 - [ ] Implement fault escalation rules, including `HFSR.FORCED`
 - [ ] Set `INVPC`, `INVSTATE`, and other usage-fault bits on bad exception return and state violations
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
@@ -12,7 +11,9 @@
 - [ ] Enforce `MSR CONTROL` privilege and mode rules
 - [ ] Model full `CONTROL` on FP cores, including `FPCA`
 - [ ] Implement `AIRCR` write semantics: `VECTKEY`, `PRIGROUP`, and reset bits
+- [ ] Replace overloaded architecture buckets with product-oriented Cortex-M profiles and explicit ARM catalogue capabilities so binaries map to products like Cortex-M0, Cortex-M3, Cortex-M4, Cortex-M4F, Cortex-M7 FPv5-SP-D16, or Cortex-M7 FPv5-D16, and so core-visible behavior such as endianness support, system-register exposure, reset defaults, and FP capabilities follows the selected product
 - [ ] Wire endianness reporting to `AIRCR.ENDIANNESS` and core support rules
+- [ ] Audit and model remaining visible SCB reset defaults per core variant, including `CPUID`, `ICSR`, `AIRCR`, `SCR`, `CCR`, `ICTR`, and `ACTLR`
 - [ ] Define invalid-width behavior for `UBFX` and `SBFX`
 - [ ] Implement more semihosting commands beyond the current console and `:semihosting-features` subset
 - [ ] Handle unknown semihosting commands
@@ -248,6 +249,8 @@
 
 ## Tests and tooling
 - [ ] Add more unit tests
+- [ ] Extend `fault-test-bench` SCB coverage to end-to-end readback and clear semantics such as `INVPC`, `CFSR` W1C, and `HFSR` W1C
+- [ ] Make integration scripts rebuild or recopy feature-specific release binaries before invoking `target/release/zmu-armv*` so plain `cargo build --release` cannot leave stale test executables behind
 - [ ] Fill in missing instruction formatting
 - [ ] Use Rusty Clock or another real project to drive crude hardware simulation through peripherals
 

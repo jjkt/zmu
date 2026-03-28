@@ -42,7 +42,7 @@ pub mod system;
 use crate::core::instruction::instruction_size;
 
 use crate::core::exception::Exception;
-use crate::core::fault::{Fault, FaultContext, FaultTrapMode};
+use crate::core::fault::{Fault, FaultContext, FaultStatusContext, FaultTrapMode};
 use crate::core::fetch::Fetch;
 use crate::core::instruction::Instruction;
 use crate::core::register::{Apsr, BaseReg, Control, PSR, Reg};
@@ -84,6 +84,7 @@ enum CachedInstruction {
     },
     FetchFault {
         fault: Fault,
+        status: FaultStatusContext,
     },
 }
 ///
@@ -187,15 +188,22 @@ pub struct Processor {
     pub mmfar: u32,
     pub bfar: u32,
     pub afsr: u32,
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub cpacr: u32,
 
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub fpccr: u32,
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub fpcar: u32,
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub fpdscr: u32,
     pub fpscr: u32,
 
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub mvfr0: u32,
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub mvfr1: u32,
+    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
     pub mvfr2: u32,
 
     pub ictr: u32,
@@ -225,6 +233,7 @@ pub struct Processor {
 
     fault_trap_mode: FaultTrapMode,
     pending_fault_trap: Option<FaultContext>,
+    pending_fault_status: Option<FaultStatusContext>,
 
     pub last_pc: u32,
 
@@ -345,14 +354,21 @@ impl Processor {
             mmfar: 0,
             bfar: 0,
             afsr: 0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             cpacr: 0,
 
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             fpccr: 0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             fpcar: 0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             fpdscr: 0,
             fpscr: 0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             mvfr0: 0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             mvfr1: 0,
+            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
             mvfr2: 0,
 
             ictr: 0,
@@ -369,6 +385,7 @@ impl Processor {
             instruction_cache: Vec::new(),
             fault_trap_mode: FaultTrapMode::hardfault(),
             pending_fault_trap: None,
+            pending_fault_status: None,
             last_pc: 0,
             mem_map: None,
             device: Device::new(),
@@ -415,6 +432,15 @@ impl Processor {
         self.pending_fault_trap.take()
     }
 
+    pub(crate) fn fault_with_status(&mut self, fault: Fault, status: FaultStatusContext) -> Fault {
+        self.pending_fault_status = Some(status);
+        fault
+    }
+
+    pub(crate) fn take_pending_fault_status(&mut self) -> FaultStatusContext {
+        self.pending_fault_status.take().unwrap_or_default()
+    }
+
     ///
     /// Pre cache (decode) instructions to speed up simulation
     ///
@@ -433,8 +459,9 @@ impl Processor {
                         });
                     }
                     Err(fault) => {
+                        let status = self.take_pending_fault_status();
                         self.instruction_cache
-                            .push(CachedInstruction::FetchFault { fault });
+                            .push(CachedInstruction::FetchFault { fault, status });
                     }
                 }
                 pc += 2;

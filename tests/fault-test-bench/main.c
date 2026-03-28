@@ -18,6 +18,15 @@ lockup handling.
 #define FAULT_CASE FAULT_CASE_USAGE
 #endif
 
+#define SCB_SHCSR (*(volatile uint32_t *)0xE000ED24u)
+#define SCB_CFSR  (*(volatile uint32_t *)0xE000ED28u)
+#define SCB_MMFAR (*(volatile uint32_t *)0xE000ED34u)
+
+#define SHCSR_MEMFAULTACT (1u << 0)
+#define SHCSR_USGFAULTACT (1u << 3)
+#define SHCSR_MEMFAULTENA (1u << 16)
+#define SHCSR_USGFAULTENA (1u << 18)
+
 static volatile uint32_t fault_marker;
 static volatile uint32_t fault_stage;
 
@@ -68,18 +77,36 @@ __attribute__((noreturn)) static void trigger_selected_fault(void)
 #endif
 }
 
+static void enable_selected_fault_handler(void)
+{
+#if __ARM_ARCH >= 7
+#if FAULT_CASE == FAULT_CASE_USAGE
+    SCB_SHCSR |= SHCSR_USGFAULTENA;
+#elif FAULT_CASE == FAULT_CASE_MEMMANAGE
+    SCB_SHCSR |= SHCSR_MEMFAULTENA;
+#endif
+#endif
+}
+
 #if __ARM_ARCH >= 7
 void UsageFault_Handler(void)
 {
     fault_marker = 0x55534654u; /* 'USFT' */
-    printf("UsageFault_Handler marker=0x%08lx\n", (unsigned long)fault_marker);
+    printf("UsageFault_Handler marker=0x%08lx cfsr=0x%08lx shcsr=0x%08lx\n",
+           (unsigned long)fault_marker,
+           (unsigned long)SCB_CFSR,
+           (unsigned long)SCB_SHCSR);
     exit(0);
 }
 
 void MemManage_Handler(void)
 {
     fault_marker = 0x4d4d4654u; /* 'MMFT' */
-    printf("MemManage_Handler marker=0x%08lx\n", (unsigned long)fault_marker);
+    printf("MemManage_Handler marker=0x%08lx cfsr=0x%08lx mmfar=0x%08lx shcsr=0x%08lx\n",
+           (unsigned long)fault_marker,
+           (unsigned long)SCB_CFSR,
+           (unsigned long)SCB_MMFAR,
+           (unsigned long)SCB_SHCSR);
     exit(0);
 }
 
@@ -117,6 +144,7 @@ int main(void)
     printf("fault-test: case=%s arch=%d\n", fault_case_name(), __ARM_ARCH);
     fflush(stdout);
 
+    enable_selected_fault_handler();
     trigger_selected_fault();
 }
 

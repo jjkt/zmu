@@ -4,7 +4,6 @@ use pad::PadStr;
 use std::collections::HashMap;
 use zmu_cortex_m::Processor;
 use zmu_cortex_m::core::condition::decode_itstate;
-use zmu_cortex_m::core::fetch::Fetch;
 use zmu_cortex_m::core::register::{Apsr, PSR};
 use zmu_cortex_m::core::thumb::ThumbCode;
 use zmu_cortex_m::decoder::Decoder;
@@ -12,7 +11,7 @@ use zmu_cortex_m::decoder::Decoder;
 pub fn format_trace_entry(processor: &Processor, symboltable: &HashMap<u32, &str>) -> String {
     let pc = processor.last_pc;
 
-    let thumb = processor.fetch(pc).unwrap();
+    let thumb = processor.fetch_code(pc).unwrap();
     let instruction = processor.decode(thumb);
 
     let opcode_str = match thumb {

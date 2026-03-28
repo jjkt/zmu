@@ -155,8 +155,19 @@ run_lockup_check() {
         ./target/release/zmu-armv6m run --no-trap all tests/fault-test-bench/fault-lockup-cm0.elf
 }
 
+run_status_readback_checks() {
+    run_expect_success_contains \
+        "UsageFault_Handler marker=0x55534654 cfsr=0x00010000 shcsr=0x00040008" \
+        ./target/release/zmu-armv7m run --no-trap hardfault tests/fault-test-bench/fault-usage-cm3.elf
+
+    run_expect_success_contains \
+        "MemManage_Handler marker=0x4d4d4654 cfsr=0x00000082 mmfar=0x00000000 shcsr=0x00010001" \
+        ./target/release/zmu-armv7m run --no-trap hardfault tests/fault-test-bench/fault-memmanage-cm3.elf
+}
+
 build_bench
 run_combo_matrix
+run_status_readback_checks
 run_alias_checks
 run_lockup_check
 
