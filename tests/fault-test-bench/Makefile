@@ -16,7 +16,7 @@ else
 $(error startup dir not found !)
 endif
 
-all: fault-usage-cm3.elf fault-memmanage-cm3.elf fault-hardfault-cm0.elf fault-lockup-cm0.elf
+all: fault-usage-cm3.elf fault-memmanage-cm3.elf fault-hardfault-cm0.elf fault-lockup-cm0.elf fault-forced-hardfault-cm3.elf
 
 fault-usage-cm3.elf:
 	$(CC) $(CFLAGS) -DFAULT_CASE=1 -mcpu=cortex-m3 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM3.S -o $@
@@ -29,6 +29,9 @@ fault-hardfault-cm0.elf:
 
 fault-lockup-cm0.elf:
 	$(CC) $(CFLAGS) -DFAULT_CASE=4 -mcpu=cortex-m0 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM0.S -o $@
+
+fault-forced-hardfault-cm3.elf:
+	$(CC) $(CFLAGS) -DFAULT_CASE=5 -mcpu=cortex-m3 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM3.S -o $@
 
 clean:
 	rm -f fault-*.elf

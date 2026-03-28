@@ -1,7 +1,6 @@
 # TODO
 
 ## ARM Cortex Core behavior
-- [ ] Implement fault escalation rules, including `HFSR.FORCED`
 - [ ] Set `INVPC`, `INVSTATE`, and other usage-fault bits on bad exception return and state violations
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
 - [ ] Gate `BASEPRI`, `BASEPRI_MAX`, and `FAULTMASK` by architecture
@@ -256,6 +255,7 @@
 - [ ] Model ITM enable and control flow (`DEMCR.TRCENA`, `ITM.TCR`, `ITM.TER`, `ITM.LAR`) instead of only raw stimulus-port writes
 - [ ] Option to Show "register deltas only"
   - [ ] Print only changed registers
+- [ ] Option to show faults in trace
 - [ ] Memory / Bus access trace
 - [ ] VFP tracing
 - [ ] Trustzone trace

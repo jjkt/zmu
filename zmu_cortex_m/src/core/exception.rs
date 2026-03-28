@@ -564,14 +564,14 @@ impl ExceptionHandling for Processor {
             self.clear_pending_exception(exception);
             let pc = self.get_pc();
             if let Err(fault) = self.exception_entry(exception, pc) {
-                let mapped_exception = fault.exception();
                 let active_exception = match self.psr.get_isr_number() {
                     0 => None,
                     n => Some(Exception::from(n)),
                 };
                 self.record_fault_status(fault, crate::core::fault::FaultStatusContext::default());
-                let trap_reason = if mapped_exception == Exception::HardFault
-                    && matches!(
+                self.set_hfsr_forced();
+                let trap_reason = if exception == Exception::HardFault
+                    || matches!(
                         active_exception,
                         Some(Exception::HardFault | Exception::NMI)
                     ) {
@@ -582,7 +582,7 @@ impl ExceptionHandling for Processor {
                 self.pending_fault_trap = Some(crate::core::fault::FaultContext {
                     trap_reason,
                     fault,
-                    exception: mapped_exception,
+                    exception: Exception::HardFault,
                     pc,
                     active_exception,
                 });
@@ -654,6 +654,8 @@ mod tests {
 
     #[cfg(not(feature = "armv6m"))]
     const CFSR_MSTKERR: u32 = 1 << 4;
+    #[cfg(not(feature = "armv6m"))]
+    const HFSR_FORCED: u32 = 1 << 30;
 
     #[test]
     fn test_push_stack() {
@@ -813,7 +815,7 @@ mod tests {
 
     #[test]
     #[cfg(not(feature = "armv6m"))]
-    fn test_check_exceptions_latches_mstkerr_for_exception_entry_stack_fault() {
+    fn test_check_exceptions_escalates_entry_stack_fault_to_hardfault() {
         let mut processor = Processor::new();
 
         processor.reset().unwrap();
@@ -826,8 +828,9 @@ mod tests {
             .take_pending_fault_trap()
             .expect("fault trap expected");
         assert_eq!(trap.fault, Fault::Mstkerr);
-        assert_eq!(trap.exception, Exception::MemoryManagementFault);
+        assert_eq!(trap.exception, Exception::HardFault);
         assert_eq!(processor.cfsr, CFSR_MSTKERR);
+        assert_eq!(processor.hfsr, HFSR_FORCED);
     }
 
     #[test]

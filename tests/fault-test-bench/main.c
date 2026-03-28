@@ -9,23 +9,27 @@ verify trap/no-trap behaviour for the currently reachable fault classes, plus
 lockup handling.
 */
 
-#define FAULT_CASE_USAGE      1
-#define FAULT_CASE_MEMMANAGE  2
-#define FAULT_CASE_HARDFAULT  3
-#define FAULT_CASE_LOCKUP     4
+#define FAULT_CASE_USAGE 1
+#define FAULT_CASE_MEMMANAGE 2
+#define FAULT_CASE_HARDFAULT 3
+#define FAULT_CASE_LOCKUP 4
+#define FAULT_CASE_FORCED_HARDFAULT 5
 
 #ifndef FAULT_CASE
 #define FAULT_CASE FAULT_CASE_USAGE
 #endif
 
 #define SCB_SHCSR (*(volatile uint32_t *)0xE000ED24u)
-#define SCB_CFSR  (*(volatile uint32_t *)0xE000ED28u)
+#define SCB_CFSR (*(volatile uint32_t *)0xE000ED28u)
+#define SCB_HFSR (*(volatile uint32_t *)0xE000ED2Cu)
 #define SCB_MMFAR (*(volatile uint32_t *)0xE000ED34u)
 
 #define SHCSR_MEMFAULTACT (1u << 0)
 #define SHCSR_USGFAULTACT (1u << 3)
 #define SHCSR_MEMFAULTENA (1u << 16)
 #define SHCSR_USGFAULTENA (1u << 18)
+#define CFSR_UNDEFINSTR (1u << 16)
+#define HFSR_FORCED (1u << 30)
 
 static volatile uint32_t fault_marker;
 static volatile uint32_t fault_stage;
@@ -35,7 +39,8 @@ __attribute__((noinline, noreturn)) static void trigger_udf(void)
     asm volatile("udf #0");
 
     /* Should never be reached. */
-    for (;;) {
+    for (;;)
+    {
     }
 }
 
@@ -43,7 +48,8 @@ __attribute__((noinline, noreturn)) static void trigger_memmanage(void)
 {
     *(volatile uint32_t *)0x00000000u = 0x46544d4du; /* 'FTMM' */
 
-    for (;;) {
+    for (;;)
+    {
     }
 }
 
@@ -57,6 +63,8 @@ static const char *fault_case_name(void)
     return "hardfault";
 #elif FAULT_CASE == FAULT_CASE_LOCKUP
     return "lockup";
+#elif FAULT_CASE == FAULT_CASE_FORCED_HARDFAULT
+    return "forced-hardfault";
 #else
     return "unknown";
 #endif
@@ -71,6 +79,8 @@ __attribute__((noreturn)) static void trigger_selected_fault(void)
 #elif FAULT_CASE == FAULT_CASE_HARDFAULT
     trigger_udf();
 #elif FAULT_CASE == FAULT_CASE_LOCKUP
+    trigger_udf();
+#elif FAULT_CASE == FAULT_CASE_FORCED_HARDFAULT
     trigger_udf();
 #else
 #error Unsupported FAULT_CASE
@@ -112,6 +122,23 @@ void MemManage_Handler(void)
 
 void HardFault_Handler(void)
 {
+    if (FAULT_CASE == FAULT_CASE_FORCED_HARDFAULT)
+    {
+        fault_marker = 0x48444654u; /* 'HDFT' */
+        printf("HardFault_Handler marker=0x%08lx case=%s cfsr=0x%08lx hfsr=0x%08lx\n",
+               (unsigned long)fault_marker,
+               fault_case_name(),
+               (unsigned long)SCB_CFSR,
+               (unsigned long)SCB_HFSR);
+
+        if ((SCB_CFSR & CFSR_UNDEFINSTR) == 0 || (SCB_HFSR & HFSR_FORCED) == 0)
+        {
+            exit(98);
+        }
+
+        exit(0);
+    }
+
     fault_marker = 0x48444621u; /* 'HDF!' */
     printf("HardFault_Handler unexpected marker=0x%08lx case=%s\n",
            (unsigned long)fault_marker,

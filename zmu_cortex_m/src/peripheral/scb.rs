@@ -88,6 +88,10 @@ impl Processor {
         self.cfsr |= CFSR_BFARVALID;
     }
 
+    pub(crate) fn set_hfsr_forced(&mut self) {
+        self.hfsr |= HFSR_FORCED;
+    }
+
     pub(crate) fn record_fault_status(&mut self, fault: Fault, status: FaultStatusContext) {
         match fault {
             Fault::IAccViol => {
@@ -119,6 +123,7 @@ impl Processor {
             Fault::Stkerr => self.cfsr |= CFSR_STKERR,
             Fault::UndefInstr => self.cfsr |= CFSR_UNDEFINSTR,
             Fault::InvPc => self.cfsr |= CFSR_INVPC,
+            Fault::Forced => self.set_hfsr_forced(),
             Fault::VectorTable => self.hfsr |= HFSR_VECTTBL,
             _ => {}
         }

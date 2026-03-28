@@ -187,8 +187,10 @@ run_lockup_check() {
 
 run_status_readback_checks() {
     local usage_runner
+    local forced_hardfault_elf
 
     usage_runner=$(runner_for_core cm3)
+    forced_hardfault_elf="tests/fault-test-bench/fault-forced-hardfault-cm3.elf"
 
     run_expect_success_contains \
         "UsageFault_Handler marker=0x55534654 cfsr=0x00010000 shcsr=0x00040008" \
@@ -197,6 +199,10 @@ run_status_readback_checks() {
     run_expect_success_contains \
         "MemManage_Handler marker=0x4d4d4654 cfsr=0x00000082 mmfar=0x00000000 shcsr=0x00010001" \
         "$usage_runner" run --no-trap hardfault tests/fault-test-bench/fault-memmanage-cm3.elf
+
+    run_expect_success_contains \
+        "HardFault_Handler marker=0x48444654 case=forced-hardfault cfsr=0x00010000 hfsr=0x40000000" \
+        "$usage_runner" run --no-trap hardfault "$forced_hardfault_elf"
 }
 
 build_bench

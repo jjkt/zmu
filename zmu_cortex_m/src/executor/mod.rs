@@ -14,9 +14,7 @@ use crate::core::register::{Apsr, BaseReg, Ipsr};
 use crate::decoder::Decoder;
 use crate::memory::map::MapMemory;
 #[cfg(not(feature = "armv6m"))]
-use crate::peripheral::scb::{
-    HFSR_FORCED, SHCSR_BUSFAULTENA, SHCSR_MEMFAULTENA, SHCSR_USGFAULTENA,
-};
+use crate::peripheral::scb::{SHCSR_BUSFAULTENA, SHCSR_MEMFAULTENA, SHCSR_USGFAULTENA};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 
 use crate::{CachedInstruction, Processor};
@@ -177,7 +175,7 @@ impl Processor {
         if enabled {
             mapped_exception
         } else {
-            self.hfsr |= HFSR_FORCED;
+            self.set_hfsr_forced();
             Exception::HardFault
         }
     }
@@ -254,16 +252,18 @@ impl Processor {
                 }
             }
             Err(entry_fault) => {
-                let entry_exception = entry_fault.exception();
                 self.record_fault_status(entry_fault, FaultStatusContext::default());
-                let trap_reason = if Self::is_lockup(entry_exception, active_exception) {
+                self.set_hfsr_forced();
+                let trap_reason = if exception == Exception::HardFault
+                    || Self::is_lockup(Exception::HardFault, active_exception)
+                {
                     FaultTrapReason::Lockup
                 } else {
                     FaultTrapReason::Fault
                 };
                 self.queue_fault_trap(
                     entry_fault,
-                    entry_exception,
+                    Exception::HardFault,
                     fault_pc,
                     active_exception,
                     trap_reason,
@@ -1057,7 +1057,22 @@ mod tests {
 
     #[test]
     #[cfg(not(feature = "armv6m"))]
-    fn test_handle_fault_latches_mstkerr_when_fault_entry_stacking_fails() {
+    fn test_handle_fault_sets_hfsr_forced_bit_for_forced_fault() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+
+        let cycles = core.handle_fault(Fault::Forced, 0x0800_0240);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.hfsr, HFSR_FORCED);
+        assert_eq!(core.cfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_escalates_entry_stacking_fault_to_hardfault() {
         let mut core = Processor::new();
         core.fault_trap_mode(FaultTrapMode::none());
         core.set_msp(0);
@@ -1067,8 +1082,9 @@ mod tests {
         assert_eq!(cycles, 12);
         let trap = core.take_pending_fault_trap().expect("fault trap expected");
         assert_eq!(trap.fault, Fault::Mstkerr);
-        assert_eq!(trap.exception, Exception::MemoryManagementFault);
+        assert_eq!(trap.exception, Exception::HardFault);
         assert_eq!(core.cfsr, CFSR_MSTKERR);
+        assert_eq!(core.hfsr, HFSR_FORCED);
     }
 
     #[test]
