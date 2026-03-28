@@ -92,20 +92,22 @@ impl SysTick for Processor {
 
     #[inline(always)]
     fn syst_step(&mut self, cycles: u32) {
-        for _ in 0..cycles {
-            if (self.syst_csr & SYST_CSR_ENABLE) == SYST_CSR_ENABLE {
-                if self.syst_cvr > 0 {
-                    self.syst_cvr -= 1;
+        if (self.syst_csr & SYST_CSR_ENABLE) == 0 {
+            return;
+        }
 
-                    if self.syst_cvr == 0 {
-                        self.syst_csr |= SYST_CSR_COUNTFLAG;
-                        if (self.syst_csr & SYST_CSR_TICKINT) == SYST_CSR_TICKINT {
-                            self.set_exception_pending(Exception::SysTick);
-                        }
+        for _ in 0..cycles {
+            if self.syst_cvr > 0 {
+                self.syst_cvr -= 1;
+
+                if self.syst_cvr == 0 {
+                    self.syst_csr |= SYST_CSR_COUNTFLAG;
+                    if (self.syst_csr & SYST_CSR_TICKINT) == SYST_CSR_TICKINT {
+                        self.set_exception_pending(Exception::SysTick);
                     }
-                } else {
-                    self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
                 }
+            } else {
+                self.syst_cvr = self.syst_rvr & 0x00ff_ffff;
             }
         }
     }

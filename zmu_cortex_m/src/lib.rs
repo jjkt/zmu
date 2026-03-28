@@ -42,6 +42,7 @@ pub mod system;
 use crate::core::instruction::instruction_size;
 
 use crate::core::exception::Exception;
+use crate::core::fault::{Fault, FaultContext, FaultTrapMode};
 use crate::core::fetch::Fetch;
 use crate::core::instruction::Instruction;
 use crate::core::register::{Apsr, BaseReg, Control, PSR, Reg};
@@ -74,6 +75,17 @@ pub enum ProcessorMode {
 }
 
 type SemihostingCall = Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse>>;
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+enum CachedInstruction {
+    Decoded {
+        instruction: Instruction,
+        instruction_size: usize,
+    },
+    FetchFault {
+        fault: Fault,
+    },
+}
 ///
 /// Representation of all Processor related data
 ///
@@ -209,7 +221,10 @@ pub struct Processor {
     ///
     semihost_func: SemihostingCall,
 
-    instruction_cache: Vec<(Instruction, usize)>,
+    instruction_cache: Vec<CachedInstruction>,
+
+    fault_trap_mode: FaultTrapMode,
+    pending_fault_trap: Option<FaultContext>,
 
     pub last_pc: u32,
 
@@ -352,6 +367,8 @@ impl Processor {
             syst_cvr: 0,
             syst_csr: 0,
             instruction_cache: Vec::new(),
+            fault_trap_mode: FaultTrapMode::hardfault(),
+            pending_fault_trap: None,
             last_pc: 0,
             mem_map: None,
             device: Device::new(),
@@ -382,6 +399,22 @@ impl Processor {
         self
     }
 
+    /// Configure fault-trap behavior.
+    pub fn fault_trap_mode(&mut self, mode: FaultTrapMode) -> &mut Self {
+        self.fault_trap_mode = mode;
+        self
+    }
+
+    /// Return the active fault-trap mode.
+    pub fn get_fault_trap_mode(&self) -> FaultTrapMode {
+        self.fault_trap_mode
+    }
+
+    /// Take the currently pending fault trap, if any.
+    pub fn take_pending_fault_trap(&mut self) -> Option<FaultContext> {
+        self.pending_fault_trap.take()
+    }
+
     ///
     /// Pre cache (decode) instructions to speed up simulation
     ///
@@ -391,10 +424,19 @@ impl Processor {
             let mut pc = 0;
 
             while pc < (self.code.len() as u32) {
-                let thumb = self.fetch_non_fail(pc);
-                let instruction = self.decode(thumb);
-                self.instruction_cache
-                    .push((instruction, instruction_size(&instruction)));
+                match self.fetch(pc) {
+                    Ok(thumb) => {
+                        let instruction = self.decode(thumb);
+                        self.instruction_cache.push(CachedInstruction::Decoded {
+                            instruction,
+                            instruction_size: instruction_size(&instruction),
+                        });
+                    }
+                    Err(fault) => {
+                        self.instruction_cache
+                            .push(CachedInstruction::FetchFault { fault });
+                    }
+                }
                 pc += 2;
             }
         }

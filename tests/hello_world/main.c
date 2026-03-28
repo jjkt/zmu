@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(void)
+static void emit_hello_world(void)
 {
     printf("hello, world\n");
+}
+
+int main(void)
+{
+    emit_hello_world();
 }
 
 void SystemInit(void)

@@ -62,6 +62,7 @@ impl IsaBranch for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[inline(always)]
     fn exec_b_t13(&mut self, params: CondBranchParams) -> ExecuteResult {
         if self.condition_passed_b(params.cond) {
             let pc = self.get_r(Reg::PC);

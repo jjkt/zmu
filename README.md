@@ -1,53 +1,54 @@
 # zmu - Emulator for Microcontroller Systems
 
-zmu is an system level emulator for microcontrollers, aiming for high speed simulation of core and peripherals. Currently targets ARM Cortex MCUs.
+zmu is a system-level emulator for microcontrollers, aimed at fast simulation of cores and peripherals. It currently targets ARM Cortex-M MCUs.
 
 zmu supports Linux and Windows operating systems.
 
 ## Supported features
 - Loading of ELF binaries
+- Automatic flash sizing and address remapping from ELF `PT_LOAD` segments
 - Relatively efficient simulation
-    - Performance depends on the host and workload
-    - Run with `-vv` to have zmu print measured throughput as `cycles_per_sec ~ X.XX Mhz`
-    - Repeatable benchmark coverage exists via CoreMark in [test_coremark.sh](test_coremark.sh)
+  - Performance depends on the host and workload
+  - Run with `-vv` to have zmu print measured throughput as `cycles_per_sec ~ X.XX Mhz`
+  - Repeatable benchmark coverage exists via CoreMark in [test_coremark.sh](test_coremark.sh)
 - Architectures:
-    - arm-v6m
-    - arm-v7m (partial support)
-    - arm-v7em (partial support, including FP-enabled profiles)
+  - arm-v6m
+  - arm-v7m (partial support)
+  - arm-v7em (partial support, including FP-enabled profiles)
 - Core profiles exercised by the build and test scripts: Cortex-M0/M0+, Cortex-M3, Cortex-M4, Cortex-M4F, Cortex-M7
-    - Pre-decoding of instructions for efficient simulation
-    - Exception and fault handling
-    - Processor sleep
+  - Pre-decoding of instructions for efficient simulation
+  - Exception and fault handling, including configurable fault trapping
+  - Processor sleep
 - ARM semihosting support for console and feature-probe use cases:
-    - open, close (`:tt` streams and `:semihosting-features`)
-    - FLEN
-    - ISTTY
-    - writec, write, read
-    - seek, clock
-    - exception -> exit
-    - exit extended
-    - errno
+  - open, close (`:tt` streams and `:semihosting-features`)
+  - FLEN
+  - ISTTY
+  - writec, write, read
+  - seek, clock
+  - exception -> exit
+  - exit extended
+  - errno
 - Floating-point instruction/register support is implemented and exercised by `cm4f`, `cm7-d16`, and `cm7-sp-d16` test targets
 - ITM
-    - (TPIU) write stimulus register data to a file, in framed format
-    - STIM0 .. STIM31 supported
+  - (TPIU) write stimulus register data to a file, in framed format
+  - STIM0 .. STIM31 supported
 - DWT
-    - Cycle counter
+  - Cycle counter
 - Core peripherals: NVIC, SCB, SysTick
 - Device models: generic Cortex-M system and STM32F103
 - Instruction trace
 - GDB Server
-    - continue / run control
-    - single stepping
-    - range stepping
-    - software breakpoints
-    - monitor `reset`
+  - continue / run control
+  - single stepping
+  - range stepping
+  - software breakpoints
+  - monitor `reset`
 
 ## Missing / Planned features
 The detailed backlog and missing architecture, floating-point, peripheral, platform, and tooling work lives in [doc/todo.md](doc/todo.md).
 
 
-## Depedencies
+## Dependencies
 
 You have to install Rust.
 
@@ -68,7 +69,7 @@ source ~/.cargo/env
 chmod +x buildall.sh
 ./buildall.sh
 ```
-The executables are genereated in the dir ```./target/release/```.
+The executables are generated in `./target/release/`.
 
 ## Testing
 
@@ -120,31 +121,67 @@ export GCC_HOME="$HOME/.local/arm-gnu-toolchain/14.2.rel1"
 
 ## Usage
 
-- ```zmu-armv6m``` runs the zmu with support for armv6m instructions.
-- ```zmu-armv7m``` runs the zmu with support for armv7m instructions.
+- `zmu-armv6m` runs zmu with ARMv6-M instruction support.
+- `zmu-armv7m` runs zmu with ARMv7-M instruction support.
+- `zmu-armv7em` runs zmu with ARMv7E-M instruction support.
 
 ### Run an ELF binary
-```
-$./target/release/zmu-armv6m run tests/hello_world/hello_world-cm0.elf
+```sh
+./target/release/zmu-armv6m run tests/hello_world/hello_world-cm0.elf
 hello, world
 ```
 
 ### Run with tracing
-```
-$./target/release/zmu-armv7m run -t tests/minimal/minimal-cm3.elf | head -3
+```sh
+./target/release/zmu-armv7m run -t tests/minimal/minimal-cm3.elf | head -3
 4906      ldr r1, [pc, #+24]               00000074  Reset_Handler         2 qvczn r0:00000000 1:00001c84 2:00000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 4A07      ldr r2, [pc, #+28]               00000076  Reset_Handler         4 qvczn r0:00000000 1:00001c84 2:20000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 4B07      ldr r3, [pc, #+28]               00000078  Reset_Handler         6 qvczn r0:00000000 1:00001c84 2:20000000 3:20000854 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 ```
 
-### Run with ITM trace via itmdump
+### Fault behavior and trap control
 
-Following example uses the [itmdump](https://docs.rs/itm/0.3.1/itm/) tool and embedded rustbook examples to show how to dump itm trace prints to stdout from the zmu. To install itmdump, you need to run ```cargo install itmdump```.
+By default, `HardFault` traps stop execution, while configurable faults such as `UsageFault` and `MemoryManagementFault` run their handlers unless you explicitly trap them.
 
+This ARMv7-M test binary executes an undefined instruction and reaches the installed `UsageFault_Handler` when trapping is not enabled:
+
+```sh
+./target/release/zmu-armv7m run tests/fault-test-bench/fault-usage-cm3.elf
+UsageFault_Handler marker=0x55534654
 ```
-$./target/release/zmu-armv7m run --itm /dev/stdout tests/rustbook/target/thumbv7m-none-eabi/debug/examples/itm | itmdump
+
+To stop immediately when the fault is raised instead, enable trapping for all architecturally visible faults or select individual fault classes with `--trap` and `--no-trap`:
+
+```sh
+./target/release/zmu-armv7m run --fault-trap tests/fault-test-bench/fault-usage-cm3.elf
+fault trap: fault=UndefInstr, exception=UsageFault, ...
+```
+
+Useful combinations:
+
+```sh
+./target/release/zmu-armv7m run --trap usagefault tests/fault-test-bench/fault-usage-cm3.elf
+./target/release/zmu-armv7m run --trap memmanage tests/fault-test-bench/fault-memmanage-cm3.elf
+./target/release/zmu-armv6m run --no-trap all tests/fault-test-bench/fault-lockup-cm0.elf
+```
+
+On ARMv6-M builds, only `HardFault` is architecturally visible, so `--trap` and `--no-trap` accept `hardfault` and `all` only.
+
+### Run with `--itm`
+
+Install the decoder once:
+
+```sh
+cargo install itm
+```
+
+Then pipe zmu's ITM stream to `itmdump`:
+
+```sh
+./target/release/zmu-armv7m run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-cm3.elf | ~/.cargo/bin/itmdump
 Hello, world!
 ```
+
 ### "Hello, world" example with Arm GCC + semihosting
 
 ```c
@@ -173,24 +210,24 @@ void _fini(void) { }
 ```
 
 Compile the code with GCC:
-```
+```sh
 arm-none-eabi-gcc -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld   -mcpu=cortex-m0 -lc -lrdimon main.c /usr/share/gcc-arm-embedded/samples/startup/startup_ARMCM0.S -o hello_world-cm0.elf
 ```
 
 Run the emulator:
-```
-$zmu run tests/hello_world/hello_world-cm0.elf
+```sh
+./target/release/zmu-armv6m run tests/hello_world/hello_world-cm0.elf
 hello, world
 ```
 
 Run the GDB Server:
-```
-$zmu run --gdb tests/hello_world/hello_world-cm0.elf
+```sh
+./target/release/zmu-armv6m run --gdb tests/hello_world/hello_world-cm0.elf
 Starting GDB Server on port 9001 ...
 ```
 
 On a separate terminal start the gdb client:
-```
+```text
 $ gdb-multiarch tests/hello_world/hello_world-cm0.elf
 ...
 Reading symbols from tests/hello_world/hello_world-cm0.elf...

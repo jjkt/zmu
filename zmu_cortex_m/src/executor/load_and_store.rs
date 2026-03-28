@@ -217,14 +217,16 @@ impl IsaLoadAndStore for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[inline(always)]
     fn exec_ldr_imm(&mut self, params: &Reg2FullParams) -> ExecuteResult {
         if self.condition_passed() {
-            let (address, offset_address) = resolve_addressing(
-                self.get_r(params.rn),
-                params.imm32,
-                params.add,
-                params.index,
-            );
+            let rn = self.get_r(params.rn);
+            let offset_address = if params.add {
+                rn.wrapping_add(params.imm32)
+            } else {
+                rn.wrapping_sub(params.imm32)
+            };
+            let address = if params.index { offset_address } else { rn };
 
             let data = self.read32(address)?;
             if params.wback {
@@ -241,14 +243,16 @@ impl IsaLoadAndStore for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+    #[inline(always)]
     fn exec_ldrb_imm(&mut self, params: &Reg2FullParams) -> ExecuteResult {
         if self.condition_passed() {
-            let (address, offset_address) = resolve_addressing(
-                self.get_r(params.rn),
-                params.imm32,
-                params.add,
-                params.index,
-            );
+            let rn = self.get_r(params.rn);
+            let offset_address = if params.add {
+                rn.wrapping_add(params.imm32)
+            } else {
+                rn.wrapping_sub(params.imm32)
+            };
+            let address = if params.index { offset_address } else { rn };
 
             let data = self.read8(address)?;
             self.set_r(params.rt, u32::from(data));
@@ -300,14 +304,16 @@ impl IsaLoadAndStore for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+    #[inline(always)]
     fn exec_ldrsh_imm(&mut self, params: &Reg2FullParams) -> ExecuteResult {
         if self.condition_passed() {
-            let (address, offset_address) = resolve_addressing(
-                self.get_r(params.rn),
-                params.imm32,
-                params.add,
-                params.index,
-            );
+            let rn = self.get_r(params.rn);
+            let offset_address = if params.add {
+                rn.wrapping_add(params.imm32)
+            } else {
+                rn.wrapping_sub(params.imm32)
+            };
+            let address = if params.index { offset_address } else { rn };
 
             let data = self.read16(address)?;
             if params.wback {
@@ -320,14 +326,16 @@ impl IsaLoadAndStore for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[inline(always)]
     fn exec_str_imm(&mut self, params: &Reg2FullParams) -> ExecuteResult {
         if self.condition_passed() {
-            let (address, offset_address) = resolve_addressing(
-                self.get_r(params.rn),
-                params.imm32,
-                params.add,
-                params.index,
-            );
+            let rn = self.get_r(params.rn);
+            let offset_address = if params.add {
+                rn.wrapping_add(params.imm32)
+            } else {
+                rn.wrapping_sub(params.imm32)
+            };
+            let address = if params.index { offset_address } else { rn };
 
             let value = self.get_r(params.rt);
             if params.wback {

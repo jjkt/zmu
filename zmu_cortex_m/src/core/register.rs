@@ -116,15 +116,18 @@ pub trait ExtensionRegOperations {
 }
 
 impl BaseReg for Processor {
+    #[inline(always)]
     fn branch_write_pc(&mut self, address: u32) {
         self.set_pc(address & 0xffff_fffe);
     }
 
+    #[inline(always)]
     fn blx_write_pc(&mut self, address: u32) {
         self.psr.set_t((address & 1) == 1);
         self.branch_write_pc(address);
     }
 
+    #[inline(always)]
     fn bx_write_pc(&mut self, address: u32) -> Result<(), Fault> {
         if self.mode == ProcessorMode::HandlerMode && (address.get_bits(28..32) == 0b1111) {
             self.exception_return(address.get_bits(0..28))
@@ -134,95 +137,85 @@ impl BaseReg for Processor {
         }
     }
 
+    #[inline(always)]
     fn load_write_pc(&mut self, address: u32) -> Result<(), Fault> {
         self.bx_write_pc(address)
     }
 
+    #[inline(always)]
     fn get_r(&self, r: Reg) -> u32 {
-        match r {
-            Reg::R0
-            | Reg::R1
-            | Reg::R2
-            | Reg::R3
-            | Reg::R4
-            | Reg::R5
-            | Reg::R6
-            | Reg::R7
-            | Reg::R8
-            | Reg::R9
-            | Reg::R10
-            | Reg::R11
-            | Reg::R12 => {
-                let reg: usize = From::from(r);
-                self.r0_12[reg]
-            }
-            Reg::SP => {
-                if self.control.sp_sel {
-                    self.psp
-                } else {
-                    self.msp
+        let reg = r as u32;
+
+        if reg < 13 {
+            self.r0_12[reg as usize]
+        } else {
+            match reg {
+                13 => {
+                    if self.control.sp_sel {
+                        self.psp
+                    } else {
+                        self.msp
+                    }
                 }
+                14 => self.lr,
+                15 => self.pc + 4,
+                _ => unreachable!(),
             }
-            Reg::LR => self.lr,
-            Reg::PC => self.pc + 4,
         }
     }
 
+    #[inline(always)]
     fn set_r(&mut self, r: Reg, value: u32) {
-        match r {
-            Reg::R0
-            | Reg::R1
-            | Reg::R2
-            | Reg::R3
-            | Reg::R4
-            | Reg::R5
-            | Reg::R6
-            | Reg::R7
-            | Reg::R8
-            | Reg::R9
-            | Reg::R10
-            | Reg::R11
-            | Reg::R12 => {
-                let reg: usize = From::from(r);
-                self.r0_12[reg] = value;
-            }
-            Reg::SP => {
-                if self.control.sp_sel {
-                    self.set_psp(value);
-                } else {
-                    self.set_msp(value);
+        let reg = r as u32;
+
+        if reg < 13 {
+            self.r0_12[reg as usize] = value;
+        } else {
+            match reg {
+                13 => {
+                    if self.control.sp_sel {
+                        self.psp = value;
+                    } else {
+                        self.msp = value;
+                    }
                 }
+                14 => self.lr = value,
+                15 => panic!("use branch commands instead"),
+                _ => unreachable!(),
             }
-            Reg::LR => {
-                self.lr = value;
-            }
-            Reg::PC => panic!("use branch commands instead"),
         }
     }
 
+    #[inline(always)]
     fn set_msp(&mut self, value: u32) {
         self.msp = value;
     }
 
+    #[inline(always)]
     fn set_psp(&mut self, value: u32) {
         self.psp = value;
     }
+    #[inline(always)]
     fn get_msp(&self) -> u32 {
         self.msp
     }
 
+    #[inline(always)]
     fn get_psp(&self) -> u32 {
         self.psp
     }
 
+    #[inline(always)]
     fn add_pc(&mut self, value: u32) {
         self.pc += value;
     }
 
+    #[inline(always)]
     fn get_pc(&mut self) -> u32 {
         self.pc
     }
 
+    #[inline(always)]
     fn set_pc(&mut self, value: u32) {
         self.pc = value;
     }
@@ -230,65 +223,49 @@ impl BaseReg for Processor {
     //
     // Add value to register
     //
+    #[inline(always)]
     fn add_r(&mut self, r: Reg, value: u32) {
-        match r {
-            Reg::R0
-            | Reg::R1
-            | Reg::R2
-            | Reg::R3
-            | Reg::R4
-            | Reg::R5
-            | Reg::R6
-            | Reg::R7
-            | Reg::R8
-            | Reg::R9
-            | Reg::R10
-            | Reg::R11
-            | Reg::R12 => {
-                let reg: usize = From::from(r);
-                self.r0_12[reg] += value;
-            }
-            Reg::SP => {
-                if self.control.sp_sel {
-                    self.psp += value;
-                } else {
-                    self.msp += value;
+        let reg = r as u32;
+
+        if reg < 13 {
+            self.r0_12[reg as usize] += value;
+        } else {
+            match reg {
+                13 => {
+                    if self.control.sp_sel {
+                        self.psp += value;
+                    } else {
+                        self.msp += value;
+                    }
                 }
+                14 => self.lr += value,
+                15 => self.pc += value,
+                _ => unreachable!(),
             }
-            Reg::LR => self.lr += value,
-            Reg::PC => self.pc += value,
         }
     }
     //
     // Substract value from register
     //
+    #[inline(always)]
     fn sub_r(&mut self, r: Reg, value: u32) {
-        match r {
-            Reg::R0
-            | Reg::R1
-            | Reg::R2
-            | Reg::R3
-            | Reg::R4
-            | Reg::R5
-            | Reg::R6
-            | Reg::R7
-            | Reg::R8
-            | Reg::R9
-            | Reg::R10
-            | Reg::R11
-            | Reg::R12 => {
-                let reg: usize = From::from(r);
-                self.r0_12[reg] -= value;
-            }
-            Reg::SP => {
-                if self.control.sp_sel {
-                    self.psp -= value;
-                } else {
-                    self.msp -= value;
+        let reg = r as u32;
+
+        if reg < 13 {
+            self.r0_12[reg as usize] -= value;
+        } else {
+            match reg {
+                13 => {
+                    if self.control.sp_sel {
+                        self.psp -= value;
+                    } else {
+                        self.msp -= value;
+                    }
                 }
+                14 => self.lr -= value,
+                15 => self.pc -= value,
+                _ => unreachable!(),
             }
-            Reg::LR => self.lr -= value,
-            Reg::PC => self.pc -= value,
         }
     }
 }
@@ -440,57 +417,77 @@ pub trait Epsr {
 }
 
 impl Apsr for PSR {
+    #[inline(always)]
     fn get_n(&self) -> bool {
-        self.value.get_bit(31)
+        (self.value & 0x8000_0000) != 0
     }
 
+    #[inline(always)]
     fn set_n(&mut self, result: u32) {
         self.value &= 0x7fff_ffff;
         self.value |= result & 0x8000_0000;
     }
 
+    #[inline(always)]
     fn set_n_bit(&mut self, n: bool) {
-        self.value.set_bit(31, n);
+        if n {
+            self.value |= 0x8000_0000;
+        } else {
+            self.value &= !0x8000_0000;
+        }
     }
 
+    #[inline(always)]
     fn get_z(&self) -> bool {
-        self.value.get_bit(30)
+        (self.value & 0x4000_0000) != 0
     }
+    #[inline(always)]
     fn set_z(&mut self, result: u32) {
         if result == 0 {
             self.value |= 0x4000_0000;
         } else {
-            self.value &= 0x4000_0000 ^ 0xffff_ffff;
+            self.value &= !0x4000_0000;
         }
     }
+    #[inline(always)]
     fn set_z_bit(&mut self, z: bool) {
-        self.value.set_bit(30, z);
+        if z {
+            self.value |= 0x4000_0000;
+        } else {
+            self.value &= !0x4000_0000;
+        }
     }
 
+    #[inline(always)]
     fn get_c(&self) -> bool {
-        self.value.get_bit(29)
+        (self.value & 0x2000_0000) != 0
     }
+    #[inline(always)]
     fn set_c(&mut self, c: bool) {
         if c {
             self.value |= 0x2000_0000;
         } else {
-            self.value &= 0x2000_0000 ^ 0xffff_ffff;
+            self.value &= !0x2000_0000;
         }
     }
+    #[inline(always)]
     fn get_v(&self) -> bool {
-        self.value.get_bit(28)
+        (self.value & 0x1000_0000) != 0
     }
+    #[inline(always)]
     fn set_v(&mut self, v: bool) {
         if v {
             self.value |= 0x1000_0000;
         } else {
-            self.value &= 0x1000_0000 ^ 0xffff_ffff;
+            self.value &= !0x1000_0000;
         }
     }
 
+    #[inline(always)]
     fn get_q(&self) -> bool {
         self.value.get_bit(27)
     }
+    #[inline(always)]
     fn set_q(&mut self, q: bool) {
         self.value.set_bit(27, q);
     }
@@ -523,33 +520,43 @@ impl Apsr for PSR {
 }
 
 impl Epsr for PSR {
+    #[inline(always)]
     fn get_t(&self) -> bool {
-        self.value.get_bit(24)
+        (self.value & (1 << 24)) != 0
     }
+    #[inline(always)]
     fn set_t(&mut self, n: bool) {
-        self.value.set_bit(24, n);
+        if n {
+            self.value |= 1 << 24;
+        } else {
+            self.value &= !(1 << 24);
+        }
     }
 }
 
 impl Ipsr for PSR {
     #[cfg(not(feature = "armv6m"))]
+    #[inline(always)]
     fn get_isr_number(&self) -> usize {
-        self.value.get_bits(0..9) as usize
+        (self.value & 0x1ff) as usize
     }
 
     #[cfg(feature = "armv6m")]
+    #[inline(always)]
     fn get_isr_number(&self) -> usize {
-        (*self).value.get_bits(0..6) as usize
+        (self.value & 0x3f) as usize
     }
 
     #[cfg(not(feature = "armv6m"))]
+    #[inline(always)]
     fn set_isr_number(&mut self, exception_number: usize) {
-        self.value.set_bits(0..9, exception_number as u32);
+        self.value = (self.value & !0x1ff) | ((exception_number as u32) & 0x1ff);
     }
 
     #[cfg(feature = "armv6m")]
+    #[inline(always)]
     fn set_isr_number(&mut self, exception_number: usize) {
-        self.value.set_bits(0..6, exception_number as u32);
+        self.value = (self.value & !0x3f) | ((exception_number as u32) & 0x3f);
     }
 }
 

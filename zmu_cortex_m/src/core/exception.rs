@@ -240,7 +240,7 @@ impl ExceptionHandlingHelpers for Processor {
         // InstructionSynchronizationBarrier();
         let vtor = self.vtor;
         let offset: u32 = usize::from(exception) as u32 * 4;
-        let start = self.read32(vtor + offset)?;
+        let start = self.read32(vtor + offset).map_err(Fault::on_vector_read)?;
         self.blx_write_pc(start);
         Ok(())
     }
@@ -268,7 +268,7 @@ impl ExceptionHandlingHelpers for Processor {
         self.deactivate(returning_exception_number);
         //ufsr.invpc = true;
         self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-        self.exception_taken(Exception::UsageFault)
+        Err(Fault::InvPc)
     }
 
     fn exception_active_bit_count(&self) -> usize {
@@ -427,23 +427,28 @@ impl ExceptionHandling for Processor {
 
     fn get_pending_exception(&self) -> Option<Exception> {
         if self.pending_exception_count > 0 {
-            let mut possible_exceptions: Vec<ExceptionState> = self
-                .exceptions
-                .iter()
-                .filter(|&(_, e)| e.pending && e.priority < self.execution_priority)
-                .map(|(&_, &e)| e)
-                .collect();
+            let mut selected: Option<ExceptionState> = None;
 
-            if !possible_exceptions.is_empty() {
-                possible_exceptions.sort_by(|a, b| {
-                    if a.priority == b.priority {
-                        a.exception_number.cmp(&b.exception_number)
-                    } else {
-                        a.priority.cmp(&b.priority)
+            for exception in self.exceptions.values() {
+                if !exception.pending || exception.priority >= self.execution_priority {
+                    continue;
+                }
+
+                let replace = match selected {
+                    None => true,
+                    Some(current) => {
+                        exception.priority < current.priority
+                            || (exception.priority == current.priority
+                                && exception.exception_number < current.exception_number)
                     }
-                });
-                return Some(possible_exceptions[0].exception_number.into());
+                };
+
+                if replace {
+                    selected = Some(*exception);
+                }
             }
+
+            return selected.map(|exception| exception.exception_number.into());
         }
         None
     }
@@ -463,7 +468,8 @@ impl ExceptionHandling for Processor {
             if let Exception::Interrupt { n } = exception {
                 self.nvic_unpend_interrupt(n);
             }
-            self.push_stack(exception, return_address)?;
+            self.push_stack(exception, return_address)
+                .map_err(Fault::on_exception_entry_stack)?;
             self.exception_taken(exception)
         }
     }
@@ -549,9 +555,29 @@ impl ExceptionHandling for Processor {
             self.sleeping = false;
             self.clear_pending_exception(exception);
             let pc = self.get_pc();
-            // TODO: handle failure to enter exception
-            self.exception_entry(exception, pc)
-                .expect("error handling on exception entry not implemented");
+            if let Err(fault) = self.exception_entry(exception, pc) {
+                let mapped_exception = fault.exception();
+                let active_exception = match self.psr.get_isr_number() {
+                    0 => None,
+                    n => Some(Exception::from(n)),
+                };
+                let trap_reason = if mapped_exception == Exception::HardFault
+                    && matches!(
+                        active_exception,
+                        Some(Exception::HardFault | Exception::NMI)
+                    ) {
+                    crate::core::fault::FaultTrapReason::Lockup
+                } else {
+                    crate::core::fault::FaultTrapReason::Fault
+                };
+                self.pending_fault_trap = Some(crate::core::fault::FaultContext {
+                    trap_reason,
+                    fault,
+                    exception: mapped_exception,
+                    pc,
+                    active_exception,
+                });
+            }
         } else if self.sleeping && self.has_wakeup_condition() {
             self.sleeping = false;
         }

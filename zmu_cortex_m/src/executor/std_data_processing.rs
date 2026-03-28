@@ -65,6 +65,7 @@ pub trait IsaStandardDataProcessing {
 }
 
 impl IsaStandardDataProcessing for Processor {
+    #[inline(always)]
     fn exec_add_reg(&mut self, params: &Reg3ShiftParams) -> ExecuteResult {
         if self.condition_passed() {
             let c = self.psr.get_c();
@@ -112,6 +113,7 @@ impl IsaStandardDataProcessing for Processor {
         }
     }
 
+    #[inline(always)]
     fn exec_add_imm(&mut self, params: &Reg2ImmParams) -> ExecuteResult {
         if self.condition_passed() {
             let rn = self.get_r(params.rn);
@@ -179,6 +181,7 @@ impl IsaStandardDataProcessing for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+    #[inline(always)]
     fn exec_and_reg(&mut self, params: &Reg3ShiftParams) -> ExecuteResult {
         if self.condition_passed() {
             let c = self.psr.get_c();
@@ -266,6 +269,7 @@ impl IsaStandardDataProcessing for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+    #[inline(always)]
     fn exec_cmp_reg(&mut self, params: &Reg2ShiftNoSetFlagsParams) -> ExecuteResult {
         if self.condition_passed() {
             let rn = self.get_r(params.rn);
@@ -283,6 +287,7 @@ impl IsaStandardDataProcessing for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+    #[inline(always)]
     fn exec_cmp_imm(&mut self, params: RegImmParams) -> ExecuteResult {
         if self.condition_passed() {
             let (result, carry, overflow) =
@@ -337,6 +342,7 @@ impl IsaStandardDataProcessing for Processor {
         }
         Ok(ExecuteSuccess::NotTaken)
     }
+    #[inline(always)]
     fn exec_mov_reg(&mut self, params: &Reg2Params) -> ExecuteResult {
         if self.condition_passed() {
             let result = self.get_r(params.rm);
@@ -446,6 +452,7 @@ impl IsaStandardDataProcessing for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[inline(always)]
     fn exec_orr_reg(&mut self, params: &Reg3ShiftParams) -> ExecuteResult {
         if self.condition_passed() {
             let rn = self.get_r(params.rn);

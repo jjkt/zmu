@@ -5,15 +5,17 @@
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::{Exception, ExceptionHandling};
-use crate::core::fault::Fault;
-use crate::core::instruction::{Imm32Carry, Instruction, SetFlags};
+use crate::core::fault::{Fault, FaultTrapReason};
+use crate::core::fetch::Fetch;
+use crate::core::instruction::{Imm32Carry, Instruction, SetFlags, instruction_size};
 
 use crate::core::operation::condition_test;
-use crate::core::register::{Apsr, BaseReg};
+use crate::core::register::{Apsr, BaseReg, Ipsr};
+use crate::decoder::Decoder;
 use crate::memory::map::MapMemory;
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 
-use crate::Processor;
+use crate::{CachedInstruction, Processor};
 
 mod branch;
 mod coproc;
@@ -124,6 +126,7 @@ fn resolve_addressing(rn: u32, imm32: u32, add: bool, index: bool) -> (u32, u32)
     (address, offset_address)
 }
 
+#[inline(always)]
 fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
     match imm32 {
         Imm32Carry::NoCarry { imm32 } => (*imm32, carry),
@@ -137,11 +140,100 @@ fn expand_conditional_carry(imm32: &Imm32Carry, carry: bool) -> (u32, bool) {
     }
 }
 
+#[inline(always)]
 fn conditional_setflags(setflags: SetFlags, in_it_block: bool) -> bool {
     match setflags {
         SetFlags::True => true,
         SetFlags::False => false,
         SetFlags::NotInITBlock => !in_it_block,
+    }
+}
+
+impl Processor {
+    fn active_exception(&self) -> Option<Exception> {
+        let active_exception = self.psr.get_isr_number();
+        if active_exception == 0 {
+            None
+        } else {
+            Some(Exception::from(active_exception))
+        }
+    }
+
+    fn queue_fault_trap(
+        &mut self,
+        fault: Fault,
+        exception: Exception,
+        pc: u32,
+        active_exception: Option<Exception>,
+        trap_reason: FaultTrapReason,
+    ) {
+        self.pending_fault_trap = Some(crate::core::fault::FaultContext {
+            trap_reason,
+            fault,
+            exception,
+            pc,
+            active_exception,
+        });
+    }
+
+    fn is_lockup(exception: Exception, active_exception: Option<Exception>) -> bool {
+        exception == Exception::HardFault
+            && matches!(
+                active_exception,
+                Some(Exception::HardFault | Exception::NMI)
+            )
+    }
+
+    fn handle_fault(&mut self, fault: Fault, fault_pc: u32) -> u32 {
+        let exception = fault.exception();
+        let active_exception = self.active_exception();
+
+        if Self::is_lockup(exception, active_exception) {
+            self.queue_fault_trap(
+                fault,
+                exception,
+                fault_pc,
+                active_exception,
+                FaultTrapReason::Lockup,
+            );
+            self.running = false;
+            self.sleeping = false;
+            return 12;
+        }
+
+        match self.exception_entry(exception, fault_pc) {
+            Ok(()) => {
+                if self.get_fault_trap_mode().should_trap(exception) {
+                    self.queue_fault_trap(
+                        fault,
+                        exception,
+                        fault_pc,
+                        active_exception,
+                        FaultTrapReason::Fault,
+                    );
+                }
+            }
+            Err(entry_fault) => {
+                let entry_exception = entry_fault.exception();
+                let trap_reason = if Self::is_lockup(entry_exception, active_exception) {
+                    FaultTrapReason::Lockup
+                } else {
+                    FaultTrapReason::Fault
+                };
+                self.queue_fault_trap(
+                    entry_fault,
+                    entry_exception,
+                    fault_pc,
+                    active_exception,
+                    trap_reason,
+                );
+                self.running = false;
+                self.sleeping = false;
+            }
+        }
+
+        // TODO: proper amount of cycles calculation
+        12
     }
 }
 
@@ -187,10 +279,12 @@ impl ExecutorHelper for Processor {
         }
     }
 
+    #[inline(always)]
     fn condition_passed_b(&self, cond: Condition) -> bool {
         condition_test(cond, &self.psr)
     }
 
+    #[inline(always)]
     fn update_flags_check_it_block(
         &mut self,
         setflags: SetFlags,
@@ -590,11 +684,7 @@ impl ExecutorHelper for Processor {
             // Fallback: unknown instruction
             //
             // --------------------------------------------
-            Instruction::UDF { imm32, opcode, .. } => {
-                println!("unsupported instruction, opcode {opcode}, imm32 {imm32}");
-                todo!("should give undefined instruction fault")
-                //Err(Fault::UndefInstr)
-            }
+            Instruction::UDF { .. } => Err(Fault::UndefInstr),
         }
     }
 }
@@ -602,21 +692,47 @@ impl ExecutorHelper for Processor {
 impl Executor for Processor {
     #[inline(always)]
     fn step_sleep(&mut self) {
-        self.syst_step(1);
+        if (self.syst_csr & 1) != 0 {
+            self.syst_step(1);
+        }
         self.check_exceptions();
-        self.dwt_tick(1);
+        if (self.dwt_ctrl & 1) != 0 {
+            self.dwt_tick(1);
+        }
     }
 
     #[inline(always)]
     fn step(&mut self) {
         let pc = self.get_pc();
-        let mapped_pc = (self.map_address(pc) >> 1) as usize;
-        let (instruction, instruction_size) = self.instruction_cache[mapped_pc];
-        let count = self.execute(&instruction, instruction_size);
+        let mapped_pc = if self.mem_map.is_some() {
+            (self.map_address(pc) >> 1) as usize
+        } else {
+            (pc >> 1) as usize
+        };
+        let count = match self.instruction_cache.get(mapped_pc).copied() {
+            Some(CachedInstruction::Decoded {
+                instruction,
+                instruction_size,
+            }) => self.execute(&instruction, instruction_size),
+            Some(CachedInstruction::FetchFault { fault }) => self.handle_fault(fault, pc),
+            None => match self.fetch(pc) {
+                Ok(thumb) => {
+                    let instruction = self.decode(thumb);
+                    self.execute(&instruction, instruction_size(&instruction))
+                }
+                Err(fault) => self.handle_fault(fault, pc),
+            },
+        };
         self.cycle_count += u64::from(count);
-        self.dwt_tick(count);
-        self.syst_step(count);
-        self.check_exceptions();
+        if (self.dwt_ctrl & 1) != 0 {
+            self.dwt_tick(count);
+        }
+        if (self.syst_csr & 1) != 0 {
+            self.syst_step(count);
+        }
+        if self.pending_exception_count != 0 || self.sleeping {
+            self.check_exceptions();
+        }
         //TODO exception entry also burns cycles that should be accounted for
         //DWT and SYST ticking
     }
@@ -628,16 +744,9 @@ impl Executor for Processor {
         let in_it_block = self.in_it_block();
 
         match self.execute_internal(instruction) {
-            Err(_fault) => {
-                // all faults are mapped to hardfaults on armv6m
-                let new_pc = self.get_pc();
-
-                //TODO: map to correct exception
-                //TODO: cycles not correctly accumulated yet for exception entry
-                self.exception_entry(Exception::HardFault, new_pc)
-                    .expect("error handling on exception entry not implemented");
-                //TODO: proper amount of cycles calculation
-                12
+            Err(fault) => {
+                let pc = self.get_pc();
+                self.handle_fault(fault, pc)
             }
             Ok(ExecuteSuccess::NotTaken) => {
                 self.add_pc(instruction_size as u32);
@@ -668,11 +777,131 @@ impl Executor for Processor {
 mod tests {
     use super::*;
     use crate::core::condition::Condition;
+    use crate::core::fault::{Fault, FaultTrapReason};
     use crate::core::instruction::instruction_size;
+    #[cfg(not(feature = "armv6m"))]
+    use crate::core::{fault::FaultTrapMode, register::Ipsr};
     use crate::core::{
         instruction::{ITCondition, SRType, SetFlags},
         register::Reg,
     };
+
+    #[test]
+    fn test_execute_internal_udf_returns_undefinstr_fault() {
+        let mut core = Processor::new();
+
+        let result = core.execute_internal(&Instruction::UDF {
+            imm32: 0,
+            opcode: crate::core::thumb::ThumbCode::Thumb16 { opcode: 0xde00 },
+            thumb32: false,
+        });
+
+        assert_eq!(result, Err(Fault::UndefInstr));
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_execute_udf_enters_usagefault_without_default_trap() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.set_pc(0x0800_0004);
+
+        let instruction = Instruction::UDF {
+            imm32: 0,
+            opcode: crate::core::thumb::ThumbCode::Thumb16 { opcode: 0xde00 },
+            thumb32: false,
+        };
+
+        let cycles = core.execute(&instruction, instruction_size(&instruction));
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.take_pending_fault_trap(), None);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_fault_trap_mode_matrix_for_all_mapped_faults() {
+        let cases = [
+            (Fault::Forced, Exception::HardFault),
+            (Fault::DAccViol, Exception::MemoryManagementFault),
+            (Fault::Preciserr, Exception::BusFault),
+            (Fault::UndefInstr, Exception::UsageFault),
+        ];
+
+        for trap_bits in 0u8..16 {
+            let mut mode = FaultTrapMode::none();
+            mode.set_trap(Exception::HardFault, (trap_bits & 0b0001) != 0);
+            mode.set_trap(Exception::MemoryManagementFault, (trap_bits & 0b0010) != 0);
+            mode.set_trap(Exception::BusFault, (trap_bits & 0b0100) != 0);
+            mode.set_trap(Exception::UsageFault, (trap_bits & 0b1000) != 0);
+
+            for (index, (fault, exception)) in cases.iter().copied().enumerate() {
+                let mut core = Processor::new();
+                core.fault_trap_mode(mode);
+                core.set_msp(0x2000_0100);
+
+                let pc = 0x0800_0000 + u32::from(trap_bits) * 0x10 + u32::try_from(index).unwrap();
+                let cycles = core.handle_fault(fault, pc);
+
+                assert_eq!(cycles, 12);
+                assert_eq!(core.psr.get_isr_number(), exception.into());
+
+                let trap = core.take_pending_fault_trap();
+                let should_trap = mode.should_trap(exception);
+
+                assert_eq!(
+                    trap.is_some(),
+                    should_trap,
+                    "trap_bits={trap_bits:04b} fault={fault:?}"
+                );
+
+                if let Some(trap) = trap {
+                    assert_eq!(trap.trap_reason, FaultTrapReason::Fault);
+                    assert_eq!(trap.fault, fault);
+                    assert_eq!(trap.exception, exception);
+                    assert_eq!(trap.pc, pc);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_default_fault_trap_traps_hardfault() {
+        let mut core = Processor::new();
+        core.set_msp(0x2000_0100);
+
+        let cycles = core.handle_fault(Fault::Forced, 0x0800_0000);
+
+        assert_eq!(cycles, 12);
+        let trap = core
+            .take_pending_fault_trap()
+            .expect("hardfault trap expected");
+        assert_eq!(trap.trap_reason, FaultTrapReason::Fault);
+        assert_eq!(trap.fault, Fault::Forced);
+        assert_eq!(trap.exception, Exception::HardFault);
+        assert_eq!(trap.pc, 0x0800_0000);
+    }
+
+    #[test]
+    fn test_lockup_always_traps_even_when_hardfault_trap_disabled() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(crate::core::fault::FaultTrapMode::none());
+        core.psr.set_isr_number(Exception::HardFault.into());
+        core.mode = crate::ProcessorMode::HandlerMode;
+
+        let cycles = core.handle_fault(Fault::Forced, 0x0800_0100);
+
+        assert_eq!(cycles, 12);
+        let trap = core
+            .take_pending_fault_trap()
+            .expect("lockup trap expected");
+        assert_eq!(trap.trap_reason, FaultTrapReason::Lockup);
+        assert_eq!(trap.fault, Fault::Forced);
+        assert_eq!(trap.exception, Exception::HardFault);
+        assert_eq!(trap.pc, 0x0800_0100);
+    }
 
     #[test]
     fn test_it_block_branch_clears_state() {

@@ -13,6 +13,7 @@ use gdbstub::stub::run_blocking;
 use gdbstub::target::Target;
 
 use crate::MemoryMapConfig;
+use crate::core::fault::{FaultContext, FaultTrapMode};
 use crate::gdb::conn;
 use crate::gdb::simulation::SimulationEvent;
 use crate::gdb::simulation::SimulationRunEvent;
@@ -39,6 +40,9 @@ pub enum GdbServerError {
     /// Error related to the target
     #[error("Target error")]
     TargetError,
+    /// A fault trap stopped the target.
+    #[error("{0}")]
+    FaultTrap(FaultContext),
 }
 
 impl GdbServer {
@@ -55,8 +59,14 @@ impl GdbServer {
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
         flash_size: usize,
+        fault_trap_mode: FaultTrapMode,
     ) -> Result<GdbServer, GdbServerError> {
-        let target = ZmuTarget::new(code, semihost_func, map, flash_size);
+        let target = ZmuTarget::new(code, semihost_func, map, flash_size, fault_trap_mode)
+            .map_err(|err| match err {
+                crate::system::simulation::SimulationError::FaultTrap { context } => {
+                    GdbServerError::FaultTrap(context)
+                }
+            })?;
 
         Ok(GdbServer { target })
     }
@@ -80,6 +90,9 @@ impl GdbServer {
                     loop {
                         match self.target.step() {
                             SimulationEvent::Halted => break,
+                            SimulationEvent::FaultTrap(context) => {
+                                return Err(GdbServerError::FaultTrap(context));
+                            }
                             SimulationEvent::Finalized(code) => {
                                 exit_code = code;
                                 break;
@@ -164,6 +177,9 @@ impl run_blocking::BlockingEventLoop for EventLoop {
                         kind: WatchKind::Read,
                         addr,
                     },
+                    SimulationEvent::FaultTrap(_) => {
+                        SingleThreadStopReason::Signal(Signal::SIGTRAP)
+                    }
                     SimulationEvent::Finalized(exit_code) => {
                         SingleThreadStopReason::Exited(exit_code as u8)
                     }
