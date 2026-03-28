@@ -1,1 +1,1 @@
-# zmu-armv6m
+# zmu_cortex_m

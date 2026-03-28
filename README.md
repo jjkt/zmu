@@ -35,7 +35,7 @@ zmu supports Linux and Windows operating systems.
 - DWT
   - Cycle counter
 - Core peripherals: NVIC, SCB, SysTick
-- Device models: generic Cortex-M system and STM32F103
+- Device models: generic Cortex-M system and STM32F103, selected in the binary layer rather than inside `zmu_cortex_m`
 - Instruction trace
 - GDB Server
   - continue / run control
@@ -66,10 +66,26 @@ source ~/.cargo/env
 ## How to Compile
 
 ```sh
+cargo build --release
+```
+
+By default, this builds the `zmu-cortex-m4f` product binary.
+
+To build the full product matrix:
+
+```sh
 chmod +x buildall.sh
 ./buildall.sh
 ```
-The executables are generated in `./target/release/`.
+The product binaries are first-class Cargo bin targets and are generated in `./target/release/`.
+
+Examples:
+
+```sh
+cargo build --release --no-default-features --features cortex-m0 --bin zmu-cortex-m0
+cargo build --release --no-default-features --features cortex-m4f --bin zmu-cortex-m4f
+cargo build --release --no-default-features --features stm32f103 --bin zmu-stm32f103
+```
 
 ## Testing
 
@@ -121,19 +137,17 @@ export GCC_HOME="$HOME/.local/arm-gnu-toolchain/14.2.rel1"
 
 ## Usage
 
-- `zmu-armv6m` runs zmu with ARMv6-M instruction support.
-- `zmu-armv7m` runs zmu with ARMv7-M instruction support.
-- `zmu-armv7em` runs zmu with ARMv7E-M instruction support.
+- Product-oriented binaries are emitted as `zmu-cortex-m0`, `zmu-cortex-m0plus`, `zmu-cortex-m3`, `zmu-cortex-m4`, `zmu-cortex-m4f`, `zmu-cortex-m7-d16`, `zmu-cortex-m7-sp-d16`, and `zmu-stm32f103`.
 
 ### Run an ELF binary
 ```sh
-./target/release/zmu-armv6m run tests/hello_world/hello_world-cm0.elf
+./target/release/zmu-cortex-m0 run tests/hello_world/hello_world-cm0.elf
 hello, world
 ```
 
 ### Run with tracing
 ```sh
-./target/release/zmu-armv7m run -t tests/minimal/minimal-cm3.elf | head -3
+./target/release/zmu-cortex-m3 run -t tests/minimal/minimal-cm3.elf | head -3
 4906      ldr r1, [pc, #+24]               00000074  Reset_Handler         2 qvczn r0:00000000 1:00001c84 2:00000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 4A07      ldr r2, [pc, #+28]               00000076  Reset_Handler         4 qvczn r0:00000000 1:00001c84 2:20000000 3:00000000 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
 4B07      ldr r3, [pc, #+28]               00000078  Reset_Handler         6 qvczn r0:00000000 1:00001c84 2:20000000 3:20000854 4:00000000 5:00000000 6:00000000 7:00000000 8:00000000 9:00000000 10:00000000 11:00000000 12:00000000
@@ -146,23 +160,23 @@ By default, `HardFault` traps stop execution, while configurable faults such as 
 This ARMv7-M test binary executes an undefined instruction and reaches the installed `UsageFault_Handler` when trapping is not enabled:
 
 ```sh
-./target/release/zmu-armv7m run tests/fault-test-bench/fault-usage-cm3.elf
+./target/release/zmu-cortex-m3 run tests/fault-test-bench/fault-usage-cm3.elf
 UsageFault_Handler marker=0x55534654
 ```
 
 To stop immediately when the fault is raised instead, enable trapping for all architecturally visible faults or select individual fault classes with `--trap` and `--no-trap`:
 
 ```sh
-./target/release/zmu-armv7m run --fault-trap tests/fault-test-bench/fault-usage-cm3.elf
+./target/release/zmu-cortex-m3 run --fault-trap tests/fault-test-bench/fault-usage-cm3.elf
 fault trap: fault=UndefInstr, exception=UsageFault, ...
 ```
 
 Useful combinations:
 
 ```sh
-./target/release/zmu-armv7m run --trap usagefault tests/fault-test-bench/fault-usage-cm3.elf
-./target/release/zmu-armv7m run --trap memmanage tests/fault-test-bench/fault-memmanage-cm3.elf
-./target/release/zmu-armv6m run --no-trap all tests/fault-test-bench/fault-lockup-cm0.elf
+./target/release/zmu-cortex-m3 run --trap usagefault tests/fault-test-bench/fault-usage-cm3.elf
+./target/release/zmu-cortex-m3 run --trap memmanage tests/fault-test-bench/fault-memmanage-cm3.elf
+./target/release/zmu-cortex-m0 run --no-trap all tests/fault-test-bench/fault-lockup-cm0.elf
 ```
 
 On ARMv6-M builds, only `HardFault` is architecturally visible, so `--trap` and `--no-trap` accept `hardfault` and `all` only.
@@ -178,7 +192,7 @@ cargo install itm
 Then pipe zmu's ITM stream to `itmdump`:
 
 ```sh
-./target/release/zmu-armv7m run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-cm3.elf | ~/.cargo/bin/itmdump
+./target/release/zmu-cortex-m3 run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-cm3.elf | ~/.cargo/bin/itmdump
 Hello, world!
 ```
 
@@ -216,13 +230,13 @@ arm-none-eabi-gcc -O2 --specs=rdimon.specs -mthumb -g -nostartfiles -T link.ld  
 
 Run the emulator:
 ```sh
-./target/release/zmu-armv6m run tests/hello_world/hello_world-cm0.elf
+./target/release/zmu-cortex-m0 run tests/hello_world/hello_world-cm0.elf
 hello, world
 ```
 
 Run the GDB Server:
 ```sh
-./target/release/zmu-armv6m run --gdb tests/hello_world/hello_world-cm0.elf
+./target/release/zmu-cortex-m0 run --gdb tests/hello_world/hello_world-cm0.elf
 Starting GDB Server on port 9001 ...
 ```
 

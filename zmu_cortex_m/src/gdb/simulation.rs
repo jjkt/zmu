@@ -2,6 +2,7 @@
 //! Cortex System simulation
 //!
 
+use crate::DeviceBus;
 use crate::MemoryMapConfig;
 use crate::Processor;
 use crate::core::fault::{FaultContext, FaultTrapMode};
@@ -65,12 +66,14 @@ impl Simulation {
     ///
     pub fn new(
         code: &[u8],
+        device: Option<DeviceBus>,
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
         flash_size: usize,
         fault_trap_mode: FaultTrapMode,
     ) -> Result<Simulation, crate::system::simulation::SimulationError> {
         let mut processor = Processor::new();
+        processor.device(device);
         processor.semihost(Some(semihost_func));
         processor.memory_map(map);
         processor.fault_trap_mode(fault_trap_mode);

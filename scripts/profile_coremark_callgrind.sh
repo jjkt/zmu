@@ -55,12 +55,16 @@ fi
 
 case "$TARGET" in
     cortex-m0)
-        FEATURES="armv6m generic-device"
-        ZMU_BIN="zmu-armv6m"
+        FEATURES="cortex-m0"
+        ZMU_BIN="zmu-cortex-m0"
         ;;
-    cortex-m3|cortex-m4)
-        FEATURES="armv7m generic-device"
-        ZMU_BIN="zmu-armv7m"
+    cortex-m3)
+        FEATURES="cortex-m3"
+        ZMU_BIN="zmu-cortex-m3"
+        ;;
+    cortex-m4)
+        FEATURES="cortex-m4"
+        ZMU_BIN="zmu-cortex-m4"
         ;;
     *)
         echo "unsupported target: $TARGET"
@@ -119,8 +123,7 @@ cp -f tests/coremark/link.ld "$COREMARK_DIR/zmu/"
 cp -f tests/common.ld tests/coremark/common.ld
 
 echo "Building host emulator for $TARGET"
-cargo build -q --release --no-default-features --features "$FEATURES"
-cp -f "$REPO_ROOT/target/release/zmu" "$REPO_ROOT/target/release/$ZMU_BIN"
+cargo build -q --release --no-default-features --features "$FEATURES" --bin "$ZMU_BIN"
 
 echo "Building CoreMark ELF for $TARGET"
 (

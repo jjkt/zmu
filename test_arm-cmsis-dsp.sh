@@ -35,10 +35,10 @@ run_target() {
     make -s RUNNER="$runner" TARGET="$target" XCFLAGS="$xcflags" run
 }
 
-run_target "../../target/release/zmu-armv6m run" cm0 "-mcpu=cortex-m0"
-run_target "../../target/release/zmu-armv6m run" cm0p "-mcpu=cortex-m0plus"
-run_target "../../target/release/zmu-armv7m run" cm3 "-mcpu=cortex-m3"
-run_target "../../target/release/zmu-armv7m run" cm4 "-mcpu=cortex-m4"
-run_target "../../target/release/zmu-armv7em run" cm4f "-mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16"
-run_target "../../target/release/zmu-armv7em run" cm7-d16 "-mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16"
-run_target "../../target/release/zmu-armv7em run" cm7-sp-d16 "-mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16"
+run_target "../../target/release/zmu-cortex-m0 run" cm0 "-mcpu=cortex-m0"
+run_target "../../target/release/zmu-cortex-m0plus run" cm0p "-mcpu=cortex-m0plus"
+run_target "../../target/release/zmu-cortex-m3 run" cm3 "-mcpu=cortex-m3"
+run_target "../../target/release/zmu-cortex-m4 run" cm4 "-mcpu=cortex-m4"
+run_target "../../target/release/zmu-cortex-m4f run" cm4f "-mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16"
+run_target "../../target/release/zmu-cortex-m7-d16 run" cm7-d16 "-mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16"
+run_target "../../target/release/zmu-cortex-m7-sp-d16 run" cm7-sp-d16 "-mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16"

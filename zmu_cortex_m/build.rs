@@ -5,6 +5,56 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
+fn cargo_feature_enabled(name: &str) -> bool {
+    let env_name = format!("CARGO_FEATURE_{}", name.replace('-', "_").to_uppercase());
+    env::var_os(env_name).is_some()
+}
+
+fn enabled_features<'a>(names: &'a [&'a str]) -> Vec<&'a str> {
+    names
+        .iter()
+        .copied()
+        .filter(|name| cargo_feature_enabled(name))
+        .collect()
+}
+
+fn validate_feature_combinations() {
+    let architectures = enabled_features(&["armv6m", "armv7m", "armv7em"]);
+    if architectures.len() != 1 {
+        panic!(
+            "zmu_cortex_m requires exactly one architecture feature, got: {:?}",
+            architectures
+        );
+    }
+
+    let fp_profiles = enabled_features(&["fpv4-sp-d16", "fpv5-sp-d16", "fpv5-d16"]);
+    if fp_profiles.len() > 1 {
+        panic!(
+            "zmu_cortex_m accepts at most one FP profile, got: {:?}",
+            fp_profiles
+        );
+    }
+
+    let has_fp = cargo_feature_enabled("has-fp");
+    if has_fp == fp_profiles.is_empty() {
+        panic!(
+            "internal FP feature mismatch: has-fp={}, fp-profiles={:?}",
+            has_fp, fp_profiles
+        );
+    }
+
+    if cargo_feature_enabled("vfp-register-bank-d16") && !has_fp {
+        panic!("vfp-register-bank-d16 requires a concrete FP profile");
+    }
+
+    if has_fp && !cargo_feature_enabled("armv7em") {
+        panic!(
+            "current FP profiles require armv7em, got architectures {:?} with {:?}",
+            architectures, fp_profiles
+        );
+    }
+}
+
 fn generate_decode(
     dest_path: &Path,
     func_name: &str,
@@ -100,6 +150,8 @@ fn generate_decode(
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    validate_feature_combinations();
+
     let out_dir = env::var("OUT_DIR").unwrap();
 
     let instructions_thumb32 = HashMap::from([

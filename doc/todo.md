@@ -11,7 +11,6 @@
 - [ ] Enforce `MSR CONTROL` privilege and mode rules
 - [ ] Model full `CONTROL` on FP cores, including `FPCA`
 - [ ] Implement `AIRCR` write semantics: `VECTKEY`, `PRIGROUP`, and reset bits
-- [ ] Replace overloaded architecture buckets with product-oriented Cortex-M profiles and explicit ARM catalogue capabilities so binaries map to products like Cortex-M0, Cortex-M3, Cortex-M4, Cortex-M4F, Cortex-M7 FPv5-SP-D16, or Cortex-M7 FPv5-D16, and so core-visible behavior such as endianness support, system-register exposure, reset defaults, and FP capabilities follows the selected product
 - [ ] Wire endianness reporting to `AIRCR.ENDIANNESS` and core support rules
 - [ ] Audit and model remaining visible SCB reset defaults per core variant, including `CPUID`, `ICSR`, `AIRCR`, `SCR`, `CCR`, `ICTR`, and `ACTLR`
 - [ ] Define invalid-width behavior for `UBFX` and `SBFX`
@@ -27,7 +26,6 @@
 - [ ] Add `MPU` modeling; `zmu_cortex_m` has none yet
 - [ ] Make the generic device return bus faults or unmapped responses for peripheral space instead of silent zero reads and writes
 - [ ] Split core platform config from concrete device models so `NVIC`, `SysTick`, and SCB setup is not tied to one built-in `Device`
-- [ ] Add selectable board and device profiles instead of only `generic-device` vs `stm32f103`
 - [ ] Add external peripheral models beyond STM32F1xx, with pluggable address maps and `NVIC` IRQ wiring
 
 ## Scripting

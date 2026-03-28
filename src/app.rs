@@ -1,15 +1,3 @@
-#![recursion_limit = "1024"]
-
-extern crate clap;
-extern crate goblin;
-extern crate pad;
-extern crate tabwriter;
-extern crate zmu_cortex_m;
-
-#[macro_use]
-extern crate log;
-extern crate stderrlog;
-
 use anyhow::Context;
 use clap::Arg;
 use clap::ArgAction;
@@ -18,13 +6,11 @@ use clap::Command;
 use clap::value_parser;
 use goblin::Object;
 use goblin::elf::program_header::pt_to_str;
+use log::{debug, error, info};
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::time::Instant;
-
-mod semihost;
-mod trace;
 
 use crate::semihost::get_semihost_func;
 use crate::trace::format_trace_entry;
@@ -32,6 +18,7 @@ use crate::trace::format_trace_entry;
 use std::cmp;
 use std::collections::HashMap;
 use tabwriter::TabWriter;
+use zmu_cortex_m::DeviceBus;
 use zmu_cortex_m::Processor;
 use zmu_cortex_m::core::fault::FaultTrapMode;
 use zmu_cortex_m::memory::map::MemoryMapConfig;
@@ -39,6 +26,8 @@ use zmu_cortex_m::memory::map::MemoryMapConfig;
 use zmu_cortex_m::gdb::server::GdbServer;
 use zmu_cortex_m::system::simulation::simulate;
 use zmu_cortex_m::system::simulation::simulate_trace;
+
+type DeviceFactory = fn() -> Option<DeviceBus>;
 
 #[cfg(feature = "armv6m")]
 const FAULT_TRAP_TARGETS: &[&str] = &["hardfault", "all"];
@@ -122,6 +111,7 @@ fn run_bin(
     itm_file: Option<Box<dyn io::Write + 'static>>,
     gdb: bool,
     fault_trap_mode: FaultTrapMode,
+    device_factory: DeviceFactory,
 ) -> anyhow::Result<u32> {
     let res = Object::parse(buffer).unwrap();
 
@@ -133,9 +123,6 @@ fn run_bin(
     };
 
     debug!("Detected ELF file.");
-
-    // auto detection of required flash size:
-    // loop 1: determine lower bound and upper bound
 
     let mut min_address = 0xffff_ffff;
     let mut max_address = 0;
@@ -168,7 +155,6 @@ fn run_bin(
     );
     let mut flash_mem = vec![0; flash_size];
 
-    // loop 2: load data by offset
     for ph in &elf.program_headers {
         if ph.p_type == goblin::elf::program_header::PT_LOAD && ph.p_filesz > 0 {
             let dst_addr = (ph.p_paddr - u64::from(flash_start_address)) as usize;
@@ -188,6 +174,7 @@ fn run_bin(
     if gdb {
         let gdb = GdbServer::new(
             &flash_mem,
+            device_factory(),
             semihost_func,
             if flash_start_address != 0 {
                 Some(MemoryMapConfig::new(flash_start_address, 0, flash_size))
@@ -216,7 +203,6 @@ fn run_bin(
                 let mut count = 0;
                 let mut pos = sym.st_value as u32;
                 while count <= sym.st_size {
-                    // Align addresses to 2 byte alignment
                     symboltable.insert(pos & 0xffff_fffe, name);
                     pos += 2;
                     count += 2;
@@ -235,6 +221,7 @@ fn run_bin(
 
         simulate_trace(
             &flash_mem,
+            device_factory(),
             tracefunc,
             semihost_func,
             itm_file,
@@ -250,6 +237,7 @@ fn run_bin(
         debug!("Starting simulation.");
         simulate(
             &flash_mem,
+            device_factory(),
             semihost_func,
             itm_file,
             if flash_start_address != 0 {
@@ -290,7 +278,7 @@ fn open_itm_file(filename: &str) -> Option<Box<dyn io::Write + 'static>> {
     }
 }
 
-fn run(args: &ArgMatches) -> anyhow::Result<u32> {
+fn run(args: &ArgMatches, device_factory: DeviceFactory) -> anyhow::Result<u32> {
     let exit_code = match args.subcommand() {
         Some(("run", run_matches)) => {
             let filename = run_matches
@@ -318,29 +306,35 @@ fn run(args: &ArgMatches) -> anyhow::Result<u32> {
                 itm_output,
                 run_matches.get_flag("gdb"),
                 resolve_fault_trap_mode(run_matches)?,
+                device_factory,
             )?
         }
         Some((_, _)) => unreachable!(),
-        None => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
+        None => unreachable!(),
     };
 
     Ok(exit_code)
 }
 
-fn main() {
-    let cmd = Command::new("zmu")
-        .bin_name("zmu")
+pub fn main_with_device(
+    bin_name: &'static str,
+    about: &'static str,
+    run_about: &'static str,
+    device_factory: DeviceFactory,
+) {
+    let cmd = Command::new(bin_name)
+        .bin_name(bin_name)
         .arg(
             Arg::new("verbosity")
                 .short('v')
                 .help("Increase message verbosity")
                 .action(ArgAction::Count),
         )
-        .about("a Low level emulator for microcontrollers")
+        .about(about)
         .subcommand_required(true)
         .subcommand(
             Command::new("run")
-                .about("Load and run <EXECUTABLE>")
+                .about(run_about)
                 .arg(
                     Arg::new("trace")
                         .action(ArgAction::SetTrue)
@@ -415,7 +409,7 @@ fn main() {
         .init()
         .unwrap();
 
-    let result = run(&cmd);
+    let result = run(&cmd, device_factory);
     match result {
         Ok(exit_code) => {
             std::process::exit(exit_code as i32);

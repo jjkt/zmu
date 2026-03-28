@@ -37,7 +37,7 @@ impl Processor {
         self.shcsr
     }
 
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub(crate) fn reset_fp_system_state(&mut self) {
         self.cpacr = 0;
         self.fpccr = 0;
@@ -48,7 +48,7 @@ impl Processor {
         self.mvfr2 = 0;
     }
 
-    #[cfg(not(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16")))]
+    #[cfg(not(feature = "has-fp"))]
     pub(crate) fn reset_fp_system_state(&mut self) {
         let _ = self;
     }
@@ -856,7 +856,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     fn test_reset_restores_fp_system_register_defaults() {
         let image = reset_test_image();
 

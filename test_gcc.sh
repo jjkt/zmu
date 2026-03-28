@@ -66,6 +66,38 @@ function arch_supports_cores()
 }
 
 
+function core_runner()
+{
+   case "$1" in
+   "cm0")
+      printf './target/release/zmu-cortex-m0'
+      ;;
+   "cm0p")
+      printf './target/release/zmu-cortex-m0plus'
+      ;;
+   "cm3")
+      printf './target/release/zmu-cortex-m3'
+      ;;
+   "cm4")
+      printf './target/release/zmu-cortex-m4'
+      ;;
+   "cm4f")
+      printf './target/release/zmu-cortex-m4f'
+      ;;
+   "cm7-d16")
+      printf './target/release/zmu-cortex-m7-d16'
+      ;;
+   "cm7-sp-d16")
+      printf './target/release/zmu-cortex-m7-sp-d16'
+      ;;
+   *)
+      echo "Unknown core: $1" >&2
+      exit 1
+      ;;
+   esac
+}
+
+
 function expected_stdout()
 {
    case "$1" in
@@ -98,9 +130,10 @@ do
       arch_supports_cores $a
       for c in "${cores[@]}"
       do
-         echo "./target/release/zmu-$a run tests/$i/$i-$c.elf"
+         runner=$(core_runner "$c")
+         echo "$runner run tests/$i/$i-$c.elf"
          if expected=$(expected_stdout "$i"); then
-            output=$(./target/release/zmu-$a run tests/$i/$i-$c.elf)
+            output=$($runner run tests/$i/$i-$c.elf)
             status=$?
             echo "$output"
             if [[ $status -ne 0 ]]; then
@@ -112,7 +145,7 @@ do
                exit 1
             fi
          else
-            ./target/release/zmu-$a run tests/$i/$i-$c.elf
+            $runner run tests/$i/$i-$c.elf
             if [[ $? -ne 0 ]]; then
                echo "Test failed"
                exit $?
@@ -138,9 +171,10 @@ do
    arch_supports_cores $a
    for c in "${cores[@]}"
    do
-      echo "./target/release/zmu-$a run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-$c.elf | $ITMDUMP_BIN"
+      runner=$(core_runner "$c")
+      echo "$runner run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-$c.elf | $ITMDUMP_BIN"
       expected=$(expected_stdout "hello_world_itm")
-      output=$(./target/release/zmu-$a run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-$c.elf | "$ITMDUMP_BIN")
+      output=$($runner run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-$c.elf | "$ITMDUMP_BIN")
       status=$?
       echo "$output"
       if [[ $status -ne 0 ]]; then

@@ -819,6 +819,7 @@ impl Executor for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "armv6m"))]
     use crate::bus::Bus;
     use crate::core::condition::Condition;
     use crate::core::fault::{Fault, FaultTrapReason};

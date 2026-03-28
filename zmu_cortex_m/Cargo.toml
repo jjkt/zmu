@@ -15,13 +15,12 @@ thiserror = "2.0.17"
 
 
 [features]
-default = ["generic-device"]
+default = ["armv7m"]
+has-fp = []
 vfp-register-bank-d16 = []
-fpv4-sp-d16 = ["vfp-register-bank-d16"]
-fpv5-sp-d16 = ["vfp-register-bank-d16"]
-fpv5-d16 = ["vfp-register-bank-d16"]
+fpv4-sp-d16 = ["has-fp", "vfp-register-bank-d16"]
+fpv5-sp-d16 = ["has-fp", "vfp-register-bank-d16"]
+fpv5-d16 = ["has-fp", "vfp-register-bank-d16"]
 armv6m = []
 armv7m = []
 armv7em = []
-generic-device = []
-stm32f103 = []

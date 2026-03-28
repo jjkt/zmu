@@ -29,6 +29,6 @@ cd ../..
 
 for i in "${arr[@]}"
 do
-   echo "./target/release/zmu-armv7m run tests/cortex-m-rtic/target/thumbv7m-none-eabi/debug/examples/$i"
-   timeout 1s ./target/release/zmu-armv7m run tests/cortex-m-rtic/target/thumbv7m-none-eabi/debug/examples/$i || true
+   echo "./target/release/zmu-cortex-m3 run tests/cortex-m-rtic/target/thumbv7m-none-eabi/debug/examples/$i"
+   timeout 1s ./target/release/zmu-cortex-m3 run tests/cortex-m-rtic/target/thumbv7m-none-eabi/debug/examples/$i || true
 done

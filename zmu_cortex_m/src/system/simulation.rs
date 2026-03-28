@@ -2,6 +2,7 @@
 //! Cortex system simulation framework
 //!
 
+use crate::DeviceBus;
 use crate::MemoryMapConfig;
 use crate::Processor;
 use crate::core::fault::{Fault, FaultContext, FaultTrapMode, FaultTrapReason};
@@ -79,6 +80,7 @@ impl SimulationError {
 ///
 pub fn simulate(
     code: &[u8],
+    device: Option<DeviceBus>,
     semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<dyn io::Write + 'static>>,
     map: Option<MemoryMapConfig>,
@@ -87,6 +89,7 @@ pub fn simulate(
 ) -> Result<SimulationStatistics, SimulationError> {
     let mut processor = Processor::new();
 
+    processor.device(device);
     processor.itm(itm_file);
     processor.semihost(Some(semihost_func));
     processor.memory_map(map);
@@ -134,6 +137,7 @@ pub fn simulate(
 ///
 pub fn simulate_trace<F>(
     code: &[u8],
+    device: Option<DeviceBus>,
     mut trace_func: F,
     semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
     itm_file: Option<Box<dyn io::Write + 'static>>,
@@ -145,6 +149,7 @@ where
     F: FnMut(&Processor),
 {
     let mut processor = Processor::new();
+    processor.device(device);
     processor.itm(itm_file);
     processor.semihost(Some(semihost_func));
     processor.memory_map(map);

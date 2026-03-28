@@ -56,8 +56,10 @@ impl Bus for Processor {
         if self.code.in_range(addr) {
             return self.code.read8(addr);
         }
-        if self.device.in_range(addr) {
-            return self.device.read8(addr);
+        if let Some(device) = self.device.as_ref()
+            && device.in_range(addr)
+        {
+            return device.read8(addr);
         }
 
         let result = match addr {
@@ -85,8 +87,10 @@ impl Bus for Processor {
         if self.code.in_range(addr) {
             return self.code.read16(addr);
         }
-        if self.device.in_range(addr) {
-            return self.device.read16(addr);
+        if let Some(device) = self.device.as_ref()
+            && device.in_range(addr)
+        {
+            return device.read16(addr);
         }
 
         match addr {
@@ -119,8 +123,10 @@ impl Bus for Processor {
         if self.code.in_range(addr) {
             return self.code.read32(addr);
         }
-        if self.device.in_range(addr) {
-            return self.device.read32(addr);
+        if let Some(device) = self.device.as_mut()
+            && device.in_range(addr)
+        {
+            return device.read32(addr);
         }
 
         let result = match addr {
@@ -168,21 +174,21 @@ impl Bus for Processor {
             #[cfg(not(feature = "armv6m"))]
             0xE000_ED3C => self.afsr,
 
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_ED88 => self.cpacr,
 
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_EF34 => self.fpccr,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_EF38 => self.fpcar,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_EF3C => self.fpdscr,
 
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_EF40 => self.mvfr0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_EF44 => self.mvfr1,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             0xE000_EF48 => self.mvfr2,
 
             0xE000_EDFC => self.read_demcr(),
@@ -204,8 +210,10 @@ impl Bus for Processor {
         if self.code.in_range(addr) {
             return self.code.write32(addr, value);
         }
-        if self.device.in_range(addr) {
-            return self.device.write32(addr, value);
+        if let Some(device) = self.device.as_mut()
+            && device.in_range(addr)
+        {
+            return device.write32(addr, value);
         }
 
         match addr {
@@ -272,8 +280,10 @@ impl Bus for Processor {
         if self.code.in_range(addr) {
             return self.code.write16(addr, value);
         }
-        if self.device.in_range(addr) {
-            return self.device.write16(addr, value);
+        if let Some(device) = self.device.as_mut()
+            && device.in_range(addr)
+        {
+            return device.write16(addr, value);
         }
 
         match addr {
@@ -310,8 +320,10 @@ impl Bus for Processor {
         if self.code.in_range(addr) {
             return self.code.write8(addr, value);
         }
-        if self.device.in_range(addr) {
-            return self.device.write8(addr, value);
+        if let Some(device) = self.device.as_mut()
+            && device.in_range(addr)
+        {
+            return device.write8(addr, value);
         }
 
         match addr {
@@ -334,7 +346,12 @@ impl Bus for Processor {
 
     #[allow(unused)]
     fn in_range(&self, addr: u32) -> bool {
-        self.code.in_range(addr) || self.sram.in_range(addr) || self.device.in_range(addr)
+        self.code.in_range(addr)
+            || self.sram.in_range(addr)
+            || self
+                .device
+                .as_ref()
+                .is_some_and(|device| device.in_range(addr))
     }
 }
 
@@ -344,7 +361,7 @@ mod tests {
     use crate::Processor;
     #[cfg(all(
         any(feature = "armv6m", feature = "armv7m", feature = "armv7em"),
-        not(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))
+        not(feature = "has-fp")
     ))]
     use crate::core::fault::Fault;
 
@@ -390,10 +407,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(
-        any(feature = "armv7m", feature = "armv7em"),
-        not(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))
-    ))]
+    #[cfg(all(any(feature = "armv7m", feature = "armv7em"), not(feature = "has-fp")))]
     fn test_non_vfp_profiles_reject_fp_system_registers() {
         let mut processor = Processor::new();
 
@@ -411,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     fn test_vfp_profile_exposes_fp_system_registers() {
         let mut processor = Processor::new();
 

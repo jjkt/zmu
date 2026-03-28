@@ -31,7 +31,6 @@ extern crate enum_set;
 pub mod bus;
 pub mod core;
 pub mod decoder;
-pub mod device;
 pub mod executor;
 pub mod gdb;
 pub mod memory;
@@ -54,16 +53,10 @@ use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
 use crate::core::exception::ExceptionState;
+use decoder::Decoder;
 use std::collections::HashMap;
 use std::fmt;
 use std::io;
-
-#[cfg(feature = "stm32f103")]
-use crate::device::stm32f1xx::Device;
-
-#[cfg(feature = "generic-device")]
-use crate::device::generic::Device;
-use decoder::Decoder;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 /// Main execution mode of the processor
@@ -75,6 +68,9 @@ pub enum ProcessorMode {
 }
 
 type SemihostingCall = Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse>>;
+
+/// External device/peripheral bus attachment owned by the caller.
+pub type DeviceBus = Box<dyn crate::bus::Bus + 'static>;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 enum CachedInstruction {
@@ -188,22 +184,22 @@ pub struct Processor {
     pub mmfar: u32,
     pub bfar: u32,
     pub afsr: u32,
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub cpacr: u32,
 
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub fpccr: u32,
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub fpcar: u32,
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub fpdscr: u32,
     pub fpscr: u32,
 
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub mvfr0: u32,
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub mvfr1: u32,
-    #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+    #[cfg(feature = "has-fp")]
     pub mvfr2: u32,
 
     pub ictr: u32,
@@ -239,7 +235,7 @@ pub struct Processor {
 
     mem_map: Option<MemoryMapConfig>,
 
-    pub device: Device,
+    device: Option<DeviceBus>,
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -354,21 +350,21 @@ impl Processor {
             mmfar: 0,
             bfar: 0,
             afsr: 0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             cpacr: 0,
 
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             fpccr: 0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             fpcar: 0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             fpdscr: 0,
             fpscr: 0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             mvfr0: 0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             mvfr1: 0,
-            #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16", feature = "fpv5-d16"))]
+            #[cfg(feature = "has-fp")]
             mvfr2: 0,
 
             ictr: 0,
@@ -388,7 +384,7 @@ impl Processor {
             pending_fault_status: None,
             last_pc: 0,
             mem_map: None,
-            device: Device::new(),
+            device: None,
         }
     }
 
@@ -401,6 +397,12 @@ impl Processor {
     /// Configure memory mapping
     pub fn memory_map(&mut self, map: Option<MemoryMapConfig>) -> &mut Self {
         self.mem_map = map;
+        self
+    }
+
+    /// Attach or replace the external device/peripheral bus implementation.
+    pub fn device(&mut self, device: Option<DeviceBus>) -> &mut Self {
+        self.device = device;
         self
     }
 
