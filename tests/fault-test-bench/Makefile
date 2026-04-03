@@ -1,37 +1,26 @@
-ifndef GCC_HOME
-    $(error GCC_HOME is undefined)
-endif
+include ../rules.mk
 
-CC=$(GCC_HOME)/bin/arm-none-eabi-gcc
-CFLAGS= -O2 --specs=rdimon.specs -u _printf_float -mthumb -g -nostartfiles -T link.ld -D__STARTUP_CLEAR_BSS
-LIBS=-lc -lrdimon
+.DEFAULT_GOAL := all
 
-ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-embedded/samples/startup/*),)
-	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-embedded/samples/startup
-else ifneq ($(wildcard $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup/*),)
-	STARTUP_PATH := $(GCC_HOME)/share/gcc-arm-none-eabi/samples/startup
-else ifneq ($(wildcard $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup/*),)
-	STARTUP_PATH := $(GCC_HOME)/share/doc/gcc-arm-none-eabi/examples/startup
-else
-$(error startup dir not found !)
-endif
+all: \
+	$(foreach core,$(FAULT_TEST_ARMV6M_CORES),fault-hardfault-$(core).elf fault-lockup-$(core).elf fault-software-pend-svcall-$(core).elf) \
+	$(foreach core,$(FAULT_TEST_ARMV7_CORES),fault-usage-$(core).elf fault-memmanage-$(core).elf fault-forced-hardfault-$(core).elf fault-exception-return-invstate-$(core).elf fault-exception-return-invstate-forced-hardfault-$(core).elf fault-software-pend-svcall-$(core).elf fault-software-pend-usagefault-$(core).elf fault-software-pend-memmanage-$(core).elf fault-software-pend-busfault-$(core).elf)
 
-all: fault-usage-cm3.elf fault-memmanage-cm3.elf fault-hardfault-cm0.elf fault-lockup-cm0.elf fault-forced-hardfault-cm3.elf
+$(foreach core,$(FAULT_TEST_ARMV6M_CORES),$(eval $(call build_test_elf,fault-hardfault-$(core).elf,-DFAULT_CASE=3 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV6M_CORES),$(eval $(call build_test_elf,fault-lockup-$(core).elf,-DFAULT_CASE=4 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV6M_CORES),$(eval $(call build_test_elf,fault-software-pend-svcall-$(core).elf,-DFAULT_CASE=8 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-usage-$(core).elf,-DFAULT_CASE=1 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-memmanage-$(core).elf,-DFAULT_CASE=2 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-forced-hardfault-$(core).elf,-DFAULT_CASE=5 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-exception-return-invstate-$(core).elf,-DFAULT_CASE=6 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-exception-return-invstate-forced-hardfault-$(core).elf,-DFAULT_CASE=7 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-software-pend-svcall-$(core).elf,-DFAULT_CASE=8 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-software-pend-usagefault-$(core).elf,-DFAULT_CASE=9 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-software-pend-memmanage-$(core).elf,-DFAULT_CASE=10 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
+$(foreach core,$(FAULT_TEST_ARMV7_CORES),$(eval $(call build_test_elf,fault-software-pend-busfault-$(core).elf,-DFAULT_CASE=11 $(TEST_BUILD_FLAGS_$(core)),$(TEST_STARTUP_$(core)))))
 
-fault-usage-cm3.elf:
-	$(CC) $(CFLAGS) -DFAULT_CASE=1 -mcpu=cortex-m3 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM3.S -o $@
+.PHONY: print-fault-core-metadata
 
-fault-memmanage-cm3.elf:
-	$(CC) $(CFLAGS) -DFAULT_CASE=2 -mcpu=cortex-m3 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM3.S -o $@
-
-fault-hardfault-cm0.elf:
-	$(CC) $(CFLAGS) -DFAULT_CASE=3 -mcpu=cortex-m0 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM0.S -o $@
-
-fault-lockup-cm0.elf:
-	$(CC) $(CFLAGS) -DFAULT_CASE=4 -mcpu=cortex-m0 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM0.S -o $@
-
-fault-forced-hardfault-cm3.elf:
-	$(CC) $(CFLAGS) -DFAULT_CASE=5 -mcpu=cortex-m3 $(LIBS) main.c $(STARTUP_PATH)/startup_ARMCM3.S -o $@
-
-clean:
-	rm -f fault-*.elf
+print-fault-core-metadata:
+	@$(foreach core,$(FAULT_TEST_ARMV6M_CORES),printf '%s %s %s\n' '$(core)' '$(TEST_RUNNER_$(core))' 'armv6m';)
+	@$(foreach core,$(FAULT_TEST_ARMV7_CORES),printf '%s %s %s\n' '$(core)' '$(TEST_RUNNER_$(core))' 'armv7';)

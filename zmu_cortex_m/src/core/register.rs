@@ -980,6 +980,38 @@ impl From<Reg> for usize {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{BaseReg, Epsr};
+    use crate::{Processor, ProcessorMode};
+
+    #[test]
+    fn test_bx_write_pc_even_address_remains_out_of_scope_for_invstate_todo() {
+        let mut processor = Processor::new();
+        processor.mode = ProcessorMode::ThreadMode;
+        processor.psr.set_t(true);
+
+        let result = processor.bx_write_pc(0x0800_0000);
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(processor.get_pc(), 0x0800_0000);
+        assert!(!processor.psr.get_t());
+    }
+
+    #[test]
+    fn test_load_write_pc_even_address_remains_out_of_scope_for_invstate_todo() {
+        let mut processor = Processor::new();
+        processor.mode = ProcessorMode::ThreadMode;
+        processor.psr.set_t(true);
+
+        let result = processor.load_write_pc(0x0800_0000);
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(processor.get_pc(), 0x0800_0000);
+        assert!(!processor.psr.get_t());
+    }
+}
+
 impl SpecialReg {
     /// decode 16 bit value to Special Register designator
     pub fn from_u16(n: u16) -> Option<Self> {

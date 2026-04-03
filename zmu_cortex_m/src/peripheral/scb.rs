@@ -10,13 +10,50 @@ use crate::core::fault::{Fault, FaultStatusContext};
 
 use crate::core::register::Ipsr;
 
-pub(crate) const SHCSR_MEMFAULTENA: u32 = 1 << 16;
-pub(crate) const SHCSR_BUSFAULTENA: u32 = 1 << 17;
-pub(crate) const SHCSR_USGFAULTENA: u32 = 1 << 18;
-const SHCSR_ENABLE_MASK: u32 = SHCSR_MEMFAULTENA | SHCSR_BUSFAULTENA | SHCSR_USGFAULTENA;
 const SHCSR_MEMFAULTACT: u32 = 1 << 0;
 const SHCSR_BUSFAULTACT: u32 = 1 << 1;
 const SHCSR_USGFAULTACT: u32 = 1 << 3;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_SVCALLACT: u32 = 1 << 7;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_MONITORACT: u32 = 1 << 8;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_PENDSVACT: u32 = 1 << 10;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_SYSTICKACT: u32 = 1 << 11;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_USGFAULTPENDED: u32 = 1 << 12;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_MEMFAULTPENDED: u32 = 1 << 13;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_BUSFAULTPENDED: u32 = 1 << 14;
+const SHCSR_SVCALLPENDED: u32 = 1 << 15;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_MEMFAULTENA: u32 = 1 << 16;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_BUSFAULTENA: u32 = 1 << 17;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_USGFAULTENA: u32 = 1 << 18;
+
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_ENABLE_MASK: u32 = SHCSR_MEMFAULTENA | SHCSR_BUSFAULTENA | SHCSR_USGFAULTENA;
+#[cfg(feature = "armv6m")]
+const SHCSR_ENABLE_MASK: u32 = 0;
+#[cfg(any(feature = "armv7m", feature = "armv7em"))]
+const SHCSR_STATUS_MASK: u32 = SHCSR_USGFAULTPENDED
+    | SHCSR_MEMFAULTPENDED
+    | SHCSR_BUSFAULTPENDED
+    | SHCSR_SVCALLPENDED
+    | SHCSR_SYSTICKACT
+    | SHCSR_PENDSVACT
+    | SHCSR_MONITORACT
+    | SHCSR_SVCALLACT
+    | SHCSR_USGFAULTACT
+    | SHCSR_BUSFAULTACT
+    | SHCSR_MEMFAULTACT;
+#[cfg(feature = "armv6m")]
+const SHCSR_STATUS_MASK: u32 = SHCSR_SVCALLPENDED;
+
 const CFSR_IACCVIOL: u32 = 1 << 0;
 const CFSR_DACCVIOL: u32 = 1 << 1;
 const CFSR_MSTKERR: u32 = 1 << 4;
@@ -27,14 +64,81 @@ const CFSR_UNSTKERR: u32 = 1 << 11;
 const CFSR_STKERR: u32 = 1 << 12;
 const CFSR_BFARVALID: u32 = 1 << 15;
 const CFSR_UNDEFINSTR: u32 = 1 << 16;
+const CFSR_INVSTATE: u32 = 1 << 17;
 const CFSR_INVPC: u32 = 1 << 18;
+
 const HFSR_VECTTBL: u32 = 1 << 1;
-pub(crate) const HFSR_FORCED: u32 = 1 << 30;
+const HFSR_FORCED: u32 = 1 << 30;
 const HFSR_WRITE_ONE_TO_CLEAR_MASK: u32 = (1 << 1) | HFSR_FORCED | (1 << 31);
 
 impl Processor {
     pub(crate) fn read_shcsr(&self) -> u32 {
-        self.shcsr
+        (self.shcsr & !SHCSR_STATUS_MASK) | self.shcsr_status_bits()
+    }
+
+    fn shcsr_status_bits(&self) -> u32 {
+        #[cfg(feature = "armv6m")]
+        {
+            if self.exception_pending(Exception::SVCall) {
+                SHCSR_SVCALLPENDED
+            } else {
+                0
+            }
+        }
+
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+        {
+            let mut bits = 0;
+
+            if self.exception_pending(Exception::UsageFault) {
+                bits |= SHCSR_USGFAULTPENDED;
+            }
+            if self.exception_pending(Exception::MemoryManagementFault) {
+                bits |= SHCSR_MEMFAULTPENDED;
+            }
+            if self.exception_pending(Exception::BusFault) {
+                bits |= SHCSR_BUSFAULTPENDED;
+            }
+            if self.exception_pending(Exception::SVCall) {
+                bits |= SHCSR_SVCALLPENDED;
+            }
+
+            if self.exception_active(Exception::SysTick) {
+                bits |= SHCSR_SYSTICKACT;
+            }
+            if self.exception_active(Exception::PendSV) {
+                bits |= SHCSR_PENDSVACT;
+            }
+            if self.exception_active(Exception::DebugMonitor) {
+                bits |= SHCSR_MONITORACT;
+            }
+            if self.exception_active(Exception::SVCall) {
+                bits |= SHCSR_SVCALLACT;
+            }
+            if self.exception_active(Exception::UsageFault) {
+                bits |= SHCSR_USGFAULTACT;
+            }
+            if self.exception_active(Exception::BusFault) {
+                bits |= SHCSR_BUSFAULTACT;
+            }
+            if self.exception_active(Exception::MemoryManagementFault) {
+                bits |= SHCSR_MEMFAULTACT;
+            }
+
+            bits
+        }
+    }
+
+    #[cfg(not(feature = "armv6m"))]
+    pub(crate) fn configurable_fault_enabled(&self, exception: Exception) -> bool {
+        let enable_bit = match exception {
+            Exception::MemoryManagementFault => SHCSR_MEMFAULTENA,
+            Exception::BusFault => SHCSR_BUSFAULTENA,
+            Exception::UsageFault => SHCSR_USGFAULTENA,
+            _ => return true,
+        };
+
+        (self.shcsr & enable_bit) != 0
     }
 
     #[cfg(feature = "has-fp")]
@@ -122,10 +226,19 @@ impl Processor {
             }
             Fault::Stkerr => self.cfsr |= CFSR_STKERR,
             Fault::UndefInstr => self.cfsr |= CFSR_UNDEFINSTR,
+            Fault::Invstate => self.cfsr |= CFSR_INVSTATE,
             Fault::InvPc => self.cfsr |= CFSR_INVPC,
             Fault::Forced => self.set_hfsr_forced(),
             Fault::VectorTable => self.hfsr |= HFSR_VECTTBL,
             _ => {}
+        }
+    }
+
+    fn write_shcsr_pending_bit(&mut self, value: u32, bit: usize, exception: Exception) {
+        if value.get_bit(bit) {
+            self.set_exception_pending(exception);
+        } else {
+            self.clear_pending_exception(exception);
         }
     }
 }
@@ -427,6 +540,15 @@ impl SystemControlBlock for Processor {
 
     fn write_shcsr(&mut self, value: u32) {
         self.shcsr = (self.shcsr & !SHCSR_ENABLE_MASK) | (value & SHCSR_ENABLE_MASK);
+
+        #[cfg(any(feature = "armv7m", feature = "armv7em"))]
+        {
+            self.write_shcsr_pending_bit(value, 12, Exception::UsageFault);
+            self.write_shcsr_pending_bit(value, 13, Exception::MemoryManagementFault);
+            self.write_shcsr_pending_bit(value, 14, Exception::BusFault);
+        }
+
+        self.write_shcsr_pending_bit(value, 15, Exception::SVCall);
     }
 
     fn read_shcsr(&self) -> u32 {
@@ -555,13 +677,21 @@ mod tests {
     use crate::core::exception::Exception;
     use crate::core::exception::ExceptionHandling;
     use crate::core::fault::FaultTrapMode;
-    use crate::core::register::{BaseReg, Reg};
+    use crate::core::register::{BaseReg, Epsr, Reg};
     use crate::core::reset::Reset;
     use crate::executor::Executor;
 
     const SHCSR_MEMFAULTENA: u32 = 1 << 16;
     const SHCSR_BUSFAULTENA: u32 = 1 << 17;
     const SHCSR_USGFAULTENA: u32 = 1 << 18;
+    const SHCSR_SVCALLPENDED: u32 = 1 << 15;
+    const SHCSR_BUSFAULTPENDED: u32 = 1 << 14;
+    const SHCSR_MEMFAULTPENDED: u32 = 1 << 13;
+    const SHCSR_USGFAULTPENDED: u32 = 1 << 12;
+    const SHCSR_SYSTICKACT: u32 = 1 << 11;
+    const SHCSR_PENDSVACT: u32 = 1 << 10;
+    const SHCSR_MONITORACT: u32 = 1 << 8;
+    const SHCSR_SVCALLACT: u32 = 1 << 7;
     const SHCSR_PRESERVED_RAW_BITS: u32 = 1 << 2;
 
     const HFSR_VECTTBL: u32 = 1 << 1;
@@ -703,11 +833,92 @@ mod tests {
     }
 
     #[test]
+    fn test_shcsr_pending_bits_reflect_live_exception_state() {
+        for (exception, expected_bit) in [
+            (Exception::UsageFault, SHCSR_USGFAULTPENDED),
+            (Exception::MemoryManagementFault, SHCSR_MEMFAULTPENDED),
+            (Exception::BusFault, SHCSR_BUSFAULTPENDED),
+            (Exception::SVCall, SHCSR_SVCALLPENDED),
+        ] {
+            let mut processor = Processor::new();
+
+            processor.set_exception_pending(exception);
+
+            assert_eq!(
+                processor.read32(0xE000_ED24).unwrap() & expected_bit,
+                expected_bit
+            );
+
+            processor.clear_pending_exception(exception);
+
+            assert_eq!(processor.read32(0xE000_ED24).unwrap() & expected_bit, 0);
+        }
+    }
+
+    #[test]
+    fn test_shcsr_write_sets_and_clears_pending_bits() {
+        for (exception, pending_bit) in [
+            (Exception::UsageFault, SHCSR_USGFAULTPENDED),
+            (Exception::MemoryManagementFault, SHCSR_MEMFAULTPENDED),
+            (Exception::BusFault, SHCSR_BUSFAULTPENDED),
+            (Exception::SVCall, SHCSR_SVCALLPENDED),
+        ] {
+            let mut processor = Processor::new();
+
+            processor.write32(0xE000_ED24, pending_bit).unwrap();
+
+            assert!(processor.exception_pending(exception));
+            assert_eq!(
+                processor.read32(0xE000_ED24).unwrap() & pending_bit,
+                pending_bit
+            );
+
+            processor.write32(0xE000_ED24, 0).unwrap();
+
+            assert!(!processor.exception_pending(exception));
+            assert_eq!(processor.read32(0xE000_ED24).unwrap() & pending_bit, 0);
+        }
+    }
+
+    #[test]
+    fn test_shcsr_active_system_handler_bits_reflect_live_exception_state() {
+        for (exception, expected_bit) in [
+            (Exception::SysTick, SHCSR_SYSTICKACT),
+            (Exception::PendSV, SHCSR_PENDSVACT),
+            (Exception::DebugMonitor, SHCSR_MONITORACT),
+            (Exception::SVCall, SHCSR_SVCALLACT),
+        ] {
+            let mut processor = Processor::new();
+
+            let mut image = vec![0; 0x100].into_boxed_slice();
+            let vector_offset = usize::from(exception) * 4;
+            image[vector_offset..vector_offset + 4].copy_from_slice(&0x0000_0041_u32.to_le_bytes());
+
+            processor.flash_memory(image.len(), &image);
+            processor.set_msp(0x2000_0100);
+            processor.set_pc(0x1004);
+            processor.psr.set_t(true);
+
+            processor.exception_entry(exception, 0x1004).unwrap();
+
+            assert_eq!(
+                processor.read32(0xE000_ED24).unwrap() & expected_bit,
+                expected_bit
+            );
+
+            processor.exception_return(0xFFFF_FFF9).unwrap();
+
+            assert_eq!(processor.read32(0xE000_ED24).unwrap() & expected_bit, 0);
+        }
+    }
+
+    #[test]
     fn test_shcsr_active_fault_bits_clear_on_exception_return() {
         let mut processor = Processor::new();
 
         processor.set_msp(0x2000_0100);
         processor.set_pc(0x1000);
+        processor.psr.set_t(true);
 
         processor
             .exception_entry(Exception::BusFault, 0x1000)

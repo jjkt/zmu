@@ -96,6 +96,16 @@ impl Processor {
             .values()
             .any(|e| e.pending && e.priority < wakeup_priority)
     }
+
+    #[cfg(all(test, not(feature = "armv6m")))]
+    pub(crate) fn test_set_active_exception(&mut self, exception: Exception) {
+        self.psr.set_isr_number(exception.into());
+        self.exceptions
+            .get_mut(&usize::from(exception))
+            .unwrap()
+            .active = true;
+        self.mode = ProcessorMode::HandlerMode;
+    }
 }
 
 ///
@@ -122,6 +132,11 @@ pub trait ExceptionHandling {
     /// Clear the pending status of an exception
     ///
     fn clear_pending_exception(&mut self, exception: Exception);
+
+    ///
+    /// Check if given exception is currently pending.
+    ///
+    fn exception_pending(&self, exception: Exception) -> bool;
 
     ///
     /// Enter an exception.
@@ -169,6 +184,7 @@ pub trait ExceptionHandling {
 trait ExceptionHandlingHelpers {
     fn exception_taken(&mut self, exception: Exception) -> Result<(), Fault>;
     fn deactivate(&mut self, returning_exception_number: usize);
+    fn invalid_exception_return_fault(&mut self, exc_return: u32) -> Result<(), Fault>;
     fn invalid_exception_return(
         &mut self,
         returning_exception_number: usize,
@@ -264,15 +280,18 @@ impl ExceptionHandlingHelpers for Processor {
         self.execution_priority = self.get_execution_priority();
     }
 
+    fn invalid_exception_return_fault(&mut self, exc_return: u32) -> Result<(), Fault> {
+        self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
+        Err(Fault::InvPc)
+    }
+
     fn invalid_exception_return(
         &mut self,
         returning_exception_number: usize,
         exc_return: u32,
     ) -> Result<(), Fault> {
         self.deactivate(returning_exception_number);
-        //ufsr.invpc = true;
-        self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-        Err(Fault::InvPc)
+        self.invalid_exception_return_fault(exc_return)
     }
 
     fn exception_active_bit_count(&self) -> usize {
@@ -293,9 +312,10 @@ impl ExceptionHandlingHelpers for Processor {
             | Exception::SysTick
             | Exception::Interrupt { .. } => return_address,
             Exception::UsageFault => return_address - 4,
-            _ => todo!("unsupported exception"),
+            _ => unreachable!("return address requested for unsupported exception type"),
         }
     }
+
     fn push_stack(&mut self, exception_type: Exception, return_address: u32) -> Result<(), Fault> {
         const FRAME_SIZE: u32 = 0x20;
 
@@ -351,23 +371,45 @@ impl ExceptionHandlingHelpers for Processor {
 
         const FRAME_SIZE: u32 = 0x20;
 
-        //let forcealign = ccr.stkalign;
+        //TODO: let forcealign = ccr.stkalign;
         let forcealign = true;
 
         let r0 = self.read32(frameptr)?;
-        self.set_r(Reg::R0, r0);
         let r1 = self.read32(frameptr.wrapping_add(0x4))?;
-        self.set_r(Reg::R1, r1);
         let r2 = self.read32(frameptr.wrapping_add(0x8))?;
-        self.set_r(Reg::R2, r2);
         let r3 = self.read32(frameptr.wrapping_add(0xc))?;
-        self.set_r(Reg::R3, r3);
         let r12 = self.read32(frameptr.wrapping_add(0x10))?;
-        self.set_r(Reg::R12, r12);
         let lr = self.read32(frameptr.wrapping_add(0x14))?;
-        self.set_r(Reg::LR, lr);
         let pc = self.read32(frameptr.wrapping_add(0x18))?;
         let psr = self.read32(frameptr.wrapping_add(0x1c))?;
+        let stacked_exception_number = psr.get_bits(0..9) as usize;
+
+        if !psr.get_bit(24) {
+            return Err(Fault::Invstate);
+        }
+
+        match exc_return.get_bits(0..4) {
+            0b0001 => {
+                if stacked_exception_number == 0 {
+                    return self.invalid_exception_return_fault(exc_return);
+                }
+            }
+            0b1001 | 0b1101 => {
+                if stacked_exception_number != 0 {
+                    return self.invalid_exception_return_fault(exc_return);
+                }
+            }
+            _ => {
+                return self.invalid_exception_return_fault(exc_return);
+            }
+        }
+
+        self.set_r(Reg::R0, r0);
+        self.set_r(Reg::R1, r1);
+        self.set_r(Reg::R2, r2);
+        self.set_r(Reg::R3, r3);
+        self.set_r(Reg::R12, r12);
+        self.set_r(Reg::LR, lr);
 
         self.branch_write_pc(pc);
 
@@ -382,7 +424,7 @@ impl ExceptionHandlingHelpers for Processor {
                 self.set_psp((psp.wrapping_add(FRAME_SIZE)) | spmask);
             }
             _ => {
-                todo!("wrong exc return");
+                return self.invalid_exception_return_fault(exc_return);
             }
         }
         self.psr.value.set_bits(27..32, psr.get_bits(27..32));
@@ -410,6 +452,10 @@ impl ExceptionHandling for Processor {
     }
     fn exception_active(&self, exception: Exception) -> bool {
         self.exceptions[&usize::from(exception)].active
+    }
+
+    fn exception_pending(&self, exception: Exception) -> bool {
+        self.exceptions[&usize::from(exception)].pending
     }
 
     fn set_exception_priority(&mut self, exception: Exception, priority: u8) {
@@ -493,13 +539,17 @@ impl ExceptionHandling for Processor {
             match exc_return.get_bits(0..4) {
                 0b0001 => {
                     // return to handler
+                    if nested_activation == 1 {
+                        return self
+                            .invalid_exception_return(returning_exception_number, exc_return);
+                    }
                     frameptr = self.get_msp();
                     self.mode = ProcessorMode::HandlerMode;
                     self.control.sp_sel = false;
                 }
                 0b1001 => {
                     // returning to thread using main stack
-                    if nested_activation == 0
+                    if nested_activation != 1
                     /*&& !self.ccr.nonbasethreadena*/
                     {
                         return self
@@ -512,7 +562,7 @@ impl ExceptionHandling for Processor {
                 }
                 0b1101 => {
                     // returning to thread using process stack
-                    if nested_activation == 0
+                    if nested_activation != 1
                     /*&& !self.ccr.nonbasethreadena*/
                     {
                         return self
@@ -530,19 +580,6 @@ impl ExceptionHandling for Processor {
 
             self.deactivate(returning_exception_number);
             self.pop_stack(frameptr, exc_return)?;
-            if self.mode == ProcessorMode::HandlerMode && self.psr.get_isr_number() == 0 {
-                //ufsr.invpc = true;
-                self.push_stack(Exception::UsageFault, exc_return)?; // to negate pop_stack
-                self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-                return self.exception_taken(Exception::UsageFault);
-            }
-
-            if self.mode == ProcessorMode::ThreadMode && self.psr.get_isr_number() != 0 {
-                //ufsr.invpc = true;
-                self.push_stack(Exception::UsageFault, exc_return)?; // to negate pop_stack
-                self.set_r(Reg::LR, (0b1111 << 28) + exc_return);
-                return self.exception_taken(Exception::UsageFault);
-            }
 
             if self.mode == ProcessorMode::ThreadMode
                 && nested_activation == 1 // deactivate() reduced one
@@ -656,6 +693,11 @@ mod tests {
     const CFSR_MSTKERR: u32 = 1 << 4;
     #[cfg(not(feature = "armv6m"))]
     const HFSR_FORCED: u32 = 1 << 30;
+
+    #[cfg(not(feature = "armv6m"))]
+    fn set_active_exception(processor: &mut Processor, exception: Exception) {
+        processor.test_set_active_exception(exception);
+    }
 
     #[test]
     fn test_push_stack() {
@@ -831,6 +873,167 @@ mod tests {
         assert_eq!(trap.exception, Exception::HardFault);
         assert_eq!(processor.cfsr, CFSR_MSTKERR);
         assert_eq!(processor.hfsr, HFSR_FORCED);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_exception_return_rejects_invalid_exc_return_encoding() {
+        let mut processor = Processor::new();
+
+        set_active_exception(&mut processor, Exception::SysTick);
+
+        let result = processor.exception_return(0x0);
+
+        assert_eq!(result, Err(Fault::InvPc));
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000);
+        assert!(!processor.exception_active(Exception::SysTick));
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_exception_return_rejects_handler_return_without_nested_activation() {
+        let mut processor = Processor::new();
+
+        set_active_exception(&mut processor, Exception::SysTick);
+
+        let result = processor.exception_return(0x1);
+
+        assert_eq!(result, Err(Fault::InvPc));
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0001);
+        assert!(!processor.exception_active(Exception::SysTick));
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_exception_return_rejects_thread_return_with_other_active_exception() {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut processor = Processor::new();
+        processor.set_msp(FRAMEPTR);
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x1c), 1 << 24)
+            .unwrap();
+
+        set_active_exception(&mut processor, Exception::HardFault);
+        processor
+            .exceptions
+            .get_mut(&usize::from(Exception::SysTick))
+            .unwrap()
+            .active = true;
+
+        let result = processor.exception_return(0x9);
+
+        assert_eq!(result, Err(Fault::InvPc));
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0009);
+        assert!(!processor.exception_active(Exception::HardFault));
+        assert!(processor.exception_active(Exception::SysTick));
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_exception_return_rejects_handler_return_with_zero_stacked_ipsr() {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut processor = Processor::new();
+        processor.set_msp(FRAMEPTR);
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x1c), 1 << 24)
+            .unwrap();
+
+        set_active_exception(&mut processor, Exception::HardFault);
+        processor
+            .exceptions
+            .get_mut(&usize::from(Exception::SysTick))
+            .unwrap()
+            .active = true;
+
+        let result = processor.exception_return(0x1);
+
+        assert_eq!(result, Err(Fault::InvPc));
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0001);
+        assert!(!processor.exception_active(Exception::HardFault));
+        assert!(processor.exception_active(Exception::SysTick));
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_exception_return_rejects_thread_return_with_nonzero_stacked_ipsr() {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut processor = Processor::new();
+        processor.set_msp(FRAMEPTR);
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        processor
+            .write32(
+                FRAMEPTR.wrapping_add(0x1c),
+                (1 << 24) | usize::from(Exception::HardFault) as u32,
+            )
+            .unwrap();
+
+        set_active_exception(&mut processor, Exception::SysTick);
+
+        let result = processor.exception_return(0x9);
+
+        assert_eq!(result, Err(Fault::InvPc));
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0009);
+        assert!(!processor.exception_active(Exception::SysTick));
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_exception_return_rejects_stacked_frame_with_thumb_bit_clear() {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut processor = Processor::new();
+        processor.set_msp(FRAMEPTR);
+        processor.set_pc(0x0800_00aa);
+        processor.set_r(Reg::R0, 0x1111_1111);
+        processor.set_r(Reg::R1, 0x2222_2222);
+        processor.set_r(Reg::R2, 0x3333_3333);
+        processor.set_r(Reg::R3, 0x4444_4444);
+        processor.set_r(Reg::R12, 0x5555_5555);
+        processor.set_r(Reg::LR, 0x6666_6666);
+        processor.write32(FRAMEPTR, 0xaaaa_0000).unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x4), 0xbbbb_0001)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x8), 0xcccc_0002)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0xc), 0xdddd_0003)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x10), 0xeeee_0004)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x14), 0xffff_0005)
+            .unwrap();
+        processor
+            .write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        processor.write32(FRAMEPTR.wrapping_add(0x1c), 0).unwrap();
+
+        set_active_exception(&mut processor, Exception::SysTick);
+
+        let result = processor.exception_return(0x9);
+
+        assert_eq!(result, Err(Fault::Invstate));
+        assert_eq!(processor.get_pc(), 0x0800_00aa);
+        assert_eq!(processor.get_r(Reg::R0), 0x1111_1111);
+        assert_eq!(processor.get_r(Reg::R1), 0x2222_2222);
+        assert_eq!(processor.get_r(Reg::R2), 0x3333_3333);
+        assert_eq!(processor.get_r(Reg::R3), 0x4444_4444);
+        assert_eq!(processor.get_r(Reg::R12), 0x5555_5555);
+        assert_eq!(processor.get_r(Reg::LR), 0x6666_6666);
     }
 
     #[test]

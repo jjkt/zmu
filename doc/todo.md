@@ -1,7 +1,6 @@
 # TODO
 
 ## ARM Cortex Core behavior
-- [ ] Set `INVPC`, `INVSTATE`, and other usage-fault bits on bad exception return and state violations
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
 - [ ] Gate `BASEPRI`, `BASEPRI_MAX`, and `FAULTMASK` by architecture
 - [ ] Reject unsupported or invalid `MRS` and `MSR` `sysm` encodings instead of returning zero or no-op
