@@ -52,6 +52,8 @@ impl Reset for Processor {
 
         //TODO self.scs.reset();
         self.exceptions_reset();
+        self.reset_scb_fault_state();
+        self.reset_fp_system_state();
 
         //self.event_reg.clear();
 

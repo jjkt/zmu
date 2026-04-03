@@ -29,7 +29,7 @@ pub fn decode_VLDM_t1(opcode: u32) -> Instruction {
         };
     }
 
-    #[cfg(feature = "VFPSmallRegisterBank")]
+    #[cfg(feature = "vfp-register-bank-d16")]
     {
         if (first + regs) > 16 {
             return Instruction::UDF {

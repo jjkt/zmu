@@ -165,10 +165,11 @@ double vsub_f64(double a, double b)
 int32_t vcvt_f32_s32(float a)
 {
     int32_t result;
-    union {
+    union
+    {
         float f;
         uint32_t u;
-    } in = { .f = a };
+    } in = {.f = a};
 
     asm volatile(
         "vmov s0, %1\n\t"
@@ -184,10 +185,11 @@ int32_t vcvt_f32_s32(float a)
 uint32_t vcvt_f32_u32(float a)
 {
     uint32_t result;
-    union {
+    union
+    {
         float f;
         uint32_t u;
-    } in = { .f = a };
+    } in = {.f = a};
 
     asm volatile(
         "vmov s0, %1\n\t"
@@ -202,7 +204,8 @@ uint32_t vcvt_f32_u32(float a)
 
 float vcvt_s32_f32(int32_t a)
 {
-    union {
+    union
+    {
         float f;
         uint32_t u;
     } out;
@@ -220,7 +223,8 @@ float vcvt_s32_f32(int32_t a)
 
 float vcvt_u32_f32(uint32_t a)
 {
-    union {
+    union
+    {
         float f;
         uint32_t u;
     } out;
@@ -377,7 +381,6 @@ __attribute__((used, noinline)) void vsel_decode_probe_f32(void)
         : "s0", "s1", "s2", "s14", "s15", "s16", "s30", "s31");
 }
 #endif
-
 
 #if HAVE_ARM_FP64
 double vneg_f64(double value)
@@ -656,7 +659,6 @@ void floating_point(void)
     assert(vcvt_u32_f64(42) == 42.0);
     assert(vcvt_u32_f64(0) == 0.0);
 #endif
-
 }
 #endif
 int main(void)

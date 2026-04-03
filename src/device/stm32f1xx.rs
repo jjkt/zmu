@@ -3,7 +3,9 @@
 //!
 //!
 
-use crate::core::bits::Bits;
+use zmu_cortex_m::bus::Bus;
+use zmu_cortex_m::core::bits::Bits;
+use zmu_cortex_m::core::fault::Fault;
 
 const PERIPH_BASE: u32 = 0x4000_0000;
 
@@ -73,9 +75,6 @@ const RCC_BASE_END: u32 = RCC_BASE + 0x24;
 
 const FLASH_R_BASE: u32 = AHBPERIPH_BASE + 0x2000;
 const FLASH_R_BASE_END: u32 = FLASH_R_BASE + 0x04;
-
-use crate::bus::Bus;
-use crate::core::fault::Fault;
 
 #[allow(non_snake_case)]
 struct RCCRegisters {

@@ -8,6 +8,7 @@ use gdbstub::target::ext::monitor_cmd::MonitorCmd;
 use log::debug;
 
 use crate::MemoryMapConfig;
+use crate::DeviceBus;
 use crate::bus::Bus;
 use crate::core::fault::FaultTrapMode;
 use crate::gdb::simulation;
@@ -36,13 +37,20 @@ pub struct ZmuTarget {
 impl ZmuTarget {
     pub fn new(
         code: &[u8],
+        device: Option<DeviceBus>,
         semihost_func: Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse + 'static>,
         map: Option<MemoryMapConfig>,
         flash_size: usize,
         fault_trap_mode: FaultTrapMode,
     ) -> Result<ZmuTarget, crate::system::simulation::SimulationError> {
-        let simulation =
-            simulation::Simulation::new(code, semihost_func, map, flash_size, fault_trap_mode)?;
+        let simulation = simulation::Simulation::new(
+            code,
+            device,
+            semihost_func,
+            map,
+            flash_size,
+            fault_trap_mode,
+        )?;
         Ok(ZmuTarget { simulation })
     }
 

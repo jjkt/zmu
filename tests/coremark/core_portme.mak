@@ -31,16 +31,16 @@ LFLAGS_END = -lc -lrdimon
 # Detect CPU type from XCFLAGS to select the right startup file and emulator
 ifeq ($(findstring cortex-m0,$(XCFLAGS)),cortex-m0)
 	STARTUP_FILE = startup_ARMCM0.S
-	ZMU = ../../../target/release/zmu-armv6m
+	ZMU = ../../../target/release/zmu-cortex-m0
 else ifeq ($(findstring cortex-m3,$(XCFLAGS)),cortex-m3)
 	STARTUP_FILE = startup_ARMCM3.S
-	ZMU = ../../../target/release/zmu-armv7m
+	ZMU = ../../../target/release/zmu-cortex-m3
 else ifeq ($(findstring cortex-m4,$(XCFLAGS)),cortex-m4)
 	STARTUP_FILE = startup_ARMCM4.S
-	ZMU = ../../../target/release/zmu-armv7m
+	ZMU = ../../../target/release/zmu-cortex-m4
 else
 	STARTUP_FILE = startup_ARMCM4.S
-	ZMU = ../../../target/release/zmu-armv7m
+	ZMU = ../../../target/release/zmu-cortex-m4
 endif
 PORT_SRCS = $(PORT_DIR)/core_portme.c $(STARTUP_PATH)/$(STARTUP_FILE)
 # Flag : LOAD

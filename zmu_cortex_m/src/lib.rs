@@ -31,7 +31,6 @@ extern crate enum_set;
 pub mod bus;
 pub mod core;
 pub mod decoder;
-pub mod device;
 pub mod executor;
 pub mod gdb;
 pub mod memory;
@@ -42,7 +41,7 @@ pub mod system;
 use crate::core::instruction::instruction_size;
 
 use crate::core::exception::Exception;
-use crate::core::fault::{Fault, FaultContext, FaultTrapMode};
+use crate::core::fault::{Fault, FaultContext, FaultStatusContext, FaultTrapMode};
 use crate::core::fetch::Fetch;
 use crate::core::instruction::Instruction;
 use crate::core::register::{Apsr, BaseReg, Control, PSR, Reg};
@@ -54,16 +53,10 @@ use crate::semihosting::SemihostingCommand;
 use crate::semihosting::SemihostingResponse;
 
 use crate::core::exception::ExceptionState;
+use decoder::Decoder;
 use std::collections::HashMap;
 use std::fmt;
 use std::io;
-
-#[cfg(feature = "stm32f103")]
-use crate::device::stm32f1xx::Device;
-
-#[cfg(feature = "generic-device")]
-use crate::device::generic::Device;
-use decoder::Decoder;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 /// Main execution mode of the processor
@@ -76,6 +69,9 @@ pub enum ProcessorMode {
 
 type SemihostingCall = Option<Box<dyn FnMut(&SemihostingCommand) -> SemihostingResponse>>;
 
+/// External device/peripheral bus attachment owned by the caller.
+pub type DeviceBus = Box<dyn crate::bus::Bus + 'static>;
+
 #[derive(PartialEq, Debug, Copy, Clone)]
 enum CachedInstruction {
     Decoded {
@@ -84,6 +80,7 @@ enum CachedInstruction {
     },
     FetchFault {
         fault: Fault,
+        status: FaultStatusContext,
     },
 }
 ///
@@ -187,15 +184,22 @@ pub struct Processor {
     pub mmfar: u32,
     pub bfar: u32,
     pub afsr: u32,
+    #[cfg(feature = "has-fp")]
     pub cpacr: u32,
 
+    #[cfg(feature = "has-fp")]
     pub fpccr: u32,
+    #[cfg(feature = "has-fp")]
     pub fpcar: u32,
+    #[cfg(feature = "has-fp")]
     pub fpdscr: u32,
     pub fpscr: u32,
 
+    #[cfg(feature = "has-fp")]
     pub mvfr0: u32,
+    #[cfg(feature = "has-fp")]
     pub mvfr1: u32,
+    #[cfg(feature = "has-fp")]
     pub mvfr2: u32,
 
     pub ictr: u32,
@@ -225,12 +229,13 @@ pub struct Processor {
 
     fault_trap_mode: FaultTrapMode,
     pending_fault_trap: Option<FaultContext>,
+    pending_fault_status: Option<FaultStatusContext>,
 
     pub last_pc: u32,
 
     mem_map: Option<MemoryMapConfig>,
 
-    pub device: Device,
+    device: Option<DeviceBus>,
 }
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
@@ -345,14 +350,21 @@ impl Processor {
             mmfar: 0,
             bfar: 0,
             afsr: 0,
+            #[cfg(feature = "has-fp")]
             cpacr: 0,
 
+            #[cfg(feature = "has-fp")]
             fpccr: 0,
+            #[cfg(feature = "has-fp")]
             fpcar: 0,
+            #[cfg(feature = "has-fp")]
             fpdscr: 0,
             fpscr: 0,
+            #[cfg(feature = "has-fp")]
             mvfr0: 0,
+            #[cfg(feature = "has-fp")]
             mvfr1: 0,
+            #[cfg(feature = "has-fp")]
             mvfr2: 0,
 
             ictr: 0,
@@ -369,9 +381,10 @@ impl Processor {
             instruction_cache: Vec::new(),
             fault_trap_mode: FaultTrapMode::hardfault(),
             pending_fault_trap: None,
+            pending_fault_status: None,
             last_pc: 0,
             mem_map: None,
-            device: Device::new(),
+            device: None,
         }
     }
 
@@ -384,6 +397,12 @@ impl Processor {
     /// Configure memory mapping
     pub fn memory_map(&mut self, map: Option<MemoryMapConfig>) -> &mut Self {
         self.mem_map = map;
+        self
+    }
+
+    /// Attach or replace the external device/peripheral bus implementation.
+    pub fn device(&mut self, device: Option<DeviceBus>) -> &mut Self {
+        self.device = device;
         self
     }
 
@@ -415,6 +434,15 @@ impl Processor {
         self.pending_fault_trap.take()
     }
 
+    pub(crate) fn fault_with_status(&mut self, fault: Fault, status: FaultStatusContext) -> Fault {
+        self.pending_fault_status = Some(status);
+        fault
+    }
+
+    pub(crate) fn take_pending_fault_status(&mut self) -> FaultStatusContext {
+        self.pending_fault_status.take().unwrap_or_default()
+    }
+
     ///
     /// Pre cache (decode) instructions to speed up simulation
     ///
@@ -433,8 +461,9 @@ impl Processor {
                         });
                     }
                     Err(fault) => {
+                        let status = self.take_pending_fault_status();
                         self.instruction_cache
-                            .push(CachedInstruction::FetchFault { fault });
+                            .push(CachedInstruction::FetchFault { fault, status });
                     }
                 }
                 pc += 2;

@@ -1,8 +1,6 @@
 # TODO
 
 ## ARM Cortex Core behavior
-- [ ] Update SCB fault status bits and registers: `CFSR`, `HFSR`, `SHCSR`, `MMFAR`, `BFAR`
-- [ ] Implement fault escalation rules, including `HFSR.FORCED`
 - [ ] Set `INVPC`, `INVSTATE`, and other usage-fault bits on bad exception return and state violations
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
 - [ ] Gate `BASEPRI`, `BASEPRI_MAX`, and `FAULTMASK` by architecture
@@ -13,6 +11,7 @@
 - [ ] Model full `CONTROL` on FP cores, including `FPCA`
 - [ ] Implement `AIRCR` write semantics: `VECTKEY`, `PRIGROUP`, and reset bits
 - [ ] Wire endianness reporting to `AIRCR.ENDIANNESS` and core support rules
+- [ ] Audit and model remaining visible SCB reset defaults per core variant, including `CPUID`, `ICSR`, `AIRCR`, `SCR`, `CCR`, `ICTR`, and `ACTLR`
 - [ ] Define invalid-width behavior for `UBFX` and `SBFX`
 - [ ] Implement more semihosting commands beyond the current console and `:semihosting-features` subset
 - [ ] Handle unknown semihosting commands
@@ -26,7 +25,6 @@
 - [ ] Add `MPU` modeling; `zmu_cortex_m` has none yet
 - [ ] Make the generic device return bus faults or unmapped responses for peripheral space instead of silent zero reads and writes
 - [ ] Split core platform config from concrete device models so `NVIC`, `SysTick`, and SCB setup is not tied to one built-in `Device`
-- [ ] Add selectable board and device profiles instead of only `generic-device` vs `stm32f103`
 - [ ] Add external peripheral models beyond STM32F1xx, with pluggable address maps and `NVIC` IRQ wiring
 
 ## Scripting
@@ -248,6 +246,8 @@
 
 ## Tests and tooling
 - [ ] Add more unit tests
+- [ ] Extend `fault-test-bench` SCB coverage to end-to-end readback and clear semantics such as `INVPC`, `CFSR` W1C, and `HFSR` W1C
+- [ ] Make integration scripts rebuild or recopy feature-specific release binaries before invoking `target/release/zmu-armv*` so plain `cargo build --release` cannot leave stale test executables behind
 - [ ] Fill in missing instruction formatting
 - [ ] Use Rusty Clock or another real project to drive crude hardware simulation through peripherals
 
@@ -255,6 +255,7 @@
 - [ ] Model ITM enable and control flow (`DEMCR.TRCENA`, `ITM.TCR`, `ITM.TER`, `ITM.LAR`) instead of only raw stimulus-port writes
 - [ ] Option to Show "register deltas only"
   - [ ] Print only changed registers
+- [ ] Option to show faults in trace
 - [ ] Memory / Bus access trace
 - [ ] VFP tracing
 - [ ] Trustzone trace

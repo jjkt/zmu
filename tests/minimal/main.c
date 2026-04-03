@@ -4,7 +4,6 @@ int main(void)
     return 0;
 }
 
-
 void SystemInit(void)
 {
 }
@@ -15,5 +14,4 @@ void _start(void)
     exit(0);
 }
 
-__attribute__((used))
-void _fini(void) { }
+__attribute__((used)) void _fini(void) {}

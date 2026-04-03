@@ -1,5 +1,6 @@
 use crate::Processor;
 
+use crate::core::fault::FaultStatusContext;
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
 use super::{ExecuteResult, resolve_addressing};
@@ -18,6 +19,44 @@ use crate::{
         register::{Apsr, BaseReg, Reg},
     },
 };
+
+impl Processor {
+    fn read8_data(&mut self, address: u32) -> Result<u8, Fault> {
+        self.read8(address).map_err(|fault| {
+            self.fault_with_status(fault, FaultStatusContext::with_fault_address(address))
+        })
+    }
+
+    fn read16_data(&mut self, address: u32) -> Result<u16, Fault> {
+        self.read16(address).map_err(|fault| {
+            self.fault_with_status(fault, FaultStatusContext::with_fault_address(address))
+        })
+    }
+
+    fn read32_data(&mut self, address: u32) -> Result<u32, Fault> {
+        self.read32(address).map_err(|fault| {
+            self.fault_with_status(fault, FaultStatusContext::with_fault_address(address))
+        })
+    }
+
+    fn write8_data(&mut self, address: u32, value: u8) -> Result<(), Fault> {
+        self.write8(address, value).map_err(|fault| {
+            self.fault_with_status(fault, FaultStatusContext::with_fault_address(address))
+        })
+    }
+
+    fn write16_data(&mut self, address: u32, value: u16) -> Result<(), Fault> {
+        self.write16(address, value).map_err(|fault| {
+            self.fault_with_status(fault, FaultStatusContext::with_fault_address(address))
+        })
+    }
+
+    fn write32_data(&mut self, address: u32, value: u32) -> Result<(), Fault> {
+        self.write32(address, value).map_err(|fault| {
+            self.fault_with_status(fault, FaultStatusContext::with_fault_address(address))
+        })
+    }
+}
 
 /// Load and Store operations
 pub trait IsaLoadAndStore {
@@ -66,7 +105,7 @@ impl IsaLoadAndStore for Processor {
             let (address, offset_address) =
                 resolve_addressing(rn, offset, params.add, params.index);
 
-            let data = self.read32(address)?;
+            let data = self.read32_data(address)?;
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -93,7 +132,7 @@ impl IsaLoadAndStore for Processor {
             let (address, offset_address) =
                 resolve_addressing(self.get_r(params.rn), offset, params.add, params.index);
 
-            let data = u32::from(self.read8(address)?);
+            let data = u32::from(self.read8_data(address)?);
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -113,7 +152,7 @@ impl IsaLoadAndStore for Processor {
             let (address, offset_address) =
                 resolve_addressing(self.get_r(params.rn), offset, params.add, params.index);
 
-            let data = u32::from(self.read16(address)?);
+            let data = u32::from(self.read16_data(address)?);
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -133,7 +172,7 @@ impl IsaLoadAndStore for Processor {
             let (address, offset_address) =
                 resolve_addressing(self.get_r(params.rn), offset, params.add, params.index);
 
-            let data = u32::from(self.read16(address)?);
+            let data = u32::from(self.read16_data(address)?);
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -153,7 +192,7 @@ impl IsaLoadAndStore for Processor {
             let (address, offset_address) =
                 resolve_addressing(self.get_r(params.rn), offset, params.add, params.index);
 
-            let data = u32::from(self.read8(address)?);
+            let data = u32::from(self.read8_data(address)?);
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -175,7 +214,7 @@ impl IsaLoadAndStore for Processor {
             );
             let address = self.get_r(params.rn).wrapping_add(offset);
             let value = self.get_r(params.rt);
-            self.write32(address, value)?;
+            self.write32_data(address, value)?;
 
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
         }
@@ -194,7 +233,7 @@ impl IsaLoadAndStore for Processor {
             let address = self.get_r(params.rn).wrapping_add(offset);
             let rt: u32 = self.get_r(params.rt);
             let value = rt.get_bits(0..8);
-            self.write8(address, value as u8)?;
+            self.write8_data(address, value as u8)?;
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
         }
         Ok(ExecuteSuccess::NotTaken)
@@ -211,7 +250,7 @@ impl IsaLoadAndStore for Processor {
             );
             let address = self.get_r(params.rn).wrapping_add(offset);
             let value = self.get_r(params.rt).get_bits(0..16);
-            self.write16(address, value as u16)?;
+            self.write16_data(address, value as u16)?;
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
         }
         Ok(ExecuteSuccess::NotTaken)
@@ -228,7 +267,7 @@ impl IsaLoadAndStore for Processor {
             };
             let address = if params.index { offset_address } else { rn };
 
-            let data = self.read32(address)?;
+            let data = self.read32_data(address)?;
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -254,7 +293,7 @@ impl IsaLoadAndStore for Processor {
             };
             let address = if params.index { offset_address } else { rn };
 
-            let data = self.read8(address)?;
+            let data = self.read8_data(address)?;
             self.set_r(params.rt, u32::from(data));
 
             if params.wback {
@@ -274,7 +313,7 @@ impl IsaLoadAndStore for Processor {
                 params.index,
             );
 
-            let data = self.read16(address)?;
+            let data = self.read16_data(address)?;
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -294,7 +333,7 @@ impl IsaLoadAndStore for Processor {
                 params.index,
             );
 
-            let data = self.read8(address)?;
+            let data = self.read8_data(address)?;
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -315,7 +354,7 @@ impl IsaLoadAndStore for Processor {
             };
             let address = if params.index { offset_address } else { rn };
 
-            let data = self.read16(address)?;
+            let data = self.read16_data(address)?;
             if params.wback {
                 self.set_r(params.rn, offset_address);
             }
@@ -342,7 +381,7 @@ impl IsaLoadAndStore for Processor {
                 self.set_r(params.rn, offset_address);
             }
 
-            self.write32(address, value)?;
+            self.write32_data(address, value)?;
 
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
         }
@@ -362,7 +401,7 @@ impl IsaLoadAndStore for Processor {
                 self.set_r(params.rn, offset_address);
             }
 
-            self.write8(address, value.get_bits(0..8) as u8)?;
+            self.write8_data(address, value.get_bits(0..8) as u8)?;
 
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
         }
@@ -379,7 +418,7 @@ impl IsaLoadAndStore for Processor {
             );
 
             let value = self.get_r(params.rt);
-            self.write16(address, value.get_bits(0..16) as u16)?;
+            self.write16_data(address, value.get_bits(0..16) as u16)?;
 
             if params.wback {
                 self.set_r(params.rn, offset_address);
@@ -396,7 +435,7 @@ impl IsaLoadAndStore for Processor {
 
             self.set_exclusive_monitors(address, 4);
 
-            let data = self.read32(address)?;
+            let data = self.read32_data(address)?;
             self.set_r(params.rt, data);
 
             return Ok(ExecuteSuccess::Taken { cycles: 2 });
@@ -409,7 +448,7 @@ impl IsaLoadAndStore for Processor {
             let address = self.get_r(params.rn);
             self.set_exclusive_monitors(address, 1);
 
-            let data = self.read8(address)?;
+            let data = self.read8_data(address)?;
 
             let data_params = [data];
             let lengths = [32];
@@ -425,7 +464,7 @@ impl IsaLoadAndStore for Processor {
             let address = self.get_r(params.rn);
             self.set_exclusive_monitors(address, 2);
 
-            let data = self.read16(address)?;
+            let data = self.read16_data(address)?;
 
             let data_params = [data];
             let lengths = [32];
@@ -441,7 +480,7 @@ impl IsaLoadAndStore for Processor {
             let (address, _) = resolve_addressing(self.get_r(params.rn), params.imm32, true, true);
 
             if self.exclusive_monitors_pass(address, 4) {
-                self.write32(address, self.get_r(params.rt))?;
+                self.write32_data(address, self.get_r(params.rt))?;
                 self.set_r(params.rd, 0);
             } else {
                 self.set_r(params.rd, 1);
@@ -460,7 +499,7 @@ impl IsaLoadAndStore for Processor {
             let address = self.get_r(params.rn);
 
             if self.exclusive_monitors_pass(address, 1) {
-                self.write8(address, self.get_r(params.rt) as u8)?;
+                self.write8_data(address, self.get_r(params.rt) as u8)?;
                 self.set_r(params.rd, 0);
             } else {
                 self.set_r(params.rd, 1);
@@ -479,7 +518,7 @@ impl IsaLoadAndStore for Processor {
             let address = self.get_r(params.rn);
 
             if self.exclusive_monitors_pass(address, 2) {
-                self.write16(address, self.get_r(params.rt) as u16)?;
+                self.write16_data(address, self.get_r(params.rt) as u16)?;
                 self.set_r(params.rd, 0);
             } else {
                 self.set_r(params.rd, 1);
@@ -498,9 +537,9 @@ impl IsaLoadAndStore for Processor {
                 params.index,
             );
 
-            let data = self.read32(address)?;
+            let data = self.read32_data(address)?;
             self.set_r(params.rt, data);
-            let data2 = self.read32(address + 4)?;
+            let data2 = self.read32_data(address + 4)?;
             self.set_r(params.rt2, data2);
 
             if params.wback {
@@ -522,9 +561,9 @@ impl IsaLoadAndStore for Processor {
             );
 
             let value1 = self.get_r(params.rt);
-            self.write32(address, value1)?;
+            self.write32_data(address, value1)?;
             let value2 = self.get_r(params.rt2);
-            self.write32(address + 4, value2)?;
+            self.write32_data(address + 4, value2)?;
 
             if params.wback {
                 self.set_r(params.rn, offset_address);
@@ -543,7 +582,7 @@ impl IsaLoadAndStore for Processor {
             } else {
                 base - params.imm32
             };
-            let data = self.read32(address)?;
+            let data = self.read32_data(address)?;
 
             if params.rt == Reg::PC {
                 self.load_write_pc(data)?;

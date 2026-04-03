@@ -5,7 +5,7 @@
 use crate::core::bits::Bits;
 use crate::core::condition::Condition;
 use crate::core::exception::{Exception, ExceptionHandling};
-use crate::core::fault::{Fault, FaultTrapReason};
+use crate::core::fault::{Fault, FaultStatusContext, FaultTrapReason};
 use crate::core::fetch::Fetch;
 use crate::core::instruction::{Imm32Carry, Instruction, SetFlags, instruction_size};
 
@@ -13,6 +13,8 @@ use crate::core::operation::condition_test;
 use crate::core::register::{Apsr, BaseReg, Ipsr};
 use crate::decoder::Decoder;
 use crate::memory::map::MapMemory;
+#[cfg(not(feature = "armv6m"))]
+use crate::peripheral::scb::{SHCSR_BUSFAULTENA, SHCSR_MEMFAULTENA, SHCSR_USGFAULTENA};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 
 use crate::{CachedInstruction, Processor};
@@ -159,6 +161,30 @@ impl Processor {
         }
     }
 
+    #[cfg(not(feature = "armv6m"))]
+    fn fault_delivery_exception(&mut self, fault: Fault) -> Exception {
+        let mapped_exception = fault.exception();
+
+        let enabled = match mapped_exception {
+            Exception::MemoryManagementFault => (self.shcsr & SHCSR_MEMFAULTENA) != 0,
+            Exception::BusFault => (self.shcsr & SHCSR_BUSFAULTENA) != 0,
+            Exception::UsageFault => (self.shcsr & SHCSR_USGFAULTENA) != 0,
+            _ => true,
+        };
+
+        if enabled {
+            mapped_exception
+        } else {
+            self.set_hfsr_forced();
+            Exception::HardFault
+        }
+    }
+
+    #[cfg(feature = "armv6m")]
+    fn fault_delivery_exception(&mut self, fault: Fault) -> Exception {
+        fault.exception()
+    }
+
     fn queue_fault_trap(
         &mut self,
         fault: Fault,
@@ -185,8 +211,20 @@ impl Processor {
     }
 
     fn handle_fault(&mut self, fault: Fault, fault_pc: u32) -> u32 {
-        let exception = fault.exception();
+        let status = self.take_pending_fault_status();
+        self.handle_fault_with_status(fault, fault_pc, status)
+    }
+
+    fn handle_fault_with_status(
+        &mut self,
+        fault: Fault,
+        fault_pc: u32,
+        status: FaultStatusContext,
+    ) -> u32 {
+        let exception = self.fault_delivery_exception(fault);
         let active_exception = self.active_exception();
+
+        self.record_fault_status(fault, status);
 
         if Self::is_lockup(exception, active_exception) {
             self.queue_fault_trap(
@@ -214,15 +252,18 @@ impl Processor {
                 }
             }
             Err(entry_fault) => {
-                let entry_exception = entry_fault.exception();
-                let trap_reason = if Self::is_lockup(entry_exception, active_exception) {
+                self.record_fault_status(entry_fault, FaultStatusContext::default());
+                self.set_hfsr_forced();
+                let trap_reason = if exception == Exception::HardFault
+                    || Self::is_lockup(Exception::HardFault, active_exception)
+                {
                     FaultTrapReason::Lockup
                 } else {
                     FaultTrapReason::Fault
                 };
                 self.queue_fault_trap(
                     entry_fault,
-                    entry_exception,
+                    Exception::HardFault,
                     fault_pc,
                     active_exception,
                     trap_reason,
@@ -714,7 +755,9 @@ impl Executor for Processor {
                 instruction,
                 instruction_size,
             }) => self.execute(&instruction, instruction_size),
-            Some(CachedInstruction::FetchFault { fault }) => self.handle_fault(fault, pc),
+            Some(CachedInstruction::FetchFault { fault, status }) => {
+                self.handle_fault_with_status(fault, pc, status)
+            }
             None => match self.fetch(pc) {
                 Ok(thumb) => {
                     let instruction = self.decode(thumb);
@@ -776,6 +819,8 @@ impl Executor for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "armv6m"))]
+    use crate::bus::Bus;
     use crate::core::condition::Condition;
     use crate::core::fault::{Fault, FaultTrapReason};
     use crate::core::instruction::instruction_size;
@@ -785,6 +830,35 @@ mod tests {
         instruction::{ITCondition, SRType, SetFlags},
         register::Reg,
     };
+
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_UNDEFINSTR: u32 = 1 << 16;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_INVPC: u32 = 1 << 18;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_IACCVIOL: u32 = 1 << 0;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_DACCVIOL: u32 = 1 << 1;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_MSTKERR: u32 = 1 << 4;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_MMARVALID: u32 = 1 << 7;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_IBUSERR: u32 = 1 << 8;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_PRECISERR: u32 = 1 << 9;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_BFARVALID: u32 = 1 << 15;
+    #[cfg(not(feature = "armv6m"))]
+    const HFSR_VECTTBL: u32 = 1 << 1;
+    #[cfg(not(feature = "armv6m"))]
+    const HFSR_FORCED: u32 = 1 << 30;
+    #[cfg(not(feature = "armv6m"))]
+    const SHCSR_MEMFAULTENA: u32 = 1 << 16;
+    #[cfg(not(feature = "armv6m"))]
+    const SHCSR_BUSFAULTENA: u32 = 1 << 17;
+    #[cfg(not(feature = "armv6m"))]
+    const SHCSR_USGFAULTENA: u32 = 1 << 18;
 
     #[test]
     fn test_execute_internal_udf_returns_undefinstr_fault() {
@@ -801,7 +875,7 @@ mod tests {
 
     #[test]
     #[cfg(not(feature = "armv6m"))]
-    fn test_execute_udf_enters_usagefault_without_default_trap() {
+    fn test_execute_udf_escalates_to_hardfault_when_usagefault_disabled() {
         let mut core = Processor::new();
         core.fault_trap_mode(FaultTrapMode::none());
         core.set_msp(0x2000_0100);
@@ -816,7 +890,33 @@ mod tests {
         let cycles = core.execute(&instruction, instruction_size(&instruction));
 
         assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.cfsr, CFSR_UNDEFINSTR);
+        assert_eq!(core.hfsr, HFSR_FORCED);
+        assert_eq!(core.take_pending_fault_trap(), None);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_execute_udf_enters_usagefault_when_enabled() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.set_pc(0x0800_0004);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+
+        let instruction = Instruction::UDF {
+            imm32: 0,
+            opcode: crate::core::thumb::ThumbCode::Thumb16 { opcode: 0xde00 },
+            thumb32: false,
+        };
+
+        let cycles = core.execute(&instruction, instruction_size(&instruction));
+
+        assert_eq!(cycles, 12);
         assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_UNDEFINSTR);
+        assert_eq!(core.hfsr, 0);
         assert_eq!(core.take_pending_fault_trap(), None);
     }
 
@@ -841,6 +941,11 @@ mod tests {
                 let mut core = Processor::new();
                 core.fault_trap_mode(mode);
                 core.set_msp(0x2000_0100);
+                core.write32(
+                    0xE000_ED24,
+                    SHCSR_MEMFAULTENA | SHCSR_BUSFAULTENA | SHCSR_USGFAULTENA,
+                )
+                .unwrap();
 
                 let pc = 0x0800_0000 + u32::from(trap_bits) * 0x10 + u32::try_from(index).unwrap();
                 let cycles = core.handle_fault(fault, pc);
@@ -901,6 +1006,181 @@ mod tests {
         assert_eq!(trap.fault, Fault::Forced);
         assert_eq!(trap.exception, Exception::HardFault);
         assert_eq!(trap.pc, 0x0800_0100);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_sets_cfsr_undefinstr_bit() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+
+        let cycles = core.handle_fault(Fault::UndefInstr, 0x0800_0200);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_UNDEFINSTR);
+        assert_eq!(core.hfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_sets_cfsr_invpc_bit() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+
+        let cycles = core.handle_fault(Fault::InvPc, 0x0800_0210);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_INVPC);
+        assert_eq!(core.hfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_sets_hfsr_vecttbl_bit() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+
+        let cycles = core.handle_fault(Fault::VectorTable, 0x0800_0220);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.hfsr, HFSR_VECTTBL);
+        assert_eq!(core.cfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_sets_hfsr_forced_bit_for_forced_fault() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+
+        let cycles = core.handle_fault(Fault::Forced, 0x0800_0240);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.hfsr, HFSR_FORCED);
+        assert_eq!(core.cfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_escalates_entry_stacking_fault_to_hardfault() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0);
+
+        let cycles = core.handle_fault(Fault::Forced, 0x0800_0250);
+
+        assert_eq!(cycles, 12);
+        let trap = core.take_pending_fault_trap().expect("fault trap expected");
+        assert_eq!(trap.fault, Fault::Mstkerr);
+        assert_eq!(trap.exception, Exception::HardFault);
+        assert_eq!(core.cfsr, CFSR_MSTKERR);
+        assert_eq!(core.hfsr, HFSR_FORCED);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_execute_str_reg_latches_mmfar_for_data_access_violation() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_MEMFAULTENA).unwrap();
+        core.set_r(Reg::R0, 0x1234_5678);
+        core.set_r(Reg::R1, 0x6000_0000);
+        core.set_r(Reg::R2, 0);
+
+        let instruction = Instruction::STR_reg {
+            params: crate::core::instruction::Reg3FullParams {
+                rt: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R2,
+                shift_t: SRType::LSL,
+                shift_n: 0,
+                index: true,
+                add: true,
+                wback: false,
+            },
+            thumb32: false,
+        };
+
+        let cycles = core.execute(&instruction, instruction_size(&instruction));
+
+        assert_eq!(cycles, 12);
+        assert_eq!(
+            core.psr.get_isr_number(),
+            Exception::MemoryManagementFault.into()
+        );
+        assert_eq!(core.cfsr, CFSR_DACCVIOL | CFSR_MMARVALID);
+        assert_eq!(core.mmfar, 0x6000_0000);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_step_latches_mmfar_for_instruction_access_violation() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_MEMFAULTENA).unwrap();
+        core.set_pc(0x6000_0000);
+
+        core.step();
+
+        assert_eq!(
+            core.psr.get_isr_number(),
+            Exception::MemoryManagementFault.into()
+        );
+        assert_eq!(core.cfsr, CFSR_IACCVIOL | CFSR_MMARVALID);
+        assert_eq!(core.mmfar, 0x6000_0000);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_sets_bfar_for_precise_bus_fault() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_BUSFAULTENA).unwrap();
+
+        let cycles = core.handle_fault_with_status(
+            Fault::Preciserr,
+            0x0800_0230,
+            FaultStatusContext::with_fault_address(0x4000_1000),
+        );
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::BusFault.into());
+        assert_eq!(core.cfsr, CFSR_PRECISERR | CFSR_BFARVALID);
+        assert_eq!(core.bfar, 0x4000_1000);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_without_address_does_not_set_bfarvalid_or_overwrite_bfar() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_BUSFAULTENA).unwrap();
+        core.bfar = 0xfeed_face;
+
+        let cycles = core.handle_fault_with_status(
+            Fault::IBusErr,
+            0x0800_0240,
+            FaultStatusContext::default(),
+        );
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::BusFault.into());
+        assert_eq!(core.cfsr, CFSR_IBUSERR);
+        assert_eq!(core.bfar, 0xfeed_face);
     }
 
     #[test]
