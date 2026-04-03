@@ -159,7 +159,6 @@ impl Bus for Processor {
             0xE000_ED1C => self.read_shpr2(),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20 => self.read_shpr3(),
-            #[cfg(not(feature = "armv6m"))]
             0xE000_ED24 => self.read_shcsr(),
             #[cfg(not(feature = "armv6m"))]
             0xE000_ED28 => self.cfsr,
@@ -229,7 +228,6 @@ impl Bus for Processor {
             0xE000_ED04 => self.write_icsr(value),
             0xE000_ED08 => self.write_vtor(value),
             0xE000_ED10 => self.write_scr(value),
-            #[cfg(not(feature = "armv6m"))]
             0xE000_ED24 => self.write_shcsr(value),
             #[cfg(not(feature = "armv6m"))]
             0xE000_ED28 => self.write_cfsr(value),
@@ -359,11 +357,16 @@ impl Bus for Processor {
 mod tests {
     use super::Bus;
     use crate::Processor;
+    #[cfg(feature = "armv6m")]
+    use crate::core::exception::{Exception, ExceptionHandling};
     #[cfg(all(
         any(feature = "armv6m", feature = "armv7m", feature = "armv7em"),
         not(feature = "has-fp")
     ))]
     use crate::core::fault::Fault;
+
+    #[cfg(feature = "armv6m")]
+    const SHCSR_SVCALLPENDED: u32 = 1 << 15;
 
     #[test]
     #[cfg(feature = "armv6m")]
@@ -371,7 +374,6 @@ mod tests {
         let mut processor = Processor::new();
 
         for address in [
-            0xE000_ED24,
             0xE000_ED28,
             0xE000_ED2C,
             0xE000_ED30,
@@ -382,6 +384,51 @@ mod tests {
             assert_eq!(processor.read32(address), Err(Fault::DAccViol));
             assert_eq!(processor.write32(address, 0), Err(Fault::DAccViol));
         }
+    }
+
+    #[test]
+    #[cfg(feature = "armv6m")]
+    fn test_armv6m_exposes_shcsr() {
+        let mut processor = Processor::new();
+
+        processor.shcsr = 0x0000_0008;
+
+        assert_eq!(processor.read32(0xE000_ED24), Ok(0x0000_0008));
+
+        processor.write32(0xE000_ED24, u32::MAX).unwrap();
+
+        assert!(processor.exception_pending(Exception::SVCall));
+        assert_eq!(processor.read32(0xE000_ED24), Ok(0x0000_8008));
+    }
+
+    #[test]
+    #[cfg(feature = "armv6m")]
+    fn test_armv6m_shcsr_reflects_svcall_pending_state() {
+        let mut processor = Processor::new();
+
+        processor.set_exception_pending(Exception::SVCall);
+
+        assert_eq!(processor.read32(0xE000_ED24), Ok(SHCSR_SVCALLPENDED));
+
+        processor.clear_pending_exception(Exception::SVCall);
+
+        assert_eq!(processor.read32(0xE000_ED24), Ok(0));
+    }
+
+    #[test]
+    #[cfg(feature = "armv6m")]
+    fn test_armv6m_shcsr_write_sets_and_clears_svcall_pending() {
+        let mut processor = Processor::new();
+
+        processor.write32(0xE000_ED24, SHCSR_SVCALLPENDED).unwrap();
+
+        assert!(processor.exception_pending(Exception::SVCall));
+        assert_eq!(processor.read32(0xE000_ED24), Ok(SHCSR_SVCALLPENDED));
+
+        processor.write32(0xE000_ED24, 0).unwrap();
+
+        assert!(!processor.exception_pending(Exception::SVCall));
+        assert_eq!(processor.read32(0xE000_ED24), Ok(0));
     }
 
     #[test]
@@ -397,7 +444,7 @@ mod tests {
         processor.bfar = 0x4000_5678;
         processor.afsr = 0x89ab_cdef;
 
-        assert_eq!(processor.read32(0xE000_ED24), Ok(0x1234_0008));
+        assert_eq!(processor.read32(0xE000_ED24), Ok(0x1234_0000));
         assert_eq!(processor.read32(0xE000_ED28), Ok(0x0103_9187));
         assert_eq!(processor.read32(0xE000_ED2C), Ok(0x4000_0002));
         assert_eq!(processor.read32(0xE000_ED30), Ok(0x0000_001f));

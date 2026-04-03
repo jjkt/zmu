@@ -1,20 +1,22 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 { set +x; } 2>/dev/null
 
-if [ -z "$GCC_HOME" ]; then
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/scripts/test_output.sh"
+
+if [ -z "${GCC_HOME:-}" ]; then
     echo "GCC_HOME is undefined"
     exit
 fi
 
 CC=$GCC_HOME/bin/arm-none-eabi-gcc
 
-if ! command -v $CC &> /dev/null
+if ! command -v "$CC" &> /dev/null
 then
     echo "GCC for ARM is not installed. Please install from developer.arm.com"
     exit
 fi
-
 
 function ensure_itmdump()
 {
@@ -114,44 +116,26 @@ function expected_stdout()
 }
 
 declare -a archs=("armv6m" "armv7m" "armv7em")
-declare -a gcc_tests=("hello_world" "instruction-test-bench" "pi")
+declare -a gcc_tests=("hello_world" "instruction-test-bench" "pi" "minimal")
 
 for i in "${gcc_tests[@]}"
 do
    cd tests/$i
    make -s clean
-   make
+   make -s
    cd ../..
    for a in "${archs[@]}"
    do
-      echo -e "\e[1m========================================"
-      echo -e "\e[1mGCC TEST: $i / $a"
-      echo -e "\e[1m========================================\e[0m"
       arch_supports_cores $a
       for c in "${cores[@]}"
       do
          runner=$(core_runner "$c")
-         echo "$runner run tests/$i/$i-$c.elf"
+         label="$i/$a/$c"
          if expected=$(expected_stdout "$i"); then
-            output=$($runner run tests/$i/$i-$c.elf)
-            status=$?
-            echo "$output"
-            if [[ $status -ne 0 ]]; then
-               echo "Test failed"
-               exit $status
-            fi
-            if [[ "$output" != "$expected" ]]; then
-               echo "Unexpected stdout"
-               exit 1
-            fi
+            test_expect_success_exact "$label" "$expected" "$runner" run "tests/$i/$i-$c.elf"
          else
-            $runner run tests/$i/$i-$c.elf
-            if [[ $? -ne 0 ]]; then
-               echo "Test failed"
-               exit $?
-            fi
+            test_expect_success_contains "$label" "" "$runner" run "tests/$i/$i-$c.elf"
          fi
-         echo ""
       done
    done
 done
@@ -160,31 +144,22 @@ ensure_itmdump
 
 cd tests/hello_world_itm
 make -s clean
-make
+make -s
 cd ../..
 
 for a in "${archs[@]}"
 do
-   echo -e "\e[1m========================================"
-   echo -e "\e[1mGCC TEST: hello_world_itm / $a"
-   echo -e "\e[1m========================================\e[0m"
    arch_supports_cores $a
    for c in "${cores[@]}"
    do
       runner=$(core_runner "$c")
-      echo "$runner run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-$c.elf | $ITMDUMP_BIN"
+      label="hello_world_itm/$a/$c"
       expected=$(expected_stdout "hello_world_itm")
-      output=$($runner run --itm /dev/stdout tests/hello_world_itm/hello_world_itm-$c.elf | "$ITMDUMP_BIN")
-      status=$?
-      echo "$output"
-      if [[ $status -ne 0 ]]; then
-         echo "ITM test failed"
-         exit $status
-      fi
-      if [[ "$output" != "$expected" ]]; then
-         echo "Unexpected ITM output"
-         exit 1
-      fi
-      echo ""
+      test_expect_success_exact \
+         "$label" \
+         "$expected" \
+         bash -o pipefail -c '"$1" run --itm /dev/stdout "$2" | "$3"' _ "$runner" "tests/hello_world_itm/hello_world_itm-$c.elf" "$ITMDUMP_BIN"
    done
 done
+
+test_print_summary "gcc test bench passed"

@@ -1,6 +1,7 @@
 use crate::Processor;
 
 use crate::{
+    core::exception::{Exception, ExceptionHandling},
     core::register::{BaseReg, Reg},
     executor::{ExecuteSuccess, ExecutorHelper},
     semihosting::{decode_semihostcmd, semihost_return},
@@ -10,15 +11,16 @@ use super::ExecuteResult;
 
 /// Branching operations
 pub trait IsaException {
-    fn exec_svc(&self) -> ExecuteResult;
+    fn exec_svc(&mut self) -> ExecuteResult;
     fn exec_bkpt(&mut self, imm32: u32) -> ExecuteResult;
 }
 
 impl IsaException for Processor {
-    fn exec_svc(&self) -> ExecuteResult {
+    fn exec_svc(&mut self) -> ExecuteResult {
         if self.condition_passed() {
-            //TODO
-            return Ok(ExecuteSuccess::Taken { cycles: 1 });
+            let return_address = self.get_pc().wrapping_add(2);
+            self.exception_entry(Exception::SVCall, return_address)?;
+            return Ok(ExecuteSuccess::Branched { cycles: 12 });
         }
         Ok(ExecuteSuccess::NotTaken)
     }

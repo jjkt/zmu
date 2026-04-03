@@ -316,13 +316,8 @@ fn run(args: &ArgMatches, device_factory: DeviceFactory) -> anyhow::Result<u32> 
     Ok(exit_code)
 }
 
-pub fn main_with_device(
-    bin_name: &'static str,
-    about: &'static str,
-    run_about: &'static str,
-    device_factory: DeviceFactory,
-) {
-    let cmd = Command::new(bin_name)
+fn build_command(bin_name: &'static str, about: &'static str, run_about: &'static str) -> Command {
+    Command::new(bin_name)
         .bin_name(bin_name)
         .arg(
             Arg::new("verbosity")
@@ -399,7 +394,15 @@ pub fn main_with_device(
                         .num_args(0),
                 ),
         )
-        .get_matches();
+}
+
+pub fn main_with_device(
+    bin_name: &'static str,
+    about: &'static str,
+    run_about: &'static str,
+    device_factory: DeviceFactory,
+) {
+    let cmd = build_command(bin_name, about, run_about).get_matches();
 
     let verbose = cmd.get_count("verbosity") as usize;
 
@@ -419,5 +422,86 @@ pub fn main_with_device(
 
             ::std::process::exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_command;
+
+    #[cfg(not(feature = "armv6m"))]
+    use super::resolve_fault_trap_mode;
+
+    #[cfg(not(feature = "armv6m"))]
+    use zmu_cortex_m::core::exception::Exception;
+
+    #[cfg(not(feature = "armv6m"))]
+    fn run_matches(args: &[&str]) -> clap::ArgMatches {
+        build_command("zmu-test", "test", "test run")
+            .try_get_matches_from(args)
+            .expect("argument parsing should succeed")
+            .remove_subcommand()
+            .expect("run subcommand expected")
+            .1
+    }
+
+    #[cfg(not(feature = "armv6m"))]
+    #[test]
+    fn test_resolve_fault_trap_mode_enables_usagefault_trap() {
+        let run_matches = run_matches(&["zmu-test", "run", "--trap", "usagefault", "firmware.elf"]);
+
+        let mode = resolve_fault_trap_mode(&run_matches).expect("fault trap mode should resolve");
+
+        assert!(mode.should_trap(Exception::HardFault));
+        assert!(mode.should_trap(Exception::UsageFault));
+        assert!(!mode.should_trap(Exception::MemoryManagementFault));
+        assert!(!mode.should_trap(Exception::BusFault));
+    }
+
+    #[cfg(not(feature = "armv6m"))]
+    #[test]
+    fn test_resolve_fault_trap_mode_no_trap_usagefault_overrides_fault_trap() {
+        let run_matches = run_matches(&[
+            "zmu-test",
+            "run",
+            "--fault-trap",
+            "--no-trap",
+            "usagefault",
+            "firmware.elf",
+        ]);
+
+        let mode = resolve_fault_trap_mode(&run_matches).expect("fault trap mode should resolve");
+
+        assert!(mode.should_trap(Exception::HardFault));
+        assert!(mode.should_trap(Exception::MemoryManagementFault));
+        assert!(mode.should_trap(Exception::BusFault));
+        assert!(!mode.should_trap(Exception::UsageFault));
+    }
+
+    #[cfg(not(feature = "armv6m"))]
+    #[test]
+    fn test_resolve_fault_trap_mode_fault_trap_enables_all_fault_targets() {
+        let run_matches = run_matches(&["zmu-test", "run", "--fault-trap", "firmware.elf"]);
+
+        let mode = resolve_fault_trap_mode(&run_matches).expect("fault trap mode should resolve");
+
+        assert!(mode.should_trap(Exception::HardFault));
+        assert!(mode.should_trap(Exception::MemoryManagementFault));
+        assert!(mode.should_trap(Exception::BusFault));
+        assert!(mode.should_trap(Exception::UsageFault));
+    }
+
+    #[cfg(feature = "armv6m")]
+    #[test]
+    fn test_command_rejects_usagefault_trap_target_on_armv6m() {
+        let result = build_command("zmu-test", "test", "test run").try_get_matches_from([
+            "zmu-test",
+            "run",
+            "--trap",
+            "usagefault",
+            "firmware.elf",
+        ]);
+
+        assert!(result.is_err());
     }
 }

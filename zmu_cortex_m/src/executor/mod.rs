@@ -13,8 +13,6 @@ use crate::core::operation::condition_test;
 use crate::core::register::{Apsr, BaseReg, Ipsr};
 use crate::decoder::Decoder;
 use crate::memory::map::MapMemory;
-#[cfg(not(feature = "armv6m"))]
-use crate::peripheral::scb::{SHCSR_BUSFAULTENA, SHCSR_MEMFAULTENA, SHCSR_USGFAULTENA};
 use crate::peripheral::{dwt::Dwt, systick::SysTick};
 
 use crate::{CachedInstruction, Processor};
@@ -165,12 +163,7 @@ impl Processor {
     fn fault_delivery_exception(&mut self, fault: Fault) -> Exception {
         let mapped_exception = fault.exception();
 
-        let enabled = match mapped_exception {
-            Exception::MemoryManagementFault => (self.shcsr & SHCSR_MEMFAULTENA) != 0,
-            Exception::BusFault => (self.shcsr & SHCSR_BUSFAULTENA) != 0,
-            Exception::UsageFault => (self.shcsr & SHCSR_USGFAULTENA) != 0,
-            _ => true,
-        };
+        let enabled = self.configurable_fault_enabled(mapped_exception);
 
         if enabled {
             mapped_exception
@@ -828,7 +821,7 @@ mod tests {
     use crate::core::{fault::FaultTrapMode, register::Ipsr};
     use crate::core::{
         instruction::{ITCondition, SRType, SetFlags},
-        register::Reg,
+        register::{BaseReg, Reg},
     };
 
     #[cfg(not(feature = "armv6m"))]
@@ -851,6 +844,8 @@ mod tests {
     const CFSR_BFARVALID: u32 = 1 << 15;
     #[cfg(not(feature = "armv6m"))]
     const HFSR_VECTTBL: u32 = 1 << 1;
+    #[cfg(not(feature = "armv6m"))]
+    const CFSR_INVSTATE: u32 = 1 << 17;
     #[cfg(not(feature = "armv6m"))]
     const HFSR_FORCED: u32 = 1 << 30;
     #[cfg(not(feature = "armv6m"))]
@@ -918,6 +913,36 @@ mod tests {
         assert_eq!(core.cfsr, CFSR_UNDEFINSTR);
         assert_eq!(core.hfsr, 0);
         assert_eq!(core.take_pending_fault_trap(), None);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_execute_svc_enters_svcall_and_stacks_next_pc() {
+        const STACK_TOP: u32 = 0x2000_0100;
+        const SVC_VECTOR: u32 = 11 * 4;
+        const SVC_HANDLER: u32 = 0x0800_0101;
+
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(STACK_TOP);
+        core.set_pc(0x0800_0044);
+        core.vtor = 0;
+
+        let mut image = vec![0_u8; 0x100];
+        image[SVC_VECTOR as usize..SVC_VECTOR as usize + 4]
+            .copy_from_slice(&SVC_HANDLER.to_le_bytes());
+        core.flash_memory(image.len(), &image);
+
+        let instruction = Instruction::SVC { imm32: 0 };
+
+        let cycles = core.execute(&instruction, instruction_size(&instruction));
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::SVCall.into());
+        assert_eq!(core.get_pc(), 0x0800_0100);
+        assert_eq!(core.get_msp(), STACK_TOP - 0x20);
+        assert_eq!(core.read32(STACK_TOP - 0x08).unwrap(), 0x0800_0046);
+        assert_eq!(core.get_r(Reg::LR), 0xFFFF_FFF9);
     }
 
     #[test]
@@ -1037,6 +1062,171 @@ mod tests {
         assert_eq!(cycles, 12);
         assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
         assert_eq!(core.cfsr, CFSR_INVPC);
+        assert_eq!(core.hfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_invalid_exception_return_enters_usagefault_when_enabled() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+        core.psr.set_isr_number(Exception::SysTick.into());
+        core.mode = crate::ProcessorMode::HandlerMode;
+
+        let fault = core
+            .bx_write_pc(0xFFFF_FFF0)
+            .expect_err("INVPC fault expected");
+        let cycles = core.handle_fault(fault, 0x0800_0300);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_INVPC);
+        assert_eq!(core.hfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_invalid_exception_return_escalates_to_hardfault_when_usagefault_disabled() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.psr.set_isr_number(Exception::SysTick.into());
+        core.mode = crate::ProcessorMode::HandlerMode;
+
+        let fault = core
+            .bx_write_pc(0xFFFF_FFF0)
+            .expect_err("INVPC fault expected");
+        let cycles = core.handle_fault(fault, 0x0800_0310);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.cfsr, CFSR_INVPC);
+        assert_eq!(core.hfsr, HFSR_FORCED);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_invalid_exception_return_with_bad_thumb_state_enters_usagefault_when_enabled() {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(FRAMEPTR);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x1c), 0).unwrap();
+        core.test_set_active_exception(Exception::SysTick);
+
+        let fault = core
+            .bx_write_pc(0xFFFF_FFF9)
+            .expect_err("INVSTATE fault expected");
+        let cycles = core.handle_fault(fault, 0x0800_0320);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_INVSTATE);
+        assert_eq!(core.hfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_invalid_exception_return_with_bad_thumb_state_escalates_to_hardfault_when_usagefault_disabled()
+     {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(FRAMEPTR);
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x1c), 0).unwrap();
+        core.test_set_active_exception(Exception::SysTick);
+
+        let fault = core
+            .bx_write_pc(0xFFFF_FFF9)
+            .expect_err("INVSTATE fault expected");
+        let cycles = core.handle_fault(fault, 0x0800_0330);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.cfsr, CFSR_INVSTATE);
+        assert_eq!(core.hfsr, HFSR_FORCED);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_invalid_exception_return_with_nonzero_stacked_ipsr_enters_usagefault_when_enabled() {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(FRAMEPTR);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        core.write32(
+            FRAMEPTR.wrapping_add(0x1c),
+            (1 << 24) | usize::from(Exception::HardFault) as u32,
+        )
+        .unwrap();
+        core.test_set_active_exception(Exception::SysTick);
+
+        let fault = core
+            .bx_write_pc(0xFFFF_FFF9)
+            .expect_err("INVPC fault expected");
+        let cycles = core.handle_fault(fault, 0x0800_0340);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_INVPC);
+        assert_eq!(core.hfsr, 0);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_invalid_exception_return_with_nonzero_stacked_ipsr_escalates_to_hardfault_when_usagefault_disabled()
+     {
+        const FRAMEPTR: u32 = 0x2000_00e0;
+
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(FRAMEPTR);
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        core.write32(
+            FRAMEPTR.wrapping_add(0x1c),
+            (1 << 24) | usize::from(Exception::HardFault) as u32,
+        )
+        .unwrap();
+        core.test_set_active_exception(Exception::SysTick);
+
+        let fault = core
+            .bx_write_pc(0xFFFF_FFF9)
+            .expect_err("INVPC fault expected");
+        let cycles = core.handle_fault(fault, 0x0800_0350);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::HardFault.into());
+        assert_eq!(core.cfsr, CFSR_INVPC);
+        assert_eq!(core.hfsr, HFSR_FORCED);
+    }
+
+    #[test]
+    #[cfg(not(feature = "armv6m"))]
+    fn test_handle_fault_sets_cfsr_invstate_bit() {
+        let mut core = Processor::new();
+        core.fault_trap_mode(FaultTrapMode::none());
+        core.set_msp(0x2000_0100);
+        core.write32(0xE000_ED24, SHCSR_USGFAULTENA).unwrap();
+
+        let cycles = core.handle_fault(Fault::Invstate, 0x0800_0214);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(core.psr.get_isr_number(), Exception::UsageFault.into());
+        assert_eq!(core.cfsr, CFSR_INVSTATE);
         assert_eq!(core.hfsr, 0);
     }
 
