@@ -124,6 +124,7 @@ pub struct Processor {
     ///
     /// basepri for selection of executed interrupt priorities
     ///
+    #[cfg(not(feature = "armv6m"))]
     basepri: u8,
 
     ///
@@ -312,6 +313,7 @@ impl Processor {
             primask: false,
             #[cfg(not(feature = "armv6m"))]
             faultmask: false,
+            #[cfg(not(feature = "armv6m"))]
             basepri: 0,
             control: Control {
                 n_priv: false,

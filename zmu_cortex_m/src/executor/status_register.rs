@@ -32,6 +32,7 @@ impl IsaStatusRegister for Processor {
             let mut value: u32 = 0;
             match params.sysm.get_bits(3..8) {
                 0b00000 => {
+                    //PSR
                     if params.sysm.get_bit(0) {
                         value.set_bits(0..9, self.psr.value.get_bits(0..9));
                     }
@@ -44,6 +45,7 @@ impl IsaStatusRegister for Processor {
                     }
                 }
                 0b00001 => match params.sysm.get_bits(0..3) {
+                    // PSP, MSP
                     0 => {
                         value = self.msp;
                     }
@@ -54,19 +56,26 @@ impl IsaStatusRegister for Processor {
                 },
                 0b00010 => match params.sysm.get_bits(0..3) {
                     0b000 => {
+                        //PRIMASK
                         value.set_bit(0, self.primask);
                     }
+                    #[cfg(not(feature = "armv6m"))]
                     0b001 => {
+                        //BASEPRI
                         value.set_bits(0..8, u32::from(self.basepri));
                     }
+                    #[cfg(not(feature = "armv6m"))]
                     0b010 => {
+                        //BASEPRI_MAX
                         value.set_bits(0..8, u32::from(self.basepri));
                     }
                     #[cfg(not(feature = "armv6m"))]
                     0b011 => {
+                        //FAULTMASK
                         value.set_bit(0, self.faultmask);
                     }
                     0b100 => {
+                        //CONTROL
                         //let ctrl = u8::from(self.control) as u32;
                         //value.set_bits(0..2, ctrl);
                         todo!("unimplemented CONTROL");
@@ -87,6 +96,7 @@ impl IsaStatusRegister for Processor {
             let r_n = self.get_r(params.rn);
             match params.sysm.get_bits(3..8) {
                 0b00000 => {
+                    //PSR
                     if !params.sysm.get_bit(2) {
                         if params.mask.get_bit(0) {
                             //GE extensions
@@ -99,20 +109,26 @@ impl IsaStatusRegister for Processor {
                     }
                 }
                 0b00001 => match params.sysm.get_bits(0..3) {
+                    //PSP, MSP
                     0 => self.msp = r_n,
                     1 => self.psp = r_n,
                     _ => (),
                 },
                 0b00010 => match params.sysm.get_bits(0..3) {
                     0b000 => {
+                        //PRIMASK
                         self.primask = r_n.get_bit(0);
                         self.execution_priority = self.get_execution_priority();
                     }
+                    #[cfg(not(feature = "armv6m"))]
                     0b001 => {
+                        //BASEPRI
                         self.basepri = r_n.get_bits(0..8) as u8;
                         self.execution_priority = self.get_execution_priority();
                     }
+                    #[cfg(not(feature = "armv6m"))]
                     0b010 => {
+                        //BASEPRI_MAX
                         let low_rn = r_n.get_bits(0..8) as u8;
                         if low_rn != 0 && low_rn < self.basepri || self.basepri == 0 {
                             self.basepri = low_rn;
@@ -121,12 +137,14 @@ impl IsaStatusRegister for Processor {
                     }
                     #[cfg(not(feature = "armv6m"))]
                     0b011 => {
+                        //FAULTMASK
                         if self.execution_priority > -1 {
                             self.faultmask = r_n.get_bit(0);
                             self.execution_priority = self.get_execution_priority();
                         }
                     }
                     0b100 => {
+                        //CONTROL
                         self.control.n_priv = r_n.get_bit(0);
                         if self.mode == ProcessorMode::ThreadMode {
                             self.control.sp_sel = r_n.get_bit(1);

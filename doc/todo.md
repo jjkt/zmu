@@ -2,7 +2,6 @@
 
 ## ARM Cortex Core behavior
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
-- [ ] Gate `BASEPRI`, `BASEPRI_MAX`, and `FAULTMASK` by architecture
 - [ ] Reject unsupported or invalid `MRS` and `MSR` `sysm` encodings instead of returning zero or no-op
 - [ ] Enforce privilege checks for `MRS` and `MSR` access to `MSP`, `PSP`, `PRIMASK`, `BASEPRI`, `BASEPRI_MAX`, `FAULTMASK`, and `CONTROL`
 - [ ] Implement `MRS CONTROL` reads instead of `todo!("unimplemented CONTROL")`
