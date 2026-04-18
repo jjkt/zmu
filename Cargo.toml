@@ -12,7 +12,6 @@ clap = "4.5"
 tabwriter = "1.4"
 goblin = "0.10"
 pad = "0.1.6"
-stderrlog = "0.6"
 log = "0.4.28"
 anyhow = "1.0.100"
 

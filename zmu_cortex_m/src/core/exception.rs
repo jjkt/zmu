@@ -60,6 +60,7 @@ impl Processor {
                 highestpri -= subgroupvalue;
             }
         }
+        #[cfg(not(feature = "armv6m"))]
         if self.basepri != 0 {
             boostedpri = i16::from(self.basepri);
             let subgroupvalue = boostedpri % groupvalue;

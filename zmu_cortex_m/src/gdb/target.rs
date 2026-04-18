@@ -7,8 +7,8 @@ use gdbstub::target::ext::monitor_cmd::MonitorCmd;
 
 use log::debug;
 
-use crate::MemoryMapConfig;
 use crate::DeviceBus;
+use crate::MemoryMapConfig;
 use crate::bus::Bus;
 use crate::core::fault::FaultTrapMode;
 use crate::gdb::simulation;

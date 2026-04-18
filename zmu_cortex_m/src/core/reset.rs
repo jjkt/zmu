@@ -45,8 +45,8 @@ impl Reset for Processor {
         #[cfg(not(feature = "armv6m"))]
         {
             self.faultmask = false;
+            self.basepri = 0;
         }
-        self.basepri = 0;
         self.control.sp_sel = false;
         self.control.n_priv = false;
 

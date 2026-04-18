@@ -12,8 +12,8 @@ use gdbstub::stub::SingleThreadStopReason;
 use gdbstub::stub::run_blocking;
 use gdbstub::target::Target;
 
-use crate::MemoryMapConfig;
 use crate::DeviceBus;
+use crate::MemoryMapConfig;
 use crate::core::fault::{FaultContext, FaultTrapMode};
 use crate::gdb::conn;
 use crate::gdb::simulation::SimulationEvent;
@@ -63,12 +63,19 @@ impl GdbServer {
         flash_size: usize,
         fault_trap_mode: FaultTrapMode,
     ) -> Result<GdbServer, GdbServerError> {
-        let target = ZmuTarget::new(code, device, semihost_func, map, flash_size, fault_trap_mode)
-            .map_err(|err| match err {
-                crate::system::simulation::SimulationError::FaultTrap { context } => {
-                    GdbServerError::FaultTrap(context)
-                }
-            })?;
+        let target = ZmuTarget::new(
+            code,
+            device,
+            semihost_func,
+            map,
+            flash_size,
+            fault_trap_mode,
+        )
+        .map_err(|err| match err {
+            crate::system::simulation::SimulationError::FaultTrap { context } => {
+                GdbServerError::FaultTrap(context)
+            }
+        })?;
 
         Ok(GdbServer { target })
     }
