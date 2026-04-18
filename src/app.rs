@@ -6,10 +6,11 @@ use clap::Command;
 use clap::value_parser;
 use goblin::Object;
 use goblin::elf::program_header::pt_to_str;
-use log::{debug, error, info};
+use log::{LevelFilter, Log, Metadata, Record, debug, error, info};
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+use std::sync::OnceLock;
 use std::time::Instant;
 
 use crate::semihost::get_semihost_func;
@@ -28,6 +29,60 @@ use zmu_cortex_m::system::simulation::simulate;
 use zmu_cortex_m::system::simulation::simulate_trace;
 
 type DeviceFactory = fn() -> Option<DeviceBus>;
+
+static LOGGER: OnceLock<StderrLogger> = OnceLock::new();
+
+struct StderrLogger {
+    module: &'static str,
+    level_filter: LevelFilter,
+}
+
+impl Log for StderrLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= self.level_filter && includes_module(self.module, metadata.target())
+    }
+
+    fn log(&self, record: &Record) {
+        if !self.enabled(record.metadata()) {
+            return;
+        }
+
+        let mut stderr = io::stderr().lock();
+        let _ = writeln!(stderr, "{} {}", record.level(), record.args());
+    }
+
+    fn flush(&self) {
+        let _ = io::stderr().lock().flush();
+    }
+}
+
+fn level_filter_for_verbosity(verbosity: usize) -> LevelFilter {
+    match verbosity {
+        0 => LevelFilter::Error,
+        1 => LevelFilter::Warn,
+        2 => LevelFilter::Info,
+        3 => LevelFilter::Debug,
+        _ => LevelFilter::Trace,
+    }
+}
+
+fn includes_module(module: &str, target: &str) -> bool {
+    target == module
+        || target
+            .strip_prefix(module)
+            .is_some_and(|suffix| suffix.starts_with("::"))
+}
+
+fn init_logger(module: &'static str, verbosity: usize) -> Result<(), log::SetLoggerError> {
+    let level_filter = level_filter_for_verbosity(verbosity);
+    let logger = LOGGER.get_or_init(|| StderrLogger {
+        module,
+        level_filter,
+    });
+
+    log::set_max_level(level_filter);
+    log::set_logger(logger)
+}
 
 #[cfg(feature = "armv6m")]
 const FAULT_TRAP_TARGETS: &[&str] = &["hardfault", "all"];
@@ -406,11 +461,7 @@ pub fn main_with_device(
 
     let verbose = cmd.get_count("verbosity") as usize;
 
-    stderrlog::new()
-        .module(module_path!())
-        .verbosity(verbose)
-        .init()
-        .unwrap();
+    init_logger(module_path!(), verbose).unwrap();
 
     let result = run(&cmd, device_factory);
     match result {
@@ -428,12 +479,34 @@ pub fn main_with_device(
 #[cfg(test)]
 mod tests {
     use super::build_command;
+    use super::includes_module;
+    use super::level_filter_for_verbosity;
 
     #[cfg(not(feature = "armv6m"))]
     use super::resolve_fault_trap_mode;
 
+    use log::LevelFilter;
+
     #[cfg(not(feature = "armv6m"))]
     use zmu_cortex_m::core::exception::Exception;
+
+    #[test]
+    fn test_level_filter_for_verbosity_matches_stderrlog_mapping() {
+        assert_eq!(level_filter_for_verbosity(0), LevelFilter::Error);
+        assert_eq!(level_filter_for_verbosity(1), LevelFilter::Warn);
+        assert_eq!(level_filter_for_verbosity(2), LevelFilter::Info);
+        assert_eq!(level_filter_for_verbosity(3), LevelFilter::Debug);
+        assert_eq!(level_filter_for_verbosity(4), LevelFilter::Trace);
+        assert_eq!(level_filter_for_verbosity(99), LevelFilter::Trace);
+    }
+
+    #[test]
+    fn test_includes_module_accepts_only_matching_module_prefixes() {
+        assert!(includes_module("zmu::app", "zmu::app"));
+        assert!(includes_module("zmu::app", "zmu::app::submodule"));
+        assert!(!includes_module("zmu::app", "zmu::application"));
+        assert!(!includes_module("zmu::app", "zmu_cortex_m::gdb"));
+    }
 
     #[cfg(not(feature = "armv6m"))]
     fn run_matches(args: &[&str]) -> clap::ArgMatches {
