@@ -485,6 +485,11 @@ impl Processor {
     pub fn get_itstate(&self) -> u8 {
         self.itstate
     }
+
+    /// Check if currently running in privileged mode
+    pub fn current_mode_is_privileged(&self) -> bool {
+        self.mode == ProcessorMode::HandlerMode || !self.control.n_priv
+    }
 }
 
 impl fmt::Display for Processor {

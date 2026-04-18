@@ -757,31 +757,36 @@ impl ExtensionReg {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(u32)]
+#[allow(non_camel_case_types)]
 /// Declarations of Special registers, of which some are overlays of same contents
 pub enum SpecialReg {
-    /// Application Program Status Register
+    /// Application Program Status Register, status from previous instructions
     APSR,
-    ///
+    /// Composite of IPSR and APSR
     IAPSR,
-    ///
+    /// Composite of EPSR and APSR
     EAPSR,
-    ///
+    /// composite of all PSR registers
     XPSR,
     /// Interrupt Program Status Register
     IPSR,
     /// Execution Program Status Register
     EPSR,
-    ///
+    /// Interrupt status
     IEPSR,
     /// Refers to Master Stack Pointer
     MSP,
     /// Refers to Process Stack Pointer
     PSP,
-    /// Priority Mask Register
+    /// To mask out exceptions
     PRIMASK,
-    /// Fault Mask Register
+    /// The base priority register
+    BASEPRI,
+    /// Read: alias of basepri, Write: can raise basepri but cannot lower it
+    BASEPRI_MAX,
+    /// Raise priority to hardfault level
     FAULTMASK,
-    /// CONTROL Register
+    /// Special purpose control Register
     CONTROL,
 }
 
@@ -1026,8 +1031,32 @@ impl SpecialReg {
             8 => Some(Self::MSP),
             9 => Some(Self::PSP),
             16 => Some(Self::PRIMASK),
+            17 => Some(Self::BASEPRI),
+            18 => Some(Self::BASEPRI_MAX),
+            19 => Some(Self::FAULTMASK),
             20 => Some(Self::CONTROL),
             _ => None,
+        }
+    }
+}
+
+impl From<SpecialReg> for u8 {
+    fn from(value: SpecialReg) -> Self {
+        match value {
+            SpecialReg::APSR => 0,
+            SpecialReg::IAPSR => 1,
+            SpecialReg::EAPSR => 2,
+            SpecialReg::XPSR => 3,
+            SpecialReg::IPSR => 5,
+            SpecialReg::EPSR => 6,
+            SpecialReg::IEPSR => 7,
+            SpecialReg::MSP => 8,
+            SpecialReg::PSP => 9,
+            SpecialReg::PRIMASK => 16,
+            SpecialReg::BASEPRI => 17,
+            SpecialReg::BASEPRI_MAX => 18,
+            SpecialReg::FAULTMASK => 19,
+            SpecialReg::CONTROL => 20,
         }
     }
 }
@@ -1158,6 +1187,8 @@ impl fmt::Display for SpecialReg {
             Self::MSP => write!(f, "MSP"),
             Self::PSP => write!(f, "PSP"),
             Self::PRIMASK => write!(f, "PRIMASK"),
+            Self::BASEPRI => write!(f, "BASEPRI"),
+            Self::BASEPRI_MAX => write!(f, "BASEPRI_MAX"),
             Self::FAULTMASK => write!(f, "FAULTMASK"),
             Self::CONTROL => write!(f, "CONTROL"),
         }
