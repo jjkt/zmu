@@ -2,9 +2,19 @@ use std::ops::{Add, AddAssign, Div, Sub};
 
 use crate::{
     Processor,
+    bus::Bus,
     core::{
         bits::Bits,
+        fault::Fault,
         fpregister::{FPSCRRounding, Fpscr},
+        register::{ExtensionRegOperations, SingleReg},
+    },
+    peripheral::{
+        mpu::{AccType, Mpu},
+        scb::{
+            FPCCR_ASPEN, FPCCR_LSPACT, FPCCR_USER, FPSCR_STATUS_CONTROL_END,
+            FPSCR_STATUS_CONTROL_START,
+        },
     },
 };
 
@@ -109,8 +119,31 @@ pub trait FloatOps {
 }
 
 pub trait FloatingPointChecks {
-    fn execute_fp_check(&mut self);
+    fn check_vfp_enabled(&mut self) -> Result<(), Fault>;
+    fn execute_fp_check(&mut self) -> Result<(), Fault>;
     fn fp_process_exception(&mut self, exc: FPExc, fpscr_val: u32);
+}
+
+impl Processor {
+    fn preserve_fp_state(&mut self) -> Result<(), Fault> {
+        let acctype = if !self.fpccr.get_bit(FPCCR_USER) {
+            AccType::Normal
+        } else {
+            AccType::UnPriv
+        };
+
+        for i in 0..16 {
+            let memaddrdesc =
+                self.validate_address(self.fpcar.wrapping_add(i * 4), acctype, true)?;
+            let reg = SingleReg::from(i as u8);
+            let value = self.get_sr(reg);
+            self.write32(memaddrdesc, value)?;
+        }
+        let memaddrdesc = self.validate_address(self.fpcar.wrapping_add(0x40), acctype, true)?;
+        self.write32(memaddrdesc, self.fpscr)?;
+        self.fpccr.set_bit(FPCCR_LSPACT, false);
+        Ok(())
+    }
 }
 
 pub trait FloatingPointPublicOperations {
@@ -1258,8 +1291,53 @@ fn is_ones_64(value: u64, len: usize) -> bool {
 }
 
 impl FloatingPointChecks for Processor {
-    fn execute_fp_check(&mut self) {
-        // todo!()
+    fn check_vfp_enabled(&mut self) -> Result<(), Fault> {
+        let cp10 = self.cpacr.get_bits(20..22);
+        let cp11 = self.cpacr.get_bits(22..24);
+
+        if cp10 != cp11 {
+            return Err(Fault::Forced);
+        }
+
+        match cp10 {
+            0b00 => {
+                self.cfsr.set_bit(19, true);
+                Err(Fault::Nocp)
+            }
+            0b01 => {
+                if !self.current_mode_is_privileged() {
+                    self.cfsr.set_bit(19, true);
+                    Err(Fault::Nocp)
+                } else {
+                    Ok(())
+                }
+            }
+            0b10 => {
+                self.cfsr.set_bit(19, true);
+                Err(Fault::Nocp)
+            }
+            0b11 => Ok(()), // full access
+            _ => unreachable!(),
+        }
+    }
+    fn execute_fp_check(&mut self) -> Result<(), Fault> {
+        self.check_vfp_enabled()?;
+
+        if self.fpccr.get_bit(FPCCR_LSPACT) {
+            self.preserve_fp_state()?;
+        }
+
+        if self.fpccr.get_bit(FPCCR_ASPEN) && !self.control.fpca {
+            let fpdscr_bits = self
+                .fpdscr
+                .get_bits(FPSCR_STATUS_CONTROL_START..FPSCR_STATUS_CONTROL_END);
+            self.fpscr.set_bits(
+                FPSCR_STATUS_CONTROL_START..FPSCR_STATUS_CONTROL_END,
+                fpdscr_bits,
+            );
+            self.control.fpca = true;
+        }
+        Ok(())
     }
 
     fn fp_process_exception(&mut self, exc: FPExc, fpscr_val: u32) {
@@ -1283,6 +1361,10 @@ impl FloatingPointChecks for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::bits::Bits;
+    use crate::bus::Bus;
+    use crate::core::fault::Fault;
+    use crate::core::register::{ExtensionRegOperations, SingleReg};
     use crate::Processor;
 
     #[test]
@@ -2082,5 +2164,109 @@ mod tests {
             processor.fixed_to_fp::<u32, u32>(0xffff_ffff, 0, false, false, false),
             0xBF80_0000
         );
+    }
+
+    #[test]
+    fn test_preserve_fp_state_writes_registers_and_fpscr() {
+        let mut processor = Processor::new();
+        processor.fpcar = 0x2000_0100;
+        processor.fpccr = 1 << FPCCR_LSPACT;
+        processor.fpscr = 0xabcd_1234;
+
+        for i in 0..16 {
+            processor.set_sr(SingleReg::from(i as u8), 0x4444_0000 + i);
+        }
+
+        processor.preserve_fp_state().unwrap();
+
+        for i in 0..16 {
+            assert_eq!(
+                processor.read32(0x2000_0100 + i * 4).unwrap(),
+                0x4444_0000 + i
+            );
+        }
+        assert_eq!(processor.read32(0x2000_0140).unwrap(), 0xabcd_1234);
+        assert!(!processor.fpccr.get_bit(FPCCR_LSPACT));
+    }
+
+    #[test]
+    fn test_preserve_fp_state_uses_unprivileged_access_type_when_user_bit_set() {
+        let mut processor = Processor::new();
+        processor.fpcar = 0x2000_0180;
+        processor.fpccr = (1 << FPCCR_LSPACT) | (1 << FPCCR_USER);
+        processor.set_sr(SingleReg::S0, 0xdead_beef);
+
+        processor.preserve_fp_state().unwrap();
+
+        assert_eq!(processor.read32(0x2000_0180).unwrap(), 0xdead_beef);
+        assert!(!processor.fpccr.get_bit(FPCCR_LSPACT));
+    }
+
+    #[test]
+    fn test_check_vfp_enabled_rejects_mismatched_coprocessor_access() {
+        let mut processor = Processor::new();
+        processor.cpacr = 0x0010_0000;
+
+        assert_eq!(processor.check_vfp_enabled(), Err(Fault::Forced));
+    }
+
+    #[test]
+    fn test_check_vfp_enabled_sets_nocp_when_vfp_disabled() {
+        let mut processor = Processor::new();
+        processor.cfsr = 0;
+
+        assert_eq!(processor.check_vfp_enabled(), Err(Fault::Nocp));
+        assert!(processor.cfsr.get_bit(19));
+    }
+
+    #[test]
+    fn test_check_vfp_enabled_requires_privilege_for_privileged_only_access() {
+        let mut processor = Processor::new();
+        processor.cpacr = 0x0050_0000;
+        processor.control.n_priv = true;
+
+        assert_eq!(processor.check_vfp_enabled(), Err(Fault::Nocp));
+        assert!(processor.cfsr.get_bit(19));
+    }
+
+    #[test]
+    fn test_check_vfp_enabled_allows_privileged_only_access_in_privileged_mode() {
+        let mut processor = Processor::new();
+        processor.cpacr = 0x0050_0000;
+
+        assert_eq!(processor.check_vfp_enabled(), Ok(()));
+    }
+
+    #[test]
+    fn test_check_vfp_enabled_rejects_reserved_access_encoding() {
+        let mut processor = Processor::new();
+        processor.cpacr = 0x00a0_0000;
+
+        assert_eq!(processor.check_vfp_enabled(), Err(Fault::Nocp));
+        assert!(processor.cfsr.get_bit(19));
+    }
+
+    #[test]
+    fn test_execute_fp_check_preserves_lazy_state_and_loads_fpdscr_control_bits() {
+        let mut processor = Processor::new();
+        processor.cpacr = 0x00f0_0000;
+        processor.fpcar = 0x2000_0200;
+        processor.fpccr = (1 << FPCCR_LSPACT) | (1 << FPCCR_ASPEN);
+        processor.fpdscr = 0x07c0_0000;
+        processor.fpscr = 0;
+        processor.set_sr(SingleReg::S0, 0x1357_9bdf);
+
+        processor.execute_fp_check().unwrap();
+
+        assert_eq!(processor.read32(0x2000_0200).unwrap(), 0x1357_9bdf);
+        assert_eq!(
+            processor
+                .fpscr
+                .get_bits(FPSCR_STATUS_CONTROL_START..FPSCR_STATUS_CONTROL_END),
+            processor
+                .fpdscr
+                .get_bits(FPSCR_STATUS_CONTROL_START..FPSCR_STATUS_CONTROL_END)
+        );
+        assert!(processor.control.fpca);
     }
 }

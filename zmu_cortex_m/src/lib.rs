@@ -182,6 +182,7 @@ pub struct Processor {
     pub cfsr: u32,
     pub hfsr: u32,
     pub dfsr: u32,
+    pub demcr: u32,
     pub mmfar: u32,
     pub bfar: u32,
     pub afsr: u32,
@@ -238,6 +239,27 @@ pub struct Processor {
 
     device: Option<DeviceBus>,
 }
+
+#[cfg(feature = "has-fp")]
+#[cfg(feature = "fpv5-d16")]
+pub(crate) const FP_MVFR0_RESET: u32 = 0x1011_0221;
+#[cfg(feature = "has-fp")]
+#[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16"))]
+pub(crate) const FP_MVFR0_RESET: u32 = 0x1011_0021;
+
+#[cfg(feature = "has-fp")]
+#[cfg(feature = "fpv5-d16")]
+pub(crate) const FP_MVFR1_RESET: u32 = 0x1200_0011;
+#[cfg(feature = "has-fp")]
+#[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16"))]
+pub(crate) const FP_MVFR1_RESET: u32 = 0x1100_0011;
+
+#[cfg(feature = "has-fp")]
+#[cfg(any(feature = "fpv5-d16", feature = "fpv5-sp-d16"))]
+pub(crate) const FP_MVFR2_RESET: u32 = 0x0000_0040;
+#[cfg(feature = "has-fp")]
+#[cfg(feature = "fpv4-sp-d16")]
+pub(crate) const FP_MVFR2_RESET: u32 = 0x0000_0000;
 
 fn make_default_exception_priorities() -> HashMap<usize, ExceptionState> {
     let mut priorities = HashMap::new();
@@ -318,6 +340,8 @@ impl Processor {
             control: Control {
                 n_priv: false,
                 sp_sel: false,
+                #[cfg(feature = "has-fp")]
+                fpca: false,
             },
             r0_12: [0; 13],
             fp_regs: [0; 32],
@@ -349,6 +373,7 @@ impl Processor {
             cfsr: 0,
             dfsr: 0,
             hfsr: 0,
+            demcr: 0,
             mmfar: 0,
             bfar: 0,
             afsr: 0,
@@ -363,11 +388,11 @@ impl Processor {
             fpdscr: 0,
             fpscr: 0,
             #[cfg(feature = "has-fp")]
-            mvfr0: 0,
+            mvfr0: FP_MVFR0_RESET,
             #[cfg(feature = "has-fp")]
-            mvfr1: 0,
+            mvfr1: FP_MVFR1_RESET,
             #[cfg(feature = "has-fp")]
-            mvfr2: 0,
+            mvfr2: FP_MVFR2_RESET,
 
             ictr: 0,
             actlr: 0,

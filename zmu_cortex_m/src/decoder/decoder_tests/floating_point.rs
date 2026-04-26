@@ -1,5 +1,6 @@
 use super::*;
 
+use crate::core::instruction::AddressingMode;
 use crate::core::instruction::VSelParamsf64;
 
 #[test]

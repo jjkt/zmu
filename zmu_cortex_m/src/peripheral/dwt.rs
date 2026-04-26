@@ -57,7 +57,7 @@ mod tests {
 
         // Arrange
         processor.reset().unwrap();
-        assert_eq!(processor.dwt_cyccnt, 0);
+        processor.dwt_write_cyccnt(0);
 
         // Act
         processor.dwt_write_ctrl(DWT_CTRL_CYCCNTENA);

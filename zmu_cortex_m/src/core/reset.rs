@@ -49,6 +49,10 @@ impl Reset for Processor {
         }
         self.control.sp_sel = false;
         self.control.n_priv = false;
+        #[cfg(feature = "has-fp")]
+        {
+            self.control.fpca = false;
+        }
 
         //TODO self.scs.reset();
         self.exceptions_reset();

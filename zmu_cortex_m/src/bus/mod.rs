@@ -239,6 +239,14 @@ impl Bus for Processor {
             0xE000_ED1C => self.write_shpr2(value),
             #[cfg(any(feature = "armv7m", feature = "armv7em"))]
             0xE000_ED20 => self.write_shpr3(value),
+            #[cfg(feature = "has-fp")]
+            0xE000_ED88 => self.write_cpacr(value)?,
+            #[cfg(feature = "has-fp")]
+            0xE000_EF34 => self.write_fpccr(value)?,
+            #[cfg(feature = "has-fp")]
+            0xE000_EF38 => self.write_fpcar(value)?,
+            #[cfg(feature = "has-fp")]
+            0xE000_EF3C => self.write_fpdscr(value)?,
 
             0xE000_EDFC => self.write_demcr(value),
 
@@ -356,14 +364,12 @@ impl Bus for Processor {
 #[cfg(test)]
 mod tests {
     use super::Bus;
+    use crate::core::fault::Fault;
+    #[cfg(feature = "has-fp")]
+    use crate::peripheral::scb::{FPCCR_ASPEN, FPCCR_LSPEN};
     use crate::Processor;
     #[cfg(feature = "armv6m")]
     use crate::core::exception::{Exception, ExceptionHandling};
-    #[cfg(all(
-        any(feature = "armv6m", feature = "armv7m", feature = "armv7em"),
-        not(feature = "has-fp")
-    ))]
-    use crate::core::fault::Fault;
 
     #[cfg(feature = "armv6m")]
     const SHCSR_SVCALLPENDED: u32 = 1 << 15;
@@ -474,22 +480,95 @@ mod tests {
     #[test]
     #[cfg(feature = "has-fp")]
     fn test_vfp_profile_exposes_fp_system_registers() {
+        #[cfg(feature = "fpv5-d16")]
+        const EXPECTED_MVFR0: u32 = 0x1011_0221;
+        #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16"))]
+        const EXPECTED_MVFR0: u32 = 0x1011_0021;
+
+        #[cfg(feature = "fpv5-d16")]
+        const EXPECTED_MVFR1: u32 = 0x1200_0011;
+        #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16"))]
+        const EXPECTED_MVFR1: u32 = 0x1100_0011;
+
+        #[cfg(any(feature = "fpv5-d16", feature = "fpv5-sp-d16"))]
+        const EXPECTED_MVFR2: u32 = 0x0000_0040;
+        #[cfg(feature = "fpv4-sp-d16")]
+        const EXPECTED_MVFR2: u32 = 0x0000_0000;
+
         let mut processor = Processor::new();
 
         processor.cpacr = 0x00f0_0000;
         processor.fpccr = 0xc000_0039;
         processor.fpcar = 0x2000_0100;
         processor.fpdscr = 0x00ab_0000;
-        processor.mvfr0 = 0x1011_0021;
-        processor.mvfr1 = 0x1100_0011;
-        processor.mvfr2 = 0x0000_0040;
 
         assert_eq!(processor.read32(0xE000_ED88), Ok(0x00f0_0000));
         assert_eq!(processor.read32(0xE000_EF34), Ok(0xc000_0039));
         assert_eq!(processor.read32(0xE000_EF38), Ok(0x2000_0100));
         assert_eq!(processor.read32(0xE000_EF3C), Ok(0x00ab_0000));
-        assert_eq!(processor.read32(0xE000_EF40), Ok(0x1011_0021));
-        assert_eq!(processor.read32(0xE000_EF44), Ok(0x1100_0011));
-        assert_eq!(processor.read32(0xE000_EF48), Ok(0x0000_0040));
+        assert_eq!(processor.read32(0xE000_EF40), Ok(EXPECTED_MVFR0));
+        assert_eq!(processor.read32(0xE000_EF44), Ok(EXPECTED_MVFR1));
+        assert_eq!(processor.read32(0xE000_EF48), Ok(EXPECTED_MVFR2));
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_vfp_profile_writes_fp_system_registers() {
+        let mut processor = Processor::new();
+        let initial_cpacr = processor.cpacr;
+        let initial_fpccr = processor.fpccr;
+        let writable_cpacr_bits = 0x00f0_0000;
+        let writable_fpccr_bits = (1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN);
+
+        assert_eq!(processor.write32(0xE000_EF34, 0xffff_ffff), Ok(()));
+        assert_eq!(processor.write32(0xE000_ED88, 0xffff_ffff), Ok(()));
+        assert_eq!(processor.write32(0xE000_EF38, 0x2000_0107), Ok(()));
+        assert_eq!(processor.write32(0xE000_EF3C, 0xffff_ffff), Ok(()));
+
+        assert_eq!(processor.cpacr & writable_cpacr_bits, writable_cpacr_bits);
+        assert_eq!(
+            processor.cpacr & !writable_cpacr_bits,
+            initial_cpacr & !writable_cpacr_bits
+        );
+        assert_eq!(processor.fpccr & writable_fpccr_bits, writable_fpccr_bits);
+        assert_eq!(
+            processor.fpccr & !writable_fpccr_bits,
+            initial_fpccr & !writable_fpccr_bits
+        );
+        assert_eq!(processor.fpcar, 0x2000_0100);
+        assert_eq!(processor.fpdscr, 0x07c0_0000);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_unprivileged_thread_mode_cannot_write_fp_system_registers() {
+        let mut processor = Processor::new();
+        processor.control.n_priv = true;
+        let initial_cpacr = processor.cpacr;
+        let initial_fpccr = processor.fpccr;
+        let initial_fpcar = processor.fpcar;
+        let initial_fpdscr = processor.fpdscr;
+
+        assert_eq!(
+            processor.write32(0xE000_ED88, 0x00f0_0000),
+            Err(Fault::DAccViol)
+        );
+        assert_eq!(
+            processor.write32(0xE000_EF34, 0xc000_0000),
+            Err(Fault::DAccViol)
+        );
+        assert_eq!(
+            processor.write32(0xE000_EF38, 0x2000_0100),
+            Err(Fault::DAccViol)
+        );
+        assert_eq!(
+            processor.write32(0xE000_EF3C, 0x07c0_0000),
+            Err(Fault::DAccViol)
+        );
+
+        assert_eq!(processor.cpacr, initial_cpacr);
+        assert_eq!(processor.fpccr, initial_fpccr);
+        assert_eq!(processor.fpcar, initial_fpcar);
+        assert_eq!(processor.fpdscr, initial_fpdscr);
     }
 }

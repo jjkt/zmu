@@ -988,6 +988,8 @@ impl From<Reg> for usize {
 #[cfg(test)]
 mod tests {
     use super::{BaseReg, Epsr};
+    #[cfg(feature = "has-fp")]
+    use super::Control;
     use crate::{Processor, ProcessorMode};
 
     #[test]
@@ -1014,6 +1016,18 @@ mod tests {
         assert_eq!(result, Ok(()));
         assert_eq!(processor.get_pc(), 0x0800_0000);
         assert!(!processor.psr.get_t());
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_control_to_u8_includes_fpca_bit() {
+        let control = Control {
+            n_priv: true,
+            sp_sel: true,
+            fpca: true,
+        };
+
+        assert_eq!(u8::from(control), 0b111);
     }
 }
 
@@ -1202,9 +1216,20 @@ pub struct Control {
     pub n_priv: bool,
     /// selection of current active stack pointer, true = PSP, false = MSP
     pub sp_sel: bool,
+    /// FPCA bit, whether fp context is active in current state
+    #[cfg(feature = "has-fp")]
+    pub fpca: bool,
 }
 
 impl From<Control> for u8 {
+    #[cfg(feature = "has-fp")]
+    fn from(control: Control) -> Self {
+        Self::from(control.n_priv)
+            + (Self::from(control.sp_sel) << 1)
+            + (Self::from(control.fpca) << 2)
+    }
+
+    #[cfg(not(feature = "has-fp"))]
     fn from(control: Control) -> Self {
         Self::from(control.n_priv) + (Self::from(control.sp_sel) << 1)
     }

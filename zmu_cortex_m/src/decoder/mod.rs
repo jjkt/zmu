@@ -115,23 +115,41 @@ mod umull;
 mod uxt;
 mod uxtab;
 
+#[cfg(feature = "has-fp")]
 mod vabs;
+#[cfg(feature = "has-fp")]
 mod vadd_vsub;
+#[cfg(feature = "has-fp")]
 mod vcmp;
+#[cfg(feature = "has-fp")]
 mod vcvt;
+#[cfg(feature = "has-fp")]
 mod vfma;
+#[cfg(feature = "has-fp")]
 mod vldm;
+#[cfg(feature = "has-fp")]
 mod vldr;
+#[cfg(feature = "has-fp")]
 mod vmov;
+#[cfg(feature = "has-fp")]
 mod vmrs;
+#[cfg(feature = "has-fp")]
 mod vmul_vdiv;
+#[cfg(feature = "has-fp")]
 mod vneg;
+#[cfg(feature = "has-fp")]
 mod vpop;
+#[cfg(feature = "has-fp")]
 mod vpush;
+#[cfg(feature = "has-fp")]
 mod vrint;
+#[cfg(feature = "has-fp")]
 mod vsel;
+#[cfg(feature = "has-fp")]
 mod vsqrt;
+#[cfg(feature = "has-fp")]
 mod vstm;
+#[cfg(feature = "has-fp")]
 mod vstr;
 
 use {
@@ -269,6 +287,8 @@ use {
 
 use crate::Processor;
 use crate::core::thumb::ThumbCode;
+
+#[cfg(feature = "has-fp")]
 use {
     vabs::decode_VABS_t1,
     vadd_vsub::{decode_VADD_t1, decode_VSUB_t1},

@@ -3,7 +3,6 @@
 ## ARM Cortex Core behavior
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
 - [ ] implement have_dsp_ext feature flag, use it to gate SSAT, USAT, pop_stack, MRS, MSR functionalities
-- [ ] Model full `CONTROL` on FP cores, including `FPCA`
 - [ ] Implement `AIRCR` write semantics: `VECTKEY`, `PRIGROUP`, and reset bits
 - [ ] Wire endianness reporting to `AIRCR.ENDIANNESS` and core support rules
 - [ ] Audit and model remaining visible SCB reset defaults per core variant, including `CPUID`, `ICSR`, `AIRCR`, `SCR`, `CCR`, `ICTR`, and `ACTLR`
@@ -37,9 +36,6 @@
 
 ## ARM FP support
 - [ ] Split ARM FP support by profile: FPv4-SP-D16, FPv5-SP-D16, FPv5-D16, and Armv8.1-M FP/FP16
-- [ ] Make PPB writes update `CPACR`, `FPCCR`, `FPCAR`, and `FPDSCR`, not just reads
-- [ ] Make `execute_fp_check()` enforce FP enablement via `CPACR` and `NOCP`
-- [ ] Run the same FP enable checks for `VMRS` and `VMOV` transfer paths
 - [ ] Replace the enabled-exception `todo!()` in `fp_process_exception()` with real FP trap and fault handling
 - [ ] Implement `decode_VMOV_cr_scalar()` and execute `Instruction::VMOV_cr_scalar`
 - [ ] Implement `decode_VMOV_scalar_cr()` and execute `Instruction::VMOV_scalar_cr`

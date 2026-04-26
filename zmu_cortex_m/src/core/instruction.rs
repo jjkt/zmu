@@ -1433,28 +1433,36 @@ pub enum Instruction {
     //
     // --------------------------------------------
     /// FP Load register
+    #[cfg(feature = "has-fp")]
     VLDR {
         params: VLoadAndStoreParams,
     },
     /// FP Store register
+    #[cfg(feature = "has-fp")]
     VSTR {
         params: VLoadAndStoreParams,
     },
+    #[cfg(feature = "has-fp")]
     VLDM_T1 {
         params: VStoreMultipleParams64,
     },
+    #[cfg(feature = "has-fp")]
     VLDM_T2 {
         params: VStoreMultipleParams32,
     },
+    #[cfg(feature = "has-fp")]
     VPUSH {
         params: VPushPopParams,
     },
+    #[cfg(feature = "has-fp")]
     VPOP {
         params: VPushPopParams,
     },
+    #[cfg(feature = "has-fp")]
     VSTM_T1 {
         params: VStoreMultipleParams64,
     },
+    #[cfg(feature = "has-fp")]
     VSTM_T2 {
         params: VStoreMultipleParams32,
     },
@@ -1464,33 +1472,43 @@ pub enum Instruction {
     // Group: Floating-point register transfer instructions
     //
     // --------------------------------------------
+    #[cfg(feature = "has-fp")]
     VMOV_imm_32 {
         params: VMovImmParams32,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_imm_64 {
         params: VMovImmParams64,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_reg_f32 {
         params: VMovRegParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_reg_f64 {
         params: VMovRegParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_cr_scalar {
         params: VMovCrScalarParams,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_scalar_cr {
         params: VMovCrScalarParams,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_cr_sp {
         params: VMovCrSpParams,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_cr2_sp2 {
         params: VMovCr2Sp2Params,
     },
+    #[cfg(feature = "has-fp")]
     VMOV_cr2_dp {
         params: VMovCr2DpParams,
     },
+    #[cfg(feature = "has-fp")]
     VMRS {
         rt: VMRSTarget,
     },
@@ -1500,66 +1518,87 @@ pub enum Instruction {
     // Group: Floating-point data-processing instructions
     //
     // --------------------------------------------
+    #[cfg(feature = "has-fp")]
     VABS_f32 {
         params: VMovRegParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VABS_f64 {
         params: VMovRegParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VNEG_f32 {
         params: VMovRegParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VNEG_f64 {
         params: VMovRegParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VADD_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VADD_f64 {
         params: VAddSubParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VFMA_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VFMA_f64 {
         params: VAddSubParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VFMS_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VFMS_f64 {
         params: VAddSubParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VFNMS_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VFNMS_f64 {
         params: VAddSubParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VCMP_f32 {
         params: VCmpParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VCMP_f64 {
         params: VCmpParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VCVT {
         params: VCVTParams,
     },
+    #[cfg(feature = "has-fp")]
     VCVT_f64_f32 {
         params: VCVTParamsF64F32,
     },
+    #[cfg(feature = "has-fp")]
     VCVT_f32_f64 {
         params: VCVTParamsF32F64,
     },
+    #[cfg(feature = "has-fp")]
     VSEL_f32 {
         params: VSelParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VSEL_f64 {
         params: VSelParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VDIV_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VDIV_f64 {
         params: VAddSubParamsf64,
     },
@@ -1568,37 +1607,47 @@ pub enum Instruction {
     //VMLA
     //VMOV
     //VMOV
+    #[cfg(feature = "has-fp")]
     VMUL_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VMUL_f64 {
         params: VAddSubParamsf64,
     },
+    #[cfg(feature = "has-fp")]
     VNMUL_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VNMUL_f64 {
         params: VAddSubParamsf64,
     },
     //VNMLA
     //VRINTA
+    #[cfg(feature = "has-fp")]
     VRINTZ_f32 {
         params: VMovRegParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VRINTZ_f64 {
         params: VMovRegParamsf64,
     },
     //VSEL
+    #[cfg(feature = "has-fp")]
     VSQRT_f32 {
         params: VMovRegParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VSQRT_f64 {
         params: VMovRegParamsf64,
     },
     //VSUB
+    #[cfg(feature = "has-fp")]
     VSUB_f32 {
         params: VAddSubParamsf32,
     },
+    #[cfg(feature = "has-fp")]
     VSUB_f64 {
         params: VAddSubParamsf64,
     },
@@ -1732,6 +1781,7 @@ fn fmt_add_imm(params: Reg2ImmParams, thumb32: bool) -> String {
     }
 }
 
+#[cfg(feature = "has-fp")]
 fn fmt_vcvt(params: VCVTParams) -> String {
     let fpscr_rounding = params.round_nearest;
     if params.to_integer {
@@ -2592,8 +2642,11 @@ impl fmt::Display for Instruction {
                 params.lsb,
                 params.widthminus1 + 1
             ),
+            #[cfg(feature = "has-fp")]
             Self::VLDR { params } => write!(f, "vldr {}, {}", params.dd, params.rn),
+            #[cfg(feature = "has-fp")]
             Self::VSTR { params } => write!(f, "vstr {}, {}", params.dd, params.rn),
+            #[cfg(feature = "has-fp")]
             Self::VLDM_T1 { params } => write!(
                 f,
                 "vldm{}.64, {}{} {:?}",
@@ -2606,6 +2659,7 @@ impl fmt::Display for Instruction {
                 if params.write_back { "!" } else { "" },
                 params.list
             ),
+            #[cfg(feature = "has-fp")]
             Self::VLDM_T2 { params } => write!(
                 f,
                 "vldm{}.32, {}{} {:?}",
@@ -2618,6 +2672,7 @@ impl fmt::Display for Instruction {
                 if params.write_back { "!" } else { "" },
                 params.list
             ),
+            #[cfg(feature = "has-fp")]
             Self::VSTM_T1 { params } => write!(
                 f,
                 "vstm{}.64, {}{} {:?}",
@@ -2630,6 +2685,7 @@ impl fmt::Display for Instruction {
                 if params.write_back { "!" } else { "" },
                 params.list
             ),
+            #[cfg(feature = "has-fp")]
             Self::VSTM_T2 { params } => write!(
                 f,
                 "vstm{}.32, {}{} {:?}",
@@ -2642,6 +2698,7 @@ impl fmt::Display for Instruction {
                 if params.write_back { "!" } else { "" },
                 params.list
             ),
+            #[cfg(feature = "has-fp")]
             Self::VPUSH { params } => write!(
                 f,
                 "vpush {}",
@@ -2651,6 +2708,7 @@ impl fmt::Display for Instruction {
                     format!("{:?}", params.double_precision_registers)
                 }
             ),
+            #[cfg(feature = "has-fp")]
             Self::VPOP { params } => write!(
                 f,
                 "vpop {}",
@@ -2661,17 +2719,24 @@ impl fmt::Display for Instruction {
                 }
             ),
 
+            #[cfg(feature = "has-fp")]
             Self::VMOV_imm_32 { params } => write!(f, "vmov.f32 {}, #{}", params.sd, params.imm32),
+            #[cfg(feature = "has-fp")]
             Self::VMOV_imm_64 { params } => write!(f, "vmov.f64 {}, #{}", params.dd, params.imm64),
+            #[cfg(feature = "has-fp")]
             Self::VMOV_reg_f32 { params } => write!(f, "vmov.f32 {}, {}", params.sd, params.sm),
+            #[cfg(feature = "has-fp")]
             Self::VMOV_reg_f64 { params } => write!(f, "vmov.f64 {}, {}", params.dd, params.dm),
+            #[cfg(feature = "has-fp")]
             Self::VMOV_cr_scalar { params } => {
                 write!(f, "vmov {}[{}], {}", params.dd, params.x, params.rt)
             }
+            #[cfg(feature = "has-fp")]
             Self::VMOV_scalar_cr { params } => {
                 write!(f, "vmov {}, {}[{}]", params.rt, params.dd, params.x)
             }
 
+            #[cfg(feature = "has-fp")]
             Self::VMOV_cr_sp { params } => {
                 write!(
                     f,
@@ -2683,6 +2748,7 @@ impl fmt::Display for Instruction {
                     }
                 )
             }
+            #[cfg(feature = "has-fp")]
             Self::VMOV_cr2_sp2 { params } => {
                 write!(
                     f,
@@ -2700,6 +2766,7 @@ impl fmt::Display for Instruction {
                     }
                 )
             }
+            #[cfg(feature = "has-fp")]
             Self::VMOV_cr2_dp { params } => {
                 write!(
                     f,
@@ -2711,11 +2778,17 @@ impl fmt::Display for Instruction {
                     }
                 )
             }
+            #[cfg(feature = "has-fp")]
             Self::VABS_f32 { params } => write!(f, "vabs.f32 {}, {}", params.sd, params.sm),
+            #[cfg(feature = "has-fp")]
             Self::VABS_f64 { params } => write!(f, "vabs.f64 {}, {}", params.dd, params.dm),
+            #[cfg(feature = "has-fp")]
             Self::VNEG_f32 { params } => write!(f, "vneg.f32 {}, {}", params.sd, params.sm),
+            #[cfg(feature = "has-fp")]
             Self::VNEG_f64 { params } => write!(f, "vneg.f64 {}, {}", params.dd, params.dm),
+            #[cfg(feature = "has-fp")]
             Self::VMRS { rt } => write!(f, "vmrs {rt}, fpscr"),
+            #[cfg(feature = "has-fp")]
             Self::VCMP_f32 { params } => write!(
                 f,
                 "vcmp.f32 {}, {}",
@@ -2726,6 +2799,7 @@ impl fmt::Display for Instruction {
                     format!("{}", params.sm)
                 }
             ),
+            #[cfg(feature = "has-fp")]
             Self::VCMP_f64 { params } => write!(
                 f,
                 "vcmp.f64 {}, {}",
@@ -2737,43 +2811,61 @@ impl fmt::Display for Instruction {
                 }
             ),
 
+            #[cfg(feature = "has-fp")]
             Self::VADD_f32 { params } => {
                 write!(f, "vadd.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VADD_f64 { params } => {
                 write!(f, "vadd.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VFMA_f32 { params } => {
                 write!(f, "vfma.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VFMA_f64 { params } => {
                 write!(f, "vfma.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VFMS_f32 { params } => {
                 write!(f, "vfms.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VFMS_f64 { params } => {
                 write!(f, "vfms.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VFNMS_f32 { params } => {
                 write!(f, "vfnms.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VFNMS_f64 { params } => {
                 write!(f, "vfnms.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VSQRT_f32 { params } => write!(f, "vsqrt.f32 {}, {}", params.sd, params.sm),
+            #[cfg(feature = "has-fp")]
             Self::VSQRT_f64 { params } => write!(f, "vsqrt.f64 {}, {}", params.dd, params.dm),
+            #[cfg(feature = "has-fp")]
             Self::VRINTZ_f32 { params } => write!(f, "vrintz.f32 {}, {}", params.sd, params.sm),
+            #[cfg(feature = "has-fp")]
             Self::VRINTZ_f64 { params } => write!(f, "vrintz.f64 {}, {}", params.dd, params.dm),
+            #[cfg(feature = "has-fp")]
             Self::VSUB_f32 { params } => {
                 write!(f, "vsub.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VSUB_f64 { params } => {
                 write!(f, "vsub.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VCVT { params } => write!(f, "{}", fmt_vcvt(params)),
+            #[cfg(feature = "has-fp")]
             Self::VCVT_f64_f32 { params } => write!(f, "vcvt.f64.f32 {}, {}", params.dd, params.sm),
+            #[cfg(feature = "has-fp")]
             Self::VCVT_f32_f64 { params } => write!(f, "vcvt.f32.f64 {}, {}", params.sd, params.dm),
+            #[cfg(feature = "has-fp")]
             Self::VSEL_f32 { params } => {
                 write!(
                     f,
@@ -2781,6 +2873,7 @@ impl fmt::Display for Instruction {
                     params.cond, params.sd, params.sn, params.sm
                 )
             }
+            #[cfg(feature = "has-fp")]
             Self::VSEL_f64 { params } => {
                 write!(
                     f,
@@ -2788,21 +2881,27 @@ impl fmt::Display for Instruction {
                     params.cond, params.dd, params.dn, params.dm
                 )
             }
+            #[cfg(feature = "has-fp")]
             Self::VDIV_f32 { params } => {
                 write!(f, "vdiv.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VDIV_f64 { params } => {
                 write!(f, "vdiv.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VMUL_f32 { params } => {
                 write!(f, "vmul.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VMUL_f64 { params } => {
                 write!(f, "vmul.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VNMUL_f32 { params } => {
                 write!(f, "vnmul.f32 {}, {}, {}", params.sd, params.sn, params.sm,)
             }
+            #[cfg(feature = "has-fp")]
             Self::VNMUL_f64 { params } => {
                 write!(f, "vnmul.f64 {}, {}, {}", params.dd, params.dn, params.dm,)
             }
@@ -3093,74 +3192,123 @@ pub fn instruction_size(instruction: &Instruction) -> usize {
         Instruction::UXTB { thumb32, .. } => isize_t(*thumb32),
         Instruction::UXTH { thumb32, .. } => isize_t(*thumb32),
 
+        #[cfg(feature = "has-fp")]
         Instruction::VABS_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VABS_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VNEG_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VNEG_f64 { .. } => 4,
 
+        #[cfg(feature = "has-fp")]
         Instruction::VADD_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VADD_f64 { .. } => 4,
 
+        #[cfg(feature = "has-fp")]
         Instruction::VCMP_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VCMP_f64 { .. } => 4,
         //VCVTX
+        #[cfg(feature = "has-fp")]
         Instruction::VCVT { .. } => 4,
         //VCVTB
         //VCVTT
+        #[cfg(feature = "has-fp")]
         Instruction::VDIV_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VDIV_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VFMA_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VFMA_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VFMS_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VFMS_f64 { .. } => 4,
         //VFNMA
+        #[cfg(feature = "has-fp")]
         Instruction::VFNMS_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VFNMS_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VLDM_T1 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VLDM_T2 { .. } => 4,
         //VMAXNM
         //VMINNM
         //VMLA
         //VMLS
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_imm_32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_imm_64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_reg_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_reg_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_cr_scalar { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_scalar_cr { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_cr_sp { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_cr2_sp2 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMOV_cr2_dp { .. } => 4,
 
+        #[cfg(feature = "has-fp")]
         Instruction::VMRS { .. } => 4,
         //VMSR
+        #[cfg(feature = "has-fp")]
         Instruction::VMUL_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VMUL_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VNMUL_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VNMUL_f64 { .. } => 4,
         //VNMLA,VNMLS
+        #[cfg(feature = "has-fp")]
         Instruction::VPUSH { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VPOP { .. } => 4,
         //VRINTA, VRINTN, VRINTP, VRiNTM
         //VRINTX,
+        #[cfg(feature = "has-fp")]
         Instruction::VRINTZ_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VRINTZ_f64 { .. } => 4,
         //VRINTR
+        #[cfg(feature = "has-fp")]
         Instruction::VSQRT_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSQRT_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VCVT_f64_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VCVT_f32_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSEL_f32 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSEL_f64 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSTM_T1 { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSTM_T2 { .. } => 4,
         //VSTR
+        #[cfg(feature = "has-fp")]
         Instruction::VSUB_f32 { params } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSUB_f64 { params } => 4,
         Instruction::WFE { thumb32, .. } => isize_t(*thumb32),
         Instruction::WFI { thumb32, .. } => isize_t(*thumb32),
         Instruction::YIELD { thumb32, .. } => isize_t(*thumb32),
+        #[cfg(feature = "has-fp")]
         Instruction::VLDR { .. } => 4,
+        #[cfg(feature = "has-fp")]
         Instruction::VSTR { .. } => 4,
     }
 }

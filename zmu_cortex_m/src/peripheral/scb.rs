@@ -3,6 +3,8 @@
 //!
 
 use crate::Processor;
+#[cfg(feature = "has-fp")]
+use crate::{FP_MVFR0_RESET, FP_MVFR1_RESET, FP_MVFR2_RESET};
 use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
@@ -10,6 +12,22 @@ use crate::core::fault::{Fault, FaultStatusContext};
 
 use crate::core::register::Ipsr;
 
+// Configuration Control Register bit positions
+#[allow(dead_code)]
+const CCR_NONBASETHRDENA: usize = 0;
+#[allow(dead_code)]
+const CCR_USERSETMPEND: usize = 1;
+#[allow(dead_code)]
+const CCR_UNALIGN_TRP: usize = 3;
+#[allow(dead_code)]
+const CCR_DIV_0_TRP: usize = 4;
+#[allow(dead_code)]
+const CCR_BFHFNMIGN: usize = 8;
+pub(crate) const CCR_STKALIGN: usize = 9;
+#[allow(dead_code)]
+const CCR_DC: usize = 16;
+
+// System Handler Control and State Register bit positions
 const SHCSR_MEMFAULTACT: u32 = 1 << 0;
 const SHCSR_BUSFAULTACT: u32 = 1 << 1;
 const SHCSR_USGFAULTACT: u32 = 1 << 3;
@@ -29,11 +47,47 @@ const SHCSR_MEMFAULTPENDED: u32 = 1 << 13;
 const SHCSR_BUSFAULTPENDED: u32 = 1 << 14;
 const SHCSR_SVCALLPENDED: u32 = 1 << 15;
 #[cfg(any(feature = "armv7m", feature = "armv7em"))]
-const SHCSR_MEMFAULTENA: u32 = 1 << 16;
+pub(crate) const SHCSR_MEMFAULTENA: u32 = 1 << 16;
 #[cfg(any(feature = "armv7m", feature = "armv7em"))]
-const SHCSR_BUSFAULTENA: u32 = 1 << 17;
+pub(crate) const SHCSR_BUSFAULTENA: u32 = 1 << 17;
 #[cfg(any(feature = "armv7m", feature = "armv7em"))]
 const SHCSR_USGFAULTENA: u32 = 1 << 18;
+
+// Debug Exception and Monitor Control Register bit positions
+#[cfg(feature = "has-fp")]
+pub(crate) const DEMCR_MON_EN: usize = 16;
+
+// Floating-Point Context Control Register bit positions
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_LSPACT: usize = 0;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_USER: usize = 1;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_THREAD: usize = 3;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_HFRDY: usize = 4;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_MMRDY: usize = 5;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_BFRDY: usize = 6;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_MONRDY: usize = 8;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_LSPEN: usize = 30;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPCCR_ASPEN: usize = 31;
+
+// Shared FPSCR/FPDSCR status-control field range
+#[cfg(feature = "has-fp")]
+pub(crate) const FPSCR_STATUS_CONTROL_START: usize = 22;
+#[cfg(feature = "has-fp")]
+pub(crate) const FPSCR_STATUS_CONTROL_END: usize = 27;
+#[cfg(feature = "has-fp")]
+const CPACR_CP10_CP11_MASK: u32 = 0x00f0_0000;
+#[cfg(feature = "has-fp")]
+const FPCCR_WRITABLE_MASK: u32 = (1 << FPCCR_LSPEN) | (1 << FPCCR_ASPEN);
+#[cfg(feature = "has-fp")]
+const FPDSCR_WRITABLE_MASK: u32 = 0x07c0_0000;
 
 #[cfg(any(feature = "armv7m", feature = "armv7em"))]
 const SHCSR_ENABLE_MASK: u32 = SHCSR_MEMFAULTENA | SHCSR_BUSFAULTENA | SHCSR_USGFAULTENA;
@@ -54,6 +108,7 @@ const SHCSR_STATUS_MASK: u32 = SHCSR_USGFAULTPENDED
 #[cfg(feature = "armv6m")]
 const SHCSR_STATUS_MASK: u32 = SHCSR_SVCALLPENDED;
 
+// Configurable Fault Status Register bit positions
 const CFSR_IACCVIOL: u32 = 1 << 0;
 const CFSR_DACCVIOL: u32 = 1 << 1;
 const CFSR_MSTKERR: u32 = 1 << 4;
@@ -67,6 +122,7 @@ const CFSR_UNDEFINSTR: u32 = 1 << 16;
 const CFSR_INVSTATE: u32 = 1 << 17;
 const CFSR_INVPC: u32 = 1 << 18;
 
+// HardFault Status Register bit positions
 const HFSR_VECTTBL: u32 = 1 << 1;
 const HFSR_FORCED: u32 = 1 << 30;
 const HFSR_WRITE_ONE_TO_CLEAR_MASK: u32 = (1 << 1) | HFSR_FORCED | (1 << 31);
@@ -144,12 +200,12 @@ impl Processor {
     #[cfg(feature = "has-fp")]
     pub(crate) fn reset_fp_system_state(&mut self) {
         self.cpacr = 0;
-        self.fpccr = 0;
+        self.fpccr = (1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN);
         self.fpcar = 0;
         self.fpdscr = 0;
-        self.mvfr0 = 0;
-        self.mvfr1 = 0;
-        self.mvfr2 = 0;
+        self.mvfr0 = FP_MVFR0_RESET;
+        self.mvfr1 = FP_MVFR1_RESET;
+        self.mvfr2 = FP_MVFR2_RESET;
     }
 
     #[cfg(not(feature = "has-fp"))]
@@ -162,6 +218,7 @@ impl Processor {
         self.cfsr = 0;
         self.dfsr = 0;
         self.hfsr = 0;
+        self.demcr = 0;
         self.mmfar = 0;
         self.bfar = 0;
         self.afsr = 0;
@@ -194,6 +251,46 @@ impl Processor {
 
     pub(crate) fn set_hfsr_forced(&mut self) {
         self.hfsr |= HFSR_FORCED;
+    }
+
+    #[cfg(feature = "has-fp")]
+    pub(crate) fn write_cpacr(&mut self, value: u32) -> Result<(), Fault> {
+        if !self.current_mode_is_privileged() {
+            return Err(Fault::DAccViol);
+        }
+
+        self.cpacr = value & CPACR_CP10_CP11_MASK;
+        Ok(())
+    }
+
+    #[cfg(feature = "has-fp")]
+    pub(crate) fn write_fpccr(&mut self, value: u32) -> Result<(), Fault> {
+        if !self.current_mode_is_privileged() {
+            return Err(Fault::DAccViol);
+        }
+
+        self.fpccr = (self.fpccr & !FPCCR_WRITABLE_MASK) | (value & FPCCR_WRITABLE_MASK);
+        Ok(())
+    }
+
+    #[cfg(feature = "has-fp")]
+    pub(crate) fn write_fpcar(&mut self, value: u32) -> Result<(), Fault> {
+        if !self.current_mode_is_privileged() {
+            return Err(Fault::DAccViol);
+        }
+
+        self.fpcar = value & !0x7;
+        Ok(())
+    }
+
+    #[cfg(feature = "has-fp")]
+    pub(crate) fn write_fpdscr(&mut self, value: u32) -> Result<(), Fault> {
+        if !self.current_mode_is_privileged() {
+            return Err(Fault::DAccViol);
+        }
+
+        self.fpdscr = value & FPDSCR_WRITABLE_MASK;
+        Ok(())
     }
 
     pub(crate) fn record_fault_status(&mut self, fault: Fault, status: FaultStatusContext) {
@@ -563,7 +660,9 @@ impl SystemControlBlock for Processor {
         self.hfsr &= !(value & HFSR_WRITE_ONE_TO_CLEAR_MASK);
     }
 
-    fn write_demcr(&mut self, _value: u32) {}
+    fn write_demcr(&mut self, value: u32) {
+        self.demcr = value;
+    }
 
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
     fn read_shpr1(&self) -> u32 {
@@ -658,7 +757,7 @@ impl SystemControlBlock for Processor {
     }
 
     fn read_demcr(&self) -> u32 {
-        0
+        self.demcr
     }
 
     #[cfg(any(feature = "armv7m", feature = "armv7em"))]
@@ -1066,14 +1165,26 @@ mod tests {
         assert_eq!(processor.read32(0xE000_ED28).unwrap(), 0);
         assert_eq!(processor.read32(0xE000_ED2C).unwrap(), 0);
         assert_eq!(processor.read32(0xE000_ED30).unwrap(), 0);
-        assert_eq!(processor.read32(0xE000_ED34).unwrap(), 0);
-        assert_eq!(processor.read32(0xE000_ED38).unwrap(), 0);
-        assert_eq!(processor.read32(0xE000_ED3C).unwrap(), 0);
     }
 
     #[test]
     #[cfg(feature = "has-fp")]
     fn test_reset_restores_fp_system_register_defaults() {
+        #[cfg(feature = "fpv5-d16")]
+        const EXPECTED_MVFR0: u32 = 0x1011_0221;
+        #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16"))]
+        const EXPECTED_MVFR0: u32 = 0x1011_0021;
+
+        #[cfg(feature = "fpv5-d16")]
+        const EXPECTED_MVFR1: u32 = 0x1200_0011;
+        #[cfg(any(feature = "fpv4-sp-d16", feature = "fpv5-sp-d16"))]
+        const EXPECTED_MVFR1: u32 = 0x1100_0011;
+
+        #[cfg(any(feature = "fpv5-d16", feature = "fpv5-sp-d16"))]
+        const EXPECTED_MVFR2: u32 = 0x0000_0040;
+        #[cfg(feature = "fpv4-sp-d16")]
+        const EXPECTED_MVFR2: u32 = 0x0000_0000;
+
         let image = reset_test_image();
 
         let mut processor = Processor::new();
@@ -1089,12 +1200,21 @@ mod tests {
 
         processor.reset().unwrap();
 
-        assert_eq!(processor.cpacr, 0);
-        assert_eq!(processor.fpccr, 0);
-        assert_eq!(processor.fpcar, 0);
+        assert_eq!(processor.cpacr & 0x00f0_0000, 0);
+        assert_eq!(processor.fpccr & ((1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN)), 0xc000_0000);
+        assert!(!processor.fpccr.get_bit(FPCCR_LSPACT));
         assert_eq!(processor.fpdscr, 0);
-        assert_eq!(processor.mvfr0, 0);
-        assert_eq!(processor.mvfr1, 0);
-        assert_eq!(processor.mvfr2, 0);
+        assert_eq!(processor.mvfr0, EXPECTED_MVFR0);
+        assert_eq!(processor.mvfr1, EXPECTED_MVFR1);
+        assert_eq!(processor.mvfr2, EXPECTED_MVFR2);
+    }
+
+    #[test]
+    fn test_demcr_write_read_via_bus32() {
+        let mut processor = Processor::new();
+
+        processor.write32(0xE000_EDFC, 0x1234_0000).unwrap();
+
+        assert_eq!(processor.read32(0xE000_EDFC).unwrap(), 0x1234_0000);
     }
 }
