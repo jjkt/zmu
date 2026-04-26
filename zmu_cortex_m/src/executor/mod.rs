@@ -33,9 +33,13 @@ mod signed_multiply;
 mod status_register;
 mod std_data_processing;
 
+#[cfg(feature = "has-fp")]
 mod fp_data_processing;
+#[cfg(feature = "has-fp")]
 mod fp_generic;
+#[cfg(feature = "has-fp")]
 mod fp_load_and_store;
+#[cfg(feature = "has-fp")]
 mod fp_register_transfer;
 
 use branch::IsaBranch;
@@ -54,8 +58,13 @@ use signed_multiply::IsaSignedMultiply;
 use status_register::IsaStatusRegister;
 use std_data_processing::IsaStandardDataProcessing;
 
+#[cfg(feature = "has-fp")]
 use fp_data_processing::IsaFloatingPointDataProcessing;
+#[cfg(feature = "has-fp")]
+pub(crate) use fp_generic::FloatingPointChecks;
+#[cfg(feature = "has-fp")]
 use fp_load_and_store::IsaFloatingPointLoadAndStore;
+#[cfg(feature = "has-fp")]
 use fp_register_transfer::IsaFloatingPointRegisterTransfer;
 
 ///
@@ -651,22 +660,39 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point load and store instructions
             //
             // --------------------------------------------
+            #[cfg(feature = "has-fp")]
             Instruction::VLDR { params } => self.exec_vldr(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSTR { params } => self.exec_vstr(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VLDM_T1 { params } => self.exec_vldm_t1(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VLDM_T2 { params } => self.exec_vldm_t2(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSTM_T1 { params } => self.exec_vstm_t1(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSTM_T2 { params } => self.exec_vstm_t2(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VPUSH { params } => self.exec_vpush(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VPOP { params } => self.exec_vpop(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_imm_32 { params } => self.exec_vmov_imm_32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_imm_64 { params } => self.exec_vmov_imm_64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_reg_f32 { params } => self.exec_vmov_reg_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_reg_f64 { params } => self.exec_vmov_reg_f64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_cr_scalar { .. } => unimplemented!(),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_scalar_cr { .. } => unimplemented!(),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_cr_sp { params } => self.exec_vmov_cr_sp(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_cr2_sp2 { .. } => unimplemented!(),
+            #[cfg(feature = "has-fp")]
             Instruction::VMOV_cr2_dp { params } => self.exec_vmov_cr2_dp(params),
 
             // --------------------------------------------
@@ -674,6 +700,7 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point register transfer instructions
             //
             // --------------------------------------------
+            #[cfg(feature = "has-fp")]
             Instruction::VMRS { rt } => self.exec_vmrs(*rt),
 
             // --------------------------------------------
@@ -681,36 +708,67 @@ impl ExecutorHelper for Processor {
             // Group: Floating-point data-processing instructions
             //
             // --------------------------------------------
+            #[cfg(feature = "has-fp")]
             Instruction::VABS_f32 { params } => self.exec_vabs_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VABS_f64 { params } => self.exec_vabs_f64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VNEG_f32 { params } => self.exec_vneg_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VNEG_f64 { params } => self.exec_vneg_f64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VCMP_f32 { params } => self.exec_vcmp_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VCMP_f64 { params } => self.exec_vcmp_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VADD_f32 { params } => self.exec_vadd_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VADD_f64 { params } => self.exec_vadd_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VFMA_f32 { params } => self.exec_vfma_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VFMA_f64 { params } => self.exec_vfma_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VFMS_f32 { params } => self.exec_vfms_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VFMS_f64 { params } => self.exec_vfms_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VFNMS_f32 { params } => self.exec_vfnms_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VFNMS_f64 { params } => self.exec_vfnms_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VDIV_f32 { params } => self.exec_vdiv_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VDIV_f64 { params } => self.exec_vdiv_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMUL_f32 { params } => self.exec_vmul_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VMUL_f64 { params } => self.exec_vmul_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VNMUL_f32 { params } => self.exec_vnmul_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VNMUL_f64 { params } => self.exec_vnmul_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSQRT_f32 { params } => self.exec_vsqrt_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSQRT_f64 { params } => self.exec_vsqrt_f64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VRINTZ_f32 { params } => self.exec_vrintz_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VRINTZ_f64 { params } => self.exec_vrintz_f64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSUB_f32 { params } => self.exec_vsub_f32(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSUB_f64 { params } => self.exec_vsub_f64(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VCVT { params } => self.exec_vcvt(params),
+            #[cfg(feature = "has-fp")]
             Instruction::VCVT_f64_f32 { params } => self.exec_vcvt_f64_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VCVT_f32_f64 { params } => self.exec_vcvt_f32_f64(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSEL_f32 { params } => self.exec_vsel_f32(*params),
+            #[cfg(feature = "has-fp")]
             Instruction::VSEL_f64 { params } => self.exec_vsel_f64(*params),
 
             // --------------------------------------------

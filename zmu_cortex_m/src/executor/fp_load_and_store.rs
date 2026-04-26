@@ -3,9 +3,9 @@ use crate::core::instruction::{
     AddressingMode, VPushPopParams, VStoreMultipleParams32, VStoreMultipleParams64,
 };
 
-use crate::executor::{ExecuteSuccess, ExecutorHelper};
-
 use super::ExecuteResult;
+use crate::executor::fp_generic::FloatingPointChecks;
+use crate::executor::{ExecuteSuccess, ExecutorHelper};
 use crate::{
     bus::Bus,
     core::{
@@ -29,7 +29,7 @@ pub trait IsaFloatingPointLoadAndStore {
 impl IsaFloatingPointLoadAndStore for Processor {
     fn exec_vldr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check()?;
 
             let base = match params.rn {
                 Reg::PC => self.get_r(Reg::PC) & 0xffff_fffc,
@@ -60,7 +60,7 @@ impl IsaFloatingPointLoadAndStore for Processor {
 
     fn exec_vstr(&mut self, params: &VLoadAndStoreParams) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check()?;
 
             let base = self.get_r(params.rn);
 
@@ -151,7 +151,7 @@ impl IsaFloatingPointLoadAndStore for Processor {
 
     fn exec_vpush(&mut self, params: &VPushPopParams) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check()?;
 
             let sp = self.get_r(Reg::SP);
             let mut address = sp - params.imm32;
@@ -184,7 +184,7 @@ impl IsaFloatingPointLoadAndStore for Processor {
 
     fn exec_vpop(&mut self, params: &VPushPopParams) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check()?;
 
             let sp = self.get_r(Reg::SP);
             let mut address = sp;
@@ -215,7 +215,7 @@ impl IsaFloatingPointLoadAndStore for Processor {
 
     fn exec_vstm_t1(&mut self, params: &VStoreMultipleParams64) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check()?;
 
             let mut address = if params.mode == AddressingMode::IncrementAfter {
                 self.get_r(params.rn)
@@ -251,7 +251,7 @@ impl IsaFloatingPointLoadAndStore for Processor {
 
     fn exec_vstm_t2(&mut self, params: &VStoreMultipleParams32) -> ExecuteResult {
         if self.condition_passed() {
-            //self.execute_fp_check();
+            self.execute_fp_check()?;
 
             let mut address = if params.mode == AddressingMode::IncrementAfter {
                 self.get_r(params.rn)
@@ -287,9 +287,15 @@ mod tests {
     use crate::core::register::{DoubleReg, SingleReg};
     use enum_set::EnumSet;
 
+    fn fp_test_processor() -> Processor {
+        let mut processor = Processor::new();
+        processor.cpacr = 0x00f0_0000;
+        processor
+    }
+
     #[test]
     fn test_exec_vldm_t2_updates_base_and_loads_single_registers() {
-        let mut processor = Processor::new();
+        let mut processor = fp_test_processor();
         let base = 0x2000_0100;
 
         processor.write32(base, 1.5f32.to_bits()).unwrap();
@@ -317,7 +323,7 @@ mod tests {
 
     #[test]
     fn test_exec_vldm_t1_loads_double_registers_without_writeback() {
-        let mut processor = Processor::new();
+        let mut processor = fp_test_processor();
         let base = 0x2000_0200;
         let bits = 3.5f64.to_bits();
 
@@ -347,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_exec_vpop_restores_single_registers_from_current_sp() {
-        let mut processor = Processor::new();
+        let mut processor = fp_test_processor();
         let sp = 0x2000_0300;
 
         processor.write32(sp, 1.5f32.to_bits()).unwrap();
@@ -374,7 +380,7 @@ mod tests {
 
     #[test]
     fn test_exec_vpop_restores_double_registers_from_current_sp() {
-        let mut processor = Processor::new();
+        let mut processor = fp_test_processor();
         let sp = 0x2000_0400;
         let d8 = 3.5f64.to_bits();
         let d9 = (-7.25f64).to_bits();
@@ -407,5 +413,119 @@ mod tests {
             (d9 as u32, (d9 >> 32) as u32)
         );
         assert_eq!(processor.get_r(Reg::SP), sp + 16);
+    }
+
+    #[test]
+    fn test_exec_vldr_loads_single_register() {
+        let mut processor = fp_test_processor();
+        processor.write32(0x2000_0500, 1.25f32.to_bits()).unwrap();
+        processor.set_r(Reg::R0, 0x2000_0500);
+
+        processor
+            .exec_vldr(&VLoadAndStoreParams {
+                dd: ExtensionReg::Single { reg: SingleReg::S2 },
+                rn: Reg::R0,
+                add: true,
+                imm32: 0,
+            })
+            .unwrap();
+
+        assert_eq!(processor.get_sr(SingleReg::S2), 1.25f32.to_bits());
+    }
+
+    #[test]
+    fn test_exec_vstr_stores_double_register() {
+        let mut processor = fp_test_processor();
+        let bits = (-3.5f64).to_bits();
+        processor.set_dr(DoubleReg::D3, bits as u32, (bits >> 32) as u32);
+        processor.set_r(Reg::R1, 0x2000_0600);
+
+        processor
+            .exec_vstr(&VLoadAndStoreParams {
+                dd: ExtensionReg::Double { reg: DoubleReg::D3 },
+                rn: Reg::R1,
+                add: true,
+                imm32: 0,
+            })
+            .unwrap();
+
+        assert_eq!(processor.read32(0x2000_0600).unwrap(), bits as u32);
+        assert_eq!(processor.read32(0x2000_0604).unwrap(), (bits >> 32) as u32);
+    }
+
+    #[test]
+    fn test_exec_vpush_stores_single_registers_and_updates_sp() {
+        let mut processor = fp_test_processor();
+        processor.set_r(Reg::SP, 0x2000_0708);
+        processor.set_sr(SingleReg::S0, 1.0f32.to_bits());
+        processor.set_sr(SingleReg::S1, (-2.0f32).to_bits());
+
+        let mut list = EnumSet::new();
+        list.insert(SingleReg::S0);
+        list.insert(SingleReg::S1);
+
+        processor
+            .exec_vpush(&VPushPopParams {
+                single_regs: true,
+                single_precision_registers: list,
+                double_precision_registers: EnumSet::new(),
+                imm32: 8,
+            })
+            .unwrap();
+
+        assert_eq!(processor.get_r(Reg::SP), 0x2000_0700);
+        assert_eq!(processor.read32(0x2000_0700).unwrap(), 1.0f32.to_bits());
+        assert_eq!(processor.read32(0x2000_0704).unwrap(), (-2.0f32).to_bits());
+    }
+
+    #[test]
+    fn test_exec_vstm_t1_stores_double_registers() {
+        let mut processor = fp_test_processor();
+        let bits = 6.5f64.to_bits();
+        processor.set_r(Reg::R6, 0x2000_0800);
+        processor.set_dr(DoubleReg::D10, bits as u32, (bits >> 32) as u32);
+
+        let mut list = EnumSet::new();
+        list.insert(DoubleReg::D10);
+
+        processor
+            .exec_vstm_t1(&VStoreMultipleParams64 {
+                mode: AddressingMode::IncrementAfter,
+                rn: Reg::R6,
+                write_back: true,
+                list,
+                imm32: 8,
+            })
+            .unwrap();
+
+        assert_eq!(processor.read32(0x2000_0800).unwrap(), bits as u32);
+        assert_eq!(processor.read32(0x2000_0804).unwrap(), (bits >> 32) as u32);
+        assert_eq!(processor.get_r(Reg::R6), 0x2000_0808);
+    }
+
+    #[test]
+    fn test_exec_vstm_t2_stores_single_registers() {
+        let mut processor = fp_test_processor();
+        processor.set_r(Reg::R7, 0x2000_0900);
+        processor.set_sr(SingleReg::S20, 4.0f32.to_bits());
+        processor.set_sr(SingleReg::S21, (-5.0f32).to_bits());
+
+        let mut list = EnumSet::new();
+        list.insert(SingleReg::S20);
+        list.insert(SingleReg::S21);
+
+        processor
+            .exec_vstm_t2(&VStoreMultipleParams32 {
+                mode: AddressingMode::IncrementAfter,
+                rn: Reg::R7,
+                write_back: true,
+                list,
+                imm32: 8,
+            })
+            .unwrap();
+
+        assert_eq!(processor.read32(0x2000_0900).unwrap(), 4.0f32.to_bits());
+        assert_eq!(processor.read32(0x2000_0904).unwrap(), (-5.0f32).to_bits());
+        assert_eq!(processor.get_r(Reg::R7), 0x2000_0908);
     }
 }

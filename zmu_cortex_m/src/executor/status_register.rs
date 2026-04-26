@@ -89,9 +89,10 @@ impl IsaStatusRegister for Processor {
                     }
                     0b100 => {
                         //CONTROL
-                        // TODO have_fp
                         value.set_bit(0, self.control.n_priv);
                         value.set_bit(1, self.control.sp_sel);
+                        #[cfg(feature = "has-fp")]
+                        value.set_bit(2, self.control.fpca);
                     }
                     _ => (),
                 },
@@ -174,6 +175,10 @@ impl IsaStatusRegister for Processor {
                                 self.control.sp_sel = r_n.get_bit(1);
                             }
                             // if have_fp, set control.fpca to r[n]<2>
+                            #[cfg(feature = "has-fp")]
+                            {
+                                self.control.fpca = r_n.get_bit(2);
+                            }
                         }
                     }
                     _ => (),

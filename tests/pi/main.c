@@ -3,6 +3,12 @@
 // rewritten in https://crypto.stanford.edu/pbc/notes/pi/code.html
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#if defined(__ARM_PCS_VFP) && defined(__VFP_FP__)
+#define HAVE_ARM_VFP 1
+#else
+#define HAVE_ARM_VFP 0
+#endif
 
 int main()
 {
@@ -42,6 +48,14 @@ int main()
 
 void SystemInit(void)
 {
+
+#if HAVE_ARM_VFP
+#define SCB_CPACR (*(volatile uint32_t *)0xE000ED88u)
+    // enable FPU
+    SCB_CPACR |= (0xFu << 20);
+    asm volatile("dsb 0xF" ::: "memory");
+    asm volatile("isb 0xF" ::: "memory");
+#endif
 }
 
 extern void initialise_monitor_handles(void);

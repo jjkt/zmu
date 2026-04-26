@@ -32,6 +32,17 @@ arm-none-eabi-gcc ... -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16
 #define HAVE_ARM_VFP 0
 #endif
 
+#if HAVE_ARM_VFP
+#define SCB_CPACR (*(volatile uint32_t *)0xE000ED88u)
+
+static void enable_fpu(void)
+{
+    SCB_CPACR |= (0xFu << 20);
+    asm volatile("dsb 0xF" ::: "memory");
+    asm volatile("isb 0xF" ::: "memory");
+}
+#endif
+
 #if defined(__ARM_FP) && ((__ARM_FP & 0x8) != 0)
 #define HAVE_ARM_FP64 1
 #else
@@ -675,6 +686,9 @@ int main(void)
 
 void SystemInit(void)
 {
+#if HAVE_ARM_VFP
+    enable_fpu();
+#endif
 }
 
 extern void initialise_monitor_handles(void);

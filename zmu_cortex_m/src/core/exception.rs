@@ -8,9 +8,21 @@ use crate::ProcessorMode;
 use crate::bus::Bus;
 use crate::core::bits::Bits;
 use crate::core::fault::Fault;
+#[cfg(feature = "has-fp")]
+use crate::core::register::ExtensionRegOperations;
+#[cfg(feature = "has-fp")]
+use crate::core::register::SingleReg;
 use crate::core::register::{BaseReg, Ipsr, Reg};
 use crate::core::reset::Reset;
+#[cfg(feature = "has-fp")]
+use crate::executor::FloatingPointChecks;
 use crate::peripheral::nvic::NVIC;
+use crate::peripheral::scb::CCR_STKALIGN;
+#[cfg(feature = "has-fp")]
+use crate::peripheral::scb::{
+    DEMCR_MON_EN, FPCCR_BFRDY, FPCCR_HFRDY, FPCCR_LSPACT, FPCCR_LSPEN, FPCCR_MMRDY, FPCCR_MONRDY,
+    FPCCR_THREAD, FPCCR_USER, SystemControlBlock,
+};
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Copy, Clone)]
 ///
@@ -38,6 +50,13 @@ impl ExceptionState {
 }
 
 impl Processor {
+    /// Implements the ARMv7-M `ExecutionPriority()` pseudocode.
+    ///
+    /// Returns the effective execution priority after applying active
+    /// exceptions, BASEPRI / PRIMASK / FAULTMASK, and PRIGROUP.
+    ///
+    /// This differs from `get_exception_priority()`, which returns a stored
+    /// SHPRx/IPR priority for one exception.
     fn calculate_execution_priority_helper(&self, include_primask: bool) -> i16 {
         let mut highestpri: i16 = 256;
         let mut boostedpri: i16 = 256;
@@ -114,8 +133,10 @@ impl Processor {
 ///
 pub trait ExceptionHandling {
     ///
-    /// Get the current processor execution priority (EP). Execution priority determines which
-    /// exceptions can pre-empt the current execution. Lower priority number has higher urgency.
+    /// Get the current processor execution priority (EP).
+    ///
+    /// This is the ARM pseudocode `ExecutionPriority()`, not a single
+    /// exception's stored SHPR/IPR priority.
     ///
     fn get_execution_priority(&self) -> i16;
 
@@ -167,7 +188,10 @@ pub trait ExceptionHandling {
     fn set_exception_priority(&mut self, exception: Exception, priority: u8);
 
     ///
-    /// Get priority of an exception. Smaller priority number has higher urgency.
+    /// Get the configured priority of an exception.
+    ///
+    /// For configurable exceptions this corresponds to the stored SHPRx/IPR
+    /// priority, for example BusFault -> `SHPR1.PRI_5`.
     ///
     fn get_exception_priority(&self, exception: Exception) -> i16;
 
@@ -193,6 +217,8 @@ trait ExceptionHandlingHelpers {
     ) -> Result<(), Fault>;
     fn return_address(&self, exception_type: Exception, return_address: u32) -> u32;
     fn push_stack(&mut self, exception_type: Exception, return_address: u32) -> Result<(), Fault>;
+    #[cfg(feature = "has-fp")]
+    fn update_fpccr(&mut self, frameptr: u32) -> Result<(), Fault>;
     fn pop_stack(&mut self, frameptr: u32, exc_return: u32) -> Result<(), Fault>;
     fn exception_active_bit_count(&self) -> usize;
 }
@@ -246,20 +272,25 @@ pub enum Exception {
 
 impl ExceptionHandlingHelpers for Processor {
     fn exception_taken(&mut self, exception: Exception) -> Result<(), Fault> {
-        self.control.sp_sel = false;
-        self.mode = ProcessorMode::HandlerMode;
-        self.psr.set_isr_number(exception.into());
-        self.exceptions.get_mut(&exception.into()).unwrap().active = true;
-        self.set_shcsr_exception_active(exception, true);
-
-        self.execution_priority = self.get_execution_priority();
-
-        // SetEventRegister();
-        // InstructionSynchronizationBarrier();
         let vtor = self.vtor;
         let offset: u32 = usize::from(exception) as u32 * 4;
         let start = self.read32(vtor + offset).map_err(Fault::on_vector_read)?;
         self.blx_write_pc(start);
+
+        self.mode = ProcessorMode::HandlerMode;
+        self.psr.set_isr_number(exception.into());
+        #[cfg(feature = "has-fp")]
+        {
+            self.control.fpca = false;
+        }
+        self.control.sp_sel = false;
+        self.exceptions.get_mut(&exception.into()).unwrap().active = true;
+        self.set_shcsr_exception_active(exception, true);
+        self.execution_priority = self.get_execution_priority();
+
+        // ClearExclusiveLocal(;)
+        // SetEventRegister();
+        // InstructionSynchronizationBarrier();
         Ok(())
     }
 
@@ -318,22 +349,27 @@ impl ExceptionHandlingHelpers for Processor {
     }
 
     fn push_stack(&mut self, exception_type: Exception, return_address: u32) -> Result<(), Fault> {
-        const FRAME_SIZE: u32 = 0x20;
+        #[cfg(feature = "has-fp")]
+        let (forcealign, frame_size): (bool, u32) = if self.control.fpca {
+            (true, 0x68)
+        } else {
+            (self.ccr.get_bit(CCR_STKALIGN), 0x20)
+        };
 
-        //TODO FP extensions
-        //TODO forcealign
+        #[cfg(not(feature = "has-fp"))]
+        let (forcealign, frame_size): (bool, u32) = (self.ccr.get_bit(CCR_STKALIGN), 0x20);
+
         // forces 8 byte alignment on the stack
-        let forcealign = true;
         let spmask = (u32::from(forcealign) << 2) ^ 0xFFFF_FFFF;
 
         let (frameptr, frameptralign) =
             if self.control.sp_sel && self.mode == ProcessorMode::ThreadMode {
                 let align = u32::from(self.psp.get_bit(2) & forcealign);
-                self.set_psp((self.psp.wrapping_sub(FRAME_SIZE)) & spmask);
+                self.set_psp((self.psp.wrapping_sub(frame_size)) & spmask);
                 (self.psp, align)
             } else {
                 let align = u32::from(self.msp.get_bit(2));
-                self.set_msp((self.msp.wrapping_sub(FRAME_SIZE)) & spmask);
+                self.set_msp((self.msp.wrapping_sub(frame_size)) & spmask);
                 (self.msp, align)
             };
 
@@ -357,23 +393,111 @@ impl ExceptionHandlingHelpers for Processor {
             (self.psr.value & 0b1111_1111_1111_1111_1111_1101_1111_1111) | frameptralign << 9;
         self.write32(frameptr.wrapping_add(0x1c), xpsr)?;
 
-        if self.mode == ProcessorMode::HandlerMode {
-            self.lr = 0xFFFF_FFF1;
-        } else if self.control.sp_sel {
-            self.lr = 0xFFFF_FFFD;
-        } else {
-            self.lr = 0xFFFF_FFF9;
+        #[cfg(feature = "has-fp")]
+        if self.control.fpca {
+            if !self.fpccr.get_bit(FPCCR_LSPEN) {
+                self.check_vfp_enabled()?;
+                for i in 0..16 {
+                    let reg = SingleReg::from(i as u8);
+                    let value = self.get_sr(reg);
+                    self.write32(frameptr.wrapping_add(0x20 + i * 4), value)?;
+                }
+                // write FPSCR:
+                self.write32(frameptr.wrapping_add(0x60), self.fpscr)?;
+            } else {
+                self.update_fpccr(frameptr)?;
+            }
+        }
+
+        #[cfg(feature = "has-fp")]
+        {
+            let fpca = u32::from(!self.control.fpca) << 4;
+            if self.mode == ProcessorMode::HandlerMode {
+                self.lr = 0b1111_1111_1111_1111_1111_1111_1110_0001 + fpca;
+            } else {
+                let thread = 1 << 3;
+                let spsel = u32::from(self.control.sp_sel) << 2;
+                self.lr = 0b1111_1111_1111_1111_1111_1111_1110_0001 + fpca + thread + spsel;
+            }
+        }
+        #[cfg(not(feature = "has-fp"))]
+        {
+            if self.mode == ProcessorMode::HandlerMode {
+                self.lr = 0xFFFF_FFF1;
+            } else if self.control.sp_sel {
+                self.lr = 0xFFFF_FFFD;
+            } else {
+                self.lr = 0xFFFF_FFF9;
+            }
         }
         Ok(())
     }
 
+    #[cfg(feature = "has-fp")]
+    fn update_fpccr(&mut self, frameptr: u32) -> Result<(), Fault> {
+        if !(self.control.fpca && self.fpccr.get_bit(FPCCR_LSPEN)) {
+            return Ok(());
+        }
+
+        let addr = frameptr.wrapping_add(0x20);
+        self.fpcar = addr & !0x7;
+        self.fpccr.set_bit(FPCCR_LSPACT, true);
+
+        if self.current_mode_is_privileged() {
+            self.fpccr.set_bit(FPCCR_USER, false);
+        } else {
+            self.fpccr.set_bit(FPCCR_USER, true);
+        }
+
+        if self.mode == ProcessorMode::ThreadMode {
+            self.fpccr.set_bit(FPCCR_THREAD, true);
+        } else {
+            self.fpccr.set_bit(FPCCR_THREAD, false);
+        }
+
+        if self.execution_priority > -1 {
+            self.fpccr.set_bit(FPCCR_HFRDY, true);
+        } else {
+            self.fpccr.set_bit(FPCCR_HFRDY, false);
+        }
+
+        if self.configurable_fault_enabled(Exception::BusFault)
+            && self.execution_priority > self.get_exception_priority(Exception::BusFault)
+        {
+            self.fpccr.set_bit(FPCCR_BFRDY, true);
+        } else {
+            self.fpccr.set_bit(FPCCR_BFRDY, false);
+        }
+
+        if self.configurable_fault_enabled(Exception::MemoryManagementFault)
+            && self.execution_priority > self.get_exception_priority(Exception::MemoryManagementFault)
+        {
+            self.fpccr.set_bit(FPCCR_MMRDY, true);
+        } else {
+            self.fpccr.set_bit(FPCCR_MMRDY, false);
+        }
+
+        if self.read_demcr().get_bit(DEMCR_MON_EN)
+            && self.execution_priority > self.get_exception_priority(Exception::DebugMonitor)
+        {
+            self.fpccr.set_bit(FPCCR_MONRDY, true);
+        } else {
+            self.fpccr.set_bit(FPCCR_MONRDY, false);
+        }
+
+        Ok(())
+    }
+
     fn pop_stack(&mut self, frameptr: u32, exc_return: u32) -> Result<(), Fault> {
-        //TODO: fp extensions
+        #[cfg(feature = "has-fp")]
+        let (frame_size, forcealign): (u32, bool) = if !exc_return.get_bit(4) {
+            (0x68, true)
+        } else {
+            (0x20, self.ccr.get_bit(CCR_STKALIGN))
+        };
 
-        const FRAME_SIZE: u32 = 0x20;
-
-        //TODO: let forcealign = ccr.stkalign;
-        let forcealign = true;
+        #[cfg(not(feature = "has-fp"))]
+        let (frame_size, forcealign): (u32, bool) = (0x20, self.ccr.get_bit(CCR_STKALIGN));
 
         let r0 = self.read32(frameptr)?;
         let r1 = self.read32(frameptr.wrapping_add(0x4))?;
@@ -383,6 +507,25 @@ impl ExceptionHandlingHelpers for Processor {
         let lr = self.read32(frameptr.wrapping_add(0x14))?;
         let pc = self.read32(frameptr.wrapping_add(0x18))?;
         let psr = self.read32(frameptr.wrapping_add(0x1c))?;
+
+        #[cfg(feature = "has-fp")]
+        {
+            if !exc_return.get_bit(4) {
+                if self.fpccr.get_bit(FPCCR_LSPACT) {
+                    self.fpccr.set_bit(FPCCR_LSPACT, false);
+                } else {
+                    self.check_vfp_enabled()?;
+                    for i in 0..16 {
+                        let value = self.read32(frameptr.wrapping_add(0x20 + i * 4))?;
+                        let reg = SingleReg::from(i as u8);
+                        self.set_sr(reg, value);
+                    }
+                    self.fpscr = self.read32(frameptr.wrapping_add(0x60))?;
+                }
+            }
+            self.control.fpca = !exc_return.get_bit(4);
+        }
+
         let stacked_exception_number = psr.get_bits(0..9) as usize;
 
         if !psr.get_bit(24) {
@@ -418,11 +561,11 @@ impl ExceptionHandlingHelpers for Processor {
         match exc_return.get_bits(0..4) {
             0b0001 | 0b1001 => {
                 let msp = self.get_msp();
-                self.set_msp((msp.wrapping_add(FRAME_SIZE)) | spmask);
+                self.set_msp((msp.wrapping_add(frame_size)) | spmask);
             }
             0b1101 => {
                 let psp = self.get_psp();
-                self.set_psp((psp.wrapping_add(FRAME_SIZE)) | spmask);
+                self.set_psp((psp.wrapping_add(frame_size)) | spmask);
             }
             _ => {
                 return self.invalid_exception_return_fault(exc_return);
@@ -687,17 +830,69 @@ mod tests {
     use crate::core::fault::Fault;
     #[cfg(not(feature = "armv6m"))]
     use crate::core::instruction::Instruction;
+    #[cfg(feature = "has-fp")]
+    use crate::core::register::{ExtensionRegOperations, SingleReg};
     #[cfg(not(feature = "armv6m"))]
     use crate::executor::Executor;
+    use crate::peripheral::nvic::NVIC;
+    #[cfg(feature = "has-fp")]
+    use crate::peripheral::scb::{
+        DEMCR_MON_EN, FPCCR_ASPEN, FPCCR_BFRDY, FPCCR_HFRDY, FPCCR_LSPACT, FPCCR_LSPEN,
+        FPCCR_MMRDY, FPCCR_MONRDY, FPCCR_THREAD, FPCCR_USER, SHCSR_BUSFAULTENA,
+        SHCSR_MEMFAULTENA,
+    };
 
     #[cfg(not(feature = "armv6m"))]
     const CFSR_MSTKERR: u32 = 1 << 4;
     #[cfg(not(feature = "armv6m"))]
     const HFSR_FORCED: u32 = 1 << 30;
+    #[cfg(all(not(feature = "armv6m"), feature = "has-fp"))]
+    const EXC_RETURN_HANDLER: u32 = 0x11;
+    #[cfg(all(not(feature = "armv6m"), not(feature = "has-fp")))]
+    const EXC_RETURN_HANDLER: u32 = 0x1;
+    #[cfg(all(not(feature = "armv6m"), feature = "has-fp"))]
+    const EXC_RETURN_THREAD_MSP: u32 = 0x19;
+    #[cfg(all(not(feature = "armv6m"), not(feature = "has-fp")))]
+    const EXC_RETURN_THREAD_MSP: u32 = 0x9;
 
     #[cfg(not(feature = "armv6m"))]
     fn set_active_exception(processor: &mut Processor, exception: Exception) {
         processor.test_set_active_exception(exception);
+    }
+
+    #[cfg(feature = "has-fp")]
+    fn fp_test_processor() -> Processor {
+        let mut core = Processor::new();
+        core.cpacr = 0x00f0_0000;
+        core
+    }
+
+    #[cfg(feature = "has-fp")]
+    fn seed_low_fp_registers(core: &mut Processor, base: u32) {
+        for i in 0..16 {
+            core.set_sr(SingleReg::from(i as u8), base + i);
+        }
+    }
+
+    #[cfg(feature = "has-fp")]
+    fn configure_update_fpccr_ready_context(core: &mut Processor) {
+        core.shcsr = SHCSR_BUSFAULTENA | SHCSR_MEMFAULTENA;
+        core.demcr = 1 << DEMCR_MON_EN;
+        core.set_exception_priority(Exception::BusFault, 5);
+        core.set_exception_priority(Exception::MemoryManagementFault, 4);
+        core.set_exception_priority(Exception::DebugMonitor, 3);
+    }
+
+    #[cfg(feature = "has-fp")]
+    fn write_basic_exception_frame(core: &mut Processor, frameptr: u32) {
+        core.write32(frameptr, 1).unwrap();
+        core.write32(frameptr.wrapping_add(0x4), 2).unwrap();
+        core.write32(frameptr.wrapping_add(0x8), 3).unwrap();
+        core.write32(frameptr.wrapping_add(0xc), 4).unwrap();
+        core.write32(frameptr.wrapping_add(0x10), 12).unwrap();
+        core.write32(frameptr.wrapping_add(0x14), 0x0800_00f1).unwrap();
+        core.write32(frameptr.wrapping_add(0x18), 0x0800_0001).unwrap();
+        core.write32(frameptr.wrapping_add(0x1c), 1 << 24).unwrap();
     }
 
     #[test]
@@ -740,6 +935,221 @@ mod tests {
             0b1111_1111_1111_1111_1111_1101_1111_1111
         );
         assert_eq!(lr, 0xffff_fff9);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_push_stack_with_active_fp_context_uses_extended_frame_and_fp_exc_return() {
+        const STACK_START: u32 = 0x2000_0100;
+        let mut core = fp_test_processor();
+
+        core.control.fpca = true;
+        core.fpccr = 0;
+        core.control.sp_sel = true;
+        core.mode = ProcessorMode::ThreadMode;
+        core.set_r(Reg::R0, 42);
+        core.set_r(Reg::R1, 43);
+        core.set_r(Reg::R2, 44);
+        core.set_r(Reg::R3, 45);
+        core.set_r(Reg::R12, 46);
+        core.set_r(Reg::LR, 47);
+        core.set_psp(STACK_START);
+        core.set_msp(0);
+        core.fpscr = 0xabcd_1234;
+        core.psr.value = 0xffff_ffff;
+
+        seed_low_fp_registers(&mut core, 0x1111_0000);
+
+        core.push_stack(Exception::HardFault, 99).unwrap();
+
+        assert_eq!(core.psp, STACK_START - 0x68);
+        assert_eq!(core.read32(STACK_START - 0x68).unwrap(), 42);
+        assert_eq!(core.read32(STACK_START - 0x68 + 4).unwrap(), 43);
+        assert_eq!(core.read32(STACK_START - 0x68 + 8).unwrap(), 44);
+        assert_eq!(core.read32(STACK_START - 0x68 + 12).unwrap(), 45);
+        assert_eq!(core.read32(STACK_START - 0x68 + 16).unwrap(), 46);
+        assert_eq!(core.read32(STACK_START - 0x68 + 20).unwrap(), 47);
+        assert_eq!(core.read32(STACK_START - 0x68 + 24).unwrap(), 99);
+        assert_eq!(
+            core.read32(STACK_START - 0x68 + 28).unwrap(),
+            0b1111_1111_1111_1111_1111_1101_1111_1111
+        );
+
+        for i in 0..16 {
+            assert_eq!(
+                core.read32(STACK_START - 0x68 + 0x20 + (i * 4)).unwrap(),
+                0x1111_0000 + i
+            );
+        }
+
+        assert_eq!(core.read32(STACK_START - 0x68 + 0x60).unwrap(), 0xabcd_1234);
+        assert_eq!(core.get_r(Reg::LR), 0xffff_ffed);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_push_stack_with_lazy_fp_state_sets_lspact_and_fpcar() {
+        const STACK_START: u32 = 0x2000_0100;
+        let mut core = fp_test_processor();
+
+        core.control.fpca = true;
+        core.mode = ProcessorMode::ThreadMode;
+        core.set_msp(STACK_START);
+        core.fpccr = 1 << FPCCR_LSPEN;
+
+        core.push_stack(Exception::HardFault, 99).unwrap();
+
+        assert_eq!(core.msp, STACK_START - 0x68);
+        assert!(core.fpccr.get_bit(FPCCR_LSPACT));
+        assert_eq!(core.fpcar, STACK_START - 0x68 + 0x20);
+        assert_eq!(core.get_r(Reg::LR), 0xffff_ffe9);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_update_fpccr_sets_ready_bits_from_fault_enables_and_demcr() {
+        let mut core = fp_test_processor();
+
+        core.control.fpca = true;
+        core.mode = ProcessorMode::ThreadMode;
+        core.execution_priority = 10;
+        core.control.n_priv = true;
+        core.fpccr = (1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN);
+        configure_update_fpccr_ready_context(&mut core);
+
+        core.update_fpccr(0x2000_0080).unwrap();
+
+        assert_eq!(core.fpcar, 0x2000_00a0);
+        assert!(core.fpccr.get_bit(FPCCR_LSPACT));
+        assert!(core.fpccr.get_bit(FPCCR_USER));
+        assert!(core.fpccr.get_bit(FPCCR_THREAD));
+        assert!(core.fpccr.get_bit(FPCCR_HFRDY));
+        assert!(core.fpccr.get_bit(FPCCR_BFRDY));
+        assert!(core.fpccr.get_bit(FPCCR_MMRDY));
+        assert!(core.fpccr.get_bit(FPCCR_MONRDY));
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_update_fpccr_clears_ready_bits_when_fault_handlers_not_ready() {
+        let mut core = fp_test_processor();
+
+        core.control.fpca = true;
+        core.mode = ProcessorMode::HandlerMode;
+        core.execution_priority = -1;
+        core.control.n_priv = false;
+        core.fpccr = (1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN);
+        configure_update_fpccr_ready_context(&mut core);
+
+        core.update_fpccr(0x2000_0080).unwrap();
+
+        assert!(!core.fpccr.get_bit(FPCCR_USER));
+        assert!(!core.fpccr.get_bit(FPCCR_THREAD));
+        assert!(!core.fpccr.get_bit(FPCCR_HFRDY));
+        assert!(!core.fpccr.get_bit(FPCCR_BFRDY));
+        assert!(!core.fpccr.get_bit(FPCCR_MMRDY));
+        assert!(!core.fpccr.get_bit(FPCCR_MONRDY));
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_update_fpccr_leaves_state_unmodified_when_fpca_clear() {
+        let mut core = fp_test_processor();
+
+        core.control.fpca = false;
+        core.mode = ProcessorMode::ThreadMode;
+        core.execution_priority = 10;
+        core.control.n_priv = true;
+        core.fpccr = 1 << FPCCR_LSPEN;
+        core.fpcar = 0x2000_0120;
+        configure_update_fpccr_ready_context(&mut core);
+
+        core.update_fpccr(0x2000_0080).unwrap();
+
+        assert_eq!(core.fpccr, 1 << FPCCR_LSPEN);
+        assert_eq!(core.fpcar, 0x2000_0120);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_update_fpccr_leaves_state_unmodified_when_lspen_clear() {
+        let mut core = fp_test_processor();
+
+        core.control.fpca = true;
+        core.mode = ProcessorMode::ThreadMode;
+        core.execution_priority = 10;
+        core.control.n_priv = true;
+        core.fpccr = 0;
+        core.fpcar = 0x2000_0140;
+        configure_update_fpccr_ready_context(&mut core);
+
+        core.update_fpccr(0x2000_0080).unwrap();
+
+        assert_eq!(core.fpccr, 0);
+        assert_eq!(core.fpcar, 0x2000_0140);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_pop_stack_with_extended_fp_frame_restores_fp_state() {
+        const FRAMEPTR: u32 = 0x2000_0180;
+        let mut core = fp_test_processor();
+
+        core.set_msp(FRAMEPTR);
+        write_basic_exception_frame(&mut core, FRAMEPTR);
+
+        for i in 0..16 {
+            core.write32(FRAMEPTR.wrapping_add(0x20 + i * 4), 0x2222_0000 + i)
+                .unwrap();
+        }
+        core.write32(FRAMEPTR.wrapping_add(0x60), 0xabcd_1234)
+            .unwrap();
+
+        core.pop_stack(FRAMEPTR, 0xffff_ffe9).unwrap();
+
+        for i in 0..16 {
+            assert_eq!(core.get_sr(SingleReg::from(i as u8)), 0x2222_0000 + i);
+        }
+        assert_eq!(core.fpscr, 0xabcd_1234);
+        assert!(core.control.fpca);
+        assert_eq!(core.get_msp(), FRAMEPTR + 0x68);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_pop_stack_with_lazy_fp_state_only_clears_lspact() {
+        const FRAMEPTR: u32 = 0x2000_0200;
+        let mut core = fp_test_processor();
+
+        core.fpccr = 1 << FPCCR_LSPACT;
+        core.fpscr = 0x1111_2222;
+        core.set_msp(FRAMEPTR);
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x1c), 1 << 24).unwrap();
+
+        core.pop_stack(FRAMEPTR, 0xffff_ffe9).unwrap();
+
+        assert!(!core.fpccr.get_bit(FPCCR_LSPACT));
+        assert_eq!(core.fpscr, 0x1111_2222);
+        assert!(core.control.fpca);
+        assert_eq!(core.get_msp(), FRAMEPTR + 0x68);
+    }
+
+    #[test]
+    #[cfg(feature = "has-fp")]
+    fn test_pop_stack_with_extended_fp_frame_updates_psp_for_thread_return() {
+        const FRAMEPTR: u32 = 0x2000_0280;
+        let mut core = fp_test_processor();
+
+        core.fpccr = 1 << FPCCR_LSPACT;
+        core.set_psp(FRAMEPTR);
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x1c), 1 << 24).unwrap();
+
+        core.pop_stack(FRAMEPTR, 0xffff_ffed).unwrap();
+
+        assert_eq!(core.get_psp(), FRAMEPTR + 0x68);
+        assert!(core.control.fpca);
     }
 
     #[test]
@@ -897,10 +1307,10 @@ mod tests {
 
         set_active_exception(&mut processor, Exception::SysTick);
 
-        let result = processor.exception_return(0x1);
+        let result = processor.exception_return(EXC_RETURN_HANDLER);
 
         assert_eq!(result, Err(Fault::InvPc));
-        assert_eq!(processor.get_r(Reg::LR), 0xF000_0001);
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000 + EXC_RETURN_HANDLER);
         assert!(!processor.exception_active(Exception::SysTick));
     }
 
@@ -925,10 +1335,10 @@ mod tests {
             .unwrap()
             .active = true;
 
-        let result = processor.exception_return(0x9);
+        let result = processor.exception_return(EXC_RETURN_THREAD_MSP);
 
         assert_eq!(result, Err(Fault::InvPc));
-        assert_eq!(processor.get_r(Reg::LR), 0xF000_0009);
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000 + EXC_RETURN_THREAD_MSP);
         assert!(!processor.exception_active(Exception::HardFault));
         assert!(processor.exception_active(Exception::SysTick));
     }
@@ -954,10 +1364,10 @@ mod tests {
             .unwrap()
             .active = true;
 
-        let result = processor.exception_return(0x1);
+        let result = processor.exception_return(EXC_RETURN_HANDLER);
 
         assert_eq!(result, Err(Fault::InvPc));
-        assert_eq!(processor.get_r(Reg::LR), 0xF000_0001);
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000 + EXC_RETURN_HANDLER);
         assert!(!processor.exception_active(Exception::HardFault));
         assert!(processor.exception_active(Exception::SysTick));
     }
@@ -981,10 +1391,10 @@ mod tests {
 
         set_active_exception(&mut processor, Exception::SysTick);
 
-        let result = processor.exception_return(0x9);
+        let result = processor.exception_return(EXC_RETURN_THREAD_MSP);
 
         assert_eq!(result, Err(Fault::InvPc));
-        assert_eq!(processor.get_r(Reg::LR), 0xF000_0009);
+        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000 + EXC_RETURN_THREAD_MSP);
         assert!(!processor.exception_active(Exception::SysTick));
     }
 
@@ -1025,7 +1435,7 @@ mod tests {
 
         set_active_exception(&mut processor, Exception::SysTick);
 
-        let result = processor.exception_return(0x9);
+        let result = processor.exception_return(EXC_RETURN_THREAD_MSP);
 
         assert_eq!(result, Err(Fault::Invstate));
         assert_eq!(processor.get_pc(), 0x0800_00aa);

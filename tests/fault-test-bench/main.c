@@ -29,10 +29,17 @@ lockup handling.
 #define __ARM_ARCH 0
 #endif
 
+#if defined(__ARM_PCS_VFP) && defined(__VFP_FP__)
+#define HAVE_ARM_VFP 1
+#else
+#define HAVE_ARM_VFP 0
+#endif
+
 #define SCB_SHCSR (*(volatile uint32_t *)0xE000ED24u)
 #define SCB_CFSR (*(volatile uint32_t *)0xE000ED28u)
 #define SCB_HFSR (*(volatile uint32_t *)0xE000ED2Cu)
 #define SCB_MMFAR (*(volatile uint32_t *)0xE000ED34u)
+#define SCB_CPACR (*(volatile uint32_t *)0xE000ED88u)
 
 #define SHCSR_MEMFAULTACT (1u << 0)
 #define SHCSR_BUSFAULTACT (1u << 1)
@@ -52,6 +59,15 @@ lockup handling.
 
 static volatile uint32_t fault_marker;
 static volatile uint32_t fault_stage;
+
+#if HAVE_ARM_VFP
+static void enable_fpu(void)
+{
+    SCB_CPACR |= (0xFu << 20);
+    asm volatile("dsb 0xF" ::: "memory");
+    asm volatile("isb 0xF" ::: "memory");
+}
+#endif
 
 __attribute__((noinline, noreturn)) static void trigger_udf(void)
 {
@@ -76,7 +92,10 @@ __attribute__((noinline, noreturn)) static void trigger_memmanage(void)
 __attribute__((naked)) void SVC_Handler(void)
 {
     asm volatile(
-        "mrs r0, msp\n"
+        "tst lr, #4\n"
+        "ite eq\n"
+        "mrseq r0, msp\n"
+        "mrsne r0, psp\n"
         "ldr r1, [r0, #28]\n"
         "bic r1, r1, %0\n"
         "str r1, [r0, #28]\n"
@@ -352,15 +371,15 @@ void HardFault_Handler(void)
 
 int main(void)
 {
-    printf("fault-test: case=%s arch=%d\n", fault_case_name(), __ARM_ARCH);
-    fflush(stdout);
-
     enable_selected_fault_handler();
     trigger_selected_fault();
 }
 
 void SystemInit(void)
 {
+#if HAVE_ARM_VFP
+    enable_fpu();
+#endif
 }
 
 extern void initialise_monitor_handles(void);
