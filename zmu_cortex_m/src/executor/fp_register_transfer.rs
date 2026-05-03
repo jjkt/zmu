@@ -111,7 +111,10 @@ impl IsaFloatingPointRegisterTransfer for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::instruction::{VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64, VMovRegParamsf32, VMovRegParamsf64};
+    use crate::core::instruction::{
+        VMRSTarget, VMovCr2DpParams, VMovCrSpParams, VMovImmParams32, VMovImmParams64,
+        VMovRegParamsf32, VMovRegParamsf64,
+    };
     use crate::core::register::{Apsr, DoubleReg, Reg, SingleReg};
 
     fn fp_test_processor() -> Processor {

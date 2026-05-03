@@ -148,6 +148,7 @@ fn test_decode_pld_reg() {
 }
 
 #[test]
+#[cfg(feature = "has-dsp-ext")]
 fn test_decode_sel() {
     //0xfaa4_f28c       sel     r2, r4, ip
 
@@ -161,6 +162,17 @@ fn test_decode_sel() {
             }
         }
     );
+}
+
+// Without the DSP extension the SEL encoding must fall through to UDF.
+#[test]
+#[cfg(not(feature = "has-dsp-ext"))]
+fn test_decode_sel_without_dsp_ext_is_udf() {
+    // 0xfaa4_f28c  SEL R2, R4, IP  — DSP-only encoding
+    match decode_32(0xfaa4_f28c) {
+        Instruction::UDF { thumb32, .. } => assert!(thumb32),
+        other => panic!("expected UDF for SEL encoding without DSP extension, got {other:?}"),
+    }
 }
 
 #[test]

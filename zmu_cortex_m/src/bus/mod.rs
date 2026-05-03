@@ -364,12 +364,12 @@ impl Bus for Processor {
 #[cfg(test)]
 mod tests {
     use super::Bus;
-    use crate::core::fault::Fault;
-    #[cfg(feature = "has-fp")]
-    use crate::peripheral::scb::{FPCCR_ASPEN, FPCCR_LSPEN};
     use crate::Processor;
     #[cfg(feature = "armv6m")]
     use crate::core::exception::{Exception, ExceptionHandling};
+    use crate::core::fault::Fault;
+    #[cfg(feature = "has-fp")]
+    use crate::peripheral::scb::{FPCCR_ASPEN, FPCCR_LSPEN};
 
     #[cfg(feature = "armv6m")]
     const SHCSR_SVCALLPENDED: u32 = 1 << 15;

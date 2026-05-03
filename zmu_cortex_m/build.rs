@@ -53,6 +53,17 @@ fn validate_feature_combinations() {
             architectures, fp_profiles
         );
     }
+
+    let has_dsp = cargo_feature_enabled("has-dsp-ext");
+    if has_dsp && cargo_feature_enabled("armv6m") {
+        panic!("has-dsp-ext is not valid with armv6m; DSP extension requires armv7m or armv7em");
+    }
+
+    // armv7em always implies has-dsp-ext via Cargo feature graph; flag an
+    // inconsistency early if that invariant is ever broken.
+    if cargo_feature_enabled("armv7em") && !has_dsp {
+        panic!("internal DSP feature mismatch: armv7em is set but has-dsp-ext is not");
+    }
 }
 
 fn generate_decode(
@@ -165,16 +176,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         ("111110111110............0000....", "UMLAL_t1"),
         ("111110111100............0000....", "SMLAL_t1"),
         ("111110111011....1111....1111....", "UDIV_t1"),
-        ("111110101000....1111....0100....", "UADD8_t1"),
-        ("111110101010....1111....1000....", "SEL_t1"),
         ("111110111010............0000....", "UMULL_t1"),
         ("111110111001....1111....1111....", "SDIV_t1"),
-        ("111110110001....1111....00......", "SMUL_t1"),
         ("111110111000............0000....", "SMULL_t1"),
         ("111110110000....1111....0000....", "MUL_t2"),
         ("111110110000............0001....", "MLS_t1"),
         ("111110110000............0000....", "MLA_t1"),
-        ("111110110001............00......", "SMLA_t1"),
         ("111110101011....1111....1000....", "CLZ_t1"),
         ("111110101001....1111....1011....", "REVSH_t2"),
         ("111110101001....1111....1010....", "RBIT_t1"),
@@ -372,6 +379,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
     }
 
+    // DSP-extension-only instructions
+    if cargo_feature_enabled("has-dsp-ext") {
+        instructions_thumb32.extend([
+            // SIMD parallel add
+            ("111110101000....1111....0100....", "UADD8_t1"),
+            // Select bytes using GE flags
+            ("111110101010....1111....1000....", "SEL_t1"),
+            // Halfword multiply (SMULXY)
+            ("111110110001....1111....00......", "SMUL_t1"),
+            // Halfword multiply-accumulate (SMLAXY)
+            ("111110110001............00......", "SMLA_t1"),
+        ]);
+    }
+
     let instructions_thumb16 = HashMap::from([
         ("00000...........", "MOV_reg_t2_LSL_imm_t1"),
         ("00001...........", "LSR_imm_t1"),
@@ -472,5 +493,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=CARGO_FEATURE_HAS_FP");
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_HAS_DSP_EXT");
     Ok(())
 }

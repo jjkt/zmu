@@ -94,6 +94,7 @@ fn test_decode_sxth_w() {
 }
 
 #[test]
+#[cfg(feature = "has-dsp-ext")]
 fn test_decode_uadd8() {
     // fa82 f24c       uadd8   r2, r2, ip
     assert_eq!(
@@ -106,6 +107,18 @@ fn test_decode_uadd8() {
             }
         }
     );
+}
+
+// Without the DSP extension the UADD8 encoding is not in the decoder table;
+// it must fall through to UDF so that non-DSP builds treat it as undefined.
+#[test]
+#[cfg(not(feature = "has-dsp-ext"))]
+fn test_decode_uadd8_without_dsp_ext_is_udf() {
+    // fa82 f24c  UADD8 R2, R2, IP  — DSP-only encoding
+    match decode_32(0xfa82_f24c) {
+        Instruction::UDF { thumb32, .. } => assert!(thumb32),
+        other => panic!("expected UDF for UADD8 encoding without DSP extension, got {other:?}"),
+    }
 }
 
 #[test]

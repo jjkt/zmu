@@ -3,17 +3,20 @@ use crate::Processor;
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
 use super::ExecuteResult;
-use crate::core::instruction::{Reg3HighParams, Reg4HighParams, Reg643232Params};
-use crate::core::{
-    bits::Bits,
-    register::{Apsr, BaseReg},
-};
+use crate::core::instruction::Reg643232Params;
+#[cfg(feature = "has-dsp-ext")]
+use crate::core::instruction::{Reg3HighParams, Reg4HighParams};
+#[cfg(feature = "has-dsp-ext")]
+use crate::core::register::Apsr;
+use crate::core::{bits::Bits, register::BaseReg};
 
 /// Multiply operations
 pub trait IsaSignedMultiply {
     fn exec_smlal(&mut self, params: &Reg643232Params) -> ExecuteResult;
     fn exec_smull(&mut self, params: &Reg643232Params) -> ExecuteResult;
+    #[cfg(feature = "has-dsp-ext")]
     fn exec_smul(&mut self, params: &Reg3HighParams) -> ExecuteResult;
+    #[cfg(feature = "has-dsp-ext")]
     fn exec_smla(&mut self, params: &Reg4HighParams) -> ExecuteResult;
 }
 
@@ -50,6 +53,7 @@ impl IsaSignedMultiply for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     fn exec_smul(&mut self, params: &Reg3HighParams) -> ExecuteResult {
         if self.condition_passed() {
             let operand1 = i32::from(if params.n_high {
@@ -76,6 +80,7 @@ impl IsaSignedMultiply for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     fn exec_smla(&mut self, params: &Reg4HighParams) -> ExecuteResult {
         if self.condition_passed() {
             let operand1 = i32::from(if params.n_high {
@@ -112,6 +117,7 @@ mod tests {
     use super::*;
     use crate::core::{instruction::Instruction, register::Reg};
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smlabb_no_overflow() {
         let mut core = Processor::new();
@@ -138,6 +144,7 @@ mod tests {
         assert!(!core.psr.get_q());
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smla_positive_overflow() {
         let mut core = Processor::new();
@@ -164,6 +171,7 @@ mod tests {
         assert!(core.psr.get_q());
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smla_negative_overflow() {
         let mut core = Processor::new();
@@ -190,6 +198,7 @@ mod tests {
         assert!(core.psr.get_q());
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smla_low_16bits() {
         let mut core = Processor::new();
@@ -216,6 +225,7 @@ mod tests {
         assert!(!core.psr.get_q());
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smla_mixed_high_low() {
         let mut core = Processor::new();
@@ -242,6 +252,7 @@ mod tests {
         assert!(!core.psr.get_q());
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smla_q_flag_persistence() {
         let mut core = Processor::new();
@@ -310,6 +321,7 @@ mod tests {
         assert_eq!(core.get_r(Reg::R3), 0xFFFF_FFFF);
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     #[test]
     fn test_smla() {
         let mut core = Processor::new();
@@ -333,5 +345,44 @@ mod tests {
         core.execute_internal(&instruction).unwrap();
 
         assert_eq!(core.get_r(Reg::R12), 0xFFD4_F24B);
+    }
+
+    #[cfg(not(feature = "has-dsp-ext"))]
+    #[test]
+    fn test_smla_without_dsp_is_undef() {
+        use crate::core::fault::Fault;
+        use crate::core::instruction::Reg4HighParams;
+        let mut core = Processor::new();
+        let instruction = Instruction::SMLA {
+            params: Reg4HighParams {
+                rd: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R2,
+                ra: Reg::R3,
+                n_high: false,
+                m_high: false,
+            },
+        };
+        let result = core.execute_internal(&instruction);
+        assert_eq!(result, Err(Fault::UndefInstr));
+    }
+
+    #[cfg(not(feature = "has-dsp-ext"))]
+    #[test]
+    fn test_smul_without_dsp_is_undef() {
+        use crate::core::fault::Fault;
+        use crate::core::instruction::Reg3HighParams;
+        let mut core = Processor::new();
+        let instruction = Instruction::SMUL {
+            params: Reg3HighParams {
+                rd: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R2,
+                n_high: false,
+                m_high: false,
+            },
+        };
+        let result = core.execute_internal(&instruction);
+        assert_eq!(result, Err(Fault::UndefInstr));
     }
 }

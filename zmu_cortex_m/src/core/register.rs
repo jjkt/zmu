@@ -987,9 +987,9 @@ impl From<Reg> for usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{BaseReg, Epsr};
     #[cfg(feature = "has-fp")]
     use super::Control;
+    use super::{BaseReg, Epsr};
     use crate::{Processor, ProcessorMode};
 
     #[test]

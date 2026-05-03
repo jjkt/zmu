@@ -1,19 +1,26 @@
+#[cfg(feature = "has-dsp-ext")]
 use crate::Processor;
 
+#[cfg(feature = "has-dsp-ext")]
 use crate::executor::{ExecuteSuccess, ExecutorHelper};
 
+#[cfg(feature = "has-dsp-ext")]
 use super::ExecuteResult;
+#[cfg(feature = "has-dsp-ext")]
 use crate::core::instruction::Reg3NoSetFlagsParams;
+#[cfg(feature = "has-dsp-ext")]
 use crate::core::{
     bits::Bits,
     register::{Apsr, BaseReg},
 };
 
-/// Divide operations
+/// Parallel add/subtract operations (DSP extension)
+#[cfg(feature = "has-dsp-ext")]
 pub trait IsaParallelAddSub {
     fn exec_uadd8(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult;
 }
 
+#[cfg(feature = "has-dsp-ext")]
 impl IsaParallelAddSub for Processor {
     fn exec_uadd8(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult {
         if self.condition_passed() {
@@ -39,5 +46,29 @@ impl IsaParallelAddSub for Processor {
             return Ok(ExecuteSuccess::Taken { cycles: 1 });
         }
         Ok(ExecuteSuccess::NotTaken)
+    }
+}
+
+#[cfg(all(test, not(feature = "has-dsp-ext")))]
+mod tests {
+    use crate::Processor;
+    use crate::core::{instruction::Instruction, register::Reg};
+    use crate::executor::ExecutorHelper;
+
+    #[cfg(not(feature = "has-dsp-ext"))]
+    #[test]
+    fn test_uadd8_without_dsp_is_undef() {
+        use crate::core::fault::Fault;
+        use crate::core::instruction::Reg3NoSetFlagsParams;
+        let mut core = Processor::new();
+        let instruction = Instruction::UADD8 {
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R2,
+            },
+        };
+        let result = core.execute_internal(&instruction);
+        assert_eq!(result, Err(Fault::UndefInstr));
     }
 }
