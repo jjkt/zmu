@@ -89,10 +89,13 @@ mod rsb;
 
 mod sbc;
 mod sdiv;
+#[cfg(feature = "has-dsp-ext")]
 mod sel;
 mod sev;
+#[cfg(feature = "has-dsp-ext")]
 mod smla;
 mod smlal;
+#[cfg(feature = "has-dsp-ext")]
 mod smul;
 mod smull;
 mod stc;
@@ -108,6 +111,7 @@ mod teq;
 mod tst;
 
 mod movt;
+#[cfg(feature = "has-dsp-ext")]
 mod uadd8;
 mod udiv;
 mod umlal;
@@ -252,11 +256,8 @@ use {
     sbc::{decode_SBC_imm_t1, decode_SBC_reg_t1, decode_SBC_reg_t2},
     sbfx::decode_SBFX_t1,
     sdiv::decode_SDIV_t1,
-    sel::decode_SEL_t1,
     sev::{decode_SEV_t1, decode_SEV_t2},
-    smla::decode_SMLA_t1,
     smlal::decode_SMLAL_t1,
-    smul::decode_SMUL_t1,
     smull::decode_SMULL_t1,
     ssat::decode_SSAT_t1,
     stc::{decode_STC_t1, decode_STC2_t2},
@@ -272,7 +273,6 @@ use {
     tbh::decode_TBH_t1,
     teq::{decode_TEQ_imm_t1, decode_TEQ_reg_t1},
     tst::{decode_TST_imm_t1, decode_TST_reg_t1, decode_TST_reg_t2},
-    uadd8::decode_UADD8_t1,
     ubfx::decode_UBFX_t1,
     udiv::decode_UDIV_t1,
     umlal::decode_UMLAL_t1,
@@ -283,6 +283,11 @@ use {
     wfe::{decode_WFE_t1, decode_WFE_t2},
     wfi::{decode_WFI_t1, decode_WFI_t2},
     yield_::{decode_YIELD_t1, decode_YIELD_t2},
+};
+
+#[cfg(feature = "has-dsp-ext")]
+use self::{
+    sel::decode_SEL_t1, smla::decode_SMLA_t1, smul::decode_SMUL_t1, uadd8::decode_UADD8_t1,
 };
 
 use crate::Processor;

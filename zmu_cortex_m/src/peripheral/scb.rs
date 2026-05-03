@@ -3,12 +3,12 @@
 //!
 
 use crate::Processor;
-#[cfg(feature = "has-fp")]
-use crate::{FP_MVFR0_RESET, FP_MVFR1_RESET, FP_MVFR2_RESET};
 use crate::core::bits::Bits;
 use crate::core::exception::Exception;
 use crate::core::exception::ExceptionHandling;
 use crate::core::fault::{Fault, FaultStatusContext};
+#[cfg(feature = "has-fp")]
+use crate::{FP_MVFR0_RESET, FP_MVFR1_RESET, FP_MVFR2_RESET};
 
 use crate::core::register::Ipsr;
 
@@ -1201,7 +1201,10 @@ mod tests {
         processor.reset().unwrap();
 
         assert_eq!(processor.cpacr & 0x00f0_0000, 0);
-        assert_eq!(processor.fpccr & ((1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN)), 0xc000_0000);
+        assert_eq!(
+            processor.fpccr & ((1 << FPCCR_ASPEN) | (1 << FPCCR_LSPEN)),
+            0xc000_0000
+        );
         assert!(!processor.fpccr.get_bit(FPCCR_LSPACT));
         assert_eq!(processor.fpdscr, 0);
         assert_eq!(processor.mvfr0, EXPECTED_MVFR0);

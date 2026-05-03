@@ -26,6 +26,7 @@ run_library_tests() {
 
 run_library_tests "armv6m"
 run_library_tests "armv7m"
+run_library_tests "armv7m,has-dsp-ext"
 run_library_tests "armv7em"
 run_library_tests "armv7em,fpv4-sp-d16"
 run_library_tests "armv7em,fpv5-d16"

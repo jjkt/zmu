@@ -2,7 +2,6 @@
 
 ## ARM Cortex Core behavior
 - [ ] Account for exception entry and return cycles instead of using TODOs and the fixed 12-cycle fault path
-- [ ] implement have_dsp_ext feature flag, use it to gate SSAT, USAT, pop_stack, MRS, MSR functionalities
 - [ ] Implement `AIRCR` write semantics: `VECTKEY`, `PRIGROUP`, and reset bits
 - [ ] Wire endianness reporting to `AIRCR.ENDIANNESS` and core support rules
 - [ ] Audit and model remaining visible SCB reset defaults per core variant, including `CPUID`, `ICSR`, `AIRCR`, `SCR`, `CCR`, `ICTR`, and `ACTLR`

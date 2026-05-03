@@ -470,7 +470,8 @@ impl ExceptionHandlingHelpers for Processor {
         }
 
         if self.configurable_fault_enabled(Exception::MemoryManagementFault)
-            && self.execution_priority > self.get_exception_priority(Exception::MemoryManagementFault)
+            && self.execution_priority
+                > self.get_exception_priority(Exception::MemoryManagementFault)
         {
             self.fpccr.set_bit(FPCCR_MMRDY, true);
         } else {
@@ -575,6 +576,10 @@ impl ExceptionHandlingHelpers for Processor {
         self.psr.value.set_bits(0..9, psr.get_bits(0..9));
         self.psr.value.set_bits(10..16, psr.get_bits(10..16));
         self.psr.value.set_bits(24..27, psr.get_bits(24..27));
+        // GE[3:0] bits (APSR bits 19:16) are DSP-extension-only architectural state.
+        // Restore them from the stacked xPSR only when the DSP extension is present.
+        #[cfg(feature = "has-dsp-ext")]
+        self.psr.value.set_bits(16..20, psr.get_bits(16..20));
         Ok(())
     }
 }
@@ -830,6 +835,8 @@ mod tests {
     use crate::core::fault::Fault;
     #[cfg(not(feature = "armv6m"))]
     use crate::core::instruction::Instruction;
+    #[cfg(feature = "has-dsp-ext")]
+    use crate::core::register::Apsr;
     #[cfg(feature = "has-fp")]
     use crate::core::register::{ExtensionRegOperations, SingleReg};
     #[cfg(not(feature = "armv6m"))]
@@ -838,8 +845,7 @@ mod tests {
     #[cfg(feature = "has-fp")]
     use crate::peripheral::scb::{
         DEMCR_MON_EN, FPCCR_ASPEN, FPCCR_BFRDY, FPCCR_HFRDY, FPCCR_LSPACT, FPCCR_LSPEN,
-        FPCCR_MMRDY, FPCCR_MONRDY, FPCCR_THREAD, FPCCR_USER, SHCSR_BUSFAULTENA,
-        SHCSR_MEMFAULTENA,
+        FPCCR_MMRDY, FPCCR_MONRDY, FPCCR_THREAD, FPCCR_USER, SHCSR_BUSFAULTENA, SHCSR_MEMFAULTENA,
     };
 
     #[cfg(not(feature = "armv6m"))]
@@ -890,8 +896,10 @@ mod tests {
         core.write32(frameptr.wrapping_add(0x8), 3).unwrap();
         core.write32(frameptr.wrapping_add(0xc), 4).unwrap();
         core.write32(frameptr.wrapping_add(0x10), 12).unwrap();
-        core.write32(frameptr.wrapping_add(0x14), 0x0800_00f1).unwrap();
-        core.write32(frameptr.wrapping_add(0x18), 0x0800_0001).unwrap();
+        core.write32(frameptr.wrapping_add(0x14), 0x0800_00f1)
+            .unwrap();
+        core.write32(frameptr.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
         core.write32(frameptr.wrapping_add(0x1c), 1 << 24).unwrap();
     }
 
@@ -1124,7 +1132,8 @@ mod tests {
         core.fpccr = 1 << FPCCR_LSPACT;
         core.fpscr = 0x1111_2222;
         core.set_msp(FRAMEPTR);
-        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
         core.write32(FRAMEPTR.wrapping_add(0x1c), 1 << 24).unwrap();
 
         core.pop_stack(FRAMEPTR, 0xffff_ffe9).unwrap();
@@ -1143,7 +1152,8 @@ mod tests {
 
         core.fpccr = 1 << FPCCR_LSPACT;
         core.set_psp(FRAMEPTR);
-        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
         core.write32(FRAMEPTR.wrapping_add(0x1c), 1 << 24).unwrap();
 
         core.pop_stack(FRAMEPTR, 0xffff_ffed).unwrap();
@@ -1338,7 +1348,10 @@ mod tests {
         let result = processor.exception_return(EXC_RETURN_THREAD_MSP);
 
         assert_eq!(result, Err(Fault::InvPc));
-        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000 + EXC_RETURN_THREAD_MSP);
+        assert_eq!(
+            processor.get_r(Reg::LR),
+            0xF000_0000 + EXC_RETURN_THREAD_MSP
+        );
         assert!(!processor.exception_active(Exception::HardFault));
         assert!(processor.exception_active(Exception::SysTick));
     }
@@ -1394,7 +1407,10 @@ mod tests {
         let result = processor.exception_return(EXC_RETURN_THREAD_MSP);
 
         assert_eq!(result, Err(Fault::InvPc));
-        assert_eq!(processor.get_r(Reg::LR), 0xF000_0000 + EXC_RETURN_THREAD_MSP);
+        assert_eq!(
+            processor.get_r(Reg::LR),
+            0xF000_0000 + EXC_RETURN_THREAD_MSP
+        );
         assert!(!processor.exception_active(Exception::SysTick));
     }
 
@@ -1511,5 +1527,79 @@ mod tests {
         // Act & Assert
         // Should return false because FAULTMASK blocks normal interrupts
         assert!(!processor.has_wakeup_condition());
+    }
+
+    // pop_stack GE gating: with DSP extension GE bits must be restored from the stacked xPSR.
+    #[test]
+    #[cfg(feature = "has-dsp-ext")]
+    fn test_pop_stack_restores_ge_bits_with_dsp_ext() {
+        const FRAMEPTR: u32 = 0x2000_0100;
+        let mut core = Processor::new();
+        core.set_msp(FRAMEPTR);
+
+        // Build a minimal exception frame (basic, no FP).
+        // offset 0x00..0x18: r0..r3, r12, lr, pc (Thumb address, bit 0 = 1)
+        core.write32(FRAMEPTR, 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x4), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x8), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0xc), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x10), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x14), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        // Stacked xPSR: Thumb bit (bit 24) set; ISR = 0 (thread return); GE1 + GE3 set.
+        // GE[3:0] = 0b1010 = bits [19:16] → 0x000A_0000
+        let stacked_xpsr: u32 = (1 << 24) | 0x000A_0000;
+        core.write32(FRAMEPTR.wrapping_add(0x1c), stacked_xpsr)
+            .unwrap();
+
+        // Clear GE bits in live PSR so we can verify they come from the stacked value.
+        core.psr.set_ge0(false);
+        core.psr.set_ge1(false);
+        core.psr.set_ge2(false);
+        core.psr.set_ge3(false);
+
+        // EXC_RETURN = 0xFFFF_FFF9: return-to-thread, MSP, no FP frame.
+        core.pop_stack(FRAMEPTR, 0xFFFF_FFF9).unwrap();
+
+        assert!(!core.psr.get_ge0(), "GE0 must remain clear");
+        assert!(core.psr.get_ge1(), "GE1 must be restored from stacked xPSR");
+        assert!(!core.psr.get_ge2(), "GE2 must remain clear");
+        assert!(core.psr.get_ge3(), "GE3 must be restored from stacked xPSR");
+    }
+
+    // pop_stack GE gating: without DSP extension GE bits in the stacked xPSR must be ignored.
+    #[test]
+    #[cfg(not(feature = "has-dsp-ext"))]
+    fn test_pop_stack_ignores_ge_bits_without_dsp_ext() {
+        const FRAMEPTR: u32 = 0x2000_0200;
+        let mut core = Processor::new();
+        core.set_msp(FRAMEPTR);
+
+        core.write32(FRAMEPTR, 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x4), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x8), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0xc), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x10), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x14), 0).unwrap();
+        core.write32(FRAMEPTR.wrapping_add(0x18), 0x0800_0001)
+            .unwrap();
+        // Stacked xPSR: Thumb bit set + all GE bits set.
+        let stacked_xpsr: u32 = (1 << 24) | 0x000F_0000;
+        core.write32(FRAMEPTR.wrapping_add(0x1c), stacked_xpsr)
+            .unwrap();
+
+        // GE bits in live PSR are already zero (internal storage may still hold them).
+        // Capture state before pop.
+        let pre_psr_ge_bits = core.psr.value & 0x000F_0000;
+
+        core.pop_stack(FRAMEPTR, 0xFFFF_FFF9).unwrap();
+
+        // Without DSP extension the GE bits in the live PSR must not change.
+        let post_psr_ge_bits = core.psr.value & 0x000F_0000;
+        assert_eq!(
+            pre_psr_ge_bits, post_psr_ge_bits,
+            "GE bits must not be modified by pop_stack without DSP extension"
+        );
     }
 }

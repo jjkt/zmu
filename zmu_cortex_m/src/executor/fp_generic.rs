@@ -1361,11 +1361,11 @@ impl FloatingPointChecks for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::bits::Bits;
+    use crate::Processor;
     use crate::bus::Bus;
+    use crate::core::bits::Bits;
     use crate::core::fault::Fault;
     use crate::core::register::{ExtensionRegOperations, SingleReg};
-    use crate::Processor;
 
     #[test]
     fn test_fp_compare_f32() {

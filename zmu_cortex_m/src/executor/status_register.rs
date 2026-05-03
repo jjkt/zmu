@@ -41,8 +41,16 @@ impl IsaStatusRegister for Processor {
                         value.set_bits(10..16, 0);
                     }
                     if !params.sysm.get_bit(2) {
+                        // NZCVQ flags; with DSP extension also include GE[3:0].
                         value.set_bits(27..32, self.psr.value.get_bits(27..32));
-                        //TODO have_dsp
+                        #[cfg(feature = "has-dsp-ext")]
+                        value.set_bits(16..20, self.psr.value.get_bits(16..20));
+                    } else {
+                        // GE-only reads (e.g. APSR_g, SYSm bit 2 = 1).
+                        // Meaningful only with the DSP extension; without DSP
+                        // the GE field does not exist and reads as zero (default).
+                        #[cfg(feature = "has-dsp-ext")]
+                        value.set_bits(16..20, self.psr.value.get_bits(16..20));
                     }
                 }
                 0b00001 => {
@@ -113,7 +121,9 @@ impl IsaStatusRegister for Processor {
                     //PSR
                     if !params.sysm.get_bit(2) {
                         if params.mask.get_bit(0) {
-                            //GE extensions
+                            // GE extensions — only present with DSP extension.
+                            // Without DSP, writes to GE bits are silently ignored.
+                            #[cfg(feature = "has-dsp-ext")]
                             self.psr.value.set_bits(16..20, r_n.get_bits(16..20));
                         }
                         if params.mask.get_bit(1) {
@@ -243,8 +253,6 @@ mod tests {
         processor.psr.set_z_bit(true);
         processor.psr.set_n_bit(true);
         processor.psr.set_isr_number(4);
-
-        //TODO: has_dsp_ext -> ge bits
 
         // Act
         processor
@@ -1307,5 +1315,143 @@ mod tests {
 
         // Assert
         assert!(!processor.faultmask);
+    }
+
+    // MRS APSR GE gating: with DSP extension GE bits [19:16] must be included in the read.
+    #[test]
+    #[cfg(feature = "has-dsp-ext")]
+    fn test_exec_mrs_apsr_ge_bits_read_with_dsp_ext() {
+        // Arrange
+        let mut processor = Processor::new();
+
+        processor.psr.set_ge0(true);
+        processor.psr.set_ge1(false);
+        processor.psr.set_ge2(true);
+        processor.psr.set_ge3(false);
+        processor.set_r(Reg::R1, 0);
+
+        // Act — MRS APSR (sysm=0): sysm[2]=0 so APSR portion is read.
+        processor
+            .exec_mrs(MrsParams {
+                rd: Reg::R1,
+                sysm: u8::from(SpecialReg::APSR),
+            })
+            .unwrap();
+
+        // Assert — GE bits [19:16] = 0b0101 = 0x0005_0000
+        assert_eq!(
+            processor.get_r(Reg::R1) & 0x000F_0000,
+            0x0005_0000,
+            "MRS APSR with DSP ext must include GE bits [19:16]"
+        );
+    }
+
+    // MRS APSR GE gating: without DSP extension GE bits must read as zero.
+    #[test]
+    #[cfg(not(feature = "has-dsp-ext"))]
+    fn test_exec_mrs_apsr_ge_bits_read_as_zero_without_dsp_ext() {
+        // Arrange
+        let mut processor = Processor::new();
+
+        // Directly poke GE bits into internal PSR storage so we can verify they are masked.
+        processor.psr.set_ge0(true);
+        processor.psr.set_ge1(true);
+        processor.psr.set_ge2(true);
+        processor.psr.set_ge3(true);
+        processor.set_r(Reg::R1, 0xFFFF_FFFF);
+
+        // Act — MRS APSR
+        processor
+            .exec_mrs(MrsParams {
+                rd: Reg::R1,
+                sysm: u8::from(SpecialReg::APSR),
+            })
+            .unwrap();
+
+        // Assert — GE bits [19:16] must be zero when DSP extension is absent.
+        assert_eq!(
+            processor.get_r(Reg::R1) & 0x000F_0000,
+            0,
+            "MRS APSR without DSP ext must return zero for GE bits [19:16]"
+        );
+    }
+
+    // MSR APSR GE gating: with DSP extension the GE write (mask[0]) must take effect.
+    #[test]
+    #[cfg(feature = "has-dsp-ext")]
+    fn test_exec_msr_apsr_ge_write_takes_effect_with_dsp_ext() {
+        // Arrange
+        let mut processor = Processor::new();
+
+        // Clear all GE bits initially.
+        processor.psr.set_ge0(false);
+        processor.psr.set_ge1(false);
+        processor.psr.set_ge2(false);
+        processor.psr.set_ge3(false);
+        // Source register has GE bits [19:16] = 0b1010 = 0x000A_0000
+        processor.set_r(Reg::R2, 0x000A_0000);
+
+        // Act — MSR APSR_g (sysm[2]=0, mask[0]=1 selects the GE sub-field).
+        processor
+            .exec_msr(MsrParams {
+                rn: Reg::R2,
+                sysm: u8::from(SpecialReg::APSR),
+                mask: 0b01, // mask[0] = GE field
+            })
+            .unwrap();
+
+        // Assert — GE bits [19:16] = 0b1010
+        assert!(
+            processor.psr.get_ge1(),
+            "GE1 must be set after MSR with DSP ext"
+        );
+        assert!(
+            processor.psr.get_ge3(),
+            "GE3 must be set after MSR with DSP ext"
+        );
+        assert!(!processor.psr.get_ge0(), "GE0 must remain clear");
+        assert!(!processor.psr.get_ge2(), "GE2 must remain clear");
+    }
+
+    // MSR APSR GE gating: without DSP extension the GE write must be silently ignored.
+    #[test]
+    #[cfg(not(feature = "has-dsp-ext"))]
+    fn test_exec_msr_apsr_ge_write_ignored_without_dsp_ext() {
+        // Arrange
+        let mut processor = Processor::new();
+
+        processor.psr.set_ge0(false);
+        processor.psr.set_ge1(false);
+        processor.psr.set_ge2(false);
+        processor.psr.set_ge3(false);
+        // Source register has GE bits set.
+        processor.set_r(Reg::R2, 0x000F_0000);
+
+        // Act — MSR APSR with mask[0]=1 (GE field); should be a no-op without DSP.
+        processor
+            .exec_msr(MsrParams {
+                rn: Reg::R2,
+                sysm: u8::from(SpecialReg::APSR),
+                mask: 0b01,
+            })
+            .unwrap();
+
+        // Assert — GE bits must remain zero because DSP extension is absent.
+        assert!(
+            !processor.psr.get_ge0(),
+            "GE0 must stay clear without DSP ext"
+        );
+        assert!(
+            !processor.psr.get_ge1(),
+            "GE1 must stay clear without DSP ext"
+        );
+        assert!(
+            !processor.psr.get_ge2(),
+            "GE2 must stay clear without DSP ext"
+        );
+        assert!(
+            !processor.psr.get_ge3(),
+            "GE3 must stay clear without DSP ext"
+        );
     }
 }

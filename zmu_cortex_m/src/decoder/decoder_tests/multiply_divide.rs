@@ -82,6 +82,7 @@ fn test_decode_sdiv() {
 }
 
 #[test]
+#[cfg(feature = "has-dsp-ext")]
 fn test_decode_smla_bb() {
     // 0xfb15_ee0b -> SMLABB LR, R5, R11, LR
     assert_eq!(
@@ -99,7 +100,19 @@ fn test_decode_smla_bb() {
     );
 }
 
+// Without the DSP extension the SMLA encoding must fall through to UDF.
 #[test]
+#[cfg(not(feature = "has-dsp-ext"))]
+fn test_decode_smla_bb_without_dsp_ext_is_udf() {
+    // 0xfb15_ee0b  SMLABB LR, R5, R11, LR  — DSP-only encoding
+    match decode_32(0xfb15_ee0b) {
+        Instruction::UDF { thumb32, .. } => assert!(thumb32),
+        other => panic!("expected UDF for SMLA encoding without DSP extension, got {other:?}"),
+    }
+}
+
+#[test]
+#[cfg(feature = "has-dsp-ext")]
 fn test_decode_smul_bb() {
     // 0xfb1e_fe08 -> SMULBB LR, LR, R8
     assert_eq!(
@@ -114,6 +127,17 @@ fn test_decode_smul_bb() {
             }
         }
     );
+}
+
+// Without the DSP extension the SMUL encoding must fall through to UDF.
+#[test]
+#[cfg(not(feature = "has-dsp-ext"))]
+fn test_decode_smul_bb_without_dsp_ext_is_udf() {
+    // 0xfb1e_fe08  SMULBB LR, LR, R8  — DSP-only encoding
+    match decode_32(0xfb1e_fe08) {
+        Instruction::UDF { thumb32, .. } => assert!(thumb32),
+        other => panic!("expected UDF for SMUL encoding without DSP extension, got {other:?}"),
+    }
 }
 
 #[test]

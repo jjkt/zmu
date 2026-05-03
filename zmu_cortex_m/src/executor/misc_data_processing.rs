@@ -6,12 +6,12 @@ use super::ExecuteResult;
 
 use crate::core::{
     bits::Bits,
-    instruction::{
-        BfcParams, BfiParams, BfxParams, MovtParams, Reg2RdRmParams, Reg3NoSetFlagsParams,
-    },
+    instruction::{BfcParams, BfiParams, BfxParams, MovtParams, Reg2RdRmParams},
     operation::sign_extend,
-    register::{Apsr, BaseReg},
+    register::BaseReg,
 };
+#[cfg(feature = "has-dsp-ext")]
+use crate::core::{instruction::Reg3NoSetFlagsParams, register::Apsr};
 
 /// Branching operations
 pub trait IsaMiscDataProcessing {
@@ -24,6 +24,7 @@ pub trait IsaMiscDataProcessing {
     fn exec_rev(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
     fn exec_rev16(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
     fn exec_revsh(&mut self, params: Reg2RdRmParams) -> ExecuteResult;
+    #[cfg(feature = "has-dsp-ext")]
     fn exec_sel(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult;
     fn exec_ubfx(&mut self, params: &BfxParams) -> ExecuteResult;
     fn exec_sbfx(&mut self, params: &BfxParams) -> ExecuteResult;
@@ -126,6 +127,7 @@ impl IsaMiscDataProcessing for Processor {
         Ok(ExecuteSuccess::NotTaken)
     }
 
+    #[cfg(feature = "has-dsp-ext")]
     fn exec_sel(&mut self, params: &Reg3NoSetFlagsParams) -> ExecuteResult {
         if self.condition_passed() {
             let rm = self.get_r(params.rm);
@@ -256,5 +258,22 @@ mod tests {
 
         assert_eq!(core.get_r(Reg::R0), 0xe000_e400);
         assert_eq!(core.get_r(Reg::R1), 0x00e0_00e4);
+    }
+
+    #[cfg(not(feature = "has-dsp-ext"))]
+    #[test]
+    fn test_sel_without_dsp_is_undef() {
+        use crate::core::fault::Fault;
+        use crate::core::instruction::Reg3NoSetFlagsParams;
+        let mut core = Processor::new();
+        let instruction = Instruction::SEL {
+            params: Reg3NoSetFlagsParams {
+                rd: Reg::R0,
+                rn: Reg::R1,
+                rm: Reg::R2,
+            },
+        };
+        let result = core.execute_internal(&instruction);
+        assert_eq!(result, Err(Fault::UndefInstr));
     }
 }

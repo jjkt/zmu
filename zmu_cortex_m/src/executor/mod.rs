@@ -52,6 +52,7 @@ use misc::IsaMisc;
 use misc_data_processing::IsaMiscDataProcessing;
 use multiply::IsaMultiply;
 use packing::IsaPacking;
+#[cfg(feature = "has-dsp-ext")]
 use parallel_add::IsaParallelAddSub;
 use shift::IsaShift;
 use signed_multiply::IsaSignedMultiply;
@@ -466,8 +467,14 @@ impl ExecutorHelper for Processor {
             // Group: Signed Multiply instructions (ARMv7-M DSP extension)
             //
             // --------------------------------------------
+            #[cfg(feature = "has-dsp-ext")]
             Instruction::SMUL { params } => self.exec_smul(params),
+            #[cfg(not(feature = "has-dsp-ext"))]
+            Instruction::SMUL { .. } => Err(Fault::UndefInstr),
+            #[cfg(feature = "has-dsp-ext")]
             Instruction::SMLA { params } => self.exec_smla(params),
+            #[cfg(not(feature = "has-dsp-ext"))]
+            Instruction::SMLA { .. } => Err(Fault::UndefInstr),
 
             // --------------------------------------------
             //
@@ -519,7 +526,10 @@ impl ExecutorHelper for Processor {
             // Group: Parallel add / sub (DSP extension)
             //
             // --------------------------------------------
+            #[cfg(feature = "has-dsp-ext")]
             Instruction::UADD8 { params } => self.exec_uadd8(params),
+            #[cfg(not(feature = "has-dsp-ext"))]
+            Instruction::UADD8 { .. } => Err(Fault::UndefInstr),
 
             // --------------------------------------------
             //
@@ -545,7 +555,10 @@ impl ExecutorHelper for Processor {
             // Group:  Miscellaneous data-processing instructions (DSP extensions)
             //
             // --------------------------------------------
+            #[cfg(feature = "has-dsp-ext")]
             Instruction::SEL { params } => self.exec_sel(params),
+            #[cfg(not(feature = "has-dsp-ext"))]
+            Instruction::SEL { .. } => Err(Fault::UndefInstr),
             // --------------------------------------------
             //
             // Group: Status register access instructions
